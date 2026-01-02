@@ -1,0 +1,9 @@
+# Wolf Prowler - Global/Cross-Cutting Features
+# Enabled = true, Disabled = false
+
+[general]
+docker_support = true                  # Application can be run in Docker.
+kubernetes_support = true              # K8s deployment manifests are available.
+toml_config = true                     # Configuration via TOML files.
+env_var_config = true                  # Configuration via environment variables.
+comprehensive_monitoring_alerting = false # A fully integrated, end-to-end alerting system.

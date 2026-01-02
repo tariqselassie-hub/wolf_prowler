@@ -1,0 +1,307 @@
+# Wolf Prowler Configuration File
+# This file contains all the settings for the Wolf Prowler server.
+# All settings override the hardcoded defaults.
+
+# ==============================================================================
+# DASHBOARD SETTINGS
+# Configuration for the Web UI and Management Interface
+# ==============================================================================
+[dashboard]
+
+# The port on which the web dashboard will listen.
+# Default: 3031
+port = 3031
+
+# Enable or disable the dashboard entirely.
+# Default: true
+# Choices: true, false
+enabled = true
+
+# The directory containing the static web assets (HTML/CSS/JS).
+# Default: None (Server serves embedded assets or defaults)
+# web_dir = "./static"
+
+# The username for the admin account.
+# Default: "Cyberwolf"
+admin_username = "Cyberwolf"
+
+# The password for the admin account.
+# Default: "selassie"
+# SECURITY WARNING: CHANGE THIS IMMEDIATELY IN PRODUCTION
+admin_password = "CHANGE_ME_IN_PRODUCTION"
+
+# Optional email for admin notifications.
+# Default: None
+# admin_email = "admin@example.com"
+
+# The role of the admin account in the Wolf Pack hierarchy.
+# Default: "Omega"
+# Choices:
+#   "Omega" - Pack Leader / Super Admin (Full Access)
+#   "Alpha" - Pack Lieutenant / Network Admin (High Access)
+#   "Beta"  - Standard Member / User (Limited Access)
+#   "Gamma" - Specialist / Guest (Read-only / Specific Access)
+admin_role = "Omega"
+
+# Secret key used for session signing and cryptographic operations.
+# Default: A hardcoded hex string (INSECURE for production)
+# SECURITY WARNING: GENERATE A NEW RANDOM KEY FOR PRODUCTION
+secret_key = "CHANGE_ME_TO_A_RANDOM_HEX_STRING_IN_PRODUCTION"
+
+# ==============================================================================
+# NETWORK SETTINGS
+# P2P Networking and Swarm Configuration
+# ==============================================================================
+[network]
+
+# The port on which the P2P network listener binds.
+# Default: 3030
+port = 3030
+
+# The maximum number of connected peers allowed.
+# Default: 50
+max_peers = 50
+
+# List of bootstrap nodes to connect to on startup.
+# Default: [] (Empty list)
+# Example: ["/ip4/1.2.3.4/tcp/3030/p2p/QmHash...", "/dns4/node.wolfprowler.org/tcp/3030"]
+bootstrap_nodes = []
+
+# Enable mDNS (Multicast DNS) for local peer discovery.
+# Default: true
+# Choices: true, false
+enable_mdns = true
+
+# Enable Kademlia DHT (Distributed Hash Table) for peer routing and content discovery.
+# Default: true
+# Choices: true, false
+enable_dht = true
+
+# Path to the file containing the node's identity keypair.
+# Default: "wolf_prowler_keys.json"
+keypair_path = "wolf_prowler_keys.json"
+
+# Interval in seconds between heartbeat messages to peers.
+# Default: 30
+heartbeat_interval_secs = 30
+
+# ==============================================================================
+# SECURITY SETTINGS
+# Threat Detection and Defense Mechanisms
+# ==============================================================================
+[security]
+
+# The overall security posture of the system.
+# Default: "medium"
+# Choices:
+#   "low"      - Minimal intrusion, high compatibility.
+#   "medium"   - Balanced approach, standard monitoring.
+#   "high"     - Strict traffic analysis, aggressive blocking.
+#   "paranoid" - Zero trust, locks down on slightest anomaly.
+stance = "medium"
+
+# API Key for programmatic access to the Wolf Prowler internal APIs.
+# Default: "dev-key-12345"
+api_key = "CHANGE_ME_IN_PRODUCTION"
+
+# Path to the node's private key for advanced crypto operations (optional).
+# Default: None
+# private_key_path = "/path/to/private.key"
+
+# Threshold score (0.0 - 1.0) at which an activity is considered a threat.
+# Default: 0.7
+threat_threshold = 0.7
+
+# Automatically respond to detected threats (e.g., ban IP, drop connection).
+# Default: true
+# Choices: true, false
+auto_response = true
+
+# Coordinate defense responses with other peers in the pack.
+# Default: true
+# Choices: true, false
+pack_coordination = true
+
+# Maximum peers to maintain (redundant with network.max_peers, but specific to security context).
+# Default: 50
+max_peers = 50
+
+# Threshold score (0.0 - 1.0) required to trust a peer.
+# Default: 0.7
+trust_threshold = 0.7
+
+# Maximum number of messages allowed per window for rate limiting.
+# Default: 100
+rate_limit_messages = 100
+
+# Time window in seconds for rate limiting.
+# Default: 60
+rate_limit_window_secs = 60
+
+# Enable the threat detection engine.
+# Default: true
+# Choices: true, false
+threat_detection_enabled = true
+
+# Enable automatic mitigation actions (like firewall rule creation).
+# Default: true
+# Choices: true, false
+auto_mitigation_enabled = true
+
+# ==============================================================================
+# AI SETTINGS
+# Configuration for Integrated Large Language Models
+# ==============================================================================
+[ai]
+
+# URL of the LLM API endpoint (e.g., local Ollama instance or external API).
+# Default: "http://localhost:11434/api/generate"
+llm_api_url = "http://localhost:11434/api/generate"
+
+# Name of the model to use.
+# Default: "llama3"
+# Choices: Depends on the backend (e.g., "llama3", "mistral", "gpt-4", "claude-3")
+model_name = "llama3"
+
+# ==============================================================================
+# LOGGING SETTINGS
+# System output and log file configuration
+# ==============================================================================
+[logging]
+
+# The minimum level of logs to capture.
+# Default: "info"
+# Choices:
+#   "trace" - Extremely verbose, for deep debugging.
+#   "debug" - detailed information for development.
+#   "info"  - General operational events.
+#   "warn"  - Something went wrong but system is stable.
+#   "error" - Critical failures.
+level = "info"
+
+# Enable logging to a file.
+# Default: false
+# Choices: true, false
+file_logging = false
+
+# Path to the log file (if file_logging is enabled).
+# Default: None
+# log_file = "wolf_prowler.log"
+
+# Output logs in JSON format for structured parsing.
+# Default: false
+# Choices: true, false
+json_format = false
+
+# ==============================================================================
+# CRYPTO SETTINGS
+# Cryptographic primitives and security parameters
+# ==============================================================================
+[crypto]
+
+# The symmetric encryption algorithm to use.
+# Default: "chacha20poly1305"
+# Choices:
+#   "chacha20poly1305" - Fast, secure, mobile-friendly (Preferred).
+#   "aes256gcm"        - HW accelerated, industry standard.
+cipher_suite = "chacha20poly1305"
+
+# The hashing algorithm for integrity checks.
+# Default: "blake3"
+# Choices:
+#   "blake3" - Extremely fast, highly secure (Preferred).
+#   "sha256" - Standard SHA-2.
+#   "sha512" - Stronger SHA-2.
+hash_function = "blake3"
+
+# The security bit-level for key generation.
+# Default: 256
+security_level = 256
+
+# Level of memory protection for sensitive data.
+# Default: 2
+# Choices:
+#   0 - None (Standard memory)
+#   1 - Basic (Zeroize on drop)
+#   2 - High (Mlock/Mprotect + Zeroize)
+#   3 - Paranoid (Sodiuim/mlock + canary + guard pages)
+memory_protection = 2
+
+# Source of entropy for random number generation.
+# Default: "hybrid"
+# Choices:
+#   "os"       - strict OS RNG (/dev/urandom).
+#   "hardware" - RDSEED/RDRAND if available.
+#   "hybrid"   - Mix of OS and User-space CSPRNG (Preferred).
+randomness_source = "hybrid"
+
+# Enable automatic key rotation.
+# Default: true
+# Choices: true, false
+enable_key_rotation = true
+
+# Interval in seconds for key rotation.
+# Default: 3600 (1 hour)
+key_rotation_interval = 3600
+
+# Enable Perfect Forward Secrecy (PFS) for sessions.
+# Default: true
+# Choices: true, false
+enable_perfect_forward_secrecy = true
+
+# Maximum duration of a secure session in seconds.
+# Default: 86400 (24 hours)
+max_session_duration = 86400
+
+# Enable audit logging for cryptographic operations.
+# Default: true
+# Choices: true, false
+enable_audit_logging = true
+
+# ==============================================================================
+# DATABASE SETTINGS
+# Data Persistence Configuration
+# ==============================================================================
+[database]
+
+# The database connection URL.
+# Default: Checks WOLF_DATABASE_URL env var, or "postgres://wolf:selassie@localhost/wolf_prowler"
+url = "postgres://wolf:selassie@localhost/wolf_prowler"
+
+# ==============================================================================
+# EXTERNAL FEEDS SETTINGS
+# Configuration for Threat Intelligence Feeds
+# ==============================================================================
+[external_feeds]
+
+# NVD API Key for vulnerability data from the National Vulnerability Database.
+# Default: None
+# nvd_api_key = "CHANGE_ME"
+
+# Base URL for CVE Search API.
+# Default: "https://cve.circl.lu/api/"
+# cve_search_url = "https://cve.circl.lu/api/"
+
+# VirusTotal API Key for malware reporting.
+# Default: None
+# virustotal_api_key = "CHANGE_ME"
+
+# Cache Time-To-Live (TTL) in seconds for feed data to reduce API calls.
+# Default: 3600 (1 hour)
+cache_ttl_secs = 3600
+
+# (Providers configuration is typically handled dynamically, but overrides can be placed here)
+# Example:
+# [external_feeds.sources]
+# alien_vault = { enabled = true, api_key = "..." }
+
+# ==============================================================================
+# FIREWALL RULES
+# Static Firewall Rules Configuration
+# ==============================================================================
+# [[firewall_rules]]
+# name = "Allow SSH"
+# target = { port = 22 }
+# protocol = "tcp"
+# action = "allow"
+# direction = "inbound"

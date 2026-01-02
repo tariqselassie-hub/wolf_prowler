@@ -1,0 +1,962 @@
+//! Security Monitoring Module
+//!
+//! Consolidated security monitoring and SIEM functionality
+
+use anyhow::{anyhow, Result};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::RwLock;
+use tracing::{info, warn};
+
+/// Security Monitor
+pub struct SecurityMonitor {
+    /// SIEM system
+    siem: Arc<RwLock<SIEM>>,
+    /// Dashboard
+    dashboard: Arc<RwLock<SecurityDashboard>>,
+    /// Metrics collector
+    metrics_collector: Arc<RwLock<MetricsCollector>>,
+    /// Configuration
+    config: MonitoringConfig,
+}
+
+/// SIEM (Security Information and Event Management) system
+#[derive(Debug)]
+pub struct SIEM {
+    /// Event log
+    events: Vec<SecurityEvent>,
+    /// Alerts
+    alerts: Vec<Alert>,
+    /// Rules engine
+    rules: Vec<SecurityRule>,
+    /// Correlation engine
+    correlation_engine: CorrelationEngine,
+    /// Event retention period
+    retention_days: u32,
+}
+
+/// Security event for monitoring
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityEvent {
+    pub id: String,
+    pub timestamp: DateTime<Utc>,
+    pub source: String,
+    pub event_type: String,
+    pub severity: EventSeverity,
+    pub description: String,
+    pub details: HashMap<String, String>,
+    pub tags: Vec<String>,
+}
+
+/// Alert from SIEM
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Alert {
+    pub id: String,
+    pub timestamp: DateTime<Utc>,
+    pub severity: AlertSeverity,
+    pub title: String,
+    pub description: String,
+    pub source_events: Vec<String>,
+    pub recommendations: Vec<String>,
+    pub status: AlertStatus,
+    pub acknowledged: bool,
+    pub acknowledged_by: Option<String>,
+    pub acknowledged_at: Option<DateTime<Utc>>,
+}
+
+/// Security rule
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityRule {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub enabled: bool,
+    pub conditions: Vec<RuleCondition>,
+    pub actions: Vec<RuleAction>,
+    pub severity: AlertSeverity,
+    pub created_at: DateTime<Utc>,
+    pub triggered_count: u64,
+}
+
+/// Rule condition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RuleCondition {
+    EventTypeEquals(String),
+    SeverityEquals(EventSeverity),
+    SourceEquals(String),
+    TimeWindow(Duration),
+    EventCountThreshold { count: u32, window: Duration },
+    FieldContains { field: String, value: String },
+    CustomCondition(String),
+}
+
+/// Rule action
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RuleAction {
+    CreateAlert,
+    SendNotification,
+    BlockSource,
+    Escalate,
+    LogOnly,
+    CustomAction(String),
+}
+
+/// Correlation engine for security events
+#[derive(Debug, Clone)]
+pub struct CorrelationEngine {
+    /// Active correlation rules
+    correlation_rules: Vec<CorrelationRule>,
+}
+
+/// Correlation rule
+#[derive(Debug, Clone)]
+pub struct CorrelationRule {
+    pub id: String,
+    pub name: String,
+    pub pattern: EventPattern,
+    pub time_window: Duration,
+    pub min_events: u32,
+    pub alert_on_match: bool,
+}
+
+/// Event pattern for correlation
+#[derive(Debug, Clone)]
+pub struct EventPattern {
+    pub event_types: Vec<String>,
+    pub source_pattern: Option<String>,
+    pub field_conditions: HashMap<String, String>,
+}
+
+/// Security dashboard
+#[derive(Debug)]
+pub struct SecurityDashboard {
+    /// Real-time metrics
+    metrics: HashMap<String, f64>,
+    /// Active alerts
+    active_alerts: Vec<Alert>,
+    /// System health indicators
+    health_indicators: HashMap<String, HealthStatus>,
+    /// Last updated timestamp
+    last_updated: DateTime<Utc>,
+}
+
+/// Health status
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum HealthStatus {
+    Healthy,
+    Warning,
+    Critical,
+    Unknown,
+}
+
+/// Metrics collector
+#[derive(Debug)]
+pub struct MetricsCollector {
+    /// Time series metrics
+    time_series: HashMap<String, Vec<TimeSeriesPoint>>,
+    /// Counters
+    counters: HashMap<String, u64>,
+    /// Gauges
+    gauges: HashMap<String, f64>,
+    /// Histograms
+    histograms: HashMap<String, Vec<f64>>,
+}
+
+/// Time series data point
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimeSeriesPoint {
+    pub timestamp: DateTime<Utc>,
+    pub value: f64,
+    pub labels: HashMap<String, String>,
+}
+
+/// Event severity
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum EventSeverity {
+    Info,
+    Low,
+    Medium,
+    High,
+    Critical,
+}
+
+/// Alert severity
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum AlertSeverity {
+    Info,
+    Low,
+    Medium,
+    High,
+    Critical,
+}
+
+/// Alert status
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum AlertStatus {
+    Open,
+    Investigating,
+    Resolved,
+    FalsePositive,
+    Closed,
+}
+
+/// Monitoring configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MonitoringConfig {
+    pub event_retention_days: u32,
+    pub alert_retention_days: u32,
+    pub real_time_monitoring: bool,
+    pub enable_correlation: bool,
+    pub metrics_retention_days: u32,
+    pub dashboard_refresh_interval_seconds: u64,
+    pub alert_log_path: std::path::PathBuf,
+}
+
+impl Default for MonitoringConfig {
+    fn default() -> Self {
+        Self {
+            event_retention_days: 30,
+            alert_retention_days: 90,
+            real_time_monitoring: true,
+            enable_correlation: true,
+            metrics_retention_days: 7,
+            dashboard_refresh_interval_seconds: 5,
+            alert_log_path: std::path::PathBuf::from("logs/alerts.jsonl"),
+        }
+    }
+}
+
+/// Monitoring status
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MonitoringStatus {
+    pub total_events: usize,
+    pub active_alerts: usize,
+    pub total_rules: usize,
+    pub enabled_rules: usize,
+    pub metrics_count: usize,
+    pub health_status: HealthStatus,
+    pub last_event_time: Option<DateTime<Utc>>,
+    pub events_processed: u64,
+}
+
+impl SIEM {
+    /// Create new SIEM instance
+    pub fn new(retention_days: u32) -> Self {
+        let mut siem = Self {
+            events: Vec::new(),
+            alerts: Vec::new(),
+            rules: Vec::new(),
+            correlation_engine: CorrelationEngine {
+                correlation_rules: Vec::new(),
+            },
+            retention_days,
+        };
+
+        // Add default security rules
+        siem.add_default_rules();
+        siem
+    }
+
+    /// Add default security rules
+    fn add_default_rules(&mut self) {
+        let default_rules = vec![
+            SecurityRule {
+                id: "multiple_failed_logins".to_string(),
+                name: "Multiple Failed Logins".to_string(),
+                description: "Detect multiple failed login attempts".to_string(),
+                enabled: true,
+                conditions: vec![
+                    RuleCondition::EventTypeEquals("authentication_failure".to_string()),
+                    RuleCondition::EventCountThreshold {
+                        count: 5,
+                        window: Duration::from_secs(300),
+                    },
+                ],
+                actions: vec![RuleAction::CreateAlert, RuleAction::BlockSource],
+                severity: AlertSeverity::High,
+                created_at: Utc::now(),
+                triggered_count: 0,
+            },
+            SecurityRule {
+                id: "suspicious_network_activity".to_string(),
+                name: "Suspicious Network Activity".to_string(),
+                description: "Detect unusual network patterns".to_string(),
+                enabled: true,
+                conditions: vec![
+                    RuleCondition::EventTypeEquals("network_event".to_string()),
+                    RuleCondition::SeverityEquals(EventSeverity::High),
+                ],
+                actions: vec![RuleAction::CreateAlert, RuleAction::SendNotification],
+                severity: AlertSeverity::Medium,
+                created_at: Utc::now(),
+                triggered_count: 0,
+            },
+            SecurityRule {
+                id: "privilege_escalation".to_string(),
+                name: "Privilege Escalation Attempt".to_string(),
+                description: "Detect privilege escalation attempts".to_string(),
+                enabled: true,
+                conditions: vec![
+                    RuleCondition::EventTypeEquals("authorization_failure".to_string()),
+                    RuleCondition::FieldContains {
+                        field: "requested_permission".to_string(),
+                        value: "admin".to_string(),
+                    },
+                ],
+                actions: vec![RuleAction::CreateAlert, RuleAction::Escalate],
+                severity: AlertSeverity::Critical,
+                created_at: Utc::now(),
+                triggered_count: 0,
+            },
+        ];
+
+        self.rules.extend(default_rules);
+    }
+
+    /// Process a security event
+    pub fn process_event(&mut self, event: SecurityEvent) -> Vec<Alert> {
+        // Store the event
+        self.events.push(event.clone());
+
+        // Evaluate rules
+        let mut triggered_alerts = Vec::new();
+        let rules_to_check: Vec<(usize, SecurityRule)> = self
+            .rules
+            .iter_mut()
+            .enumerate()
+            .filter(|(_, rule)| rule.enabled)
+            .map(|(i, rule)| (i, rule.clone()))
+            .collect();
+
+        for (rule_index, rule) in rules_to_check {
+            if self.evaluate_rule(&rule, &event) {
+                // Update the original rule's trigger count
+                if let Some(original_rule) = self.rules.get_mut(rule_index) {
+                    original_rule.triggered_count += 1;
+                    let rule_clone = original_rule.clone();
+                    let rule_name = original_rule.name.clone();
+
+                    // Execute rule actions
+                    for action in &rule_clone.actions {
+                        match action {
+                            RuleAction::CreateAlert => {
+                                let alert = self.create_alert_from_rule(&rule_clone, &event);
+                                triggered_alerts.push(alert);
+                            }
+                            RuleAction::SendNotification => {
+                                // Send notification (placeholder)
+                                info!("📧 Sending notification for rule: {}", rule_name);
+                            }
+                            RuleAction::BlockSource => {
+                                // Block source (placeholder)
+                                warn!("🚫 Blocking source: {}", event.source);
+                            }
+                            RuleAction::Escalate => {
+                                // Escalate (placeholder)
+                                warn!("⚠️ Escalating alert for rule: {}", rule_name);
+                            }
+                            RuleAction::LogOnly => {
+                                info!("📝 Rule triggered (log only): {}", rule_name);
+                            }
+                            RuleAction::CustomAction(action) => {
+                                info!("🔧 Executing custom action: {}", action);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Process correlations
+        if let Some(correlated_alert) = self.correlation_engine.process_event(&event) {
+            triggered_alerts.push(correlated_alert);
+        }
+
+        triggered_alerts
+    }
+
+    /// Evaluate a rule against an event
+    fn evaluate_rule(&self, rule: &SecurityRule, event: &SecurityEvent) -> bool {
+        for condition in &rule.conditions {
+            if !self.evaluate_condition(condition, event) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Evaluate a single condition
+    fn evaluate_condition(&self, condition: &RuleCondition, event: &SecurityEvent) -> bool {
+        match condition {
+            RuleCondition::EventTypeEquals(event_type) => event.event_type == *event_type,
+            RuleCondition::SeverityEquals(severity) => event.severity == *severity,
+            RuleCondition::SourceEquals(source) => event.source == *source,
+            RuleCondition::TimeWindow(_window) => {
+                // Time window conditions require multiple events
+                true
+            }
+            RuleCondition::EventCountThreshold { count, window } => {
+                // Count events within time window
+                let now = Utc::now();
+                let window_start = now - *window;
+
+                let event_count = self
+                    .events
+                    .iter()
+                    .filter(|e| {
+                        e.timestamp >= window_start
+                            && e.timestamp <= now
+                            && e.event_type == event.event_type
+                            && e.source == event.source
+                    })
+                    .count();
+
+                event_count >= *count as usize
+            }
+            RuleCondition::FieldContains { field, value } => event
+                .details
+                .get(field)
+                .map(|v| v.contains(value))
+                .unwrap_or(false),
+            RuleCondition::CustomCondition(_condition) => {
+                // Custom condition evaluation (placeholder)
+                true
+            }
+        }
+    }
+
+    /// Create alert from rule
+    fn create_alert_from_rule(&self, rule: &SecurityRule, event: &SecurityEvent) -> Alert {
+        Alert {
+            id: uuid::Uuid::new_v4().to_string(),
+            timestamp: Utc::now(),
+            severity: rule.severity,
+            title: format!("Security Alert: {}", rule.name),
+            description: format!(
+                "Rule '{}' triggered by event: {}",
+                rule.name, event.description
+            ),
+            source_events: vec![event.id.clone()],
+            recommendations: vec![
+                "Investigate the source of the event".to_string(),
+                "Review related security logs".to_string(),
+                "Consider blocking the source if malicious".to_string(),
+            ],
+            status: AlertStatus::Open,
+            acknowledged: false,
+            acknowledged_by: None,
+            acknowledged_at: None,
+        }
+    }
+
+    /// Get recent events
+    pub fn get_recent_events(&self, since: DateTime<Utc>) -> Vec<&SecurityEvent> {
+        self.events
+            .iter()
+            .filter(|e| e.timestamp >= since)
+            .collect()
+    }
+
+    /// Get active alerts
+    pub fn get_active_alerts(&self) -> Vec<&Alert> {
+        self.alerts
+            .iter()
+            .filter(|a| matches!(a.status, AlertStatus::Open | AlertStatus::Investigating))
+            .collect()
+    }
+
+    /// Acknowledge an alert
+    pub fn acknowledge_alert(&mut self, alert_id: &str, acknowledged_by: &str) -> Result<()> {
+        if let Some(alert) = self.alerts.iter_mut().find(|a| a.id == alert_id) {
+            alert.acknowledged = true;
+            alert.acknowledged_by = Some(acknowledged_by.to_string());
+            alert.acknowledged_at = Some(Utc::now());
+            info!("✅ Alert acknowledged: {}", alert_id);
+            Ok(())
+        } else {
+            Err(anyhow!("Alert not found: {}", alert_id))
+        }
+    }
+
+    /// Cleanup old events
+    pub fn cleanup_old_events(&mut self) {
+        let cutoff = Utc::now() - chrono::Duration::days(self.retention_days as i64);
+        let initial_count = self.events.len();
+
+        self.events.retain(|e| e.timestamp >= cutoff);
+
+        let removed = initial_count - self.events.len();
+        if removed > 0 {
+            info!("🧹 Cleaned up {} old SIEM events", removed);
+        }
+    }
+}
+
+impl CorrelationEngine {
+    /// Process event for correlation
+    pub fn process_event(&mut self, event: &SecurityEvent) -> Option<Alert> {
+        // Check correlation rules
+        for rule in &self.correlation_rules {
+            if self.check_correlation_rule(rule, event) {
+                return Some(self.create_correlation_alert(rule, event));
+            }
+        }
+        None
+    }
+
+    /// Check correlation rule
+    fn check_correlation_rule(&self, rule: &CorrelationRule, event: &SecurityEvent) -> bool {
+        // Simplified correlation logic
+        rule.pattern.event_types.contains(&event.event_type)
+    }
+
+    /// Create correlation alert
+    fn create_correlation_alert(&self, rule: &CorrelationRule, event: &SecurityEvent) -> Alert {
+        Alert {
+            id: uuid::Uuid::new_v4().to_string(),
+            timestamp: Utc::now(),
+            severity: AlertSeverity::High,
+            title: format!("Correlation Alert: {}", rule.name),
+            description: format!("Correlation pattern detected: {}", event.description),
+            source_events: vec![event.id.clone()],
+            recommendations: vec![
+                "Investigate correlated events".to_string(),
+                "Review attack patterns".to_string(),
+            ],
+            status: AlertStatus::Open,
+            acknowledged: false,
+            acknowledged_by: None,
+            acknowledged_at: None,
+        }
+    }
+}
+
+impl SecurityDashboard {
+    /// Create new security dashboard
+    pub fn new() -> Self {
+        Self {
+            metrics: HashMap::new(),
+            active_alerts: Vec::new(),
+            health_indicators: HashMap::new(),
+            last_updated: Utc::now(),
+        }
+    }
+
+    /// Update dashboard metrics
+    pub fn update_metrics(&mut self, metrics: HashMap<String, f64>) {
+        self.metrics = metrics;
+        self.last_updated = Utc::now();
+    }
+
+    /// Update health indicators
+    pub fn update_health(&mut self, indicators: HashMap<String, HealthStatus>) {
+        self.health_indicators = indicators;
+        self.last_updated = Utc::now();
+    }
+
+    /// Get dashboard summary
+    pub fn get_summary(&self) -> DashboardSummary {
+        DashboardSummary {
+            metrics: self.metrics.clone(),
+            active_alerts: self.active_alerts.len(),
+            health_status: self.overall_health(),
+            last_updated: self.last_updated,
+        }
+    }
+
+    /// Calculate overall health
+    fn overall_health(&self) -> HealthStatus {
+        if self
+            .health_indicators
+            .values()
+            .any(|&s| s == HealthStatus::Critical)
+        {
+            HealthStatus::Critical
+        } else if self
+            .health_indicators
+            .values()
+            .any(|&s| s == HealthStatus::Warning)
+        {
+            HealthStatus::Warning
+        } else if self
+            .health_indicators
+            .values()
+            .all(|&s| s == HealthStatus::Healthy)
+        {
+            HealthStatus::Healthy
+        } else {
+            HealthStatus::Unknown
+        }
+    }
+}
+
+impl Default for SecurityDashboard {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl MetricsCollector {
+    /// Create new metrics collector
+    pub fn new() -> Self {
+        Self {
+            time_series: HashMap::new(),
+            counters: HashMap::new(),
+            gauges: HashMap::new(),
+            histograms: HashMap::new(),
+        }
+    }
+
+    /// Record a time series point
+    pub fn record_time_series(
+        &mut self,
+        metric_name: &str,
+        value: f64,
+        labels: HashMap<String, String>,
+    ) {
+        let point = TimeSeriesPoint {
+            timestamp: Utc::now(),
+            value,
+            labels,
+        };
+
+        self.time_series
+            .entry(metric_name.to_string())
+            .or_default()
+            .push(point);
+    }
+
+    /// Increment a counter
+    pub fn increment_counter(&mut self, counter_name: &str) {
+        *self.counters.entry(counter_name.to_string()).or_insert(0) += 1;
+    }
+
+    /// Set a gauge value
+    pub fn set_gauge(&mut self, gauge_name: &str, value: f64) {
+        self.gauges.insert(gauge_name.to_string(), value);
+    }
+
+    /// Record a histogram value
+    pub fn record_histogram(&mut self, histogram_name: &str, value: f64) {
+        self.histograms
+            .entry(histogram_name.to_string())
+            .or_default()
+            .push(value);
+    }
+
+    /// Get metrics summary
+    pub fn get_summary(&self) -> MetricsSummary {
+        MetricsSummary {
+            time_series_count: self.time_series.len(),
+            counters: self.counters.clone(),
+            gauges: self.gauges.clone(),
+            histogram_stats: self.calculate_histogram_stats(),
+        }
+    }
+
+    /// Calculate histogram statistics
+    fn calculate_histogram_stats(&self) -> HashMap<String, HistogramStats> {
+        let mut stats = HashMap::new();
+
+        for (name, values) in &self.histograms {
+            if !values.is_empty() {
+                let sorted_values = {
+                    let mut v = values.clone();
+                    v.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                    v
+                };
+
+                let count = values.len();
+                let sum: f64 = values.iter().sum();
+                let mean = sum / count as f64;
+                let median = if count % 2 == 0 {
+                    (sorted_values[count / 2 - 1] + sorted_values[count / 2]) / 2.0
+                } else {
+                    sorted_values[count / 2]
+                };
+
+                stats.insert(
+                    name.clone(),
+                    HistogramStats {
+                        count,
+                        min: sorted_values[0],
+                        max: sorted_values[count - 1],
+                        mean,
+                        median,
+                        p95: sorted_values[(count as f64 * 0.95) as usize],
+                        p99: sorted_values[(count as f64 * 0.99) as usize],
+                    },
+                );
+            }
+        }
+
+        stats
+    }
+}
+
+impl Default for MetricsCollector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Dashboard summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DashboardSummary {
+    pub metrics: HashMap<String, f64>,
+    pub active_alerts: usize,
+    pub health_status: HealthStatus,
+    pub last_updated: DateTime<Utc>,
+}
+
+/// Metrics summary
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetricsSummary {
+    pub time_series_count: usize,
+    pub counters: HashMap<String, u64>,
+    pub gauges: HashMap<String, f64>,
+    pub histogram_stats: HashMap<String, HistogramStats>,
+}
+
+/// Histogram statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HistogramStats {
+    pub count: usize,
+    pub min: f64,
+    pub max: f64,
+    pub mean: f64,
+    pub median: f64,
+    pub p95: f64,
+    pub p99: f64,
+}
+
+impl SecurityMonitor {
+    /// Create new security monitor
+    pub fn new(config: MonitoringConfig) -> Self {
+        Self {
+            siem: Arc::new(RwLock::new(SIEM::new(config.event_retention_days))),
+            dashboard: Arc::new(RwLock::new(SecurityDashboard::new())),
+            metrics_collector: Arc::new(RwLock::new(MetricsCollector::new())),
+            config,
+        }
+    }
+
+    /// Initialize security monitor
+    pub async fn initialize(&self) -> Result<()> {
+        info!("📊 Initializing Security Monitor");
+
+        // Ensure alert log directory exists
+        if let Some(parent) = self.config.alert_log_path.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+
+        // Start background tasks if real-time monitoring is enabled
+        if self.config.real_time_monitoring {
+            info!("  🔄 Real-time monitoring enabled");
+        }
+
+        info!("📊 Security Monitor initialized");
+        Ok(())
+    }
+
+    /// Log a security event
+    pub async fn log_event(&self, event: crate::SecurityEvent) -> Result<()> {
+        let security_event = SecurityEvent {
+            id: event.id,
+            timestamp: event.timestamp,
+            source: event
+                .peer_id
+                .clone()
+                .unwrap_or_else(|| "system".to_string()),
+            event_type: format!("{:?}", event.event_type),
+            severity: match event.severity {
+                crate::SecuritySeverity::Low => EventSeverity::Low,
+                crate::SecuritySeverity::Medium => EventSeverity::Medium,
+                crate::SecuritySeverity::High => EventSeverity::High,
+                crate::SecuritySeverity::Critical => EventSeverity::Critical,
+            },
+            description: event.description,
+            details: event.metadata,
+            tags: vec![],
+        };
+
+        let mut siem = self.siem.write().await;
+        let alerts = siem.process_event(security_event);
+        drop(siem); // Release lock before async ops
+
+        // Update metrics
+        let mut metrics = self.metrics_collector.write().await;
+        metrics.increment_counter("total_events");
+        drop(metrics);
+
+        // Process triggered alerts
+        for alert in alerts {
+            self.send_alert(alert).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Send an alert
+    pub async fn send_alert(&self, alert: Alert) -> Result<()> {
+        let mut siem = self.siem.write().await;
+        siem.alerts.push(alert.clone());
+        drop(siem);
+
+        // Update metrics
+        let mut metrics = self.metrics_collector.write().await;
+        metrics.increment_counter("total_alerts");
+        drop(metrics);
+
+        warn!("🚨 Alert sent: {}", alert.title);
+
+        // Log alert to file
+        self.log_alert_to_file(&alert).await?;
+
+        Ok(())
+    }
+
+    /// Log alert to persistent file
+    async fn log_alert_to_file(&self, alert: &Alert) -> Result<()> {
+        let log_entry = serde_json::to_string(&alert)?;
+
+        let path = &self.config.alert_log_path;
+
+        use tokio::io::AsyncWriteExt;
+        let mut file = tokio::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .await?;
+
+        file.write_all(format!("{}\n", log_entry).as_bytes())
+            .await?;
+
+        Ok(())
+    }
+
+    /// Get all security events
+    pub async fn get_events(&self) -> Vec<SecurityEvent> {
+        let siem = self.siem.read().await;
+        siem.events.clone()
+    }
+
+    /// Get monitoring status
+    pub async fn get_status(&self) -> MonitoringStatus {
+        let siem = self.siem.read().await;
+        let metrics = self.metrics_collector.read().await;
+        let dashboard = self.dashboard.read().await;
+
+        let total_events = siem.events.len();
+        let active_alerts = siem.get_active_alerts().len();
+        let total_rules = siem.rules.len();
+        let enabled_rules = siem.rules.iter().filter(|r| r.enabled).count();
+        let metrics_count =
+            metrics.time_series.len() + metrics.counters.len() + metrics.gauges.len();
+
+        let health_status = dashboard.overall_health();
+        let last_event_time = siem.events.iter().map(|e| e.timestamp).max();
+
+        MonitoringStatus {
+            total_events,
+            active_alerts,
+            total_rules,
+            enabled_rules,
+            events_processed: metrics.counters.get("total_events").copied().unwrap_or(0), // Assuming total_events is a counter
+            metrics_count,
+            health_status,
+            last_event_time,
+        }
+    }
+
+    /// Shutdown security monitor
+    pub async fn shutdown(&self) -> Result<()> {
+        info!("📊 Shutting down Security Monitor");
+
+        // Cleanup resources
+        {
+            let mut siem = self.siem.write().await;
+            siem.cleanup_old_events();
+        }
+
+        info!("📊 Security Monitor shutdown complete");
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_security_monitor_creation() {
+        let config = MonitoringConfig::default();
+        let monitor = SecurityMonitor::new(config);
+        monitor.initialize().await.unwrap();
+
+        let status = monitor.get_status().await;
+        assert_eq!(status.total_rules, 3); // Default rules
+        assert_eq!(status.enabled_rules, 3);
+    }
+
+    #[test]
+    fn test_siem_creation() {
+        let siem = SIEM::new(30);
+        assert_eq!(siem.rules.len(), 3); // Default rules
+    }
+
+    #[test]
+    fn test_security_rule_evaluation() {
+        let siem = SIEM::new(30);
+        let rule = &siem.rules[0]; // multiple_failed_logins rule
+
+        let event = SecurityEvent {
+            id: uuid::Uuid::new_v4().to_string(),
+            timestamp: Utc::now(),
+            source: "test_source".to_string(),
+            event_type: "authentication_failure".to_string(),
+            severity: EventSeverity::Medium,
+            description: "Failed login".to_string(),
+            details: HashMap::new(),
+            tags: vec![],
+        };
+
+        // This won't trigger the count threshold with just one event
+        assert!(!siem.evaluate_rule(rule, &event));
+    }
+
+    #[test]
+    fn test_metrics_collector() {
+        let mut collector = MetricsCollector::new();
+
+        collector.increment_counter("test_counter");
+        collector.set_gauge("test_gauge", 42.0);
+        collector.record_histogram("test_histogram", 1.0);
+        collector.record_histogram("test_histogram", 2.0);
+
+        let summary = collector.get_summary();
+        assert_eq!(summary.counters.get("test_counter"), Some(&1));
+        assert_eq!(summary.gauges.get("test_gauge"), Some(&42.0));
+        assert_eq!(
+            summary.histogram_stats.get("test_histogram").unwrap().count,
+            2
+        );
+    }
+
+    #[test]
+    fn test_dashboard_health() {
+        let mut dashboard = SecurityDashboard::new();
+
+        let mut indicators = HashMap::new();
+        indicators.insert("system".to_string(), HealthStatus::Healthy);
+        indicators.insert("network".to_string(), HealthStatus::Warning);
+
+        dashboard.update_health(indicators);
+        let summary = dashboard.get_summary();
+
+        assert_eq!(summary.health_status, HealthStatus::Warning);
+    }
+}

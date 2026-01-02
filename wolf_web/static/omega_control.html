@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOLF PROWLER | OMEGA CONTROL</title>
+    <link href="css/output.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --omega-primary: #FFD700; /* Gold */
+            --omega-danger: #FF0000;
+            --omega-bg: #0a0a0a;
+            --omega-panel: #111;
+        }
+        body {
+            background-color: var(--omega-bg);
+            color: #eee;
+            font-family: 'Courier New', monospace; /* Tech feel */
+        }
+        .omega-border {
+            border: 1px solid var(--omega-primary);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+        }
+        .omega-btn {
+            background: transparent;
+            border: 1px solid var(--omega-primary);
+            color: var(--omega-primary);
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+        .omega-btn:hover {
+            background: var(--omega-primary);
+            color: #000;
+            box-shadow: 0 0 15px var(--omega-primary);
+        }
+        .omega-btn-danger {
+            border-color: var(--omega-danger);
+            color: var(--omega-danger);
+        }
+        .omega-btn-danger:hover {
+            background: var(--omega-danger);
+            color: #fff;
+            box-shadow: 0 0 15px var(--omega-danger);
+        }
+        .locked-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="overflow-hidden">
+
+    <!-- Security Gate -->
+    <div id="security-gate" class="locked-overlay">
+        <i data-lucide="lock" class="w-16 h-16 text-yellow-500 mb-4"></i>
+        <h1 class="text-3xl text-yellow-500 font-bold mb-2">RESTRICTED ACCESS</h1>
+        <p class="text-gray-400 mb-6">Omega Clearance Required</p>
+        <div id="unauthorized-msg" class="hidden text-red-500 text-xl font-bold blink">ACCESS DENIED</div>
+        <div id="authorized-msg" class="hidden text-green-500 text-xl font-bold">IDENTITY CONFIRMED</div>
+    </div>
+
+    <!-- Main Interface -->
+    <div id="omega-interface" class="w-full h-screen flex flex-col opacity-0 transition-opacity duration-1000 hidden">
+        <!-- Header -->
+        <header class="w-full h-16 border-b border-yellow-500/30 flex items-center justify-between px-6 bg-black/50 backdrop-blur-md">
+            <div class="flex items-center gap-3">
+                <i data-lucide="crown" class="w-8 h-8 text-yellow-500"></i>
+                <h1 class="text-2xl font-bold text-yellow-500 tracking-widest">OMEGA CONTROL</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-xs text-yellow-500/70">SYSTEM AUTHORITY: ABSOLUTE</div>
+                <button onclick="window.location.href='/dashboard_modern.html'" class="omega-btn text-xs">EXIT TO DASHBOARD</button>
+            </div>
+        </header>
+
+        <!-- Content Grid -->
+        <main class="flex-1 p-6 grid grid-cols-12 gap-6 overflow-y-auto">
+            
+            <!-- Peer Dominance -->
+            <div class="col-span-8 bg-black/40 p-6 border border-yellow-500/20 rounded relative">
+                <div class="absolute top-0 right-0 p-2 bg-yellow-500/10 text-yellow-500 text-xs font-bold border-l border-b border-yellow-500/20">WOLF PACK HIERARCHY</div>
+                <h2 class="text-xl text-yellow-500 mb-6 flex items-center gap-2">
+                    <i data-lucide="users" class="w-5 h-5"></i> PACK MANAGEMENT
+                </h2>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-yellow-500/50 text-sm border-b border-yellow-500/20">
+                                <th class="p-3">PEER ID</th>
+                                <th class="p-3">CURRENT ROLE</th>
+                                <th class="p-3">PRESTIGE</th>
+                                <th class="p-3">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="peer-list">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Global Controls -->
+            <div class="col-span-4 flex flex-col gap-6">
+                <!-- System State -->
+                <div class="bg-black/40 p-6 border border-yellow-500/20 rounded h-1/2">
+                    <h2 class="text-xl text-yellow-500 mb-4 flex items-center gap-2">
+                        <i data-lucide="cpu" class="w-5 h-5"></i> SYSTEM OVERRIDES
+                    </h2>
+                    <div class="grid grid-cols-1 gap-4">
+                        <button onclick="forceConsensus()" class="omega-btn w-full flex items-center justify-center gap-2">
+                            <i data-lucide="gavel"></i> FORCE CONSENSUS
+                        </button>
+                        <button onclick="triggerDecay()" class="omega-btn w-full flex items-center justify-center gap-2">
+                            <i data-lucide="trending-down"></i> TRIGGER DECAY CYCLE
+                        </button>
+                        <button onclick="broadcastDirective()" class="omega-btn w-full flex items-center justify-center gap-2">
+                            <i data-lucide="radio"></i> BROADCAST DIRECTIVE
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="bg-red-900/10 p-6 border border-red-500/30 rounded h-1/2">
+                     <h2 class="text-xl text-red-500 mb-4 flex items-center gap-2">
+                        <i data-lucide="alert-triangle" class="w-5 h-5"></i> DANGER ZONE
+                    </h2>
+                    <div class="space-y-4">
+                        <button onclick="shutdownSwarm()" class="omega-btn omega-btn-danger w-full flex items-center justify-center gap-2">
+                            <i data-lucide="power-off"></i> EMERGENCY SHUTDOWN
+                        </button>
+                        <button onclick="purgeStrayNodes()" class="omega-btn omega-btn-danger w-full flex items-center justify-center gap-2">
+                            <i data-lucide="trash-2"></i> PURGE STRAY NODES
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="js/omega.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

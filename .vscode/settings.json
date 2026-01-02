@@ -1,0 +1,37 @@
+{
+    "files.autoSaveWhenNoErrors": true,
+    "files.simpleDialog.enable": true,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.defaultFormatterOptions": {
+        "prettier.singleQuote": true,
+        "prettier.trailingComma": "all",
+        "prettier.printWidth": 80
+    },
+    "rust-analyzer.check.workspace": true,
+    "rust-analyzer.lens.enable": true,
+    "rust-analyzer.lens.debug.enable": true,
+    "rust-analyzer.cargo.loadOutDirsFromCheck": true,
+    "rust-analyzer.inlayHints.enable": true,
+    "rust-analyzer.inlayHints.typeHints": true,
+    "rust-analyzer.inlayHints.parameterHints": true,
+    "rust-analyzer.inlayHints.chainingHints": true,
+    "rust-analyzer.inlayHints.closureReturnTypeHints": true,
+    "rust-analyzer.inlayHints.maxLength": 25,
+    "rust-analyzer.procMacro.enable": true,
+    "rust-analyzer.hover.actions.enable": true,
+
+    "servers": {
+        "hf-mcp-server": {
+            "url": "https://huggingface.co/mcp?login"
+        }
+    },
+
+
+    "ollama.model": "gwen2.5-coder-7b",
+    "ollama.apiEndpoint": "http://localhost:11434",
+    "ollama.runInTerminal": true,
+    "ollama.maxTokens": 2048,
+    "ollama.temperature": 0.2,
+    "ollama.topP": 0.9
+}

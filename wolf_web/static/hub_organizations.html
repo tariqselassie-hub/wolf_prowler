@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - Organization Management</title>
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://unpkg.com 'unsafe-inline'; style-src 'self' https://cdn.tailwindcss.com 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; font-src 'self' https: data:;">
+    
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        :root {
+            --primary: #8b5cf6;
+            --primary-dark: #7c3aed;
+            --secondary: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --light: #f8fafc;
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        
+        .glass-morphism {
+            background: rgba(30, 41, 59, 0.7);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-pill {
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-active { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .status-suspended { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.8);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div>
+                <nav class="flex items-center text-sm text-gray-400 mb-2 space-x-2">
+                    <a href="/nav" class="hover:text-purple-400 transition-colors">Navigation Hub</a>
+                    <span>/</span>
+                    <span class="text-gray-200">Organization Management</span>
+                </nav>
+                <h1 class="text-3xl font-extrabold text-white flex items-center">
+                    <i data-lucide="building-2" class="mr-3 text-purple-500"></i>
+                    SaaS Hub Management
+                </h1>
+                <p class="text-gray-400 mt-1">Manage tenant organizations and decentralized agents.</p>
+            </div>
+            
+            <button onclick="toggleModal('createModal')" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-semibold transition-all flex items-center shadow-lg shadow-purple-900/20">
+                <i data-lucide="plus-circle" class="mr-2 w-5 h-5"></i>
+                New Organization
+            </button>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="glass-morphism p-6 rounded-2xl">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm font-medium">Total Organizations</span>
+                    <i data-lucide="users" class="text-blue-400 w-5 h-5"></i>
+                </div>
+                <div class="text-3xl font-bold text-white" id="totalOrgs">--</div>
+            </div>
+            <div class="glass-morphism p-6 rounded-2xl">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm font-medium">Active Agents</span>
+                    <i data-lucide="cpu" class="text-emerald-400 w-5 h-5"></i>
+                </div>
+                <div class="text-3xl font-bold text-white" id="totalAgents">--</div>
+            </div>
+            <div class="glass-morphism p-6 rounded-2xl">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-sm font-medium">Critical Alerts</span>
+                    <i data-lucide="shield-alert" class="text-rose-400 w-5 h-5"></i>
+                </div>
+                <div class="text-3xl font-bold text-white" id="totalAlerts">--</div>
+            </div>
+        </div>
+
+        <!-- Organizations Table -->
+        <div class="glass-morphism rounded-2xl overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-gray-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h2 class="text-xl font-bold text-white">Organizations</h2>
+                <div class="relative">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
+                    <input type="text" placeholder="Search orgs..." class="bg-gray-800/50 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all w-full md:w-64">
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-800/30 text-gray-400 uppercase text-xs font-semibold tracking-wider">
+                        <tr>
+                            <th class="px-6 py-4">Organization Name</th>
+                            <th class="px-6 py-4">Org ID</th>
+                            <th class="px-6 py-4 text-center">Agents</th>
+                            <th class="px-6 py-4">Status</th>
+                            <th class="px-6 py-4">Created</th>
+                            <th class="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orgTableBody" class="divide-y divide-gray-700/50">
+                        <!-- Loading State -->
+                        <tr id="loadingRow">
+                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                <div class="flex flex-col items-center">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-4"></div>
+                                    Synchronizing with persistence layer...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Organization Modal -->
+    <div id="createModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="modal-overlay absolute inset-0 text-white" onclick="toggleModal('createModal')"></div>
+        <div class="glass-morphism w-full max-w-md rounded-2xl shadow-2xl p-8 relative z-10 animate-fade-in border border-purple-500/20">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-white">Create Organization</h3>
+                <button onclick="toggleModal('createModal')" class="text-gray-400 hover:text-white transition-colors" title="Close Modal">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                    <span class="sr-only">Close</span>
+                </button>
+            </div>
+            
+            <form id="createOrgForm" onsubmit="handleCreate(event)" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1.5">Organization Name</label>
+                    <input type="text" id="orgName" required placeholder="e.g. Acme Corp Cyber" class="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1.5">Admin Email (Optional)</label>
+                    <input type="email" id="orgEmail" placeholder="admin@example.com" class="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1.5">Bootstrap API Key</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="orgKey" required readonly title="Bootstrap API Key" class="flex-1 bg-gray-800/30 border border-gray-700 rounded-xl px-4 py-3 text-gray-400 text-sm font-mono cursor-not-allowed">
+                        <button type="button" onclick="generateKey()" class="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-xl transition-colors" title="Regenerate Key">
+                            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                            <span class="sr-only">Regenerate</span>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-purple-400/70 mt-2 uppercase tracking-tighter">Required for agent bootstrap authentication.</p>
+                </div>
+                
+                <button type="submit" class="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-purple-900/30 mt-4">
+                    Initialize Organization
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Init Lucide
+        lucide.createIcons();
+
+        // State
+        let organizations = [];
+
+        async function fetchOrgs() {
+            try {
+                const response = await axios.get('/api/admin/organizations');
+                organizations = response.data;
+                renderTable();
+                updateOverview();
+            } catch (error) {
+                console.error('Failed to fetch orgs:', error);
+                document.getElementById('orgTableBody').innerHTML = `
+                    <tr><td colspan="6" class="px-6 py-8 text-center text-rose-400">Failed to synchronize with Hub API. Check administrative permissions.</td></tr>
+                `;
+            }
+        }
+
+        function renderTable() {
+            const body = document.getElementById('orgTableBody');
+            if (organizations.length === 0) {
+                body.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No organizations registered in the decentralized cloud.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = organizations.map(org => {
+                const created = new Date(org.created_at).toLocaleDateString();
+                const statusClass = org.status === 'active' ? 'status-active' : 'status-suspended';
+                
+                return `
+                    <tr class="hover:bg-gray-800/20 transition-colors">
+                        <td class="px-6 py-4 font-semibold text-white">${org.name}</td>
+                        <td class="px-6 py-4">
+                            <code class="text-xs text-purple-400 bg-purple-900/10 px-2 py-1 rounded">${org.org_id.substring(0,8)}...</code>
+                        </td>
+                        <td class="px-6 py-4 text-center font-mono text-gray-300" id="agents-${org.org_id}">--</td>
+                        <td class="px-6 py-4">
+                            <span class="status-pill ${statusClass}">${org.status.toUpperCase()}</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-400">${created}</td>
+                        <td class="px-6 py-4 text-right space-x-2">
+                            <button onclick="viewStats('${org.org_id}')" class="text-blue-400 hover:text-blue-300 p-1.5 transition-all" title="View Stats">
+                                <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                            </button>
+                            <button onclick="viewKey('${org.org_key}')" class="text-purple-400 hover:text-purple-300 p-1.5 transition-all" title="View Bootstrap Key">
+                                <i data-lucide="key" class="w-5 h-5"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+            
+            // Fetch stats for each org
+            organizations.forEach(org => fetchStats(org.org_id));
+        }
+
+        async function fetchStats(orgId) {
+            try {
+                const response = await axios.get(`/api/admin/organizations/${orgId}/stats`);
+                const stats = response.data;
+                const agentEl = document.getElementById(`agents-${orgId}`);
+                if (agentEl) agentEl.textContent = stats.agent_count;
+            } catch (error) {
+                console.warn(`Failed to fetch stats for ${orgId}`);
+            }
+        }
+
+        function updateOverview() {
+            document.getElementById('totalOrgs').textContent = organizations.length;
+            // Aggregate other stats if available
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+            if (id === 'createModal' && !modal.classList.contains('hidden')) {
+                generateKey();
+            }
+        }
+
+        function generateKey() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let key = 'WOLF-';
+            for (let i = 0; i < 16; i++) {
+                key += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('orgKey').value = key;
+        }
+
+        async function handleCreate(e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('orgName').value,
+                admin_email: document.getElementById('orgEmail').value || null,
+                org_key: document.getElementById('orgKey').value
+            };
+
+            try {
+                await axios.post('/api/admin/organizations', payload);
+                toggleModal('createModal');
+                fetchOrgs(); // Refresh
+                // Reset form
+                e.target.reset();
+            } catch (error) {
+                alert('Initialization failed: ' + (error.response?.data || error.message));
+            }
+        }
+
+        function viewKey(key) {
+            alert(`Organization Bootstrap Key:\n\n${key}\n\nKeep this secure. It is required for agent initial registration.`);
+        }
+
+        function viewStats(id) {
+            window.location.href = `/static/dashboard_modern.html?org_id=${id}`;
+        }
+
+        // Initial fetch
+        fetchOrgs();
+    </script>
+</body>
+</html>

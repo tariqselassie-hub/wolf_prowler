@@ -1,0 +1,74 @@
+
+[package]
+name = "wolf_den"
+version = "0.1.0"
+edition = "2021"
+description = "Pure cryptographic library for Wolf Prowler"
+license = "MIT OR Apache-2.0"
+rust-version = "1.70"
+
+[features]
+default = ["std", "serde"]
+std = ["zeroize/std", "subtle/std"]
+serde = ["dep:serde", "serde_json"]
+
+[dependencies]
+# Core cryptography
+aes = "0.8"
+aes-gcm = "0.10"
+chacha20poly1305 = "0.10"
+blake3 = "1.5"
+sha2 = "0.10"
+sha3 = "0.10"
+
+# Elliptic curves
+curve25519-dalek = "4.1"
+ed25519-dalek = { version = "2.0", features = ["rand_core"] }
+x25519-dalek = "2.0"
+p256 = { version = "0.13", features = ["ecdh", "ecdsa"] }
+
+# Randomness
+rand = "0.8"
+rand_core = "0.6"
+
+# Security utilities
+zeroize = { version = "1.7", features = ["zeroize_derive"] }
+subtle = "2.5"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", features = ["preserve_order"], optional = true }
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Utilities
+hex = "0.4"
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+
+# Hashing and MAC
+hmac = "0.12"
+pbkdf2 = "0.12"
+scrypt = "0.11"
+argon2 = "0.5"
+hkdf = "0.12"
+poly1305 = "0.8"
+universal-hash = "0.5"
+
+# Async support
+tokio = { version = "1.0", features = ["sync", "rt", "rt-multi-thread", "macros"] }
+signature = "2.2"
+async-trait = "0.1.89"
+rcgen = "0.14.0"
+
+[dev-dependencies]
+criterion = {version = "0.5", features = ["html_reports"]}
+
+[[bench]]
+name = "crypto_benchmarks"
+harness = false
+
+[lints.rust]
+missing_docs = "warn"

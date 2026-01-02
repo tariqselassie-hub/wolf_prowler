@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Center - Wolf Prowler</title>
+
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="/css/layout.css">
+    <link rel="stylesheet" href="/css/neural_redesign.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --accent-red: #ff4d4d;
+        }
+        body { background-color: var(--bg-primary); }
+    </style>
+</head>
+
+<body class="bg-black text-gray-200 overflow-hidden">
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="glass-morphism">
+        <div class="sidebar-header wolf-bg">
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-10 h-10 bg-gradient-to-br from-red-900 to-red-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="shield" class="w-6 h-6 text-white"></i>
+                </div>
+                <div class="sidebar-header-text">
+                    <h1 class="text-lg font-bold glow-text text-white">Wolf Prowler</h1>
+                    <p class="text-xs text-red-500 mono-font">SYSTEM: RED</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="px-4 pb-6 overflow-y-auto" style="height: calc(100% - 80px);">
+            <div class="space-y-1">
+                <a href="/dashboard" class="nav-item">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="/neural" class="nav-item active">
+                    <i data-lucide="brain" class="w-5 h-5"></i>
+                    <span class="nav-text">Neural Center ("Black")</span>
+                </a>
+                 <a href="/threats" class="nav-item">
+                    <i data-lucide="radiation" class="w-5 h-5"></i>
+                    <span class="nav-text">Threat Detection</span>
+                </a>
+                <a href="/static/network_map.html" class="nav-item">
+                    <i data-lucide="network" class="w-5 h-5"></i>
+                    <span class="nav-text">Network Map</span>
+                </a>
+                <a href="/settings" class="nav-item">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span class="nav-text">Settings</span>
+                </a>
+                <a href="/nav" class="nav-item">
+                    <i data-lucide="compass" class="w-5 h-5"></i>
+                    <span class="nav-text">Navigation Hub</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="flex flex-col h-screen w-full">
+        <!-- Identity Section (Top Half) -->
+        <div id="identity-section">
+            <div class="wolf-logo-container">
+                <img src="/images/wolf_prowler_logo.png" alt="Wolf Identity" class="wolf-logo-image">
+            </div>
+            <div class="identity-name">BLACK</div>
+            <div class="text-red-800 font-mono text-sm tracking-widest mt-2 animate-pulse">AUTONOMOUS UNIT: LLAMA-3</div>
+        </div>
+
+        <!-- Command Section (Bottom Half) -->
+        <div id="command-section">
+            <div id="terminal-header">
+                <div>
+                    <span class="text-red-500 font-bold">root@wolf_prowler</span>:<span class="text-blue-500">~/neural/cortex</span>
+                </div>
+                <div class="flex space-x-2">
+                    <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                    <span class="text-xs text-red-500">LINK: ESTABLISHED</span>
+                </div>
+            </div>
+
+            <div id="terminal-output">
+                <div class="msg-system">Initializing neural interface v3.0...</div>
+                <div class="msg-system">Loading Llama-3 core... [OK]</div>
+                <div class="msg-system">Connecting to wolf_brain module... [OK]</div>
+                <br>
+                <div class="msg-black">BLACK: I am online. Listening for system directives.</div>
+            </div>
+
+            <div id="input-area">
+                <div class="flex items-center gap-2">
+                    <span class="text-red-500 font-bold">❯</span>
+                    <input type="text" id="command-input" 
+                        placeholder="Interact with Neural Core..."
+                        autocomplete="off"
+                        autofocus>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/wolf_ui_extended.js"></script>
+    <script>
+        const inputField = document.getElementById('command-input');
+        const outputDiv = document.getElementById('terminal-output');
+
+        inputField.addEventListener('keydown', async function(e) {
+            if (e.key === 'Enter') {
+                const command = inputField.value.trim();
+                if (!command) return;
+
+                // User Entry
+                appendMessage('USER', command, 'msg-user');
+                inputField.value = '';
+                
+                // Show thinking indicator
+                const thinkingId = 'thinking-' + Date.now();
+                appendRaw(`<div id="${thinkingId}" class="msg-system animate-pulse">Black is processing...</div>`);
+
+                try {
+                    const response = await fetch('/api/v1/neural/command', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ command: command })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    // Remove thinking
+                    const thinkingEl = document.getElementById(thinkingId);
+                    if (thinkingEl) thinkingEl.remove();
+
+                    if (data.success) {
+                        appendMessage('BLACK', data.response, 'msg-black');
+                    } else {
+                        appendMessage('ERROR', data.message || 'Unknown neural error', 'text-red-600 font-bold');
+                    }
+
+                } catch (err) {
+                    const thinkingEl = document.getElementById(thinkingId);
+                    if (thinkingEl) thinkingEl.remove();
+                    appendMessage('SYSTEM', `Connection failure: ${err.message}`, 'text-red-600');
+                }
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+             initIcons();
+             fetchNeuralStatus();
+        });
+
+        async function fetchNeuralStatus() {
+            try {
+                // Clear initial static messages or append after them
+                // We keep the static "Initializing..." messages as 'boot sequence' visual
+                // But let's add real status check
+                
+                const state = await WolfUI.apiFetch('/api/v1/neural/state');
+                if (state) {
+                    setTimeout(() => {
+                        appendRaw(`<div class="msg-system text-green-500">Neural Core: ${state.status.toUpperCase()}</div>`);
+                        appendRaw(`<div class="msg-system text-gray-400">Neurons Active: ${state.activity_metrics.active_neurons}/${state.total_neurons}</div>`);
+                        appendRaw(`<div class="msg-system text-gray-400">Confidence Level: ${(state.confidence * 100).toFixed(1)}%</div>`);
+                        appendRaw(`<br>`);
+                        if (state.recent_activity && state.recent_activity.length > 0) {
+                             appendRaw(`<div class="msg-system text-gray-500">Restoring recent context...</div>`);
+                        }
+                    }, 500);
+                }
+            } catch (e) {
+                console.error("Neural status fetch failed", e);
+                appendRaw(`<div class="msg-system text-red-500">WARNING: Neural Core Unreachable</div>`);
+            }
+        }
+
+
+        function appendMessage(sender, text, cssClass) {
+            const div = document.createElement('div');
+            div.className = cssClass;
+            div.innerHTML = `<strong class="uppercase">${sender}:</strong> ${text}`; // Allow minimal HTML if needed, mostly text
+            // For security, maybe textContent is better, but minimal styling is nice.
+            // Using innerText for the content part to be safe:
+            div.innerHTML = `<strong class="uppercase">${sender}:</strong> `;
+            const span = document.createElement('span');
+            span.innerText = text;
+            div.appendChild(span);
+            
+            outputDiv.appendChild(div);
+            scrollToBottom();
+        }
+
+        function appendRaw(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            outputDiv.appendChild(div);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+
+        // Focus input on any keypress if not focused
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement !== inputField && !e.ctrlKey && !e.altKey && !e.metaKey && e.key.length === 1) {
+                inputField.focus();
+            }
+        });
+    </script>
+</body>
+</html>

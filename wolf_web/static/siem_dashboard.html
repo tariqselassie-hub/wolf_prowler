@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - SIEM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+            color: #e5e7eb;
+        }
+        
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+        
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-morphism-light {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-item {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .nav-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+            color: #fff;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <!-- Sidebar Navigation (Placeholder - will be unified later) -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 glass-morphism z-50 border-r border-gray-700 overflow-y-auto">
+        <div class="p-6">
+                        <div class="flex items-center space-x-3 mb-8">
+                            <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Wolf Prowler</h1>
+                                <p class="text-xs text-gray-400">Security Suite v2.0</p>
+                            </div>
+                        </div>
+            
+                        <nav class="space-y-6">
+                            <!-- Command Center -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Command Center</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/dashboard_modern.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                                        <span>Dashboard</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Security -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Security</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/security.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="shield" class="w-5 h-5"></i>
+                                        <span>Security Ops</span>
+                                    </a>
+                                    <a href="/static/siem_dashboard.html" class="nav-item active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                                        <span>SIEM / Logs</span>
+                                    </a>
+                                    <a href="/static/soar_dashboard.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="zap" class="w-5 h-5"></i>
+                                        <span>SOAR</span>
+                                    </a>
+                                    <a href="/static/firewall.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                                        <span>Firewall</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Network -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Network</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/network_map.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="globe" class="w-5 h-5"></i>
+                                        <span>Topology Map</span>
+                                    </a>
+                                    <a href="/static/p2p.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="share-2" class="w-5 h-5"></i>
+                                        <span>P2P Mesh</span>
+                                    </a>
+                                    <a href="/static/howl.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="radio" class="w-5 h-5"></i>
+                                        <span>Wolf Howl</span>
+                                    </a>
+                                     <a href="/static/packs.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="users" class="w-5 h-5"></i>
+                                        <span>Wolf Packs</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Operations -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Operations</h3>
+                                <div class="space-y-1">
+                                     <a href="/static/monitoring.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="activity" class="w-5 h-5"></i>
+                                        <span>Monitoring</span>
+                                    </a>
+                                    <a href="/consensus" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="git-branch" class="w-5 h-5"></i>
+                                        <span>Consensus</span>
+                                    </a>
+                                    <a href="/static/crypto_advanced_v2.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="lock" class="w-5 h-5"></i>
+                                        <span>Cryptography</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- AI -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">AI</h3>
+                                <div class="space-y-1">
+                                     <a href="/static/neural_center.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="brain" class="w-5 h-5"></i>
+                                        <span>Neural Center</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </nav>
+            
+                        <div class="mt-8 pt-6 border-t border-gray-700">
+                            <a href="/static/settings.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                                <i data-lucide="settings" class="w-5 h-5"></i>
+                                <span>Settings</span>
+                            </a>
+                            <a href="/logout" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all">
+                                <i data-lucide="log-out" class="w-5 h-5"></i>
+                                <span>Logout</span>
+                            </a>
+                            <div class="mt-4 px-4 text-xs text-center text-gray-500 font-mono">
+                                <p>Wolf Prowler v0.1.0</p>
+                                <p class="mt-1">Encrypted • Secure</p>
+                            </div>
+                        </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-3xl font-bold text-white">SIEM Console</h2>
+                <p class="text-gray-400 mt-1">Security Information and Event Management</p>
+            </div>
+            <div class="flex space-x-4">
+                <a href="/static/dashboard_modern.html" class="glass-morphism-light px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-white/10 transition-all text-gray-300 hover:text-white">
+                    <i data-lucide="corner-up-left" class="w-4 h-4"></i>
+                    <span>Return to Dashboard</span>
+                </a>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all">
+                    <i data-lucide="file-down" class="w-4 h-4"></i>
+                    <span>Export Logs</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- Events per Second -->
+            <div class="glass-morphism rounded-xl p-6 border-l-4 border-blue-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">Events / Second</p>
+                        <h4 class="text-2xl font-bold text-white mt-1 mono-font">2,450</h4>
+                    </div>
+                    <i data-lucide="activity" class="w-6 h-6 text-blue-500"></i>
+                </div>
+                <p class="text-xs text-green-400 mt-2 flex items-center">
+                    <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> +12% vs last hour
+                </p>
+            </div>
+
+            <!-- Active Alerts -->
+            <div class="glass-morphism rounded-xl p-6 border-l-4 border-red-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">Active Alerts</p>
+                        <h4 class="text-2xl font-bold text-white mt-1 mono-font">14</h4>
+                    </div>
+                    <i data-lucide="alert-circle" class="w-6 h-6 text-red-500"></i>
+                </div>
+                <p class="text-xs text-red-400 mt-2">3 Critical, 11 Warning</p>
+            </div>
+
+            <!-- Storage -->
+            <div class="glass-morphism rounded-xl p-6 border-l-4 border-purple-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">Log Retention</p>
+                        <h4 class="text-2xl font-bold text-white mt-1 mono-font">45 TB</h4>
+                    </div>
+                    <i data-lucide="database" class="w-6 h-6 text-purple-500"></i>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">30 Days Retention Policy</p>
+            </div>
+
+            <!-- Sources -->
+            <div class="glass-morphism rounded-xl p-6 border-l-4 border-green-500">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">Active Sources</p>
+                        <h4 class="text-2xl font-bold text-white mt-1 mono-font">128</h4>
+                    </div>
+                    <i data-lucide="server" class="w-6 h-6 text-green-500"></i>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">All Agents Connected</p>
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Logs Stream (Takes up 2 cols) -->
+            <div class="lg:col-span-2 glass-morphism rounded-xl p-6 flex flex-col h-[600px]">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-white flex items-center">
+                        <i data-lucide="list" class="w-5 h-5 mr-2 text-gray-400"></i> Live Event Stream
+                    </h3>
+                    <div class="flex space-x-2">
+                         <input type="text" placeholder="Search query..." class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-gray-300 focus:outline-none focus:border-blue-500">
+                        <button class="p-1 hover:bg-gray-700 rounded"><i data-lucide="filter" class="w-4 h-4 text-gray-400"></i></button>
+                        <button class="p-1 hover:bg-gray-700 rounded"><i data-lucide="pause-circle" class="w-4 h-4 text-gray-400"></i></button>
+                    </div>
+                </div>
+                
+                <!-- Log Table -->
+                <div class="flex-1 overflow-auto bg-black/40 rounded-lg border border-gray-800 font-mono text-xs">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-800/50 text-gray-400 sticky top-0">
+                            <tr>
+                                <th class="p-3">Time</th>
+                                <th class="p-3">Severity</th>
+                                <th class="p-3">Source</th>
+                                <th class="p-3">Event</th>
+                                <th class="p-3">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-300 divide-y divide-gray-800" id="log-table-body">
+                            <!-- Populated via JS -->
+                            <tr class="hover:bg-white/5 cursor-pointer">
+                                <td class="p-3 text-gray-500">23:42:12.845</td>
+                                <td class="p-3"><span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400">CRIT</span></td>
+                                <td class="p-3">auth-service-01</td>
+                                <td class="p-3 text-white">Auth_Failure_Brute_Force</td>
+                                <td class="p-3 text-gray-400">User: root, IP: 192.168.1.105</td>
+                            </tr>
+                            <tr class="hover:bg-white/5 cursor-pointer">
+                                <td class="p-3 text-gray-500">23:42:10.112</td>
+                                <td class="p-3"><span class="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">WARN</span></td>
+                                <td class="p-3">firewall-edge</td>
+                                <td class="p-3 text-white">Port_Scan_Detected</td>
+                                <td class="p-3 text-gray-400">Src: 10.0.0.45, Ports: 22, 80, 443</td>
+                            </tr>
+                             <tr class="hover:bg-white/5 cursor-pointer">
+                                <td class="p-3 text-gray-500">23:42:08.550</td>
+                                <td class="p-3"><span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">INFO</span></td>
+                                <td class="p-3">k8s-cluster</td>
+                                <td class="p-3 text-white">Pod_Created</td>
+                                <td class="p-3 text-gray-400">Namespace: wolf-sec, Pod: scanner-4x</td>
+                            </tr>
+                            <!-- More rows... -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Correlation & Visualization (Takes up 1 col) -->
+            <div class="space-y-6">
+                <!-- Correlation Rules -->
+                <div class="glass-morphism rounded-xl p-6">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                        <i data-lucide="git-merge" class="w-5 h-5 mr-2 text-purple-400"></i> Event Correlation
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="p-3 bg-gray-800/50 rounded-lg border border-purple-500/30 relative overflow-hidden">
+                            <div class="absolute inset-0 bg-purple-500/5 transition-transform hover:scale-105"></div>
+                            <div class="relative z-10">
+                                <h4 class="text-sm font-semibold text-white">Attack Chain: Brute Force > Lateral Movement</h4>
+                                <div class="w-full bg-gray-700 h-1.5 rounded-full mt-2">
+                                    <div class="get-width bg-purple-500 h-1.5 rounded-full" style="width: 75%"></div>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Confidence: 89% • 2 Active Hosts</p>
+                            </div>
+                        </div>
+                        
+                         <div class="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                             <div class="flex justify-between">
+                                <h4 class="text-sm font-semibold text-gray-300">Impossible Travel</h4>
+                                <span class="text-xs text-green-400">Watching</span>
+                             </div>
+                             <p class="text-xs text-gray-500 mt-1">No anomalies detected in last 24h</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Visuals -->
+                <div class="glass-morphism rounded-xl p-6 flex-1">
+                    <h3 class="text-lg font-bold text-white mb-4">Top Event Sources</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-400">Firewall</span>
+                            <span class="text-white font-mono">45%</span>
+                        </div>
+                        <div class="w-full bg-gray-700 h-1 rounded-full"><div class="bg-blue-500 h-1 rounded-full" style="width: 45%"></div></div>
+                        
+                         <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-400">Auth Service</span>
+                            <span class="text-white font-mono">22%</span>
+                        </div>
+                        <div class="w-full bg-gray-700 h-1 rounded-full"><div class="bg-purple-500 h-1 rounded-full" style="width: 22%"></div></div>
+
+                         <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-400">Endpoint Agents</span>
+                            <span class="text-white font-mono">15%</span>
+                        </div>
+                        <div class="w-full bg-gray-700 h-1 rounded-full"><div class="bg-green-500 h-1 rounded-full" style="width: 15%"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // WebSocket Connection
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        let socket;
+        let reconnectInterval = 1000;
+        const maxReconnectInterval = 30000;
+
+        // KPI Counters
+        let eventCount = 0;
+        let activeAlerts = 14; // Start with static value, update dynamically
+
+        function connect() {
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = function() {
+                console.log("Connected to Wolf Prowler Security Feed");
+                reconnectInterval = 1000;
+                // Request current status
+                socket.send(JSON.stringify({
+                    command: "GetStatus",
+                    params: null
+                }));
+                // Request recent events
+                socket.send(JSON.stringify({
+                    command: "GetRecentEvents",
+                    params: { limit: 50 }
+                }));
+            };
+
+            socket.onmessage = function(event) {
+                try {
+                    const msg = JSON.parse(event.data);
+                    
+                    if (msg.type === "security_event" || msg.type === "alert") {
+                        handleSecurityEvent(msg.data);
+                    } else if (msg.type === "recent_events_response") {
+                        // Populate table with historical events
+                        if (msg.data && Array.isArray(msg.data)) {
+                             msg.data.forEach(evt => handleSecurityEvent(evt));
+                        }
+                    } else if (msg.type === "status_response") {
+                         updateStatus(msg.data);
+                    } else if (msg.type === "metrics_update") {
+                        // Optional: Update system metrics if displayed
+                    }
+                } catch (e) {
+                    console.error("Error parsing message:", e);
+                }
+            };
+
+            socket.onclose = function(e) {
+                console.log(`Socket is closed. Reconnect will be attempted in ${reconnectInterval} second.`, e.reason);
+                setTimeout(function() {
+                    connect();
+                }, reconnectInterval);
+                reconnectInterval = Math.min(reconnectInterval * 2, maxReconnectInterval);
+            };
+
+            socket.onerror = function(err) {
+                console.error('Socket encountered error: ', err, 'Closing socket');
+                socket.close();
+            };
+        }
+
+        function handleSecurityEvent(eventData) {
+            // Update KPI
+            eventCount++;
+            document.getElementById('events-per-second').innerText = Math.floor(eventCount / (performance.now() / 1000 / 60) * 10) / 10 || 0; // Approx events/min for now, or raw count
+
+            const tableBody = document.getElementById('log-table-body');
+            const row = document.createElement('tr');
+            row.className = "hover:bg-white/5 cursor-pointer animate-fade-in";
+            row.innerHTML = `
+                <td class="p-3 text-gray-500 font-mono text-xs">${new Date(eventData.timestamp).toLocaleTimeString()}</td>
+                <td class="p-3">${getSeverityBadge(eventData.severity)}</td>
+                <td class="p-3 text-cyan-300">${eventData.source || 'Unknown'}</td>
+                <td class="p-3 text-white font-medium">${eventData.event_type}</td>
+                <td class="p-3 text-gray-400 break-all">${eventData.description || eventData.message || ''}</td>
+            `;
+
+            // Insert at top
+            if (tableBody.firstChild) {
+                tableBody.insertBefore(row, tableBody.firstChild);
+            } else {
+                tableBody.appendChild(row);
+            }
+
+            // Limit rows
+            if (tableBody.children.length > 50) {
+                tableBody.removeChild(tableBody.lastChild);
+            }
+        }
+
+        function updateStatus(data) {
+             // Initial status sync
+             if(data.events) {
+                 // Update total event count if applicable
+             }
+        }
+
+        function getSeverityBadge(severity) {
+            const sev = (severity || 'info').toLowerCase();
+            if (sev === 'critical' || sev === 'high') {
+                return '<span class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/50 text-[10px] uppercase font-bold">CRIT</span>';
+            } else if (sev === 'warning' || sev === 'medium') {
+                return '<span class="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 text-[10px] uppercase font-bold">WARN</span>';
+            } else {
+                return '<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/50 text-[10px] uppercase font-bold">INFO</span>';
+            }
+        }
+
+        // Initialize
+        connect();
+    </script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+    </style>
+</body>
+</html>

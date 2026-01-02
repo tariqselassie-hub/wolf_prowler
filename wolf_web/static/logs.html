@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - System Logs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+        }
+        
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+        
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+        }
+        
+        .wolf-bg {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+        }
+        
+        .nav-item {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            transition: height 0.3s ease;
+        }
+        
+        .nav-item:hover::before,
+        .nav-item.active::before {
+            height: 100%;
+        }
+        
+        .nav-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+            padding-left: 20px;
+        }
+        
+        .logs-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        
+        .logs-card:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+        }
+        
+        .log-entry {
+            transition: all 0.2s ease;
+        }
+        
+        .log-entry:hover {
+            background: rgba(139, 92, 246, 0.05);
+        }
+        
+        .log-level {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .level-debug { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+        .level-info { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .level-warn { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .level-error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .level-critical { background: rgba(220, 38, 38, 0.2); color: #dc2626; }
+        
+        .log-timestamp {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #6b7280;
+        }
+        
+        .log-message {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .search-highlight {
+            background: rgba(251, 191, 36, 0.3);
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+        
+        .terminal-textarea {
+            background: #0f172a;
+            border: 1px solid #374151;
+            color: #e5e7eb;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .terminal-textarea:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-gray-100">
+    <!-- Sidebar Navigation -->
+    <div class="fixed left-0 top-0 h-full w-64 glass-morphism z-50 border-r border-gray-700">
+        <div class="p-6 wolf-bg rounded-lg m-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                    <i data-lucide="file-text" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold glow-text">Wolf Prowler</h1>
+                    <p class="text-xs text-gray-400 mono-font">System Logs v2.0</p>
+                </div>
+            </div>
+        </div>
+        
+        <nav class="px-4 pb-6">
+            <div class="space-y-2">
+                <a href="/static/dashboard_modern.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/static/network.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="network" class="w-5 h-5"></i>
+                    <span>Network</span>
+                </a>
+                <a href="/static/security.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    <span>Security</span>
+                </a>
+                <a href="/static/crypto_advanced_v2.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="key" class="w-5 h-5"></i>
+                    <span>Cryptography</span>
+                </a>
+                <a href="/static/howl.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="radio" class="w-5 h-5"></i>
+                    <span>Howl Discovery</span>
+                </a>
+                <a href="/static/p2p.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>P2P Network</span>
+                </a>
+                <a href="/static/packs.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="users-2" class="w-5 h-5"></i>
+                    <span>Pack Activity</span>
+                </a>
+                <a href="/static/monitoring.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span>Monitoring</span>
+                </a>
+                <a href="/static/logs.html" class="nav-item active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                    <span>System Logs</span>
+                </a>
+                <a href="/static/settings.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="/static/navigation_hub_v2.html"  class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                    <i data-lucide="compass" class="w-5 h-5"></i>
+                    <span>Navigation Hub</span>
+                </a>
+                <div class="border-t border-gray-700 pt-2 mt-2">
+                    <span class="text-xs text-gray-500 px-4 py-1 block">API Pages</span>
+                    <a href="/static/api/index.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white">
+                        <i data-lucide="book-open" class="w-5 h-5"></i>
+                        <span>API Hub</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="ml-64">
+        <!-- Header -->
+        <header class="glass-morphism border-b border-gray-700 px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold">System Logs</h2>
+                    <p class="text-gray-400 text-sm mt-1">View and filter system events and debug information</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/dashboard_modern.html" class="glass-morphism-light px-4 py-2 rounded-lg hover-lift flex items-center space-x-2 text-white hover:text-blue-400">
+                        <i data-lucide="home" class="w-4 h-4"></i>
+                        <span>Home</span>
+                    </a>
+                    <button onclick="refreshLogs()" class="glass-morphism-light px-4 py-2 rounded-lg hover-lift flex items-center space-x-2">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>Refresh</span>
+                    </button>
+                    <button onclick="exportLogs()" class="glass-morphism-light px-4 py-2 rounded-lg hover-lift flex items-center space-x-2">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Export</span>
+                    </button>
+                    <button onclick="clearLogs()" class="glass-morphism-light px-4 py-2 rounded-lg hover-lift flex items-center space-x-2 text-red-400 hover:text-red-300">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>Clear</span>
+                    </button>
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Logs Content -->
+        <main class="p-8">
+            <!-- Log Controls -->
+            <div class="logs-card glass-morphism rounded-xl p-6 mb-8">
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Log Level</label>
+                        <select id="logLevel" onchange="filterLogs()" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+                            <option value="all">All Levels</option>
+                            <option value="debug">Debug</option>
+                            <option value="info">Info</option>
+                            <option value="warn">Warning</option>
+                            <option value="error">Error</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Source</label>
+                        <select id="logSource" onchange="filterLogs()" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+                            <option value="all">All Sources</option>
+                            <option value="system">System</option>
+                            <option value="network">Network</option>
+                            <option value="security">Security</option>
+                            <option value="crypto">Crypto</option>
+                            <option value="pack">Pack</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Time Range</label>
+                        <select id="timeRange" onchange="filterLogs()" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+                            <option value="all">All Time</option>
+                            <option value="1h">Last Hour</option>
+                            <option value="24h">Last 24 Hours</option>
+                            <option value="7d">Last 7 Days</option>
+                            <option value="30d">Last 30 Days</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Search</label>
+                        <input type="text" id="searchInput" onkeyup="searchLogs()" placeholder="Search logs..." 
+                               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Log Statistics -->
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+                <div class="logs-card glass-morphism rounded-xl p-4">
+                    <div class="flex items-center justify-between">
+                        <span class="log-level level-debug">DEBUG</span>
+                        <span class="text-xl font-bold">142</span>
+                    </div>
+                </div>
+                <div class="logs-card glass-morphism rounded-xl p-4">
+                    <div class="flex items-center justify-between">
+                        <span class="log-level level-info">INFO</span>
+                        <span class="text-xl font-bold">892</span>
+                    </div>
+                </div>
+                <div class="logs-card glass-morphism rounded-xl p-4">
+                    <div class="flex items-center justify-between">
+                        <span class="log-level level-warn">WARN</span>
+                        <span class="text-xl font-bold">47</span>
+                    </div>
+                </div>
+                <div class="logs-card glass-morphism rounded-xl p-4">
+                    <div class="flex items-center justify-between">
+                        <span class="log-level level-error">ERROR</span>
+                        <span class="text-xl font-bold">12</span>
+                    </div>
+                </div>
+                <div class="logs-card glass-morphism rounded-xl p-4">
+                    <div class="flex items-center justify-between">
+                        <span class="log-level level-critical">CRITICAL</span>
+                        <span class="text-xl font-bold">3</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Log Entries -->
+            <div class="logs-card glass-morphism rounded-xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold">Log Entries</h3>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-xs text-gray-400">Showing <span id="logCount">1,096</span> entries</span>
+                        <button onclick="toggleAutoScroll()" id="autoScrollBtn" class="text-xs px-2 py-1 bg-purple-500 text-white rounded">
+                            Auto-scroll: ON
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="logContainer" class="space-y-2 max-h-96 overflow-y-auto terminal-textarea p-4 rounded-lg">
+                    <!-- Log entries will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Log Details -->
+            <div class="logs-card glass-morphism rounded-xl p-6 mt-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold">Log Details</h3>
+                    <button onclick="clearLogDetails()" class="text-xs text-gray-400 hover:text-white">
+                        Clear Details
+                    </button>
+                </div>
+                
+                <div id="logDetails" class="space-y-4">
+                    <div class="text-center text-gray-400 py-8">
+                        <i data-lucide="file-text" class="w-12 h-12 mx-auto mb-4 text-gray-600"></i>
+                        <p>Click on a log entry to view details</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // API Base URL
+        const API_BASE = '/api';
+        
+        // Sample log data
+        const sampleLogs = [
+            { timestamp: '2025-12-03 13:41:23', level: 'info', source: 'system', message: 'Wolf Prowler system initialized successfully' },
+            { timestamp: '2025-12-03 13:41:24', level: 'info', source: 'network', message: 'Network interface started on port 8080' },
+            { timestamp: '2025-12-03 13:41:25', level: 'debug', source: 'crypto', message: 'Cryptographic engine initialized with AES-256' },
+            { timestamp: '2025-12-03 13:41:26', level: 'info', source: 'pack', message: 'Pack coordination system online - 120 wolves connected' },
+            { timestamp: '2025-12-03 13:41:27', level: 'warn', source: 'security', message: 'Unusual login attempt detected from IP 192.168.1.100' },
+            { timestamp: '2025-12-03 13:41:28', level: 'info', source: 'system', message: 'Memory usage: 78% (6.2GB/8GB)' },
+            { timestamp: '2025-12-03 13:41:29', level: 'error', source: 'network', message: 'Connection timeout to peer node-042' },
+            { timestamp: '2025-12-03 13:41:30', level: 'info', source: 'crypto', message: 'Hash operation completed: BLAKE3 in 2.3ms' },
+            { timestamp: '2025-12-03 13:41:31', level: 'critical', source: 'security', message: 'CRITICAL: Multiple failed authentication attempts' },
+            { timestamp: '2025-12-03 13:41:32', level: 'debug', source: 'pack', message: 'Alpha wolf initiated territory patrol' },
+            { timestamp: '2025-12-03 13:41:33', level: 'info', source: 'network', message: 'New peer connection established: node-117' },
+            { timestamp: '2025-12-03 13:41:34', level: 'warn', source: 'system', message: 'Disk space low: 92% used (460GB/500GB)' },
+            { timestamp: '2025-12-03 13:41:35', level: 'info', source: 'crypto', message: 'Key derivation completed: Argon2 in 145ms' },
+            { timestamp: '2025-12-03 13:41:36', level: 'error', source: 'pack', message: 'Failed to establish communication with hunter-089' },
+            { timestamp: '2025-12-03 13:41:37', level: 'debug', source: 'security', message: 'Firewall rules updated successfully' }
+        ];
+        
+        let allLogs = [...sampleLogs];
+        let filteredLogs = [...allLogs];
+        let autoScroll = true;
+        let selectedLog = null;
+        
+        // Initialize logs
+        function initializeLogs() {
+            renderLogs();
+            updateLogCount();
+        }
+        
+        // Render logs
+        function renderLogs() {
+            const container = document.getElementById('logContainer');
+            container.innerHTML = '';
+            
+            filteredLogs.forEach((log, index) => {
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry flex items-start space-x-3 p-2 rounded cursor-pointer';
+                logEntry.onclick = () => showLogDetails(log);
+                
+                logEntry.innerHTML = `
+                    <span class="log-level level-${log.level}">${log.level.toUpperCase()}</span>
+                    <span class="log-timestamp">${log.timestamp}</span>
+                    <span class="text-xs text-gray-400">[${log.source}]</span>
+                    <span class="log-message flex-1">${highlightSearch(log.message)}</span>
+                `;
+                
+                container.appendChild(logEntry);
+            });
+            
+            if (autoScroll) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+        
+        // Highlight search terms
+        function highlightSearch(text) {
+            const searchTerm = document.getElementById('searchInput').value;
+            if (!searchTerm) return text;
+            
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            return text.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+        
+        // Filter logs
+        function filterLogs() {
+            const level = document.getElementById('logLevel').value;
+            const source = document.getElementById('logSource').value;
+            const timeRange = document.getElementById('timeRange').value;
+            
+            filteredLogs = allLogs.filter(log => {
+                let matches = true;
+                
+                if (level !== 'all' && log.level !== level) matches = false;
+                if (source !== 'all' && log.source !== source) matches = false;
+                
+                // Time range filtering (simplified)
+                if (timeRange !== 'all') {
+                    const logTime = new Date(log.timestamp);
+                    const now = new Date();
+                    const hours = (now - logTime) / (1000 * 60 * 60);
+                    
+                    if (timeRange === '1h' && hours > 1) matches = false;
+                    if (timeRange === '24h' && hours > 24) matches = false;
+                    if (timeRange === '7d' && hours > 168) matches = false;
+                    if (timeRange === '30d' && hours > 720) matches = false;
+                }
+                
+                return matches;
+            });
+            
+            renderLogs();
+            updateLogCount();
+        }
+        
+        // Search logs
+        function searchLogs() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (!searchTerm) {
+                filterLogs();
+                return;
+            }
+            
+            filteredLogs = allLogs.filter(log => 
+                log.message.toLowerCase().includes(searchTerm) ||
+                log.source.toLowerCase().includes(searchTerm) ||
+                log.level.toLowerCase().includes(searchTerm)
+            );
+            
+            renderLogs();
+            updateLogCount();
+        }
+        
+        // Update log count
+        function updateLogCount() {
+            document.getElementById('logCount').textContent = filteredLogs.length.toLocaleString();
+        }
+        
+        // Show log details
+        function showLogDetails(log) {
+            selectedLog = log;
+            const detailsContainer = document.getElementById('logDetails');
+            
+            detailsContainer.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-gray-400">Timestamp</label>
+                            <p class="mono-font text-sm">${log.timestamp}</p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Level</label>
+                            <p><span class="log-level level-${log.level}">${log.level.toUpperCase()}</span></p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Source</label>
+                            <p class="mono-font text-sm">${log.source}</p>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Message ID</label>
+                            <p class="mono-font text-sm">#${Math.floor(Math.random() * 100000)}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400">Message</label>
+                        <div class="terminal-textarea p-3 rounded-lg mt-1">
+                            <p class="log-message">${log.message}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400">Stack Trace</label>
+                        <div class="terminal-textarea p-3 rounded-lg mt-1">
+                            <pre class="text-xs text-gray-400">
+at wolf_prowler.system.initialize()
+at wolf_prowler.main.main()
+at java.lang.Thread.run()
+                            </pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Clear log details
+        function clearLogDetails() {
+            selectedLog = null;
+            document.getElementById('logDetails').innerHTML = `
+                <div class="text-center text-gray-400 py-8">
+                    <i data-lucide="file-text" class="w-12 h-12 mx-auto mb-4 text-gray-600"></i>
+                    <p>Click on a log entry to view details</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+        
+        // Toggle auto-scroll
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            const btn = document.getElementById('autoScrollBtn');
+            btn.textContent = `Auto-scroll: ${autoScroll ? 'ON' : 'OFF'}`;
+            btn.className = `text-xs px-2 py-1 rounded ${autoScroll ? 'bg-purple-500 text-white' : 'bg-gray-600 text-gray-300'}`;
+        }
+        
+        // Refresh logs
+        function refreshLogs() {
+            // Simulate adding new logs
+            const newLog = {
+                timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+                level: 'info',
+                source: 'system',
+                message: 'Logs refreshed successfully'
+            };
+            
+            allLogs.unshift(newLog);
+            filterLogs();
+            showNotification('Logs refreshed', 'success');
+        }
+        
+        // Export logs
+        function exportLogs() {
+            const logText = filteredLogs.map(log => 
+                `${log.timestamp} [${log.level.toUpperCase()}] [${log.source}] ${log.message}`
+            ).join('\n');
+            
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `wolf_prowler_logs_${new Date().toISOString().slice(0, 10)}.txt`;
+            a.click();
+            
+            showNotification('Logs exported successfully', 'success');
+        }
+        
+        // Clear logs
+        function clearLogs() {
+            if (confirm('Are you sure you want to clear all logs? This action cannot be undone.')) {
+                allLogs = [];
+                filteredLogs = [];
+                renderLogs();
+                updateLogCount();
+                clearLogDetails();
+                showNotification('Logs cleared', 'success');
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg glass-morphism z-50 animate-pulse`;
+            
+            const colors = {
+                'success': 'border-green-500',
+                'error': 'border-red-500',
+                'info': 'border-blue-500'
+            };
+            
+            notification.classList.add(colors[type]);
+            notification.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="${type === 'success' ? 'check-circle' : 'info'}" class="w-5 h-5"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', initializeLogs);
+        
+        // Simulate real-time log updates
+        setInterval(() => {
+            const levels = ['info', 'debug', 'warn', 'error'];
+            const sources = ['system', 'network', 'security', 'crypto', 'pack'];
+            const messages = [
+                'System heartbeat received',
+                'Network packet processed',
+                'Security scan completed',
+                'Cryptographic operation finished',
+                'Pack communication established'
+            ];
+            
+            const newLog = {
+                timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+                level: levels[Math.floor(Math.random() * levels.length)],
+                source: sources[Math.floor(Math.random() * sources.length)],
+                message: messages[Math.floor(Math.random() * messages.length)]
+            };
+            
+            allLogs.unshift(newLog);
+            if (allLogs.length > 1000) allLogs.pop(); // Keep only last 1000 logs
+            
+            filterLogs();
+        }, 5000);
+    </script>
+</body>
+</html>

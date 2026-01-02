@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐺 Wolf Prowler Security Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000000;
+            color: #00ff00;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .dashboard {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .wolf-logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px #00ff00);
+        }
+
+        .header p {
+            color: #00cc00;
+            font-size: 1.1em;
+            text-shadow: 0 0 5px #00cc00;
+        }
+
+        .status-bar {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 1s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-normal {
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .status-warning {
+            background: #ffff00;
+            box-shadow: 0 0 10px #ffff00;
+        }
+
+        .status-critical {
+            background: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: rgba(0, 255, 0, 0.05);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 20px;
+            animation: fadeInUp 0.8s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 255, 0, 0.4);
+            border-color: #00cc00;
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .metric-title {
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .metric-change {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .alerts-section {
+            background: #000000;
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            animation: fadeIn 1.2s ease;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
+        }
+
+        .alert-item {
+            background: rgba(0, 255, 0, 0.02);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+            animation: slideInLeft 0.5s ease;
+        }
+
+        .alert-high {
+            border-left-color: #ff0000;
+            border-color: rgba(255, 0, 0, 0.3);
+            box-shadow: 0 0 5px rgba(255, 0, 0, 0.2);
+        }
+
+        .alert-medium {
+            border-left-color: #ffff00;
+            border-color: rgba(255, 255, 0, 0.3);
+            box-shadow: 0 0 5px rgba(255, 255, 0, 0.2);
+        }
+
+        .alert-low {
+            border-left-color: #00ff00;
+            border-color: rgba(0, 255, 0, 0.3);
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
+        }
+
+        .audit-trail {
+            background: #000000;
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 20px;
+            animation: fadeIn 1.4s ease;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
+        }
+
+        .audit-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+        }
+
+        .refresh-btn {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 5px #00ff00;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff0000;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #ff0000;
+            text-shadow: 0 0 5px #ff0000;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            opacity: 0.7;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>
+                <img src="data:image/png;base64,YOUR_WOLF_IMAGE_BASE64_HERE" alt="Wolf Logo" class="wolf-logo">
+                Wolf Prowler Security Dashboard
+            </h1>
+            <p>Real-time security monitoring and threat assessment</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot status-normal" id="statusDot"></div>
+                <span id="statusText">System Status: Normal</span>
+            </div>
+            <div>
+                <span id="lastUpdate">Last updated: Loading...</span>
+                <button class="refresh-btn" onclick="refreshDashboard()">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">🔐 Security Score</span>
+                    <span>📊</span>
+                </div>
+                <div class="metric-value" id="securityScore">--</div>
+                <div class="metric-change" id="securityChange">Loading...</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">⚠️ Active Alerts</span>
+                    <span>🚨</span>
+                </div>
+                <div class="metric-value" id="activeAlerts">--</div>
+                <div class="metric-change" id="alertsChange">Loading...</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">🔍 Threat Level</span>
+                    <span>⚡</span>
+                </div>
+                <div class="metric-value" id="threatLevel">--</div>
+                <div class="metric-change" id="threatChange">Loading...</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">📡 Network Status</span>
+                    <span>🌐</span>
+                </div>
+                <div class="metric-value" id="networkStatus">--</div>
+                <div class="metric-change" id="networkChange">Loading...</div>
+            </div>
+        </div>
+
+        <div class="alerts-section">
+            <h2>🚨 Recent Security Alerts</h2>
+            <div id="alertsList" class="loading">
+                Loading security alerts...
+            </div>
+        </div>
+
+        <div class="audit-trail">
+            <h2>📋 Security Audit Trail</h2>
+            <div id="auditList" class="loading">
+                Loading audit trail...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval;
+
+        async function fetchSecurityData() {
+            try {
+                const response = await fetch('/api/security/status');
+                if (!response.ok) throw new Error('Failed to fetch security data');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching security data:', error);
+                return null;
+            }
+        }
+
+        async function fetchAlerts() {
+            try {
+                const response = await fetch('/api/security/events');
+                if (!response.ok) throw new Error('Failed to fetch alerts');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching alerts:', error);
+                return { events: [] };
+            }
+        }
+
+        async function fetchAuditTrail() {
+            try {
+                // For now, use the same events endpoint for audit trail
+                const response = await fetch('/api/security/events');
+                if (!response.ok) throw new Error('Failed to fetch audit trail');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching audit trail:', error);
+                return { events: [] };
+            }
+        }
+
+        function updateSecurityStatus(data) {
+            if (!data) return;
+
+            // Update status indicator
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            // Map threat level to status
+            const threatLevel = data.threat_level || 'low';
+            if (threatLevel === 'low') {
+                statusDot.className = 'status-dot status-normal';
+                statusText.textContent = 'System Status: Normal';
+            } else if (threatLevel === 'elevated') {
+                statusDot.className = 'status-dot status-warning';
+                statusText.textContent = 'System Status: Warning';
+            } else {
+                statusDot.className = 'status-dot status-critical';
+                statusText.textContent = 'System Status: Critical';
+            }
+
+            // Update metrics
+            document.getElementById('securityScore').textContent = data.status === 'active' ? 'Active' : 'Inactive';
+            document.getElementById('securityChange').textContent = 'Operational';
+
+            document.getElementById('activeAlerts').textContent = data.active_threats || 0;
+            document.getElementById('alertsChange').textContent = 'Current';
+
+            document.getElementById('threatLevel').textContent = data.threat_level || 'low';
+            document.getElementById('threatChange').textContent = 'Monitored';
+
+            document.getElementById('networkStatus').textContent = 'Connected';
+            document.getElementById('networkChange').textContent = 'Stable';
+
+            // Update last refresh time
+            document.getElementById('lastUpdate').textContent =
+                `Last updated: ${new Date().toLocaleTimeString()}`;
+        }
+
+        function updateAlerts(data) {
+            const alertsList = document.getElementById('alertsList');
+            const events = data.events || [];
+
+            if (!events || events.length === 0) {
+                alertsList.innerHTML = '<p>No active security events</p>';
+                return;
+            }
+
+            alertsList.innerHTML = events.slice(0, 10).map(event => `
+                <div class="alert-item alert-${event.severity ? event.severity.toLowerCase() : 'medium'}">
+                    <div>
+                        <strong>${event.event_type || 'Security Event'}</strong>
+                        <p>${event.description || 'Security event detected'}</p>
+                        <small>${event.timestamp ? new Date(event.timestamp).toLocaleString() : 'Unknown time'}</small>
+                    </div>
+                    <div>
+                        <span>${event.severity || 'Medium'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateAuditTrail(data) {
+            const auditList = document.getElementById('auditList');
+            const events = data.events || [];
+
+            if (!events || events.length === 0) {
+                auditList.innerHTML = '<p>No audit entries available</p>';
+                return;
+            }
+
+            auditList.innerHTML = events.slice(0, 15).map(event => `
+                <div class="audit-item">
+                    <div>
+                        <strong>${event.event_type || 'Audit Event'}</strong>
+                        <p>${event.description || 'System activity logged'}</p>
+                    </div>
+                    <div>
+                        <small>${event.timestamp ? new Date(event.timestamp).toLocaleString() : 'Unknown time'}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function refreshDashboard() {
+            try {
+                // Fetch all data in parallel
+                const [securityData, alerts, audit] = await Promise.all([
+                    fetchSecurityData(),
+                    fetchAlerts(),
+                    fetchAuditTrail()
+                ]);
+
+                // Update UI
+                updateSecurityStatus(securityData);
+                updateAlerts(alerts);
+                updateAuditTrail(audit);
+
+            } catch (error) {
+                console.error('Error refreshing dashboard:', error);
+                document.getElementById('alertsList').innerHTML =
+                    '<div class="error">Failed to load security data. Please try again.</div>';
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshDashboard();
+
+            // Auto-refresh every 10 seconds
+            refreshInterval = setInterval(refreshDashboard, 10000);
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+
+</html>

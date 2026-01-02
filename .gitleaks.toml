@@ -1,0 +1,30 @@
+# Gitleaks configuration for Wolf Prowler
+
+title = "Wolf Prowler Gitleaks Config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for false positives"
+
+# Allow documentation and example files
+paths = [
+    '''docs/''',
+    '''examples/''',
+    '''legacy/''',
+    '''legacy_static/''',
+]
+
+# Allow obvious test/example values and code patterns
+regexes = [
+    '''example_api_key''',
+    '''test_password''',
+    '''dummy_secret''',
+    '''REDACTED''',
+    '''0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef''',
+    '''my_password''',
+    '''my_secure_password''',
+    '''x9y8z7w6v5u4t3s2''',
+    '''-----BEGIN RSA PRIVATE KEY-----.*replace''',
+]

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - Enhanced Authentication</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+        }
+
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+        }
+
+        .wolf-bg {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+        }
+
+        .auth-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .auth-card:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .status-online {
+            animation: pulse-green 2s infinite;
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+        }
+
+        @keyframes pulse-green {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+            }
+        }
+
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .admin-badge {
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-gray-100 flex items-center justify-center">
+    <!-- Background -->
+    <div class="fixed inset-0 wolf-bg"></div>
+
+    <!-- Auth Container -->
+    <div class="relative z-10 w-full max-w-md">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <div
+                class="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="shield-check" class="w-8 h-8"></i>
+            </div>
+            <h1 class="text-3xl font-bold mb-2">Wolf Prowler</h1>
+            <p class="text-gray-400">Enhanced Authentication Portal</p>
+        </div>
+
+        <!-- Auth Card -->
+        <div class="auth-card rounded-xl p-8">
+            <!-- Admin Detection Status -->
+            <div class="mb-6 p-4 bg-gray-800/50 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-400">Admin Status</span>
+                    <div id="adminStatus" class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                        <span class="text-xs text-yellow-400">Checking...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Key Authentication -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4">API Key Authentication</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">API Key</label>
+                        <input type="password" id="apiKey" placeholder="Enter your API key"
+                            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-purple-500">
+                    </div>
+                    <button onclick="authenticateWithApiKey()"
+                        class="w-full bg-purple-500 hover:bg-purple-600 text-white rounded-lg py-3 transition-colors hover-lift">
+                        <i data-lucide="key" class="w-4 h-4 inline mr-2"></i>
+                        Authenticate
+                    </button>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-700"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-gray-900 text-gray-400">OR</span>
+                </div>
+            </div>
+
+            <!-- Username/Password Authentication -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4">System Credentials</h2>
+                <form action="/login" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Username</label>
+                        <input type="text" id="username" name="username" placeholder="Enter username"
+                            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Enter password"
+                            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-purple-500">
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-3 transition-colors hover-lift">
+                        <i data-lucide="user" class="w-4 h-4 inline mr-2"></i>
+                        Sign In
+                    </button>
+                </form>
+            </div>
+
+            <!-- Auth Status -->
+            <div id="authStatus" class="hidden">
+                <div class="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                    <div id="statusIndicator" class="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div class="flex-1">
+                        <p id="statusMessage" class="text-sm text-red-400">Authentication failed</p>
+                        <p id="userInfo" class="text-xs text-gray-400 mt-1"></p>
+                    </div>
+                </div>
+                <div id="tokenDisplay" class="hidden mt-3 p-3 bg-gray-800 rounded-lg">
+                    <p class="text-xs text-gray-400 mb-1">Session Token:</p>
+                    <p class="mono-font text-xs text-green-400 break-all" id="sessionToken"></p>
+                </div>
+            </div>
+
+            <!-- Quick Admin Access -->
+            <div class="mt-6 p-4 border border-purple-500/30 rounded-lg">
+                <p class="text-xs text-purple-400 mb-2">Quick Admin Access:</p>
+                <div class="space-y-2">
+                    <button onclick="quickAdminAccess()"
+                        class="w-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 text-xs py-2 rounded transition-colors">
+                        Use Default Admin Credentials
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Info -->
+        <div class="mt-6 text-center">
+            <p class="text-xs text-gray-500">Wolf Prowler v3.0 | Enhanced Security System</p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Global variables
+        let currentToken = null;
+        let isAuthenticated = false;
+        let currentUser = null;
+        let isAdmin = false;
+
+        // Admin credentials (in production, these should be securely stored)
+        const ADMIN_CREDENTIALS = {
+            username: 'Cyberwolf',
+            password: 'selassie',
+            api_key: 'dev-key-12345'
+        };
+
+        // Check admin status on load
+        function checkAdminStatus() {
+            const adminStatus = document.getElementById('adminStatus');
+
+            // Check if user is running on localhost (admin access)
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                adminStatus.innerHTML = `
+                    <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span class="text-xs text-green-400">Admin Access Available</span>
+                `;
+                isAdmin = true;
+            } else {
+                adminStatus.innerHTML = `
+                    <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                    <span class="text-xs text-gray-400">Standard User</span>
+                `;
+                isAdmin = false;
+            }
+        }
+
+        // API Key Authentication
+        async function authenticateWithApiKey() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+
+            if (!apiKey) {
+                showStatus('error', 'Please enter an API key');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/system/status', {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // Check if API key is admin key
+                    if (apiKey === ADMIN_CREDENTIALS.api_key) {
+                        currentUser = 'admin';
+                        isAdmin = true;
+                        currentToken = generateSessionToken('api_key', 'admin');
+                        showStatus('success', 'Admin access granted');
+                    } else {
+                        currentUser = 'api_user';
+                        isAdmin = false;
+                        currentToken = generateSessionToken('api_key', 'user');
+                        showStatus('success', 'API access granted');
+                    }
+
+                    isAuthenticated = true;
+                    storeAuthData();
+                    updateUI();
+                } else if (response.status === 401) {
+                    showStatus('error', 'Invalid API key');
+                } else {
+                    showStatus('error', 'Authentication failed');
+                }
+            } catch (error) {
+                showStatus('error', 'Network error: ' + error.message);
+            }
+        }
+
+        // Username/Password Authentication
+        async function authenticateWithCredentials() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showStatus('error', 'Please enter username and password');
+                return;
+            }
+
+            try {
+                // Mock authentication (in production, use real endpoint)
+                if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+                    currentUser = 'admin';
+                    isAdmin = true;
+                    currentToken = generateSessionToken('credentials', 'admin');
+                    isAuthenticated = true;
+                    showStatus('success', 'Admin login successful');
+                } else {
+                    // Try basic auth against API
+                    const credentials = btoa(`${username}:${password}`);
+                    const response = await fetch('/api/system/status', {
+                        headers: {
+                            'Authorization': `Basic ${credentials}`,
+                            'X-API-Key': ADMIN_CREDENTIALS.api_key
+                        }
+                    });
+
+                    if (response.ok) {
+                        currentUser = username;
+                        isAdmin = username === ADMIN_CREDENTIALS.username;
+                        currentToken = generateSessionToken('credentials', isAdmin ? 'admin' : 'user');
+                        isAuthenticated = true;
+                        showStatus('success', `Welcome, ${username}${isAdmin ? ' (Admin)' : ''}`);
+                    } else {
+                        showStatus('error', 'Invalid credentials');
+                        return;
+                    }
+                }
+
+                storeAuthData();
+                updateUI();
+            } catch (error) {
+                showStatus('error', 'Authentication error: ' + error.message);
+            }
+        }
+
+        // Quick Admin Access
+        function quickAdminAccess() {
+            document.getElementById('username').value = ADMIN_CREDENTIALS.username;
+            document.getElementById('password').value = ADMIN_CREDENTIALS.password;
+            document.getElementById('apiKey').value = ADMIN_CREDENTIALS.api_key;
+
+            showStatus('info', 'Admin credentials filled. Click Sign In or Authenticate.');
+        }
+
+        // Generate session token
+        function generateSessionToken(authType, role) {
+            const payload = {
+                type: authType,
+                user: currentUser,
+                role: role,
+                admin: role === 'admin',
+                iat: Math.floor(Date.now() / 1000),
+                exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+            };
+
+            const encodedPayload = btoa(JSON.stringify(payload));
+            const signature = btoa(Math.random().toString(36).substring(2));
+
+            return `${encodedPayload}.${signature}`;
+        }
+
+        // Store authentication data
+        function storeAuthData() {
+            const authData = {
+                user: currentUser,
+                admin: isAdmin,
+                token: currentToken,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('wolf_prowler_auth_enhanced', JSON.stringify(authData));
+        }
+
+        // Show status
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('authStatus');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusMessage = document.getElementById('statusMessage');
+            const userInfo = document.getElementById('userInfo');
+            const tokenDisplay = document.getElementById('tokenDisplay');
+            const sessionToken = document.getElementById('sessionToken');
+
+            statusDiv.classList.remove('hidden');
+
+            if (type === 'success') {
+                statusIndicator.className = 'w-3 h-3 bg-green-500 rounded-full status-online';
+                statusMessage.className = 'text-sm text-green-400';
+                tokenDisplay.classList.remove('hidden');
+                sessionToken.textContent = currentToken;
+
+                if (isAdmin) {
+                    userInfo.innerHTML = `<span class="admin-badge">ADMIN</span> ${currentUser}`;
+                } else {
+                    userInfo.textContent = `User: ${currentUser}`;
+                }
+            } else if (type === 'info') {
+                statusIndicator.className = 'w-3 h-3 bg-blue-500 rounded-full';
+                statusMessage.className = 'text-sm text-blue-400';
+                tokenDisplay.classList.add('hidden');
+                userInfo.textContent = '';
+            } else {
+                statusIndicator.className = 'w-3 h-3 bg-red-500 rounded-full';
+                statusMessage.className = 'text-sm text-red-400';
+                tokenDisplay.classList.add('hidden');
+                userInfo.textContent = '';
+            }
+
+            statusMessage.textContent = message;
+        }
+
+        // Update UI after authentication
+        function updateUI() {
+            if (isAuthenticated) {
+                // Add authenticated styles
+                document.body.classList.add('authenticated');
+
+                // Show success and redirect
+                setTimeout(() => {
+                    if (isAdmin) {
+                        window.location.href = '/dashboard_modern.html?admin=true';
+                    } else {
+                        window.location.href = '/dashboard_modern.html';
+                    }
+                }, 2000);
+            }
+        }
+
+        // Check for existing authentication
+        function checkExistingAuth() {
+            const storedAuth = localStorage.getItem('wolf_prowler_auth_enhanced');
+            if (storedAuth) {
+                try {
+                    const authData = JSON.parse(storedAuth);
+                    const now = Date.now();
+
+                    // Check if token is still valid (1 hour)
+                    if (now - authData.timestamp < (60 * 60 * 1000)) {
+                        currentUser = authData.user;
+                        isAdmin = authData.admin;
+                        currentToken = authData.token;
+                        isAuthenticated = true;
+                        showStatus('success', 'Session restored');
+                        updateUI();
+                    } else {
+                        localStorage.removeItem('wolf_prowler_auth_enhanced');
+                    }
+                } catch (error) {
+                    localStorage.removeItem('wolf_prowler_auth_enhanced');
+                }
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminStatus();
+            checkExistingAuth();
+        });
+    </script>
+</body>
+
+</html>

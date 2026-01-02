@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - P2P Communication</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+        }
+        
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+        
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+        }
+        
+        .wolf-bg {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+        }
+        
+        .nav-item {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            transition: height 0.3s ease;
+        }
+        
+        .nav-item:hover::before,
+        .nav-item.active::before {
+            height: 100%;
+        }
+        
+        .nav-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+            padding-left: 20px;
+        }
+        
+        .p2p-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .p2p-card:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .status-online { 
+            animation: pulse-green 2s infinite;
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+        }
+        
+        .message-bubble {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-gray-100">
+    <!-- Sidebar Navigation -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 glass-morphism z-50 border-r border-gray-700 overflow-y-auto">
+        <div class="p-6">
+                        <div class="flex items-center space-x-3 mb-8">
+                            <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Wolf Prowler</h1>
+                                <p class="text-xs text-gray-400">Security Suite v2.0</p>
+                            </div>
+                        </div>
+            
+                        <nav class="space-y-6">
+                            <!-- Command Center -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Command Center</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/dashboard_modern.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                                        <span>Dashboard</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Security -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Security</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/security.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="shield" class="w-5 h-5"></i>
+                                        <span>Security Ops</span>
+                                    </a>
+                                    <a href="/static/siem_dashboard.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                                        <span>SIEM / Logs</span>
+                                    </a>
+                                    <a href="/static/soar_dashboard.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="zap" class="w-5 h-5"></i>
+                                        <span>SOAR</span>
+                                    </a>
+                                    <a href="/static/firewall.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                                        <span>Firewall</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Network -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Network</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/network_map.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="globe" class="w-5 h-5"></i>
+                                        <span>Topology Map</span>
+                                    </a>
+                                    <a href="/static/p2p.html" class="nav-item active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="share-2" class="w-5 h-5"></i>
+                                        <span>P2P Mesh</span>
+                                    </a>
+                                    <a href="/static/howl.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="radio" class="w-5 h-5"></i>
+                                        <span>Wolf Howl</span>
+                                    </a>
+                                     <a href="/static/packs.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="users" class="w-5 h-5"></i>
+                                        <span>Wolf Packs</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Operations -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Operations</h3>
+                                <div class="space-y-1">
+                                     <a href="/static/monitoring.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="activity" class="w-5 h-5"></i>
+                                        <span>Monitoring</span>
+                                    </a>
+                                    <a href="/consensus" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="git-branch" class="w-5 h-5"></i>
+                                        <span>Consensus</span>
+                                    </a>
+                                    <a href="/static/crypto_advanced_v2.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="lock" class="w-5 h-5"></i>
+                                        <span>Cryptography</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- AI -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">AI</h3>
+                                <div class="space-y-1">
+                                     <a href="/static/neural_center.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="brain" class="w-5 h-5"></i>
+                                        <span>Neural Center</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </nav>
+            
+                        <div class="mt-8 pt-6 border-t border-gray-700">
+                            <a href="/static/settings.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                                <i data-lucide="settings" class="w-5 h-5"></i>
+                                <span>Settings</span>
+                            </a>
+                            <a href="/logout" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all">
+                                <i data-lucide="log-out" class="w-5 h-5"></i>
+                                <span>Logout</span>
+                            </a>
+                            <div class="mt-4 px-4 text-xs text-center text-gray-500 font-mono">
+                                <p>Wolf Prowler v0.1.0</p>
+                                <p class="mt-1">Encrypted • Secure</p>
+                            </div>
+                        </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="ml-64">
+        <!-- Header -->
+        <header class="glass-morphism border-b border-gray-700 px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold">P2P Communication</h2>
+                    <p class="text-gray-400 text-sm mt-1">Peer-to-peer network messaging and file sharing</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/nav" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg hover-lift flex items-center space-x-2">
+                        <i data-lucide="compass" class="w-4 h-4"></i>
+                        <span>Nav Hub</span>
+                    </a>
+                    <button onclick="connectToNetwork()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg hover-lift flex items-center space-x-2">
+                        <i data-lucide="wifi" class="w-4 h-4"></i>
+                        <span>Connect</span>
+                    </button>
+                    <button onclick="refreshPeers()" class="glass-morphism px-4 py-2 rounded-lg hover-lift flex items-center space-x-2">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>Refresh</span>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <div id="connectionStatus" class="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <span id="connectionText" class="text-sm">Disconnected</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- P2P Content -->
+        <main class="p-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Peer List -->
+                <div class="lg:col-span-1">
+                    <div class="p2p-card rounded-xl p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold">Connected Peers</h3>
+                            <span id="peerCount" class="bg-purple-500/20 text-purple-400 px-2 py-1 rounded text-sm">0</span>
+                        </div>
+                        <div id="peerList" class="space-y-3 max-h-96 overflow-y-auto">
+                            <div class="text-gray-500 text-center py-4">
+                                No peers connected
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Network Stats -->
+                    <div class="p2p-card rounded-xl p-6 mt-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold">Network Stats</h3>
+                            <i data-lucide="bar-chart-2" class="w-5 h-5 text-blue-400"></i>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-400">Network ID</span>
+                                <span class="text-sm mono-font text-blue-400">wolf-prowler-main</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-400">Total Messages</span>
+                                <span id="totalMessages" class="text-sm font-bold text-green-400">0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-400">Bandwidth Used</span>
+                                <span id="bandwidthUsed" class="text-sm font-bold text-orange-400">0 MB</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-400">Uptime</span>
+                                <span id="networkUptime" class="text-sm font-bold text-purple-400">0m</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chat Area -->
+                <div class="lg:col-span-2">
+                    <div class="p2p-card rounded-xl p-6 h-full flex flex-col">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold">P2P Chat</h3>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="clearChat()" class="text-gray-400 hover:text-white text-sm">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="exportChat()" class="text-gray-400 hover:text-white text-sm">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Messages -->
+                        <div id="chatMessages" class="flex-1 bg-gray-900/50 rounded-lg p-4 mb-4 overflow-y-auto max-h-96">
+                            <div class="text-gray-500 text-center py-8">
+                                <i data-lucide="message-circle" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                                <p>No messages yet. Start a conversation!</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Message Input -->
+                        <div class="space-y-4">
+                            <div class="flex space-x-2">
+                                <input type="text" id="messageInput" placeholder="Type your message..." 
+                                       class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-purple-500"
+                                       onkeypress="if(event.key === 'Enter') sendMessage()">
+                                <button onclick="sendMessage()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg hover-lift">
+                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- File Share -->
+                            <div class="flex items-center space-x-2">
+                                <input type="file" id="fileInput" class="hidden" onchange="shareFile()">
+                                <button onclick="document.getElementById('fileInput').click()" 
+                                        class="bg-gray-800 hover:bg-gray-700 border border-gray-600 px-3 py-1 rounded text-sm flex items-center space-x-2">
+                                    <i data-lucide="paperclip" class="w-4 h-4"></i>
+                                    <span>Share File</span>
+                                </button>
+                                <select id="targetPeer" class="bg-gray-800 border border-gray-600 rounded px-3 py-1 text-sm">
+                                    <option value="all">Broadcast to All</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- File Transfers -->
+            <div class="mt-6">
+                <div class="p2p-card rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold">File Transfers</h3>
+                        <i data-lucide="hard-drive" class="w-5 h-5 text-green-400"></i>
+                    </div>
+                    <div id="fileTransfers" class="space-y-3">
+                        <div class="text-gray-500 text-center py-4">
+                            No file transfers in progress
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // P2P State
+        let isConnected = false;
+        let peers = [];
+        let messages = [];
+        let fileTransfers = [];
+        let networkStartTime = Date.now();
+        let messageCount = 0;
+        let totalBandwidth = 0;
+        
+        // Simulated P2P Functions
+        function connectToNetwork() {
+            if (isConnected) {
+                disconnectFromNetwork();
+                return;
+            }
+            
+            // Simulate connection
+            setTimeout(() => {
+                isConnected = true;
+                updateConnectionStatus(true);
+                loadPeers();
+                addSystemMessage("Connected to Wolf Prowler P2P network");
+            }, 1000);
+        }
+        
+        function disconnectFromNetwork() {
+            isConnected = false;
+            updateConnectionStatus(false);
+            peers = [];
+            updatePeerList();
+            addSystemMessage("Disconnected from P2P network");
+        }
+        
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('connectionText');
+            const connectBtn = document.querySelector('button[onclick="connectToNetwork()"]');
+            
+            if (connected) {
+                statusDot.className = 'w-3 h-3 bg-green-500 rounded-full status-online';
+                statusText.textContent = 'Connected';
+                connectBtn.innerHTML = '<i data-lucide="wifi-off" class="w-4 h-4"></i><span>Disconnect</span>';
+                connectBtn.className = 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg hover-lift flex items-center space-x-2';
+            } else {
+                statusDot.className = 'w-3 h-3 bg-red-500 rounded-full';
+                statusText.textContent = 'Disconnected';
+                connectBtn.innerHTML = '<i data-lucide="wifi" class="w-4 h-4"></i><span>Connect</span>';
+                connectBtn.className = 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg hover-lift flex items-center space-x-2';
+            }
+            lucide.createIcons();
+        }
+        
+        function loadPeers() {
+            // Simulate loading peers from API
+            const mockPeers = [
+                { id: 'node-alpha-001', name: 'Node Alpha', status: 'online', latency: 12, trust: 'high' },
+                { id: 'node-beta-042', name: 'Node Beta', status: 'online', latency: 8, trust: 'medium' },
+                { id: 'node-gamma-117', name: 'Node Gamma', status: 'online', latency: 15, trust: 'high' },
+                { id: 'node-delta-003', name: 'Node Delta', status: 'away', latency: 25, trust: 'low' }
+            ];
+            
+            peers = mockPeers;
+            updatePeerList();
+            updatePeerSelect();
+        }
+        
+        function updatePeerList() {
+            const peerList = document.getElementById('peerList');
+            const peerCount = document.getElementById('peerCount');
+            
+            peerCount.textContent = peers.length;
+            
+            if (peers.length === 0) {
+                peerList.innerHTML = '<div class="text-gray-500 text-center py-4">No peers connected</div>';
+                return;
+            }
+            
+            peerList.innerHTML = peers.map(peer => `
+                <div class="bg-gray-800/50 rounded-lg p-3 hover:bg-gray-800/70 transition-colors cursor-pointer">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 ${peer.status === 'online' ? 'bg-green-500' : 'bg-yellow-500'} rounded-full"></div>
+                            <span class="font-medium text-sm">${peer.name}</span>
+                        </div>
+                        <span class="text-xs text-gray-400">${peer.latency}ms</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500 mono-font">${peer.id}</span>
+                        <span class="text-xs px-2 py-1 rounded ${
+                            peer.trust === 'high' ? 'bg-green-500/20 text-green-400' :
+                            peer.trust === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-red-500/20 text-red-400'
+                        }">${peer.trust}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updatePeerSelect() {
+            const select = document.getElementById('targetPeer');
+            select.innerHTML = '<option value="all">Broadcast to All</option>' +
+                peers.map(peer => `<option value="${peer.id}">${peer.name}</option>`).join('');
+        }
+        
+        function refreshPeers() {
+            if (!isConnected) return;
+            
+            addSystemMessage("Refreshing peer list...");
+            setTimeout(() => {
+                loadPeers();
+                addSystemMessage(`Found ${peers.length} peers`);
+            }, 500);
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message || !isConnected) return;
+            
+            const targetPeer = document.getElementById('targetPeer').value;
+            
+            // Add message to chat
+            addMessage('You', message, 'sent', targetPeer === 'all' ? 'Broadcast' : targetPeer);
+            
+            // Simulate peer response
+            if (Math.random() > 0.7) {
+                setTimeout(() => {
+                    const randomPeer = peers[Math.floor(Math.random() * peers.length)];
+                    const responses = [
+                        "Got your message!",
+                        "Roger that!",
+                        "Message received loud and clear",
+                        "Copy that, over",
+                        "Acknowledged"
+                    ];
+                    const response = responses[Math.floor(Math.random() * responses.length)];
+                    addMessage(randomPeer.name, response, 'received', 'You');
+                }, 1000 + Math.random() * 2000);
+            }
+            
+            input.value = '';
+            messageCount++;
+            totalBandwidth += message.length;
+            updateNetworkStats();
+        }
+        
+        function addMessage(sender, content, type, target) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-bubble mb-3 ${type === 'sent' ? 'text-right' : 'text-left'}`;
+            
+            const time = new Date().toISOString().slice(11, 19) + ' UTC';
+            const bgColor = type === 'sent' ? 'bg-purple-500/20 border-purple-500/30' : 'bg-gray-800/50 border-gray-700';
+            
+            messageDiv.innerHTML = `
+                <div class="${bgColor} border rounded-lg p-3 inline-block max-w-xs">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-medium text-sm ${type === 'sent' ? 'text-purple-400' : 'text-blue-400'}">${sender}</span>
+                        <span class="text-xs text-gray-500">${time}</span>
+                    </div>
+                    <p class="text-sm">${content}</p>
+                    ${target !== 'You' ? `<div class="text-xs text-gray-500 mt-1">To: ${target}</div>` : ''}
+                </div>
+            `;
+            
+            // Clear placeholder if first message
+            if (messages.length === 0) {
+                chatMessages.innerHTML = '';
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            messages.push({ sender, content, type, target, time });
+        }
+        
+        function addSystemMessage(content) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'text-center py-2';
+            messageDiv.innerHTML = `<span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded">${content}</span>`;
+            
+            if (messages.length === 0) {
+                chatMessages.innerHTML = '';
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function clearChat() {
+            messages = [];
+            document.getElementById('chatMessages').innerHTML = `
+                <div class="text-gray-500 text-center py-8">
+                    <i data-lucide="message-circle" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                    <p>No messages yet. Start a conversation!</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+        
+        function exportChat() {
+            if (messages.length === 0) return;
+            
+            const chatText = messages.map(msg => 
+                `[${msg.time}] ${msg.sender} ${msg.type === 'sent' ? '→' : '←'} ${msg.target}: ${msg.content}`
+            ).join('\n');
+            
+            const blob = new Blob([chatText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `p2p-chat-${new Date().toISOString().slice(0, 10)}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function shareFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file || !isConnected) return;
+            
+            const targetPeer = document.getElementById('targetPeer').value;
+            
+            // Add file transfer
+            const transfer = {
+                id: Date.now(),
+                filename: file.name,
+                size: file.size,
+                type: 'upload',
+                target: targetPeer === 'all' ? 'Broadcast' : targetPeer,
+                progress: 0,
+                status: 'uploading'
+            };
+            
+            fileTransfers.push(transfer);
+            updateFileTransfers();
+            
+            // Simulate file upload progress
+            const interval = setInterval(() => {
+                transfer.progress += Math.random() * 20;
+                if (transfer.progress >= 100) {
+                    transfer.progress = 100;
+                    transfer.status = 'completed';
+                    clearInterval(interval);
+                    
+                    addSystemMessage(`File "${file.name}" shared successfully`);
+                    totalBandwidth += file.size;
+                    updateNetworkStats();
+                }
+                updateFileTransfers();
+            }, 500);
+            
+            fileInput.value = '';
+        }
+        
+        function updateFileTransfers() {
+            const transfersDiv = document.getElementById('fileTransfers');
+            
+            if (fileTransfers.length === 0) {
+                transfersDiv.innerHTML = '<div class="text-gray-500 text-center py-4">No file transfers in progress</div>';
+                return;
+            }
+            
+            transfersDiv.innerHTML = fileTransfers.map(transfer => {
+                const progressColor = transfer.status === 'completed' ? 'bg-green-500' : 'bg-blue-500';
+                const statusIcon = transfer.status === 'completed' ? 'check-circle' : 'upload';
+                
+                return `
+                    <div class="bg-gray-800/50 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center space-x-2">
+                                <i data-lucide="${statusIcon}" class="w-4 h-4 ${transfer.status === 'completed' ? 'text-green-400' : 'text-blue-400'}"></i>
+                                <span class="font-medium text-sm">${transfer.filename}</span>
+                            </div>
+                            <span class="text-xs text-gray-400">${(transfer.size / 1024).toFixed(1)} KB</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">To: ${transfer.target}</span>
+                            <span class="text-xs text-gray-400">${Math.round(transfer.progress)}%</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-1 mt-2">
+                            <div class="${progressColor} h-1 rounded-full transition-all duration-300" style="width: ${transfer.progress}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        }
+        
+        function updateNetworkStats() {
+            document.getElementById('totalMessages').textContent = messageCount;
+            document.getElementById('bandwidthUsed').textContent = (totalBandwidth / 1024 / 1024).toFixed(2) + ' MB';
+            
+            const uptime = Date.now() - networkStartTime;
+            const minutes = Math.floor(uptime / 60000);
+            document.getElementById('networkUptime').textContent = minutes + 'm';
+        }
+        
+        // Auto-update network stats
+        setInterval(updateNetworkStats, 5000);
+        
+        // Initialize
+        updateNetworkStats();
+    </script>
+</body>
+</html>

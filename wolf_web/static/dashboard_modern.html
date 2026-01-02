@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - Security Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/websocket.js"></script>
+    <script src="/static/js/notifications.js"></script>
+    <script src="/static/js/api.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+            color: #e5e7eb;
+        }
+
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .wolf-bg {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+        }
+
+        /* Nav Item Styling */
+        .nav-item {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            transition: height 0.3s ease;
+        }
+
+        .nav-item:hover::before,
+        .nav-item.active::before {
+            height: 100%;
+        }
+
+        .nav-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+            padding-left: 20px;
+        }
+
+        /* Card Styling */
+        .metric-card {
+            background: rgba(17, 24, 39, 0.7);
+            border: 1px solid rgba(75, 85, 99, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .metric-card:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Status Colors & Animations */
+        .status-pulse-green { animation: pulse-green 2s infinite; }
+        .status-pulse-red { animation: pulse-red 2s infinite; }
+        
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .glow-text { text-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
+
+        /* Ticker Animation */
+        .ticker-wrap {
+            width: 100%;
+            overflow: hidden;
+            height: 3rem;
+            position: relative;
+        }
+        .ticker-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            animation: ticker 30s linear infinite;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+        }
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Paw Print Icon */
+        .paw-print { position: relative; display: inline-block; }
+        .paw-print::before {
+            content: ''; position: absolute; width: 12px; height: 12px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.2) 70%);
+            border-radius: 50%; top: -2px; left: 50%; transform: translateX(-50%);
+        }
+        .paw-print::after {
+            content: ''; position: absolute; width: 8px; height: 8px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, rgba(139, 92, 246, 0.1) 70%);
+            border-radius: 50%; bottom: -1px; left: 2px;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <!-- Sidebar Navigation -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 glass-morphism z-50 border-r border-gray-700 overflow-y-auto">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30">
+                    <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Wolf Prowler</h1>
+                    <p class="text-xs text-gray-400">Security Suite v2.0</p>
+                </div>
+            </div>
+
+            <nav class="space-y-6">
+                <!-- Command Center -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Command Center</h3>
+                    <div class="space-y-1">
+                        <a href="/static/dashboard_modern.html" class="nav-item active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Security -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Security</h3>
+                    <div class="space-y-1">
+                        <a href="/static/security.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="shield" class="w-5 h-5"></i>
+                            <span>Security Ops</span>
+                        </a>
+                        <a href="/static/siem_dashboard.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                            <span>SIEM / Logs</span>
+                        </a>
+                        <a href="/static/soar_dashboard.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="zap" class="w-5 h-5"></i>
+                            <span>SOAR</span>
+                        </a>
+                        <a href="/static/firewall.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                            <span>Firewall</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Network -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Network</h3>
+                    <div class="space-y-1">
+                        <a href="/static/network_map.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="globe" class="w-5 h-5"></i>
+                            <span>Topology Map</span>
+                        </a>
+                        <a href="/static/p2p.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="share-2" class="w-5 h-5"></i>
+                            <span>P2P Mesh</span>
+                        </a>
+                        <a href="/static/howl.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="radio" class="w-5 h-5"></i>
+                            <span>Wolf Howl</span>
+                        </a>
+                         <a href="/static/packs.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                            <span>Wolf Packs</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Operations -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Operations</h3>
+                    <div class="space-y-1">
+                         <a href="/static/monitoring.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="activity" class="w-5 h-5"></i>
+                            <span>Monitoring</span>
+                        </a>
+                        <a href="/consensus" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="git-branch" class="w-5 h-5"></i>
+                            <span>Consensus</span>
+                        </a>
+                        <a href="/static/crypto_advanced_v2.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="lock" class="w-5 h-5"></i>
+                            <span>Cryptography</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- AI -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">AI</h3>
+                    <div class="space-y-1">
+                         <a href="/static/neural_center.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="brain" class="w-5 h-5"></i>
+                            <span>Neural Center</span>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="mt-8 pt-6 border-t border-gray-700">
+                <a href="/static/settings.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="/logout" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    <span>Logout</span>
+                </a>
+                <div class="mt-4 px-4 text-xs text-center text-gray-500 font-mono">
+                    <p>Wolf Prowler v0.1.0</p>
+                    <p class="mt-1">Encrypted • Secure</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Security Command Center</h2>
+                <div class="flex items-center mt-2 space-x-2">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </span>
+                    <span class="text-sm text-green-400 font-mono">SYSTEM OPERATIONAL</span>
+                    <span class="text-gray-600 mx-2">|</span>
+                    <span class="text-sm text-gray-400 font-mono" id="utc-clock">Loading Time...</span>
+                </div>
+            </div>
+            <div class="flex space-x-4">
+                <button onclick="refreshData()" class="glass-morphism px-4 py-2 rounded-lg hover:bg-white/10 flex items-center space-x-2 transition-all">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <span>Refresh Intel</span>
+                </button>
+                <button onclick="showPanicModal()" class="bg-red-600/80 hover:bg-red-500 border border-red-500 px-4 py-2 rounded-lg flex items-center space-x-2 transition-all shadow-lg shadow-red-500/20 animate-pulse">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                    <span>PANIC</span>
+                </button>
+                <div class="glass-morphism px-4 py-2 rounded-lg flex items-center space-x-2 border-red-500/30">
+                    <i data-lucide="shield" class="w-4 h-4 text-red-500"></i>
+                    <span class="font-bold text-red-400">DEFCON 4</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero Status Row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <!-- Global Threat Level -->
+            <div class="metric-card rounded-xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i data-lucide="alert-octagon" class="w-24 h-24 text-red-500"></i>
+                </div>
+                <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider">Global Threat Level</h3>
+                <div class="mt-4 flex items-end">
+                    <span class="text-4xl font-bold text-yellow-400" id="threat-level">ELEVATED</span>
+                    <span class="text-xs text-red-400 ml-3 mb-1 flex items-center">
+                        <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> +2%
+                    </span>
+                </div>
+                <div class="mt-4 w-full bg-gray-800 rounded-full h-1.5">
+                    <div class="bg-yellow-400 h-1.5 rounded-full" style="width: 45%"></div>
+                </div>
+            </div>
+
+            <!-- Zero Trust Score -->
+            <div class="metric-card rounded-xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i data-lucide="lock" class="w-24 h-24 text-blue-500"></i>
+                </div>
+                <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider">Zero Trust Score</h3>
+                <div class="mt-4 flex items-end">
+                    <span class="text-4xl font-bold text-blue-400" id="zero-trust-score">85</span>
+                    <span class="text-lg text-gray-500 ml-1 mb-1">/ 100</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2" id="zero-trust-detail">Verifying Policy Compliance...</p>
+            </div>
+
+            <!-- Wolf Net Status -->
+            <div class="metric-card rounded-xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i data-lucide="network" class="w-24 h-24 text-purple-500"></i>
+                </div>
+                <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider">Wolf Net Status</h3>
+                <div class="mt-4 flex items-end">
+                    <span class="text-4xl font-bold text-green-400" id="net-status">ONLINE</span>
+                </div>
+                <div class="flex items-center mt-3 space-x-4">
+                    <div class="flex items-center text-xs text-gray-400">
+                        <i data-lucide="users" class="w-3 h-3 mr-1"></i>
+                        <span id="active-nodes">--</span> Nodes
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Section -->
+        <h3 class="text-lg font-bold text-gray-300 mb-4 flex items-center border-b border-gray-800 pb-2">
+            <i data-lucide="shield" class="w-5 h-5 mr-2 text-blue-400"></i> Security
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <a href="/static/security.html" class="metric-card rounded-xl p-5 border-l-4 border-blue-500 block hover:bg-gray-800/50 transition-colors cursor-pointer">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">Security Ops</p>
+                        <h4 class="text-xl font-bold text-white mt-1">Status Overview</h4>
+                    </div>
+                    <i data-lucide="shield" class="w-6 h-6 text-blue-500 opacity-80"></i>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Manage Threats & Policies</p>
+            </a>
+
+            <a href="/static/siem_dashboard.html" class="metric-card rounded-xl p-5 border-l-4 border-purple-500 block hover:bg-gray-800/50 transition-colors cursor-pointer">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">SIEM / Logs</p>
+                        <h4 class="text-xl font-bold text-white mt-1">Event Logs</h4>
+                    </div>
+                    <i data-lucide="file-text" class="w-6 h-6 text-purple-500 opacity-80"></i>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Correlate & Investigate</p>
+            </a>
+
+            <a href="/static/soar_dashboard.html" class="metric-card rounded-xl p-5 border-l-4 border-yellow-500 block hover:bg-gray-800/50 transition-colors cursor-pointer">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">SOAR</p>
+                        <h4 class="text-xl font-bold text-white mt-1">Automation</h4>
+                    </div>
+                     <i data-lucide="zap" class="w-6 h-6 text-yellow-500 opacity-80"></i>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Playbooks & Response</p>
+            </a>
+
+             <a href="/static/firewall.html" class="metric-card rounded-xl p-5 border-l-4 border-red-500 block hover:bg-gray-800/50 transition-colors cursor-pointer">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase">Firewall</p>
+                        <h4 class="text-xl font-bold text-white mt-1" id="firewall-status">Active</h4>
+                    </div>
+                    <i data-lucide="shield-alert" class="w-6 h-6 text-red-500 opacity-80"></i>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Rules & Traffic Control</p>
+            </a>
+        </div>
+
+        <!-- Network Section -->
+        <h3 class="text-lg font-bold text-gray-300 mb-4 flex items-center border-b border-gray-800 pb-2">
+            <i data-lucide="globe" class="w-5 h-5 mr-2 text-green-400"></i> Network
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <a href="/static/network.html" class="metric-card rounded-xl p-5 hover:bg-gray-800/50 transition-colors cursor-pointer">
+                <div class="flex items-center space-x-3 mb-2">
+                    <i data-lucide="map" class="w-5 h-5 text-green-400"></i>
+                    <h4 class="font-bold text-white">Global Map</h4>
+                </div>
+                <p class="text-xs text-gray-400">Visualize nodes and territory bounds.</p>
+            </a>
+
+            <a href="/static/p2p.html" class="metric-card rounded-xl p-5 hover:bg-gray-800/50 transition-colors cursor-pointer">
+                 <div class="flex items-center space-x-3 mb-2">
+                    <i data-lucide="share-2" class="w-5 h-5 text-blue-400"></i>
+                    <h4 class="font-bold text-white">P2P Mesh</h4>
+                </div>
+                <p class="text-xs text-gray-400">Direct peer connections and swarms.</p>
+            </a>
+
+             <a href="/static/howl.html" class="metric-card rounded-xl p-5 hover:bg-gray-800/50 transition-colors cursor-pointer">
+                 <div class="flex items-center space-x-3 mb-2">
+                    <i data-lucide="radio" class="w-5 h-5 text-orange-400"></i>
+                    <h4 class="font-bold text-white">Wolf Howl</h4>
+                </div>
+                <p class="text-xs text-gray-400">Discovery & Ping Operations.</p>
+            </a>
+            
+             <a href="/static/packs.html" class="metric-card rounded-xl p-5 hover:bg-gray-800/50 transition-colors cursor-pointer">
+                 <div class="flex items-center space-x-3 mb-2">
+                    <i data-lucide="users" class="w-5 h-5 text-pink-400"></i>
+                    <h4 class="font-bold text-white">Wolf Packs</h4>
+                </div>
+                <p class="text-xs text-gray-400">Manage device groups.</p>
+            </a>
+        </div>
+
+        <!-- Operations Section -->
+        <h3 class="text-lg font-bold text-gray-300 mb-4 flex items-center border-b border-gray-800 pb-2">
+            <i data-lucide="cpu" class="w-5 h-5 mr-2 text-indigo-400"></i> Operations
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+             <a href="/static/monitoring.html" class="metric-card rounded-xl p-5 hover:bg-gray-800/50 transition-colors cursor-pointer block">
+                <div class="flex items-center space-x-3 mb-2">
+                    <i data-lucide="activity" class="w-5 h-5 text-indigo-400"></i>
+                    <h4 class="font-bold text-white">Monitoring</h4>
+                </div>
+                <p class="text-xs text-gray-400">System health and resource usage.</p>
+            </a>
+            
+             <a href="/consensus" class="metric-card rounded-xl p-5 hover:bg-gray-800/50 transition-colors cursor-pointer block">
+                <div class="flex items-center space-x-3 mb-2">
+                    <i data-lucide="git-branch" class="w-5 h-5 text-indigo-400"></i>
+                    <h4 class="font-bold text-white">Consensus</h4>
+                </div>
+                <p class="text-xs text-gray-400">Raft state and cluster leadership.</p>
+            </a>
+
+             <a href="/static/crypto_advanced_v2.html" class="metric-card rounded-xl p-5 hover:bg-gray-800/50 transition-colors cursor-pointer block">
+                <div class="flex items-center space-x-3 mb-2">
+                    <i data-lucide="lock" class="w-5 h-5 text-indigo-400"></i>
+                    <h4 class="font-bold text-white">Cryptography</h4>
+                </div>
+                <p class="text-xs text-gray-400">Key management and encryption tools.</p>
+            </a>
+        </div>
+
+        <!-- AI Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <div>
+                <h3 class="text-lg font-bold text-gray-300 mb-4 flex items-center border-b border-gray-800 pb-2">
+                    <i data-lucide="brain" class="w-5 h-5 mr-2 text-pink-400"></i> Artificial Intelligence
+                </h3>
+                <a href="/static/neural_center.html" class="metric-card rounded-xl p-6 relative overflow-hidden group block cursor-pointer border-l-4 border-pink-500">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <i data-lucide="brain-circuit" class="w-24 h-24 text-pink-500"></i>
+                    </div>
+                    <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider">Neural Center</h3>
+                    <div class="mt-4">
+                         <h4 class="text-2xl font-bold text-white mb-2">AI Model Control</h4>
+                         <p class="text-sm text-gray-400">Manage LLM parameters, fine-tuning, and behavioral analysis models.</p>
+                    </div>
+                    <div class="mt-4 flex items-center space-x-2 text-xs text-pink-400">
+                        <span class="relative flex h-2 w-2">
+                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                           <span class="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                        </span>
+                        <span>Active Learning</span>
+                    </div>
+                </a>
+             </div>
+
+             <!-- Live Feed -->
+             <div>
+                 <h3 class="text-lg font-bold text-gray-300 mb-4 flex items-center border-b border-gray-800 pb-2">
+                    <i data-lucide="rss" class="w-5 h-5 mr-2 text-blue-400"></i> Live Events
+                </h3>
+                <div class="glass-morphism rounded-xl p-6 relative overflow-hidden h-40">
+                    <div class="bg-black/40 rounded-lg p-4 h-full overflow-y-auto font-mono text-sm space-y-2" id="activity-log">
+                       <div class="text-gray-500 text-center mt-8">Listening for network events...</div>
+                    </div>
+                </div>
+             </div>
+        </div>
+
+    <!-- Panic Modal -->
+    <div id="panicModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center" onclick="hidePanicModal()">
+        <div class="glass-morphism rounded-2xl p-8 border-2 border-red-500 shadow-2xl shadow-red-500/30 max-w-lg w-full text-center" onclick="event.stopPropagation()">
+            <i data-lucide="alert-triangle" class="w-20 h-20 text-red-500 mx-auto mb-4 animate-pulse"></i>
+            <h2 class="text-3xl font-bold text-red-400 mb-2">CONFIRM SYSTEM LOCKDOWN</h2>
+            <p class="text-gray-300 mb-6">This will immediately place the network into a high-security state, disconnecting non-essential peers and enforcing strict firewall policies. This action is irreversible without manual intervention.</p>
+            <div class="flex justify-center space-x-4">
+                <button onclick="hidePanicModal()" class="px-8 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-bold transition-all">Cancel</button>
+                <button onclick="triggerPanic()" class="px-8 py-3 bg-red-600 hover:bg-red-500 rounded-lg font-bold transition-all shadow-lg shadow-red-600/30">
+                    INITIATE LOCKDOWN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lockdown Banner -->
+    <div id="lockdownBanner" class="fixed top-0 left-0 w-full bg-red-600/90 text-white text-center py-2 font-bold text-sm z-[100] hidden animate-pulse">
+        SYSTEM-WIDE LOCKDOWN ACTIVE
+    </div>
+
+
+    <!-- Initialization Script -->
+    <script>
+        // Init Icons
+        lucide.createIcons();
+
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('utc-clock').textContent = now.toUTCString();
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- Data Fetching Logic (using api.js) ---
+        
+        // Helper to update text safely
+        const updateText = (id, val, fallback='N/A') => {
+            const el = document.getElementById(id);
+            if(el) el.textContent = (val !== null && val !== undefined) ? val : fallback;
+        };
+
+        async function loadSecurityData() {
+            try {
+                // Fetch basic security overview
+                const secStatus = await getJson('/api/security/status').catch(() => null);
+                if (secStatus) {
+                    updateText('active-threats', secStatus.active_threats_count, '0');
+                    updateText('firewall-status', secStatus.firewall_enabled ? 'ACTIVE' : 'DISABLED');
+                    // Map numeric score to Low/Med/High
+                    const score = secStatus.system_status?.security_score || 0;
+                    let level = 'LOW';
+                    if(score > 50) level = 'ELEVATED';
+                    if(score > 80) level = 'CRITICAL';
+                    updateText('threat-level', level);
+                } else {
+                    updateText('threat-level', 'UNKNOWN');
+                    updateText('active-threats', 'Offline');
+                }
+
+                // AI / Threat Intel
+                const threat = await getJson('/api/threat/intelligence').catch(() => null);
+                if (threat) {
+                    updateText('anomaly-score', Math.round(threat.anomaly_score * 100) + '%');
+                    updateText('ml-status', `Model: ${threat.ml_model_status}`);
+                }
+
+                // Zero Trust
+                const zt = await getJson('/api/zero/trust').catch(() => null);
+                if (zt) {
+                    updateText('zero-trust-score', zt.trust_score || 85);
+                }
+
+                // CVEs
+                const cve = await getJson('/api/cve/feed').catch(() => null);
+                if (cve) {
+                    updateText('critical-cves', cve.total_critical || cve.critical_count);
+                    updateText('latest-cve', cve.latest_cve_id || 'None');
+                }
+
+                // Network
+                const net = await getJson('/api/network/status').catch(() => null);
+                if (net) {
+                   const status = (net.swarm_status || '').toLowerCase().includes('connected') ? 'CONNECTED' : 'OFFLINE';
+                   updateText('net-status', status);
+                   const el = document.getElementById('net-status');
+                   if(status === 'OFFLINE') el.className = 'text-4xl font-bold text-red-500';
+                   else el.className = 'text-4xl font-bold text-green-400';
+
+                   updateText('active-nodes', net.known_peers_count || 0);
+                   updateText('net-latency', net.avg_latency || 15);
+                }
+
+                // Compliance
+                const comp = await getJson('/api/v1/compliance/status').catch(() => null);
+                if(comp) {
+                    updateText('compliance-findings', comp.open_findings_count || 0);
+                }
+
+            } catch (e) {
+                console.warn("Dashboard refresh failed", e);
+            }
+        }
+
+        // --- Activity Log Logic ---
+        function addLogEntry(msg, type='info') {
+            const container = document.getElementById('activity-log');
+            if (container.children[0]?.className.includes('text-center')) container.innerHTML = '';
+            
+            const div = document.createElement('div');
+            const color = type === 'alert' ? 'text-red-400' : (type === 'success' ? 'text-green-400' : 'text-blue-400');
+            const time = new Date().toISOString().split('T')[1].split('.')[0];
+            
+            div.className = `flex space-x-2 ${color} border-b border-gray-800/50 pb-1`;
+            div.innerHTML = `<span class="text-gray-600">[${time}]</span> <span>${msg}</span>`;
+            
+            container.prepend(div);
+            if(container.children.length > 20) container.lastChild.remove();
+        }
+
+        // WebSocket Integration
+        if (window.wolfWebSocket) {
+            window.wolfWebSocket.subscribe('security_event', (data) => {
+                addLogEntry(`SECURITY EVENT: ${data.description || 'Unknown event'}`, 'alert');
+                loadSecurityData(); // Refresh cards on event
+            });
+            
+            window.wolfWebSocket.subscribe('peer_update', (data) => {
+                const status = data.connected ? 'Connected' : 'Disconnected';
+                addLogEntry(`PEER: ${data.peer_id} ${status}`, 'info');
+            });
+        }
+
+        // Initial Load
+        loadSecurityData();
+        setInterval(loadSecurityData, 10000); // Poll every 10s as backup
+        
+        window.refreshData = () => {
+             loadSecurityData();
+             addLogEntry("Manual dashboard refresh trigger", 'success');
+        };
+
+        // --- Panic Button Logic ---
+        function showPanicModal() {
+            const modal = document.getElementById('panicModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function hidePanicModal() {
+            const modal = document.getElementById('panicModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function triggerPanic() {
+            hidePanicModal();
+            addLogEntry("PANIC: Lockdown initiated by operator.", 'alert');
+            
+            try {
+                const response = await postJson('/api/v1/system/panic', {});
+                if (response.success) {
+                    showNotification('System Lockdown Initiated!', 'error');
+                    activateLockdownBanner();
+                } else {
+                    showNotification(`Lockdown Failed: ${response.error || 'Check permissions.'}`, 'error');
+                }
+            } catch (e) {
+                console.error("Panic request failed:", e);
+                showNotification('Panic request failed. Check console.', 'error');
+            }
+        }
+
+        function activateLockdownBanner() {
+            document.getElementById('lockdownBanner').classList.remove('hidden');
+        }
+
+        // Add listener for WebSocket broadcast
+        if (window.wolfWebSocket) {
+            window.wolfWebSocket.subscribe('lockdown_activated', (data) => {
+                showNotification(data.message, 'error');
+                activateLockdownBanner();
+            });
+        }
+    </script>
+</body>
+</html>

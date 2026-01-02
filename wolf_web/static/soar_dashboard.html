@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - SOAR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+            color: #e5e7eb;
+        }
+        
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+        
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        .nav-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+            color: #fff;
+        }
+        
+        /* Playbook Card Hover */
+        .playbook-card { transition: all 0.3s ease; }
+        .playbook-card:hover { transform: translateY(-2px); border-color: rgba(59, 130, 246, 0.5); }
+
+         ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <!-- Sidebar Placeholder -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 glass-morphism z-50 border-r border-gray-700 overflow-y-auto">
+        <div class="p-6">
+                        <div class="flex items-center space-x-3 mb-8">
+                            <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Wolf Prowler</h1>
+                                <p class="text-xs text-gray-400">Security Suite v2.0</p>
+                            </div>
+                        </div>
+            
+                        <nav class="space-y-6">
+                            <!-- Command Center -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Command Center</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/dashboard_modern.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                                        <span>Dashboard</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Security -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Security</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/security.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="shield" class="w-5 h-5"></i>
+                                        <span>Security Ops</span>
+                                    </a>
+                                    <a href="/static/siem_dashboard.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                                        <span>SIEM / Logs</span>
+                                    </a>
+                                    <a href="/static/soar_dashboard.html" class="nav-item active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="zap" class="w-5 h-5"></i>
+                                        <span>SOAR</span>
+                                    </a>
+                                    <a href="/static/firewall.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                                        <span>Firewall</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Network -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Network</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/network_map.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="globe" class="w-5 h-5"></i>
+                                        <span>Topology Map</span>
+                                    </a>
+                                    <a href="/static/p2p.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="share-2" class="w-5 h-5"></i>
+                                        <span>P2P Mesh</span>
+                                    </a>
+                                    <a href="/static/howl.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="radio" class="w-5 h-5"></i>
+                                        <span>Wolf Howl</span>
+                                    </a>
+                                     <a href="/static/packs.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="users" class="w-5 h-5"></i>
+                                        <span>Wolf Packs</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Operations -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Operations</h3>
+                                <div class="space-y-1">
+                                     <a href="/static/monitoring.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="activity" class="w-5 h-5"></i>
+                                        <span>Monitoring</span>
+                                    </a>
+                                    <a href="/consensus" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="git-branch" class="w-5 h-5"></i>
+                                        <span>Consensus</span>
+                                    </a>
+                                    <a href="/static/crypto_advanced_v2.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="lock" class="w-5 h-5"></i>
+                                        <span>Cryptography</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- AI -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">AI</h3>
+                                <div class="space-y-1">
+                                     <a href="/static/neural_center.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="brain" class="w-5 h-5"></i>
+                                        <span>Neural Center</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </nav>
+            
+                        <div class="mt-8 pt-6 border-t border-gray-700">
+                            <a href="/static/settings.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                                <i data-lucide="settings" class="w-5 h-5"></i>
+                                <span>Settings</span>
+                            </a>
+                            <a href="/logout" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all">
+                                <i data-lucide="log-out" class="w-5 h-5"></i>
+                                <span>Logout</span>
+                            </a>
+                            <div class="mt-4 px-4 text-xs text-center text-gray-500 font-mono">
+                                <p>Wolf Prowler v0.1.0</p>
+                                <p class="mt-1">Encrypted • Secure</p>
+                            </div>
+                        </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-3xl font-bold text-white">SOAR Operations</h2>
+                <p class="text-gray-400 mt-1">Orchestration, Automation, and Response</p>
+            </div>
+            <div class="flex space-x-4">
+                 <a href="/static/dashboard_modern.html" class="px-4 py-2 rounded-lg flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 text-white transition-all">
+                    <i data-lucide="corner-up-left" class="w-4 h-4"></i>
+                    <span>Return to Dashboard</span>
+                </a>
+                <button class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>New Playbook</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="glass-morphism rounded-xl p-6 relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-4 opacity-10"><i data-lucide="zap" class="w-24 h-24 text-yellow-500"></i></div>
+                <h3 class="text-gray-400 text-sm font-semibold uppercase">Automation Savings</h3>
+                <div class="mt-2 flex items-baseline">
+                    <span class="text-3xl font-bold text-white font-mono">142h</span>
+                    <span class="ml-2 text-sm text-green-400">Time Saved (This Month)</span>
+                </div>
+            </div>
+
+            <div class="glass-morphism rounded-xl p-6 relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-4 opacity-10"><i data-lucide="check-circle" class="w-24 h-24 text-green-500"></i></div>
+                <h3 class="text-gray-400 text-sm font-semibold uppercase">Mean Time to Respond</h3>
+                <div class="mt-2 flex items-baseline">
+                    <span class="text-3xl font-bold text-white font-mono">45s</span>
+                    <span class="ml-2 text-sm text-green-400">-12% vs avg</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Automated Containment Enabled</p>
+            </div>
+
+             <div class="glass-morphism rounded-xl p-6 relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-4 opacity-10"><i data-lucide="play-circle" class="w-24 h-24 text-blue-500"></i></div>
+                <h3 class="text-gray-400 text-sm font-semibold uppercase">Active Playbooks</h3>
+                <div class="mt-2 flex items-baseline">
+                    <span class="text-3xl font-bold text-white font-mono">8</span>
+                    <span class="ml-2 text-sm text-gray-400">Running / 24 Total</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Active Playbooks List -->
+            <div class="lg:col-span-2 space-y-4">
+                <h3 class="text-xl font-bold text-white mb-2">Automated Playbooks</h3>
+                
+                <!-- Playbook Card 1 -->
+                <div class="glass-morphism rounded-xl p-5 playbook-card border border-gray-700 cursor-pointer group">
+                    <div class="flex justify-between items-start">
+                        <div class="flex space-x-4">
+                            <div class="p-3 bg-red-500/10 rounded-lg h-fit">
+                                <i data-lucide="shield-off" class="w-6 h-6 text-red-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Auto-Containment: Brute Force</h4>
+                                <p class="text-sm text-gray-400 mt-1">Isolates IP + Locks User Account after 5 failed attempts.</p>
+                                <div class="flex items-center space-x-3 mt-3">
+                                    <span class="px-2 py-0.5 rounded text-xs bg-green-500/20 text-green-400 border border-green-500/20">Active</span>
+                                    <span class="text-xs text-gray-500">Last run: 2m ago</span>
+                                    <span class="text-xs text-gray-500">Executions: 1,240</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="p-2 hover:bg-gray-700 rounded-full"><i data-lucide="more-horizontal" class="w-5 h-5 text-gray-400"></i></button>
+                    </div>
+                </div>
+
+                 <!-- Playbook Card 2 -->
+                <div class="glass-morphism rounded-xl p-5 playbook-card border border-gray-700 cursor-pointer group">
+                    <div class="flex justify-between items-start">
+                        <div class="flex space-x-4">
+                            <div class="p-3 bg-blue-500/10 rounded-lg h-fit">
+                                <i data-lucide="user-check" class="w-6 h-6 text-blue-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Suspicious Login Verification</h4>
+                                <p class="text-sm text-gray-400 mt-1">Triggers MFA challenge + Emails user for confirmation.</p>
+                                <div class="flex items-center space-x-3 mt-3">
+                                    <span class="px-2 py-0.5 rounded text-xs bg-green-500/20 text-green-400 border border-green-500/20">Active</span>
+                                    <span class="text-xs text-gray-500">Last run: 15m ago</span>
+                                    <span class="text-xs text-gray-500">Executions: 450</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="p-2 hover:bg-gray-700 rounded-full"><i data-lucide="more-horizontal" class="w-5 h-5 text-gray-400"></i></button>
+                    </div>
+                </div>
+
+                 <!-- Playbook Card 3 -->
+                <div class="glass-morphism rounded-xl p-5 playbook-card border border-gray-700 cursor-pointer group">
+                    <div class="flex justify-between items-start">
+                        <div class="flex space-x-4">
+                            <div class="p-3 bg-purple-500/10 rounded-lg h-fit">
+                                <i data-lucide="database" class="w-6 h-6 text-purple-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">Data Exfiltration Block</h4>
+                                <p class="text-sm text-gray-400 mt-1">Detects large outbound transfers & terminates session.</p>
+                                <div class="flex items-center space-x-3 mt-3">
+                                    <span class="px-2 py-0.5 rounded text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/20">Testing Mode</span>
+                                    <span class="text-xs text-gray-500">Last run: 2h ago</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="p-2 hover:bg-gray-700 rounded-full"><i data-lucide="more-horizontal" class="w-5 h-5 text-gray-400"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Executions Timeline -->
+            <div class="glass-morphism rounded-xl p-6">
+                <h3 class="text-lg font-bold text-white mb-4">Recent Actions</h3>
+                <div class="space-y-6 relative border-l border-gray-700 ml-3 pl-6">
+                    <!-- Item 1 -->
+                    <div class="relative">
+                        <div class="absolute -left-[31px] bg-green-500 h-2.5 w-2.5 rounded-full border border-gray-900"></div>
+                        <p class="text-xs text-gray-500 mb-1">Just now</p>
+                        <h4 class="text-sm font-semibold text-white">Blocked IP 192.168.1.105</h4>
+                        <p class="text-xs text-gray-400">Playbook: Auto-Containment</p>
+                    </div>
+
+                     <!-- Item 2 -->
+                    <div class="relative">
+                         <div class="absolute -left-[31px] bg-blue-500 h-2.5 w-2.5 rounded-full border border-gray-900"></div>
+                        <p class="text-xs text-gray-500 mb-1">10 min ago</p>
+                        <h4 class="text-sm font-semibold text-white">MFA Challenge Sent</h4>
+                        <p class="text-xs text-gray-400">User: admin_backup</p>
+                    </div>
+
+                     <!-- Item 3 -->
+                    <div class="relative">
+                         <div class="absolute -left-[31px] bg-gray-500 h-2.5 w-2.5 rounded-full border border-gray-900"></div>
+                        <p class="text-xs text-gray-500 mb-1">1 hour ago</p>
+                        <h4 class="text-sm font-semibold text-white">System Health Check</h4>
+                        <p class="text-xs text-gray-400">Playbook: Daily Maintenance</p>
+                    </div>
+                </div>
+                <button class="w-full mt-6 py-2 bg-gray-800 hover:bg-gray-700 rounded text-xs text-gray-400 transition-colors">View All History</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

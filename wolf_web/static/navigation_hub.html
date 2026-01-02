@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - Navigation Hub</title>
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://unpkg.com 'unsafe-inline'; style-src 'self' https://cdn.tailwindcss.com 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://localhost:8080 https://api.wolfprowler.com; font-src 'self' https: data:;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        :root {
+            --primary: #8b5cf6;
+            --primary-dark: #7c3aed;
+            --secondary: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .glass-morphism:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .nav-card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .nav-card .icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%);
+        }
+        
+        .nav-card .icon-wrapper i {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+        
+        .status-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        .status-online {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            animation: pulse-green 2s infinite;
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+        }
+        
+        .category-badge {
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.2s;
+        }
+        
+        .fade-enter, .fade-leave-to {
+            opacity: 0;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-gray-200">
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <header class="glass-morphism p-6 mb-8 rounded-xl">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                    <div class="p-2 bg-indigo-500/10 rounded-lg">
+                        <i data-lucide="shield" class="w-8 h-8 text-indigo-400"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">Wolf Prowler</h1>
+                        <p class="text-gray-400">Security & Networking Platform</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-4 text-sm">
+                    <div class="flex items-center">
+                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2 animate-pulse"></div>
+                        <span>Connected</span>
+                    </div>
+                    <div class="hidden md:block w-px h-5 bg-gray-700"></div>
+                    <div class="flex items-center">
+                        <i data-lucide="cpu" class="w-4 h-4 mr-1 text-blue-400"></i>
+                        <span>v2.5.0</span>
+                    </div>
+                    <div class="hidden md:block w-px h-5 bg-gray-700"></div>
+                    <div class="flex items-center">
+                        <i data-lucide="shield-check" class="w-4 h-4 mr-1 text-green-400"></i>
+                        <span>Secure Connection</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Quick Actions -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white">Quick Actions</h2>
+                <div class="flex items-center space-x-2 text-sm text-gray-400">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    <span>Quick Access</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <a href="/static/dashboard_modern.html" class="nav-card glass-morphism p-6 hover:border-indigo-500/50 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative z-10">
+                        <div class="icon-wrapper">
+                            <i data-lucide="layout-dashboard"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold mb-1 text-white">Dashboard</h3>
+                        <p class="text-sm text-gray-400">System overview and analytics</p>
+                        <div class="mt-4 flex items-center text-xs text-indigo-400">
+                            <span>View metrics</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/network.html" class="nav-card glass-morphism p-6 hover:border-blue-500/50 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative z-10">
+                        <div class="icon-wrapper">
+                            <i data-lucide="network"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold mb-1 text-white">Network</h3>
+                        <p class="text-sm text-gray-400">Monitor and analyze traffic</p>
+                        <div class="mt-4 flex items-center text-xs text-blue-400">
+                            <span>View network</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/crypto_advanced_v2.html" class="nav-card glass-morphism p-6 hover:border-emerald-500/50 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative z-10">
+                        <div class="icon-wrapper">
+                            <i data-lucide="lock"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold mb-1 text-white">Crypto Tools</h3>
+                        <p class="text-sm text-gray-400">Encryption and hashing</p>
+                        <div class="mt-4 flex items-center text-xs text-emerald-400">
+                            <span>Access tools</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/security.html" class="nav-card glass-morphism p-6 hover:border-rose-500/50 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative z-10">
+                        <div class="icon-wrapper">
+                            <i data-lucide="shield"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold mb-1 text-white">Security</h3>
+                        <p class="text-sm text-gray-400">Threat detection & prevention</p>
+                        <div class="mt-4 flex items-center text-xs text-rose-400">
+                            <span>Check status</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="/hub/organizations" class="nav-card glass-morphism p-6 hover:border-purple-500/50 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative z-10">
+                        <div class="icon-wrapper">
+                            <i data-lucide="building-2"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold mb-1 text-white">Hub Management</h3>
+                        <p class="text-sm text-gray-400">Manage SaaS organizations & agents</p>
+                        <div class="mt-4 flex items-center text-xs text-purple-400">
+                            <span>Manage tenants</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="/consensus" class="nav-card glass-morphism p-6 hover:border-purple-500/50 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative z-10">
+                        <div class="icon-wrapper">
+                            <i data-lucide="git-branch"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold mb-1 text-white">Consensus Hub</h3>
+                        <p class="text-sm text-gray-400">Distributed coordination & state sync</p>
+                        <div class="mt-4 flex items-center text-xs text-purple-400">
+                            <span>Manage cluster</span>
+                            <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/howl.html" class="nav-card glass-morphism p-5 hover:border-orange-400/50 group">
+                    <div class="flex items-start space-x-4">
+                        <div class="p-2.5 bg-orange-500/10 rounded-lg">
+                            <i data-lucide="radio" class="w-5 h-5 text-orange-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-white group-hover:text-orange-400 transition-colors">Howl Discovery</h3>
+                            <p class="text-sm text-gray-400 mt-1">Network discovery & ping</p>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="/static/packs.html" class="nav-card glass-morphism p-5 hover:border-pink-400/50 group">
+                    <div class="flex items-start space-x-4">
+                        <div class="p-2.5 bg-pink-500/10 rounded-lg">
+                            <i data-lucide="users-2" class="w-5 h-5 text-pink-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-white group-hover:text-pink-400 transition-colors">Pack Activity</h3>
+                            <p class="text-sm text-gray-400 mt-1">Monitor wolf pack coordination</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Features Section -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white">Features</h2>
+                <div class="flex items-center space-x-2 text-sm text-gray-400">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                    <span>All Features</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <a href="/static/p2p.html" class="nav-card glass-morphism p-5 hover:border-blue-400/50 group">
+                    <div class="flex items-start space-x-4">
+                        <div class="p-2.5 bg-blue-500/10 rounded-lg">
+                            <i data-lucide="users" class="w-5 h-5 text-blue-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-white group-hover:text-blue-400 transition-colors">P2P Network</h3>
+                            <p class="text-sm text-gray-400 mt-1">Peer-to-peer connections</p>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/crypto_advanced_v2.html" class="nav-card glass-morphism p-5 hover:border-purple-400/50 group">
+                    <div class="flex items-start space-x-4">
+                        <div class="p-2.5 bg-purple-500/10 rounded-lg">
+                            <i data-lucide="key" class="w-5 h-5 text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-white group-hover:text-purple-400 transition-colors">Crypto Tools</h3>
+                            <p class="text-sm text-gray-400 mt-1">Encryption utilities</p>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/logs.html" class="nav-card glass-morphism p-5 hover:border-emerald-400/50 group">
+                    <div class="flex items-start space-x-4">
+                        <div class="p-2.5 bg-emerald-500/10 rounded-lg">
+                            <i data-lucide="file-text" class="w-5 h-5 text-emerald-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-white group-hover:text-emerald-400 transition-colors">System Logs</h3>
+                            <p class="text-sm text-gray-400 mt-1">View activity logs</p>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/monitoring.html" class="nav-card glass-morphism p-5 hover:border-rose-400/50 group">
+                    <div class="flex items-start space-x-4">
+                        <div class="p-2.5 bg-rose-500/10 rounded-lg">
+                            <i data-lucide="activity" class="w-5 h-5 text-rose-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-white group-hover:text-rose-400 transition-colors">Monitoring</h3>
+                            <p class="text-sm text-gray-400 mt-1">Real-time metrics</p>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/network.html" class="nav-card glass-morphism p-5 hover:border-cyan-400/50 group">
+                    <div class="flex items-start space-x-4">
+                        <div class="p-2.5 bg-cyan-500/10 rounded-lg">
+                            <i data-lucide="wifi" class="w-5 h-5 text-cyan-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-white group-hover:text-cyan-400 transition-colors">Network Scanner</h3>
+                            <p class="text-sm text-gray-400 mt-1">Scan networks</p>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/security.html" class="nav-card glass-morphism p-5 hover:border-amber-400/50 group">
+                    <div class="flex items-start space-x-4">
+                        <div class="p-2.5 bg-amber-500/10 rounded-lg">
+                            <i data-lucide="shield-alert" class="w-5 h-5 text-amber-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-white group-hover:text-amber-400 transition-colors">Security</h3>
+                            <p class="text-sm text-gray-400 mt-1">Threat detection</p>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/settings.html" class="nav-card glass-morphism p-5 hover:border-violet-400/50 group">
+                    <div class="flex items-start space-x-4">
+                        <div class="p-2.5 bg-violet-500/10 rounded-lg">
+                            <i data-lucide="settings" class="w-5 h-5 text-violet-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-white group-hover:text-violet-400 transition-colors">Settings</h3>
+                            <p class="text-sm text-gray-400 mt-1">Configuration</p>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/api/index.html" class="nav-card glass-morphism p-5 hover:border-sky-400/50 group">
+                    <div class="flex items-start space-x-4">
+                        <div class="p-2.5 bg-sky-500/10 rounded-lg">
+                            <i data-lucide="code" class="w-5 h-5 text-sky-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-medium text-white group-hover:text-sky-400 transition-colors">API Docs</h3>
+                            <p class="text-sm text-gray-400 mt-1">Integration</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        <!-- System Status -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white">System Status</h2>
+                <div class="flex items-center space-x-2 text-sm text-gray-400">
+                    <i data-lucide="activity" class="w-4 h-4"></i>
+                    <span>Live Monitoring</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-morphism p-5 rounded-xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-medium text-gray-400">System Health</h3>
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div>
+                            <span class="text-xs font-medium text-emerald-400">Operational</span>
+                        </div>
+                    </div>
+                    <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full" style="width: 92%"></div>
+                    </div>
+                    <div class="mt-2 flex justify-between text-xs text-gray-500">
+                        <span>Load: 24%</span>
+                        <span>Uptime: 7d 12h</span>
+                    </div>
+                </div>
+                
+                <div class="glass-morphism p-5 rounded-xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-medium text-gray-400">Network</h3>
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div>
+                            <span class="text-xs font-medium text-emerald-400">Stable</span>
+                        </div>
+                    </div>
+                    <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full" style="width: 87%"></div>
+                    </div>
+                    <div class="mt-2 flex justify-between text-xs text-gray-500">
+                        <span>Peers: 24</span>
+                        <span>Latency: 42ms</span>
+                    </div>
+                </div>
+                
+                <div class="glass-morphism p-5 rounded-xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-medium text-gray-400">Storage</h3>
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full bg-amber-500 mr-2"></div>
+                            <span class="text-xs font-medium text-amber-400">Warning</span>
+                        </div>
+                    </div>
+                    <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full" style="width: 78%"></div>
+                    </div>
+                    <div class="mt-2 flex justify-between text-xs text-gray-500">
+                        <span>Used: 78%</span>
+                        <span>42.7 GB / 64 GB</span>
+                    </div>
+                </div>
+                
+                <div class="glass-morphism p-5 rounded-xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-medium text-gray-400">Security</h3>
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div>
+                            <span class="text-xs font-medium text-emerald-400">Secure</span>
+                        </div>
+                    </div>
+                    <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 95%"></div>
+                    </div>
+                    <div class="mt-2 flex justify-between text-xs text-gray-500">
+                        <span>Threats: 0</span>
+                        <span>Last scan: 5m ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Documentation Section -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white">Documentation</h2>
+                <div class="flex items-center space-x-2 text-sm text-gray-400">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Learn & Explore</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <a href="/static/api/index.html" class="group relative overflow-hidden rounded-xl glass-morphism p-6 hover:border-emerald-400/50 transition-colors">
+                    <div class="absolute -right-4 -top-4 text-emerald-400 opacity-10 transform rotate-12 scale-150 group-hover:scale-125 transition-transform">
+                        <i data-lucide="book-open" class="w-24 h-24"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <h3 class="text-lg font-semibold text-white mb-2">API Reference</h3>
+                        <p class="text-sm text-gray-400 mb-4">Complete documentation for all API endpoints and integration guides.</p>
+                        <div class="flex items-center text-emerald-400 text-sm font-medium">
+                            <span>View Documentation</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/#" class="group relative overflow-hidden rounded-xl glass-morphism p-6 hover:border-blue-400/50 transition-colors">
+                    <div class="absolute -right-4 -top-4 text-blue-400 opacity-10 transform rotate-12 scale-150 group-hover:scale-125 transition-transform">
+                        <i data-lucide="graduation-cap" class="w-24 h-24"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <h3 class="text-lg font-semibold text-white mb-2">Guides</h3>
+                        <p class="text-sm text-gray-400 mb-4">Step-by-step tutorials and best practices for using Wolf Prowler.</p>
+                        <div class="flex items-center text-blue-400 text-sm font-medium">
+                            <span>View Guides</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="/static/#" class="group relative overflow-hidden rounded-xl glass-morphism p-6 hover:border-purple-400/50 transition-colors">
+                    <div class="absolute -right-4 -top-4 text-purple-400 opacity-10 transform rotate-12 scale-150 group-hover:scale-125 transition-transform">
+                        <i data-lucide="code" class="w-24 h-24"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <h3 class="text-lg font-semibold text-white mb-2">Developer Resources</h3>
+                        <p class="text-sm text-gray-400 mb-4">SDKs, client libraries, and integration tools for developers.</p>
+                        <div class="flex items-center text-purple-400 text-sm font-medium">
+                            <span>Explore Resources</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="glass-morphism mt-12 p-8 rounded-t-2xl">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-4">Wolf Prowler</h3>
+                    <p class="text-sm text-gray-400 mb-4">Advanced security and networking platform for modern infrastructure.</p>
+                    <div class="flex space-x-4">
+                        <a href="/static/#" class="text-gray-500 hover:text-white transition-colors">
+                            <i data-lucide="github" class="w-5 h-5"></i>
+                        </a>
+                        <a href="/static/#" class="text-gray-500 hover:text-white transition-colors">
+                            <i data-lucide="twitter" class="w-5 h-5"></i>
+                        </a>
+                        <a href="/static/#" class="text-gray-500 hover:text-white transition-colors">
+                            <i data-lucide="discord" class="w-5 h-5"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-semibold text-white mb-4 uppercase tracking-wider">Product</h4>
+                    <ul class="space-y-2">
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">Features</a></li>
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">Changelog</a></li>
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">Roadmap</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-semibold text-white mb-4 uppercase tracking-wider">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">Documentation</a></li>
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">API Reference</a></li>
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">Guides</a></li>
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">Community</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-semibold text-white mb-4 uppercase tracking-wider">Company</h4>
+                    <ul class="space-y-2">
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">Careers</a></li>
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">Contact</a></li>
+                        <li><a href="/static/#" class="text-sm text-gray-400 hover:text-white transition-colors">Legal</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="pt-6 border-t border-gray-800">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-sm text-gray-500">© 2025 Wolf Security. All rights reserved.</p>
+                    <div class="flex space-x-6 mt-4 md:mt-0">
+                        <a href="/static/#" class="text-sm text-gray-500 hover:text-white transition-colors">Privacy Policy</a>
+                        <a href="/static/#" class="text-sm text-gray-500 hover:text-white transition-colors">Terms of Service</a>
+                        <a href="/static/#" class="text-sm text-gray-500 hover:text-white transition-colors">Cookie Policy</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Simple system status simulation
+        function updateSystemStatus() {
+            const statusBars = document.querySelectorAll('.h-2 > div');
+            statusBars.forEach(bar => {
+                const currentWidth = parseFloat(bar.style.width) || 0;
+                const newWidth = Math.min(100, Math.max(5, currentWidth + (Math.random() * 4 - 2))).toFixed(2);
+                bar.style.width = `${newWidth}%`;
+                
+                // Update colors based on percentage
+                const percentage = parseFloat(newWidth);
+                if (percentage > 85) {
+                    bar.className = bar.className.replace(/from-\w+-500 to-\w+-500/g, 'from-red-500 to-pink-500');
+                } else if (percentage > 70) {
+                    bar.className = bar.className.replace(/from-\w+-500 to-\w+-500/g, 'from-amber-500 to-yellow-500');
+                } else {
+                    bar.className = bar.className.replace(/from-\w+-500 to-\w+-500/g, 'from-emerald-500 to-green-500');
+                }
+            });
+            
+            // Update timers
+            document.querySelectorAll('span').forEach(span => {
+                if (span.textContent.includes('Last scan:')) {
+                    if (Math.random() > 0.7) {
+                        const minutes = Math.floor(Math.random() * 10) + 1;
+                        span.textContent = `Last scan: ${minutes}m ago`;
+                    }
+                }
+            });
+        }
+        
+        // Update status every 5 seconds
+        setInterval(updateSystemStatus, 5000);
+        
+        // Initial update
+        updateSystemStatus();
+    </script>
+</body>
+</html>

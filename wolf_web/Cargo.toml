@@ -1,0 +1,18 @@
+[package]
+name = "wolf_web"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+
+fstream = "0.1.2"
+axum = { version = "0.7", features = ["ws"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
+tower-cookies = "0.11.0"
+hyper = { version = "1.0", features = ["full"] }
+hyper-util = { version = "0.1", features = ["server-auto", "tokio"] }
+tokio = { version = "1.0", features = ["full"] }
+tracing = "0.1"
+anyhow = "1.0"

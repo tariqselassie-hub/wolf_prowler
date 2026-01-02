@@ -1,0 +1,254 @@
+[package]
+name = "wolf_prowler"
+version = "0.1.0"
+edition = "2021"
+description = "Wolf Prowler - Advanced P2P Security Network"
+license = "MIT OR Apache-2.0"
+
+# Main application binary
+[[bin]]
+name = "wolf_prowler"
+path = "src/main.rs"
+
+# Comprehensive security demo
+[[example]]
+name = "comprehensive_security_demo"
+path = "examples/comprehensive_security_demo.rs"
+required-features = ["enterprise_security"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.35", features = ["full"] }
+anyhow = "1.0"
+thiserror = "1.0"  # Error handling
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+dotenv = "0.15"
+futures = "0.3"
+jsonwebtoken = "9.3"
+
+# Wolf Prowler modules - unified integration
+wolf_den = { path = "./wolf_den" }
+wolf_net = { path = "./wolf_net" }
+wolf_web = { path = "wolf_web" }
+wolfsec = { path = "./wolfsec" }
+rand = "0.8"
+
+# Error handling and logging
+log = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+async-trait = "0.1"  # For health check trait
+lazy_static = "1.4"  # For global health monitor
+validator = { version = "0.16", features = ["derive"] }  # Request validation
+
+# Cryptographic dependencies
+ed25519-dalek = { version = "2.0", features = ["rand_core"] }
+sha2 = "0.10"
+hex = "0.4"
+ring = "0.16"
+base64 = "0.13"
+blake3 = "1.5"
+
+# P2P networking
+# P2P networking provided by wolf_net
+
+# Web framework for dashboard
+# Dashboard and visualization
+axum = { version = "0.7.7", features = ["ws", "macros"] }
+tower = "0.5.2"
+tower-http = { version = "0.5.2", features = ["cors", "trace", "fs"] }
+askama = "0.12"
+
+# Database persistence (for advanced_reporting feature)
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json", "ipnetwork"], optional = true }
+ipnetwork = { version = "0.20", optional = true }
+plotly = { version = "0.8", optional = true }
+hyper = { version = "1.0", features = ["full"] }
+hyper-util = { version = "0.1", features = ["server-auto", "tokio"] }
+tower-cookies = "0.11.0"
+serde_yaml = "0.9"
+axum-extra = { version = "0.9", features = ["cookie-private"] }
+aes-gcm-siv = "0.11.1"
+zeroize = "1.8.2"
+ratatui = "0.29.0"
+crossterm = "0.29.0"
+sysinfo = "0.37.2"
+futures-util = "0.3"
+genpdf = "0.2.0"
+plotters = { version = "0.3", features = ["chrono", "bitmap_backend"] }
+image = "0.24"
+axum-server = { version = "0.8.0", features = ["tls-rustls"] }
+rustls = { version = "0.23", features = ["ring"] }
+
+
+# Linux-specific dependencies
+[target.'cfg(target_os = "linux")'.dependencies]
+nix = { version = "0.27", features = ["signal"], optional = true }
+libc = { version = "0.2", optional = true }
+
+# Utilities
+clap = { version = "4.0", features = ["derive"] }
+
+toml = "0.8"
+num_cpus = "1.0"
+colored = "2.0"
+config = { version = "0.14", features = ["toml"] }
+indicatif = "0.17"
+
+# Metrics and monitoring
+prometheus = "0.13"
+lazy_static = "1.4"
+
+# AI/ML and Advanced Analytics
+candle-core = { version = "0.3", optional = true }
+candle-nn = { version = "0.3", optional = true }
+candle-transformers = { version = "0.3", optional = true }
+ndarray = { version = "0.15", optional = true }
+linfa = { version = "0.7", optional = true }
+linfa-clustering = { version = "0.7", optional = true }
+linfa-linear = { version = "0.7", optional = true }
+linfa-logistic = { version = "0.7", optional = true }
+
+# Advanced Data Processing
+arrow = { version = "50.0", optional = true }
+datafusion = { version = "35.0", optional = true }
+polars = { version = "0.36", features = [
+    "lazy",
+    "temporal",
+    "strings",
+], optional = true }
+
+# Threat Intelligence Feeds
+reqwest = { version = "0.11", features = ["json"], optional = true }
+
+# Comprehensive Security System Dependencies
+# Cloud Security
+aws-config = { version = "1.0", optional = true }
+aws-sdk-ec2 = { version = "1.0", optional = true }
+aws-sdk-s3 = { version = "1.0", optional = true }
+azure_identity = { version = "0.11", optional = true }
+azure_mgmt_compute = { version = "0.15", optional = true }
+gcp_auth = { version = "0.8", optional = true }
+
+# Container Security (disabled for now due to openssl conflicts)
+# docker = { version = "0.0.41", optional = true }
+k8s-openapi = { version = "0.18", optional = true }
+kube = { version = "0.84", features = [
+    "client",
+    "rustls-tls",
+], optional = true }
+
+# Compliance & Audit
+iso8601 = { version = "0.6", optional = true }
+x509-parser = { version = "0.15", optional = true }
+
+# Advanced Analytics & Reporting
+csv = "1.2"
+
+# DevSecOps
+git2 = { version = "0.18", optional = true }
+tempfile = "3.8"
+walkdir = "2.4"
+
+# Infrastructure Security
+ssh-key = { version = "0.6", optional = true }
+openssl = { version = "0.10", optional = true }
+
+# Advanced Metrics
+histogram = "0.6"
+quanta = "0.11"
+ping = "0.7.0"
+
+[features]
+# Default features - database persistence and threat intelligence enabled by default
+default = ["advanced_reporting", "threat_intelligence", "compliance_auditing", "ai_capabilities", "devsecops_integration", "infrastructure_security", "ml-full", "container_security"]
+profiling = []
+
+# SaaS Transition Features
+headless-agent = []
+
+# AI/ML Features
+# ai_capabilities = [
+#     "candle-core",
+#     "candle-nn",
+#     "candle-transformers",
+ai_capabilities = [
+    "ndarray",
+    "linfa",
+    "linfa-clustering",
+    "linfa-linear",
+    "linfa-logistic",
+]
+
+# Advanced Analytics
+advanced_analytics = ["arrow", "datafusion", "polars"]
+
+# Threat Intelligence
+threat_intelligence = ["reqwest"]
+
+# Full AI-powered Security
+full_ai_security = [
+    "ai_capabilities",
+    "advanced_analytics",
+    "threat_intelligence",
+]
+
+# Comprehensive Security System Features
+cloud_security = [
+    "aws-config",
+    "aws-sdk-ec2",
+    "aws-sdk-s3",
+    "azure_identity",
+    "azure_mgmt_compute",
+    "gcp_auth",
+]
+
+container_security = ["wolfsec/container_security"]
+
+compliance_auditing = ["iso8601", "x509-parser"]
+
+advanced_reporting = ["plotly", "sqlx", "ipnetwork"]
+
+devsecops_integration = ["git2"]
+
+infrastructure_security = ["ssh-key", "openssl"]
+
+# Linux-specific feature
+linux = ["nix", "libc"]
+
+# Complete Enterprise Security Suite
+enterprise_security = [
+    "cloud_security",
+    # "container_security", # Already in default now
+    "compliance_auditing",
+    "advanced_reporting",
+    "devsecops_integration",
+    "infrastructure_security",
+    "full_ai_security",
+]
+
+# Machine Learning features (pass through to wolfsec)
+ml-onnx = ["wolfsec/ml-onnx"]
+ml-classical = ["wolfsec/ml-classical"]
+ml-full = ["wolfsec/ml-full"]
+
+sqlx = ["dep:sqlx"]
+
+[workspace]
+members = [
+    "wolf_net",
+    "wolf_web",
+    "wolf_den",
+    "wolfsec",
+    "wolf_server", "wolf_control",
+]
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+opt-level = 3

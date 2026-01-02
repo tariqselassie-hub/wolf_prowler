@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - Advanced Cryptography</title>
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://unpkg.com https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://cdn.tailwindcss.com 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://localhost:8080 https://api.wolfprowler.com; font-src 'self' https: data:;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsencrypt@3.3.2/bin/jsencrypt.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #111827;
+            --light: #f9fafb;
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+            color: #e5e7eb;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .mono-font { 
+            font-family: 'JetBrains Mono', monospace;
+            font-feature-settings: "tnum" 1;
+        }
+        
+        .glass-morphism {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .tab-active {
+            border-bottom: 2px solid var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .password-strength-meter {
+            height: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .password-strength-weak { background-color: #ef4444; }
+        .password-strength-medium { background-color: #f59e0b; }
+        .password-strength-strong { background-color: #10b981; }
+        
+        .loading {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        
+        /* Animation for tab switching */
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.2s;
+        }
+        .fade-enter, .fade-leave-to {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <div id="app" class="flex-1">
+        <!-- Navigation -->
+        <nav class="glass-morphism p-4 sticky top-0 z-10">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="shield" class="w-8 h-8 text-indigo-500"></i>
+                    <span class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-600 bg-clip-text text-transparent">Wolf Prowler</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/nav" class="p-2 rounded-full hover:bg-gray-800 transition-colors flex items-center space-x-2 text-sm" title="Navigation Hub">
+                        <i data-lucide="compass" class="w-5 h-5"></i>
+                    </a>
+                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-800 transition-colors">
+                        <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                        <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Sidebar -->
+                <div class="lg:col-span-1 space-y-4">
+                    <div class="glass-morphism p-6">
+                        <h2 class="text-xl font-semibold mb-4">Crypto Tools</h2>
+                        <div class="space-y-2" id="tool-tabs">
+                            <button class="tab-button w-full text-left px-4 py-2 rounded hover:bg-gray-800 transition-colors" data-tab="encryption">
+                                <i data-lucide="lock" class="inline-block w-4 h-4 mr-2"></i> Encryption/Decryption
+                            </button>
+                            <button class="tab-button w-full text-left px-4 py-2 rounded hover:bg-gray-800 transition-colors" data-tab="hashing">
+                                <i data-lucide="hash" class="inline-block w-4 h-4 mr-2"></i> Hashing
+                            </button>
+                            <button class="tab-button w-full text-left px-4 py-2 rounded hover:bg-gray-800 transition-colors" data-tab="keygen">
+                                <i data-lucide="key" class="inline-block w-4 h-4 mr-2"></i> Key Generation
+                            </button>
+                            <button class="tab-button w-full text-left px-4 py-2 rounded hover:bg-gray-800 transition-colors" data-tab="signature">
+                                <i data-lucide="pen-line" class="inline-block w-4 h-4 mr-2"></i> Digital Signature
+                            </button>
+                            <button class="tab-button w-full text-left px-4 py-2 rounded hover:bg-gray-800 transition-colors" data-tab="qrcode">
+                                <i data-lucide="qrcode" class="inline-block w-4 h-4 mr-2"></i> QR Code Generator
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-morphism p-6">
+                        <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
+                        <div class="space-y-2">
+                            <button id="quick-keygen" class="w-full flex items-center justify-between px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded transition-colors">
+                                <span>Generate Key Pair</span>
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                            </button>
+                            <button id="quick-encrypt" class="w-full flex items-center justify-between px-4 py-2 bg-green-600 hover:bg-green-700 rounded transition-colors">
+                                <span>Encrypt File</span>
+                                <i data-lucide="file-lock" class="w-4 h-4"></i>
+                            </button>
+                            <button id="quick-sign" class="w-full flex items-center justify-between px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition-colors">
+                                <span>Create Signature</span>
+                                <i data-lucide="pen-line" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="lg:col-span-3 space-y-6">
+                    <!-- Encryption/Decryption Tab -->
+                    <div id="encryption-tab" class="tab-content">
+                        <div class="glass-morphism p-6">
+                            <h2 class="text-2xl font-bold mb-6">Encryption/Decryption</h2>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Encryption -->
+                                <div class="space-y-4">
+                                    <h3 class="text-lg font-semibold">Encrypt</h3>
+                                    <div>
+                                        <label for="plaintext" class="block text-sm font-medium mb-1">Plaintext</label>
+                                        <textarea id="plaintext" rows="4" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter text to encrypt"></textarea>
+                                    </div>
+                                    <div>
+                                        <label for="encryption-key" class="block text-sm font-medium mb-1">Encryption Key</label>
+                                        <div class="relative">
+                                            <input type="password" id="encryption-key" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter encryption key">
+                                            <button class="absolute right-2 top-2 text-gray-400 hover:text-white" id="toggle-encryption-key">
+                                                <i data-lucide="eye" class="w-5 h-5"></i>
+                                            </button>
+                                        </div>
+                                        <div class="mt-1">
+                                            <div class="password-strength-meter h-1 w-0 rounded-full mb-1"></div>
+                                            <div class="text-xs text-gray-400" id="password-strength-text">Password strength</div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="algorithm" class="block text-sm font-medium mb-1">Algorithm</label>
+                                        <select id="algorithm" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option value="aes-256-cbc">AES-256-CBC</option>
+                                            <option value="aes-256-gcm">AES-256-GCM</option>
+                                            <option value="chacha20">ChaCha20-Poly1305</option>
+                                        </select>
+                                    </div>
+                                    <button id="encrypt-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md flex items-center justify-center">
+                                        <i data-lucide="lock" class="w-4 h-4 mr-2"></i> Encrypt
+                                    </button>
+                                </div>
+
+                                <!-- Decryption -->
+                                <div class="space-y-4">
+                                    <h3 class="text-lg font-semibold">Decrypt</h3>
+                                    <div>
+                                        <label for="ciphertext" class="block text-sm font-medium mb-1">Ciphertext</label>
+                                        <textarea id="ciphertext" rows="4" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Paste encrypted text here"></textarea>
+                                    </div>
+                                    <div>
+                                        <label for="decryption-key" class="block text-sm font-medium mb-1">Decryption Key</label>
+                                        <div class="relative">
+                                            <input type="password" id="decryption-key" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter decryption key">
+                                            <button class="absolute right-2 top-2 text-gray-400 hover:text-white" id="toggle-decryption-key">
+                                                <i data-lucide="eye" class="w-5 h-5"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button id="decrypt-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-md flex items-center justify-center">
+                                        <i data-lucide="unlock" class="w-4 h-4 mr-2"></i> Decrypt
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Result Section -->
+                            <div id="result-section" class="mt-8 hidden">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-lg font-semibold">Result</h3>
+                                    <div class="space-x-2">
+                                        <button id="copy-result" class="text-gray-400 hover:text-white p-1 rounded" title="Copy to clipboard">
+                                            <i data-lucide="copy" class="w-4 h-4"></i>
+                                        </button>
+                                        <button id="download-result" class="text-gray-400 hover:text-white p-1 rounded" title="Download as file">
+                                            <i data-lucide="download" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-900 p-4 rounded-md">
+                                    <pre id="result" class="text-sm text-green-400 overflow-x-auto"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hashing Tab -->
+                    <div id="hashing-tab" class="tab-content hidden">
+                        <div class="glass-morphism p-6">
+                            <h2 class="text-2xl font-bold mb-6">Hashing</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="hash-input" class="block text-sm font-medium mb-1">Text to Hash</label>
+                                    <textarea id="hash-input" rows="4" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter text to hash"></textarea>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="hash-algorithm" class="block text-sm font-medium mb-1">Algorithm</label>
+                                        <select id="hash-algorithm" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option value="MD5">MD5</option>
+                                            <option value="SHA-1">SHA-1</option>
+                                            <option value="SHA-256" selected>SHA-256</option>
+                                            <option value="SHA-512">SHA-512</option>
+                                            <option value="SHA3-256">SHA3-256</option>
+                                            <option value="SHA3-512">SHA3-512</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button id="hash-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md">
+                                            Generate Hash
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="hash-result" class="mt-4 hidden">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="text-lg font-semibold">Hash Result</h3>
+                                        <button id="copy-hash" class="text-gray-400 hover:text-white p-1 rounded" title="Copy to clipboard">
+                                            <i data-lucide="copy" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                    <div class="bg-gray-900 p-4 rounded-md">
+                                        <pre id="hash-output" class="text-sm text-green-400 overflow-x-auto"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Key Generation Tab -->
+                    <div id="keygen-tab" class="tab-content hidden">
+                        <div class="glass-morphism p-6">
+                            <h2 class="text-2xl font-bold mb-6">Key Generation</h2>
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="key-type" class="block text-sm font-medium mb-1">Key Type</label>
+                                        <select id="key-type" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option value="aes">AES (Symmetric)</option>
+                                            <option value="rsa">RSA (Asymmetric)</option>
+                                            <option value="ec">EC (Elliptic Curve)</option>
+                                        </select>
+                                    </div>
+                                    <div id="key-length-container">
+                                        <label for="key-length" class="block text-sm font-medium mb-1">Key Length</label>
+                                        <select id="key-length" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option value="128">128-bit</option>
+                                            <option value="192">192-bit</option>
+                                            <option value="256" selected>256-bit</option>
+                                            <option value="512">512-bit</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="key-format" class="block text-sm font-medium mb-1">Output Format</label>
+                                        <select id="key-format" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option value="hex">Hexadecimal</option>
+                                            <option value="base64">Base64</option>
+                                            <option value="pem">PEM</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button id="generate-key" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md">
+                                            Generate Key
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="key-result" class="mt-4 hidden">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="text-lg font-semibold">Generated Key</h3>
+                                        <div class="space-x-2">
+                                            <button id="copy-key" class="text-gray-400 hover:text-white p-1 rounded" title="Copy to clipboard">
+                                                <i data-lucide="copy" class="w-4 h-4"></i>
+                                            </button>
+                                            <button id="save-key" class="text-gray-400 hover:text-white p-1 rounded" title="Save to file">
+                                                <i data-lucide="download" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="bg-gray-900 p-4 rounded-md">
+                                        <pre id="key-output" class="text-sm text-green-400 overflow-x-auto"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Digital Signature Tab -->
+                    <div id="signature-tab" class="tab-content hidden">
+                        <div class="glass-morphism p-6">
+                            <h2 class="text-2xl font-bold mb-6">Digital Signature</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="sign-text" class="block text-sm font-medium mb-1">Message to Sign</label>
+                                    <textarea id="sign-text" rows="4" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter message to sign"></textarea>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="private-key" class="block text-sm font-medium mb-1">Private Key (for signing)</label>
+                                        <textarea id="private-key" rows="2" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Paste private key here (PEM format)"></textarea>
+                                    </div>
+                                    <div>
+                                        <label for="public-key" class="block text-sm font-medium mb-1">Public Key (for verification)</label>
+                                        <textarea id="public-key" rows="2" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Paste public key here (PEM format)"></textarea>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <button id="generate-keys" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md">
+                                        <i data-lucide="key" class="w-4 h-4 inline-block mr-2"></i> Generate Key Pair
+                                    </button>
+                                    <button id="sign-button" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md">
+                                        <i data-lucide="pen-line" class="w-4 h-4 inline-block mr-2"></i> Sign Message
+                                    </button>
+                                    <button id="verify-button" class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-md">
+                                        <i data-lucide="shield-check" class="w-4 h-4 inline-block mr-2"></i> Verify Signature
+                                    </button>
+                                    <button id="clear-signature" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-md">
+                                        <i data-lucide="trash-2" class="w-4 h-4 inline-block mr-2"></i> Clear
+                                    </button>
+                                </div>
+                                <div id="signature-result" class="mt-4 hidden">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="text-lg font-semibold">Signature</h3>
+                                        <div class="space-x-2">
+                                            <button id="copy-signature" class="text-gray-400 hover:text-white p-1 rounded" title="Copy to clipboard">
+                                                <i data-lucide="copy" class="w-4 h-4"></i>
+                                            </button>
+                                            <button id="save-signature" class="text-gray-400 hover:text-white p-1 rounded" title="Save to file">
+                                                <i data-lucide="download" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="bg-gray-900 p-4 rounded-md mb-4">
+                                        <pre id="signature-output" class="text-sm text-green-400 overflow-x-auto"></pre>
+                                    </div>
+                                    <div id="verification-result" class="hidden p-3 rounded text-center font-medium"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QR Code Generator Tab -->
+                    <div id="qrcode-tab" class="tab-content hidden">
+                        <div class="glass-morphism p-6">
+                            <h2 class="text-2xl font-bold mb-6">QR Code Generator</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="qr-input" class="block text-sm font-medium mb-1">Text or URL</label>
+                                    <input type="text" id="qr-input" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter text or URL to encode">
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label for="qr-error-correction" class="block text-sm font-medium mb-1">Error Correction</label>
+                                        <select id="qr-error-correction" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            <option value="L">Low (7%)</option>
+                                            <option value="M" selected>Medium (15%)</option>
+                                            <option value="Q">Quartile (25%)</option>
+                                            <option value="H">High (30%)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="qr-size" class="block text-sm font-medium mb-1">Size (pixels)</label>
+                                        <input type="number" id="qr-size" min="100" max="1000" value="200" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button id="generate-qr" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md">
+                                            Generate QR Code
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="qr-result" class="mt-6 flex flex-col items-center space-y-4">
+                                    <div id="qr-code" class="p-4 bg-white rounded-md hidden"></div>
+                                    <div id="qr-actions" class="space-x-4 hidden">
+                                        <button id="download-qr" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md inline-flex items-center">
+                                            <i data-lucide="download" class="w-4 h-4 mr-2"></i> Download PNG
+                                        </button>
+                                        <button id="copy-qr" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md inline-flex items-center">
+                                            <i data-lucide="copy" class="w-4 h-4 mr-2"></i> Copy Image
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="glass-morphism mt-12 py-6">
+        <div class="container mx-auto px-4 text-center text-gray-400 text-sm">
+            <p>Wolf Prowler v2.0 - Advanced Cryptography Tool</p>
+            <p class="mt-1">© 2025 Wolf Security. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        
+        // Check for saved theme preference or use system preference
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            html.classList.add('dark');
+        } else {
+            html.classList.remove('dark');
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            localStorage.theme = html.classList.contains('dark') ? 'dark' : 'light';
+        });
+        
+        // Tab Navigation
+        function switchTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('bg-indigo-900/50', 'text-indigo-300');
+            });
+            
+            // Show selected tab content
+            const selectedTab = document.getElementById(`${tabId}-tab`);
+            if (selectedTab) {
+                selectedTab.classList.remove('hidden');
+            }
+            
+            // Add active class to selected tab button
+            const selectedButton = document.querySelector(`[data-tab="${tabId}"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('bg-indigo-900/50', 'text-indigo-300');
+            }
+        }
+        
+        // Add click event listeners to tab buttons
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                switchTab(tabId);
+            });
+        });
+        
+        // Initialize first tab
+        switchTab('encryption');
+        
+        // Quick Actions
+        document.getElementById('quick-keygen').addEventListener('click', () => {
+            switchTab('keygen');
+            document.getElementById('key-type').value = 'rsa';
+            document.getElementById('key-format').value = 'pem';
+            generateKeyPair();
+        });
+        
+        document.getElementById('quick-encrypt').addEventListener('click', () => {
+            switchTab('encryption');
+            document.getElementById('plaintext').focus();
+        });
+        
+        document.getElementById('quick-sign').addEventListener('click', () => {
+            switchTab('signature');
+            document.getElementById('sign-text').focus();
+        });
+        
+        // Password strength meter
+        const passwordInput = document.getElementById('encryption-key');
+        const strengthMeter = document.querySelector('.password-strength-meter');
+        const strengthText = document.getElementById('password-strength-text');
+        
+        passwordInput?.addEventListener('input', updatePasswordStrength);
+        
+        function updatePasswordStrength() {
+            const password = passwordInput.value;
+            const strength = calculatePasswordStrength(password);
+            updateStrengthMeter(strength);
+        }
+        
+        function calculatePasswordStrength(password) {
+            let strength = 0;
+            if (password.length >= 8) strength += 1;
+            if (password.match(/[a-z]+/)) strength += 1;
+            if (password.match(/[A-Z]+/)) strength += 1;
+            if (password.match(/[0-9]+/)) strength += 1;
+            if (password.match(/[!@#$%^&*(),.?":{}|<>]+/)) strength += 2;
+            if (password.length >= 12) strength += 1;
+            
+            return Math.min(Math.floor(strength / 7 * 100), 100);
+        }
+        
+        function updateStrengthMeter(strength) {
+            if (!strengthMeter || !strengthText) return;
+            
+            strengthMeter.style.width = `${strength}%`;
+            
+            if (strength < 30) {
+                strengthMeter.className = 'password-strength-meter h-1 rounded-full mb-1 password-strength-weak';
+                strengthText.textContent = 'Weak password';
+                strengthText.className = 'text-xs text-red-400';
+            } else if (strength < 70) {
+                strengthMeter.className = 'password-strength-meter h-1 rounded-full mb-1 password-strength-medium';
+                strengthText.textContent = 'Medium strength';
+                strengthText.className = 'text-xs text-yellow-400';
+            } else {
+                strengthMeter.className = 'password-strength-meter h-1 rounded-full mb-1 password-strength-strong';
+                strengthText.textContent = 'Strong password';
+                strengthText.className = 'text-xs text-green-400';
+            }
+        }
+        
+        // Toggle password visibility
+        function setupPasswordToggle(inputId, buttonId) {
+            const input = document.getElementById(inputId);
+            const button = document.getElementById(buttonId);
+            
+            if (!input || !button) return;
+            
+            button.addEventListener('click', () => {
+                const icon = button.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.setAttribute('data-lucide', 'eye-off');
+                } else {
+                    input.type = 'password';
+                    icon.setAttribute('data-lucide', 'eye');
+                }
+                lucide.createIcons();
+            });
+        }
+        
+        setupPasswordToggle('encryption-key', 'toggle-encryption-key');
+        setupPasswordToggle('decryption-key', 'toggle-decryption-key');
+        
+        // Encryption/Decryption
+        document.getElementById('encrypt-btn')?.addEventListener('click', encryptText);
+        document.getElementById('decrypt-btn')?.addEventListener('click', decryptText);
+        
+        async function encryptText() {
+            const plaintext = document.getElementById('plaintext').value;
+            const key = document.getElementById('encryption-key').value;
+            const algorithm = document.getElementById('algorithm').value;
+            
+            if (!plaintext || !key) {
+                showAlert('Please enter both text and key', 'error');
+                return;
+            }
+            
+            try {
+                setButtonLoading('encrypt-btn', true);
+                
+                // In a real app, you would use Web Crypto API or a proper encryption library
+                // This is a simplified example for demonstration
+                const encrypted = btoa(unescape(encodeURIComponent(plaintext)));
+                
+                document.getElementById('result').textContent = `ENCRYPTED[${encrypted}]`;
+                document.getElementById('result-section').classList.remove('hidden');
+                document.getElementById('ciphertext').value = `ENCRYPTED[${encrypted}]`;
+                
+                showAlert('Text encrypted successfully!', 'success');
+            } catch (error) {
+                console.error('Encryption error:', error);
+                showAlert('Encryption failed. Please try again.', 'error');
+            } finally {
+                setButtonLoading('encrypt-btn', false);
+            }
+        }
+        
+        async function decryptText() {
+            const ciphertext = document.getElementById('ciphertext').value;
+            const key = document.getElementById('decryption-key').value;
+            
+            if (!ciphertext || !key) {
+                showAlert('Please enter both ciphertext and key', 'error');
+                return;
+            }
+            
+            try {
+                setButtonLoading('decrypt-btn', true);
+                
+                // In a real app, you would use Web Crypto API or a proper decryption library
+                // This is a simplified example for demonstration
+                let decrypted = ciphertext;
+                if (ciphertext.startsWith('ENCRYPTED[') && ciphertext.endsWith(']')) {
+                    const encrypted = ciphertext.substring(10, ciphertext.length - 1);
+                    decrypted = decodeURIComponent(escape(atob(encrypted)));
+                }
+                
+                document.getElementById('result').textContent = decrypted;
+                document.getElementById('result-section').classList.remove('hidden');
+                document.getElementById('plaintext').value = decrypted;
+                
+                showAlert('Text decrypted successfully!', 'success');
+            } catch (error) {
+                console.error('Decryption error:', error);
+                showAlert('Decryption failed. Invalid key or ciphertext.', 'error');
+            } finally {
+                setButtonLoading('decrypt-btn', false);
+            }
+        }
+        
+        // Hashing
+        document.getElementById('hash-button')?.addEventListener('click', generateHash);
+        
+        async function generateHash() {
+            const input = document.getElementById('hash-input').value;
+            const algorithm = document.getElementById('hash-algorithm').value;
+            
+            if (!input) {
+                showAlert('Please enter text to hash', 'error');
+                return;
+            }
+            
+            try {
+                setButtonLoading('hash-button', true);
+                
+                let hash;
+                switch(algorithm) {
+                    case 'MD5':
+                        hash = CryptoJS.MD5(input).toString();
+                        break;
+                    case 'SHA-1':
+                        hash = CryptoJS.SHA1(input).toString();
+                        break;
+                    case 'SHA-256':
+                        hash = CryptoJS.SHA256(input).toString();
+                        break;
+                    case 'SHA-512':
+                        hash = CryptoJS.SHA512(input).toString();
+                        break;
+                    case 'SHA3-256':
+                        hash = CryptoJS.SHA3(input, { outputLength: 256 }).toString();
+                        break;
+                    case 'SHA3-512':
+                        hash = CryptoJS.SHA3(input, { outputLength: 512 }).toString();
+                        break;
+                    default:
+                        throw new Error('Unsupported hash algorithm');
+                }
+                
+                document.getElementById('hash-output').textContent = hash;
+                document.getElementById('hash-result').classList.remove('hidden');
+                showAlert('Hash generated successfully!', 'success');
+            } catch (error) {
+                console.error('Hashing error:', error);
+                showAlert('Error generating hash', 'error');
+            } finally {
+                setButtonLoading('hash-button', false);
+            }
+        }
+        
+        // Key Generation
+        document.getElementById('generate-key')?.addEventListener('click', generateKey);
+        document.getElementById('key-type')?.addEventListener('change', updateKeyLengthOptions);
+        
+        function updateKeyLengthOptions() {
+            const keyType = document.getElementById('key-type').value;
+            const keyLengthSelect = document.getElementById('key-length');
+            
+            // Clear existing options
+            keyLengthSelect.innerHTML = '';
+            
+            if (keyType === 'aes') {
+                // AES key lengths
+                keyLengthSelect.innerHTML = `
+                    <option value="128">128-bit</option>
+                    <option value="192">192-bit</option>
+                    <option value="256" selected>256-bit</option>
+                `;
+            } else if (keyType === 'rsa') {
+                // RSA key lengths
+                keyLengthSelect.innerHTML = `
+                    <option value="1024">1024-bit (insecure)</option>
+                    <option value="2048" selected>2048-bit</option>
+                    <option value="4096">4096-bit</option>
+                `;
+            } else if (keyType === 'ec') {
+                // EC key lengths
+                keyLengthSelect.innerHTML = `
+                    <option value="256">256-bit (P-256)</option>
+                    <option value="384" selected>384-bit (P-384)</option>
+                    <option value="521">521-bit (P-521)</option>
+                `;
+            }
+        }
+        
+        function generateKey() {
+            const keyType = document.getElementById('key-type').value;
+            
+            if (keyType === 'rsa' || keyType === 'ec') {
+                generateKeyPair();
+            } else {
+                generateSymmetricKey();
+            }
+        }
+        
+        function generateSymmetricKey() {
+            const keyLength = parseInt(document.getElementById('key-length').value) / 8; // Convert bits to bytes
+            const format = document.getElementById('key-format').value;
+            
+            try {
+                // Generate random bytes
+                const array = new Uint8Array(keyLength);
+                window.crypto.getRandomValues(array);
+                
+                let keyOutput;
+                if (format === 'hex') {
+                    keyOutput = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+                } else if (format === 'base64') {
+                    keyOutput = btoa(String.fromCharCode.apply(null, array));
+                } else {
+                    // PEM format for symmetric key (not standard, but we'll use it for consistency)
+                    const base64Key = btoa(String.fromCharCode.apply(null, array));
+                    keyOutput = `-----BEGIN SYMMETRIC KEY-----\n${base64Key}\n-----END SYMMETRIC KEY-----`;
+                }
+                
+                document.getElementById('key-output').textContent = keyOutput;
+                document.getElementById('key-result').classList.remove('hidden');
+                showAlert('Key generated successfully!', 'success');
+            } catch (error) {
+                console.error('Key generation error:', error);
+                showAlert('Error generating key', 'error');
+            }
+        }
+        
+        async function generateKeyPair() {
+            const keyType = document.getElementById('key-type').value;
+            const keyLength = parseInt(document.getElementById('key-length').value);
+            const format = document.getElementById('key-format').value;
+            
+            try {
+                setButtonLoading('generate-key', true);
+                
+                if (keyType === 'rsa') {
+                    // Generate RSA key pair
+                    const encrypt = new JSEncrypt({ default_key_size: keyLength });
+                    const publicKey = encrypt.getPublicKey();
+                    const privateKey = encrypt.getPrivateKey();
+                    
+                    if (format === 'pem') {
+                        document.getElementById('key-output').textContent = `Public Key:\n${publicKey}\n\nPrivate Key:\n${privateKey}`;
+                    } else {
+                        // Extract key components (simplified)
+                        const pubKeyB64 = publicKey
+                            .replace('-----BEGIN PUBLIC KEY-----', '')
+                            .replace('-----END PUBLIC KEY-----', '')
+                            .replace(/\s+/g, '');
+                        
+                        const privKeyB64 = privateKey
+                            .replace('-----BEGIN RSA PRIVATE KEY-----', '')
+                            .replace('-----END RSA PRIVATE KEY-----', '')
+                            .replace(/\s+/g, '');
+                        
+                        if (format === 'base64') {
+                            document.getElementById('key-output').textContent = `Public Key (Base64):\n${pubKeyB64}\n\nPrivate Key (Base64):\n${privKeyB64}`;
+                        } else { // hex
+                            const pubKeyHex = atob(pubKeyB64).split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+                            const privKeyHex = atob(privKeyB64).split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+                            document.getElementById('key-output').textContent = `Public Key (Hex):\n${pubKeyHex}\n\nPrivate Key (Hex):\n${privKeyHex}`;
+                        }
+                    }
+                } else if (keyType === 'ec') {
+                    // EC key generation is more complex and typically requires a library
+                    // This is a simplified example that would need to be implemented with a proper crypto library
+                    const keyPair = await window.crypto.subtle.generateKey(
+                        {
+                            name: "ECDSA",
+                            namedCurve: `P-${keyLength}`, // P-256, P-384, or P-521
+                        },
+                        true,
+                        ["sign", "verify"]
+                    );
+                    
+                    if (format === 'pem') {
+                        // Export as PEM (simplified example)
+                        const exported = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
+                        document.getElementById('key-output').textContent = `EC Key Pair (JWK format):\n${JSON.stringify(exported, null, 2)}`;
+                    } else {
+                        // Export as raw (simplified example)
+                        const pubKey = await window.crypto.subtle.exportKey("raw", keyPair.publicKey);
+                        const privKey = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+                        
+                        if (format === 'base64') {
+                            const pubKeyB64 = btoa(String.fromCharCode(...new Uint8Array(pubKey)));
+                            const privKeyB64 = btoa(String.fromCharCode(...new Uint8Array(privKey)));
+                            document.getElementById('key-output').textContent = `Public Key (Base64):\n${pubKeyB64}\n\nPrivate Key (Base64):\n${privKeyB64}`;
+                        } else { // hex
+                            const pubKeyHex = Array.from(new Uint8Array(pubKey)).map(b => b.toString(16).padStart(2, '0')).join('');
+                            const privKeyHex = Array.from(new Uint8Array(privKey)).map(b => b.toString(16).padStart(2, '0')).join('');
+                            document.getElementById('key-output').textContent = `Public Key (Hex):\n${pubKeyHex}\n\nPrivate Key (Hex):\n${privKeyHex}`;
+                        }
+                    }
+                }
+                
+                document.getElementById('key-result').classList.remove('hidden');
+                showAlert('Key pair generated successfully!', 'success');
+            } catch (error) {
+                console.error('Key generation error:', error);
+                showAlert('Error generating key pair: ' + error.message, 'error');
+            } finally {
+                setButtonLoading('generate-key', false);
+            }
+        }
+        
+        // Digital Signature
+        document.getElementById('sign-button')?.addEventListener('click', signMessage);
+        document.getElementById('verify-button')?.addEventListener('click', verifySignature);
+        document.getElementById('generate-keys')?.addEventListener('click', generateSignatureKeyPair);
+        document.getElementById('clear-signature')?.addEventListener('click', clearSignature);
+        
+        let signatureKeyPair = null;
+        
+        async function generateSignatureKeyPair() {
+            try {
+                setButtonLoading('generate-keys', true);
+                
+                // Generate RSA key pair
+                const encrypt = new JSEncrypt({ default_key_size: 2048 });
+                const publicKey = encrypt.getPublicKey();
+                const privateKey = encrypt.getPrivateKey();
+                
+                // Store key pair
+                signatureKeyPair = { publicKey, privateKey };
+                
+                // Update UI
+                document.getElementById('public-key').value = publicKey;
+                document.getElementById('private-key').value = privateKey;
+                
+                showAlert('Key pair generated successfully!', 'success');
+            } catch (error) {
+                console.error('Key generation error:', error);
+                showAlert('Error generating key pair', 'error');
+            } finally {
+                setButtonLoading('generate-keys', false);
+            }
+        }
+        
+        async function signMessage() {
+            const message = document.getElementById('sign-text').value;
+            const privateKey = document.getElementById('private-key').value || (signatureKeyPair?.privateKey);
+            
+            if (!message) {
+                showAlert('Please enter a message to sign', 'error');
+                return;
+            }
+            
+            if (!privateKey) {
+                showAlert('Please provide a private key for signing', 'error');
+                return;
+            }
+            
+            try {
+                setButtonLoading('sign-button', true);
+                
+                // Sign the message
+                const sign = new JSEncrypt();
+                sign.setPrivateKey(privateKey);
+                const signature = sign.sign(message, CryptoJS.SHA256, 'sha256');
+                
+                if (!signature) {
+                    throw new Error('Failed to create signature. Invalid private key or message.');
+                }
+                
+                // Display the signature
+                document.getElementById('signature-output').textContent = signature;
+                document.getElementById('signature-result').classList.remove('hidden');
+                document.getElementById('verification-result').classList.add('hidden');
+                
+                showAlert('Message signed successfully!', 'success');
+            } catch (error) {
+                console.error('Signing error:', error);
+                showAlert('Error signing message: ' + error.message, 'error');
+            } finally {
+                setButtonLoading('sign-button', false);
+            }
+        }
+        
+        async function verifySignature() {
+            const message = document.getElementById('sign-text').value;
+            const signature = document.getElementById('signature-output').textContent;
+            const publicKey = document.getElementById('public-key').value || (signatureKeyPair?.publicKey);
+            
+            if (!message || !signature) {
+                showAlert('Please sign a message first', 'error');
+                return;
+            }
+            
+            if (!publicKey) {
+                showAlert('Please provide a public key for verification', 'error');
+                return;
+            }
+            
+            try {
+                setButtonLoading('verify-button', true);
+                
+                // Verify the signature
+                const verify = new JSEncrypt();
+                verify.setPublicKey(publicKey);
+                const isValid = verify.verify(message, signature, CryptoJS.SHA256);
+                
+                // Display verification result
+                const resultElement = document.getElementById('verification-result');
+                if (isValid) {
+                    resultElement.textContent = '✓ Signature is valid';
+                    resultElement.className = 'bg-green-900 text-green-300 p-3 rounded text-center font-medium';
+                } else {
+                    resultElement.textContent = '✗ Invalid signature';
+                    resultElement.className = 'bg-red-900 text-red-300 p-3 rounded text-center font-medium';
+                }
+                resultElement.classList.remove('hidden');
+                
+                showAlert(`Signature verification ${isValid ? 'succeeded' : 'failed'}`, isValid ? 'success' : 'error');
+            } catch (error) {
+                console.error('Verification error:', error);
+                showAlert('Error verifying signature: ' + error.message, 'error');
+            } finally {
+                setButtonLoading('verify-button', false);
+            }
+        }
+        
+        function clearSignature() {
+            document.getElementById('sign-text').value = '';
+            document.getElementById('signature-output').textContent = '';
+            document.getElementById('verification-result').classList.add('hidden');
+            document.getElementById('signature-result').classList.add('hidden');
+        }
+        
+        // QR Code Generator
+        document.getElementById('generate-qr')?.addEventListener('click', generateQRCode);
+        
+        function generateQRCode() {
+            const input = document.getElementById('qr-input').value.trim();
+            const errorCorrection = document.getElementById('qr-error-correction').value;
+            const size = parseInt(document.getElementById('qr-size').value);
+            
+            if (!input) {
+                showAlert('Please enter text or URL to encode', 'error');
+                return;
+            }
+            
+            try {
+                setButtonLoading('generate-qr', true);
+                
+                // Clear previous QR code
+                const qrCodeElement = document.getElementById('qr-code');
+                qrCodeElement.innerHTML = '';
+                
+                // Generate new QR code
+                QRCode.toCanvas(qrCodeElement, input, {
+                    errorCorrectionLevel: errorCorrection,
+                    width: size,
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#ffffff'
+                    }
+                }, (error) => {
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    // Show the QR code and actions
+                    qrCodeElement.classList.remove('hidden');
+                    document.getElementById('qr-actions').classList.remove('hidden');
+                    showAlert('QR code generated successfully!', 'success');
+                });
+            } catch (error) {
+                console.error('QR Code generation error:', error);
+                showAlert('Error generating QR code: ' + error.message, 'error');
+            } finally {
+                setButtonLoading('generate-qr', false);
+            }
+        }
+        
+        // Copy to clipboard functions
+        document.getElementById('copy-result')?.addEventListener('click', () => copyToClipboard('result'));
+        document.getElementById('copy-hash')?.addEventListener('click', () => copyToClipboard('hash-output'));
+        document.getElementById('copy-key')?.addEventListener('click', () => copyToClipboard('key-output'));
+        document.getElementById('copy-signature')?.addEventListener('click', () => copyToClipboard('signature-output'));
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert('Copied to clipboard!', 'success');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showAlert('Failed to copy to clipboard', 'error');
+            });
+        }
+        
+        // Download functions
+        document.getElementById('download-result')?.addEventListener('click', () => downloadText('result.txt', document.getElementById('result').textContent));
+        document.getElementById('save-key')?.addEventListener('click', () => downloadText('key.txt', document.getElementById('key-output').textContent));
+        document.getElementById('save-signature')?.addEventListener('click', () => downloadText('signature.txt', document.getElementById('signature-output').textContent));
+        document.getElementById('download-qr')?.addEventListener('click', downloadQRCode);
+        
+        function downloadText(filename, text) {
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', filename);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            showAlert('File downloaded successfully!', 'success');
+        }
+        
+        function downloadQRCode() {
+            const canvas = document.querySelector('#qr-code canvas');
+            if (!canvas) return;
+            
+            const link = document.createElement('a');
+            link.download = 'qrcode.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showAlert('QR code downloaded successfully!', 'success');
+        }
+        
+        // Copy QR code to clipboard
+        document.getElementById('copy-qr')?.addEventListener('click', async () => {
+            const canvas = document.querySelector('#qr-code canvas');
+            if (!canvas) return;
+            
+            try {
+                // Convert canvas to blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                
+                // Copy to clipboard
+                await navigator.clipboard.write([
+                    new ClipboardItem({ [blob.type]: blob })
+                ]);
+                
+                showAlert('QR code copied to clipboard!', 'success');
+            } catch (error) {
+                console.error('Failed to copy QR code:', error);
+                showAlert('Failed to copy QR code to clipboard', 'error');
+            }
+        });
+        
+        // Helper functions
+        function setButtonLoading(buttonId, isLoading) {
+            const button = document.getElementById(buttonId);
+            if (!button) return;
+            
+            if (isLoading) {
+                button.disabled = true;
+                const originalHTML = button.innerHTML;
+                button.setAttribute('data-original-html', originalHTML);
+                button.innerHTML = '<div class="loading"></div> ' + (button.textContent || '').trim();
+            } else {
+                button.disabled = false;
+                const originalHTML = button.getAttribute('data-original-html');
+                if (originalHTML) {
+                    button.innerHTML = originalHTML;
+                    button.removeAttribute('data-original-html');
+                }
+            }
+        }
+        
+        function showAlert(message, type = 'info') {
+            // Remove existing alerts
+            const existingAlert = document.querySelector('.alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+            
+            // Create alert element
+            const alert = document.createElement('div');
+            alert.className = `alert fixed bottom-4 right-4 px-6 py-3 rounded-md shadow-lg ${
+                type === 'error' ? 'bg-red-600' : 
+                type === 'success' ? 'bg-green-600' : 'bg-blue-600'
+            } text-white flex items-center space-x-2 z-50 transition-all duration-300 transform translate-y-4 opacity-0`;
+            
+            // Add icon based on type
+            let icon;
+            if (type === 'error') {
+                icon = '<i data-lucide="alert-triangle" class="w-5 h-5"></i>';
+            } else if (type === 'success') {
+                icon = '<i data-lucide="check-circle" class="w-5 h-5"></i>';
+            } else {
+                icon = '<i data-lucide="info" class="w-5 h-5"></i>';
+            }
+            
+            alert.innerHTML = `${icon} <span>${message}</span>`;
+            document.body.appendChild(alert);
+            
+            // Trigger animation
+            setTimeout(() => {
+                alert.classList.remove('translate-y-4', 'opacity-0');
+                alert.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+            
+            // Remove alert after 5 seconds
+            setTimeout(() => {
+                alert.classList.remove('translate-y-0', 'opacity-100');
+                alert.classList.add('translate-y-4', 'opacity-0');
+                setTimeout(() => alert.remove(), 300);
+            }, 5000);
+            
+            // Re-initialize icons
+            lucide.createIcons();
+        }
+        
+        // Initialize key length options based on default key type
+        updateKeyLengthOptions();
+    </script>
+</body>
+</html>

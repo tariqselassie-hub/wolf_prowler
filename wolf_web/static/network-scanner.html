@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Scanner - Wolf Prowler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+        }
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.8);
+            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-morphism-light {
+            background: rgba(30, 41, 59, 0.6);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+        }
+        .mono-font {
+            font-family: 'Courier New', monospace;
+        }
+        .status-online { color: #10b981; }
+        .status-offline { color: #ef4444; }
+        .status-warning { color: #f59e0b; }
+    </style>
+</head>
+<body class="bg-black text-white">
+    <!-- Navigation -->
+    <div class="fixed left-0 top-0 h-full w-64 glass-morphism border-r border-gray-700 z-10">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                    <i data-lucide="wifi" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">Network Scanner</h1>
+                    <p class="text-xs text-gray-400">Wolf Prowler</p>
+                </div>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="/dashboard_modern.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
+                    <i data-lucide="home" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/network-scanner.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg bg-purple-600 text-white">
+                    <i data-lucide="wifi" class="w-5 h-5"></i>
+                    <span>Network Scanner</span>
+                </a>
+                <a href="/network.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
+                    <i data-lucide="network" class="w-5 h-5"></i>
+                    <span>Network</span>
+                </a>
+                <a href="/security.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
+                    <i data-lucide="shield" class="w-5 h-5"></i>
+                    <span>Security</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64">
+        <!-- Header -->
+        <header class="glass-morphism border-b border-gray-700 px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold">Network Scanner</h2>
+                    <p class="text-gray-400 text-sm mt-1">Real-time network discovery and visualization</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <select id="interfaceSelect" aria-label="Network Interface Selection" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-purple-500">
+                        <option value="">Auto-Detect Interface</option>
+                    </select>
+                    <button onclick="scanNetwork()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                        <span>Scan Network</span>
+                    </button>
+                    <button onclick="refreshData()" class="glass-morphism-light px-4 py-2 rounded-lg flex items-center space-x-2 hover-lift">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>Refresh</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Split Screen Content -->
+        <main class="flex h-screen pt-20">
+            <!-- Left: Network Info -->
+            <div class="w-1/2 p-6 overflow-y-auto">
+                <!-- Scan Status -->
+                <div class="glass-morphism rounded-xl p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Scan Status</h3>
+                        <div id="scanStatus" class="w-3 h-3 bg-gray-500 rounded-full"></div>
+                    </div>
+                    <div id="scanInfo" class="text-sm text-gray-400">
+                        Ready to scan network
+                    </div>
+                </div>
+
+                <!-- Network Statistics -->
+                <div class="glass-morphism rounded-xl p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Network Statistics</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-800/50 rounded-lg p-4">
+                            <div class="text-2xl font-bold text-blue-400" id="totalNodes">0</div>
+                            <div class="text-sm text-gray-400">Total Nodes</div>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-4">
+                            <div class="text-2xl font-bold text-green-400" id="onlineNodes">0</div>
+                            <div class="text-sm text-gray-400">Online Nodes</div>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-4">
+                            <div class="text-2xl font-bold text-yellow-400" id="activeConnections">0</div>
+                            <div class="text-sm text-gray-400">Active Connections</div>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-4">
+                            <div class="text-2xl font-bold text-purple-400" id="avgLatency">0ms</div>
+                            <div class="text-sm text-gray-400">Avg Latency</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Node Details -->
+                <div class="glass-morphism rounded-xl p-6">
+                    <h3 class="text-lg font-semibold mb-4">Discovered Nodes</h3>
+                    <div id="nodeList" class="space-y-3 max-h-96 overflow-y-auto">
+                        <div class="text-gray-400 text-center py-8">
+                            Click "Scan Network" to discover nodes
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Network Map -->
+            <div class="w-1/2 p-6">
+                <div class="glass-morphism rounded-xl p-6 h-full">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Network Topology</h3>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <span class="text-xs text-gray-400">Online</span>
+                            <div class="w-3 h-3 bg-yellow-500 rounded-full ml-2"></div>
+                            <span class="text-xs text-gray-400">Remote</span>
+                            <div class="w-3 h-3 bg-blue-500 rounded-full ml-2"></div>
+                            <span class="text-xs text-gray-400">Local</span>
+                        </div>
+                    </div>
+                    <div class="bg-gray-900/50 rounded-lg p-4 h-5/6">
+                        <canvas id="networkMap"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Network map chart
+        let networkChart = null;
+        
+        // Initialize network map
+        function initNetworkMap() {
+            const ctx = document.getElementById('networkMap').getContext('2d');
+            networkChart = new Chart(ctx, {
+                type: 'bubble',
+                data: {
+                    datasets: [{
+                        label: 'Network Nodes',
+                        data: [],
+                        backgroundColor: [],
+                        borderColor: [],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const node = context.raw;
+                                    return [
+                                        `Node: ${node.id}`,
+                                        `IP: ${node.address}`,
+                                        `Status: ${node.status}`,
+                                        `Latency: ${node.latency}ms`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Format bytes to human readable
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Format uptime to human readable
+        function formatUptime(hours) {
+            if (hours < 1) return `${Math.round(hours * 60)} minutes`;
+            if (hours < 24) return `${Math.round(hours)} hours`;
+            const days = Math.floor(hours / 24);
+            const remainingHours = Math.round(hours % 24);
+            return `${days} days, ${remainingHours} hours`;
+        }
+        
+        // Load interfaces on startup
+        async function loadInterfaces() {
+            try {
+                const response = await fetch('/api/territory/interfaces');
+                if (response.ok) {
+                    const interfaces = await response.json();
+                    const select = document.getElementById('interfaceSelect');
+                    interfaces.forEach(iface => {
+                        const option = document.createElement('option');
+                        option.value = iface.name;
+                        option.textContent = `${iface.name} - ${iface.ip}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to load interfaces", e);
+            }
+        }
+
+        // Scan network
+        async function scanNetwork() {
+            const statusDiv = document.getElementById('scanStatus');
+            const infoDiv = document.getElementById('scanInfo');
+            const interfaceSelect = document.getElementById('interfaceSelect');
+            
+            statusDiv.className = 'w-3 h-3 bg-yellow-500 rounded-full animate-pulse';
+            infoDiv.textContent = `Scanning network (${interfaceSelect.value || 'Auto'})...`;
+            
+            try {
+                const headers = {
+                    'X-API-Key': 'dev-key-12345',
+                    'Content-Type': 'application/json'
+                };
+                
+                // Perform Scan
+                const scanResponse = await fetch('/api/territory/scan', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({
+                        interface: interfaceSelect.value || null,
+                        force: true
+                    })
+                });
+                
+                const scanData = await scanResponse.json();
+                
+                // Update UI with scanned devices
+                updateNetworkDisplay(scanData);
+                
+                statusDiv.className = 'w-3 h-3 bg-green-500 rounded-full';
+                infoDiv.textContent = `Scan complete: Found ${scanData.total_devices} devices`;
+                
+            } catch (error) {
+                console.error('Scan error:', error);
+                statusDiv.className = 'w-3 h-3 bg-red-500 rounded-full';
+                infoDiv.textContent = 'Scan failed: ' + error.message;
+            }
+        }
+        
+        // Update network display
+        function updateNetworkDisplay(scanData) {
+            // Update statistics
+            document.getElementById('totalNodes').textContent = scanData.total_devices;
+            document.getElementById('onlineNodes').textContent = scanData.devices.filter(d => d.is_reachable).length;
+            // activeConnections not available in simple scan
+            document.getElementById('activeConnections').textContent = "-"; 
+            
+            // Calculate average latency
+            if (scanData.devices.length > 0) {
+                const avgLatency = scanData.devices.reduce((sum, d) => sum + (d.latency_ms || 0), 0) / scanData.devices.length;
+                document.getElementById('avgLatency').textContent = Math.round(avgLatency) + 'ms';
+            } else {
+                document.getElementById('avgLatency').textContent = "0ms";
+            }
+            
+            // Update node list
+            const nodeListDiv = document.getElementById('nodeList');
+            nodeListDiv.innerHTML = '';
+            
+            scanData.devices.forEach(device => {
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'bg-gray-800/50 rounded-lg p-4 hover:bg-gray-800/70 transition-colors';
+                
+                // Format device info
+                const iconColor = device.device_type === 'Router' ? 'bg-purple-500' : 'bg-green-500';
+                
+                nodeDiv.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 ${iconColor} rounded-full"></div>
+                            <div>
+                                <div class="font-medium">${device.hostname || 'Unknown Device'}</div>
+                                <div class="text-sm text-gray-400 mono-font">${device.ip}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-400">${device.mac_address || 'No MAC'}</div>
+                            <div class="text-xs text-gray-500">${device.latency_ms}ms</div>
+                        </div>
+                    </div>
+                `;
+                
+                nodeListDiv.appendChild(nodeDiv);
+            });
+            
+            // Update network map (Adapter for scan data)
+            const mapNodes = scanData.devices.map(d => ({
+                id: d.hostname || d.ip,
+                address: d.ip,
+                status: 'online',
+                latency: d.latency_ms,
+                local: false // assume false for scan results logic unless IP matches interface
+            }));
+            updateNetworkMap(mapNodes);
+        }
+        
+        // Update network map
+        function updateNetworkMap(peers) {
+            if (!networkChart) return;
+            
+            const mapData = peers.map((peer, index) => {
+                const angle = (index / peers.length) * 2 * Math.PI;
+                const radius = 50 + Math.random() * 30; // Randomize slightly
+                
+                return {
+                    x: Math.cos(angle) * radius,
+                    y: Math.sin(angle) * radius,
+                    r: 10,
+                    id: peer.id,
+                    address: peer.address,
+                    status: peer.status,
+                    latency: peer.latency
+                };
+            });
+            
+            networkChart.data.datasets[0].data = mapData;
+            networkChart.data.datasets[0].backgroundColor = mapData.map(() => 'rgba(16, 185, 129, 0.6)');
+            networkChart.data.datasets[0].borderColor = mapData.map(() => 'rgba(16, 185, 129, 1)');
+            
+            networkChart.update();
+        }
+        
+        // Refresh data
+        function refreshData() {
+            scanNetwork();
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            initNetworkMap();
+            loadInterfaces();
+            // Don't auto-scan immediately to let user choose interface
+        });
+    </script>
+</body>
+</html>

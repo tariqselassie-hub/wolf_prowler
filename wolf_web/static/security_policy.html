@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - Security Policy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+        }
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stance-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .stance-card.selected {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+            transform: translateY(-4px);
+        }
+        .stance-card:not(.selected):hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(30, 41, 59, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-100 bg-gray-900">
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="glass-morphism border-b border-gray-700 px-8 py-4 my-8 rounded-xl">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold">Security Policy Configuration</h2>
+                    <p class="text-gray-400 text-sm mt-1">Adjust the global security stance of the Wolf Prowler network.</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/static/settings.html" class="glass-morphism px-4 py-2 rounded-lg flex items-center space-x-2 text-white hover:bg-gray-700/50">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Back to Settings</span>
+                    </a>
+                    <button onclick="savePolicy()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span>Apply Policy</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+        
+        <main class="p-8">
+            <div class="max-w-5xl mx-auto">
+                <div class="mb-8 p-4 bg-yellow-900/30 border border-yellow-700/50 rounded-lg text-yellow-300 text-sm">
+                    <div class="flex items-start">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 mr-3 mt-1 flex-shrink-0"></i>
+                        <div>
+                            <h4 class="font-bold">Warning: High-Impact Operation</h4>
+                            <p>Changing the security stance will affect all nodes in the network. Higher stances may increase latency and resource usage, while lower stances may reduce security guarantees. Proceed with caution.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label for="stance-select" class="block text-lg font-bold mb-2">Select Security Stance</label>
+                        <select id="stance-select" class="w-full bg-gray-800/50 border border-gray-700 rounded-lg p-3 text-lg focus:border-purple-500 focus:ring-purple-500 outline-none transition-all">
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                    <div id="stance-details" class="glass-morphism rounded-xl p-6 border-l-4 border-purple-500/50 min-h-[150px]">
+                        <!-- Details will be populated by JS -->
+                        <p class="text-gray-500">Select a stance to see its details.</p>
+                    </div>
+                    
+                    <!-- Custom Parameters Form -->
+                    <div id="custom-params" class="glass-morphism rounded-xl p-6 border border-purple-500/30 hidden animate-fade-in">
+                        <h3 class="text-lg font-bold mb-4 text-purple-400">Custom Parameters</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Threat Sensitivity (0.0 - 1.0)</label>
+                                <input type="number" id="custom-sensitivity" step="0.1" min="0" max="1" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Rate Limit (Req/Min)</label>
+                                <input type="number" id="custom-rate-limit" min="1" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Min Password Length</label>
+                                <input type="number" id="custom-pwd-len" min="8" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+                            </div>
+                            <div class="flex items-center mt-6">
+                                <input type="checkbox" id="custom-mfa" class="w-4 h-4 text-purple-600 bg-gray-900 border-gray-700 rounded focus:ring-purple-500">
+                                <label for="custom-mfa" class="ml-2 text-sm font-medium text-gray-400">Require MFA</label>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-purple-900/20 rounded text-xs text-purple-300 italic">
+                            Note: Custom stances use "Standard" cryptographic levels as a baseline.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let selectedStance = '';
+        let availableStances = [];
+
+        async function fetchPolicyData() {
+            try {
+                const [currentPolicyRes, stancesRes] = await Promise.all([
+                    fetch('/api/security/policy'),
+                    fetch('/api/security/stances')
+                ]);
+
+                if (!currentPolicyRes.ok || !stancesRes.ok) {
+                    throw new Error('Failed to fetch policy data');
+                }
+
+                const currentPolicy = await currentPolicyRes.json();
+                availableStances = await stancesRes.json();
+                
+                selectedStance = currentPolicy.stance;
+                renderStanceSelector();
+
+                // Add event listener for the dropdown
+                document.getElementById('stance-select').addEventListener('change', (e) => selectStance(e.target.value));
+
+            } catch (error) {
+                console.error('Error fetching policy data:', error);
+                document.getElementById('stance-details').innerHTML = `<p class="text-red-400">Error loading security stances. Ensure you are logged in.</p>`;
+            }
+        }
+
+        function renderStanceSelector() {
+            const select = document.getElementById('stance-select');
+            select.innerHTML = '';
+
+            availableStances.forEach(stance => {
+                const option = document.createElement('option');
+                option.value = stance.name;
+                option.textContent = stance.name;
+                if (stance.name === selectedStance) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            
+            // Update details for the initially selected stance
+            updateStanceDetails(selectedStance);
+        }
+
+        function updateStanceDetails(stanceName) {
+            const stance = availableStances.find(s => s.name === stanceName);
+            const detailsContainer = document.getElementById('stance-details');
+            
+            if (!stance) {
+                detailsContainer.innerHTML = '<p class="text-gray-500">Details not found.</p>';
+                return;
+            }
+            
+            // Show/Hide custom params
+            const customParams = document.getElementById('custom-params');
+            if (stanceName === 'Custom') {
+                customParams.classList.remove('hidden');
+                // Pre-fill with current values if possible, or defaults
+                document.getElementById('custom-sensitivity').value = 0.6;
+                document.getElementById('custom-rate-limit').value = 100;
+                document.getElementById('custom-pwd-len').value = 12;
+            } else {
+                customParams.classList.add('hidden');
+            }
+
+            let icon, iconColor;
+            if (stance.name === 'Paranoid') { icon = 'shield-alert'; iconColor = 'text-red-400'; }
+            else if (stance.name === 'High') { icon = 'shield-check'; iconColor = 'text-yellow-400'; }
+            else if (stance.name === 'Medium') { icon = 'shield'; iconColor = 'text-blue-400'; }
+            else if (stance.name === 'Custom') { icon = 'settings-2'; iconColor = 'text-purple-400'; }
+            else { icon = 'shield-off'; iconColor = 'text-gray-500'; } // Low
+
+            detailsContainer.innerHTML = `
+                <div class="flex items-start justify-between mb-4">
+                    <h3 class="text-xl font-bold">${stance.name}</h3>
+                    <i data-lucide="${icon}" class="w-8 h-8 ${iconColor}"></i>
+                </div>
+                <p class="text-sm text-gray-400 mb-4">${stance.description}</p>
+                <div class="mt-4 pt-4 border-t border-gray-700 text-xs text-gray-500 space-y-1">
+                    <p><strong>Wolf Den (Crypto):</strong> ${stance.wolf_den_level}</p>
+                    <p><strong>Wolfsec (Network):</strong> ${stance.wolfsec_level}</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function selectStance(stanceName) {
+            selectedStance = stanceName;
+            updateStanceDetails(stanceName);
+        }
+
+        async function savePolicy() {
+            if (!selectedStance) {
+                alert('Please select a security stance.');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to apply the "${selectedStance}" security policy to the entire network?`)) {
+                return;
+            }
+
+            const payload = { stance: selectedStance };
+            
+            if (selectedStance === 'Custom') {
+                payload.threat_sensitivity = parseFloat(document.getElementById('custom-sensitivity').value);
+                payload.rate_limit_strictness = parseInt(document.getElementById('custom-rate-limit').value);
+                payload.min_password_length = parseInt(document.getElementById('custom-pwd-len').value);
+                payload.require_mfa = document.getElementById('custom-mfa').checked;
+            }
+
+            try {
+                const response = await fetch('/api/security/policy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    alert('Security policy updated successfully!');
+                    fetchPolicyData(); // Refresh to confirm
+                } else {
+                    alert('Failed to update policy: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving policy:', error);
+                alert('A network error occurred while saving the policy.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchPolicyData);
+    </script>
+</body>
+</html>

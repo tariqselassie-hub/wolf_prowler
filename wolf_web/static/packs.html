@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - Hunter-Killer Grid</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+        }
+        
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+        
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+        }
+        
+        .wolf-bg {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+        }
+
+        /* Navigation Styles */
+        .nav-item {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            transition: height 0.3s ease;
+        }
+        
+        .nav-item:hover::before,
+        .nav-item.active::before {
+            height: 100%;
+        }
+        
+        .nav-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+            padding-left: 20px;
+        }
+
+        /* Card Styles */
+        .pack-card {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .pack-card:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Role Badges with Glow */
+        .role-badge {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 800;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-shadow: 0 0 10px currentColor;
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .role-alpha { color: #ef4444; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+        .role-beta { color: #f59e0b; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); }
+        .role-hunter { color: #3b82f6; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); }
+        .role-scout { color: #22c55e; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); }
+        .role-omega { color: #a855f7; background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3); }
+        .role-stray { color: #9ca3af; background: rgba(156, 163, 175, 0.1); border-color: rgba(156, 163, 175, 0.3); }
+
+        /* Hunt Status Config */
+        .hunt-card {
+            border-left: 4px solid;
+        }
+        .hunt-warning { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+        .hunt-verified { border-left-color: #f97316; background: rgba(249, 115, 22, 0.05); }
+        .hunt-active { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.1); animation: pulse-red 2s infinite; }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Prestige Progress Bar */
+        .prestige-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .prestige-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+            transition: width 1s ease-out;
+        }
+        
+        /* Peer Grid Items */
+        .peer-node {
+            transition: all 0.2s;
+        }
+        .peer-node:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-gray-100 flex">
+    <!-- Sidebar Navigation -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 glass-morphism z-50 border-r border-gray-700 overflow-y-auto">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30">
+                    <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Wolf Prowler</h1>
+                    <p class="text-xs text-gray-400">Security Suite v2.0</p>
+                </div>
+            </div>
+
+            <nav class="space-y-6">
+                <!-- Command Center -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Command Center</h3>
+                    <div class="space-y-1">
+                        <a href="/static/dashboard_modern.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Security -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Security</h3>
+                    <div class="space-y-1">
+                        <a href="/static/security.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="shield" class="w-5 h-5"></i>
+                            <span>Security Ops</span>
+                        </a>
+                        <a href="/static/siem_dashboard.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                            <span>SIEM / Logs</span>
+                        </a>
+                        <a href="/static/soar_dashboard.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="zap" class="w-5 h-5"></i>
+                            <span>SOAR</span>
+                        </a>
+                        <a href="/static/firewall.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                            <span>Firewall</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Network -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Network</h3>
+                    <div class="space-y-1">
+                        <a href="/static/network_map.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="globe" class="w-5 h-5"></i>
+                            <span>Topology Map</span>
+                        </a>
+                        <a href="/static/p2p.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="share-2" class="w-5 h-5"></i>
+                            <span>P2P Mesh</span>
+                        </a>
+                         <a href="/static/howl.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="radio" class="w-5 h-5"></i>
+                            <span>Wolf Howl</span>
+                        </a>
+                        <a href="/static/packs.html" class="nav-item active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                            <span>Wolf Packs</span>
+                        </a>
+                    </div>
+                </div>
+                 <!-- Operations -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Operations</h3>
+                    <div class="space-y-1">
+                         <a href="/static/monitoring.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="activity" class="w-5 h-5"></i>
+                            <span>Monitoring</span>
+                        </a>
+                        <a href="/consensus" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="git-branch" class="w-5 h-5"></i>
+                            <span>Consensus</span>
+                        </a>
+                        <a href="/static/crypto_advanced_v2.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="lock" class="w-5 h-5"></i>
+                            <span>Cryptography</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- AI -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">AI</h3>
+                    <div class="space-y-1">
+                         <a href="/static/neural_center.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="brain" class="w-5 h-5"></i>
+                            <span>Neural Center</span>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="mt-8 pt-6 border-t border-gray-700">
+                <a href="/static/settings.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Settings</span>
+                </a>
+                 <a href="/logout" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="ml-64 w-full">
+        <!-- Header -->
+        <header class="glass-morphism border-b border-gray-700 px-8 py-6 sticky top-0 z-40">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="flex items-center space-x-3">
+                         <h2 class="text-2xl font-bold tracking-tight text-white">Hunter-Killer Grid</h2>
+                         <span class="px-2 py-0.5 rounded text-xs font-medium bg-red-900/50 text-red-400 border border-red-800">ACTIVE DEFENSE</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mt-1">Autonomous Threat Detection & Neutralization Network</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="refreshPackData()" class="glass-morphism p-2 rounded-lg hover:bg-white/5 transition-colors text-gray-400 hover:text-white" title="Refresh Data">
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                    </button>
+                    <div class="h-8 w-[1px] bg-gray-700"></div>
+                     <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <div class="text-xs text-gray-400">Node Status</div>
+                            <div id="header-node-status" class="text-sm font-semibold text-green-400 flex items-center justify-end gap-1">
+                                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                HUNTING
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-8 space-y-8">
+            <!-- Hero: Node Identity -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Local Identity Card -->
+                <div class="pack-card rounded-2xl p-8 relative overflow-hidden group col-span-2">
+                    <div class="absolute top-0 right-0 p-32 bg-purple-600/10 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+                    
+                    <div class="flex items-start justify-between relative z-10">
+                        <div class="space-y-6">
+                            <div>
+                                <h3 class="text-gray-400 text-sm font-medium uppercase tracking-wider mb-2">Local Node Identity</h3>
+                                <div class="flex items-center space-x-4">
+                                    <span id="local-role-badge" class="role-badge role-stray text-2xl px-6 py-2 shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                                        Loading...
+                                    </span>
+                                    <div class="h-8 w-[1px] bg-gray-700"></div>
+                                    <div class="font-mono text-gray-500 text-sm" id="local-peer-id">...</div>
+                                </div>
+                            </div>
+                            
+                            <div class="max-w-md">
+                                <div class="flex justify-between text-sm mb-2">
+                                    <span class="text-gray-400">Prestige Progress</span>
+                                    <span class="text-white font-mono" id="prestige-val">0 / 1000</span>
+                                </div>
+                                <div class="prestige-bar bg-gray-800">
+                                    <div id="prestige-bar-fill" class="prestige-fill" style="width: 0%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">Earn prestige by verifying threats and maintaining uptime to unlock higher tiers.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Rank Icon -->
+                        <div class="hidden md:flex items-center justify-center w-32 h-32 rounded-full bg-white/5 border border-white/10 shadow-2xl">
+                             <i id="rank-icon" data-lucide="help-circle" class="w-16 h-16 text-gray-600"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions / Howl -->
+                 <div class="pack-card rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-gray-400 text-sm font-medium uppercase tracking-wider mb-4">Pack Communication</h3>
+                        <div class="space-y-3">
+                             <button onclick="initiateHowl('warning')" class="w-full group relative overflow-hidden rounded-lg bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 p-4 transition-all hover:border-orange-500/60 text-left">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 rounded bg-orange-500/20 text-orange-400 group-hover:scale-110 transition-transform">
+                                        <i data-lucide="megaphone" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-orange-300">Broadcast Warning</div>
+                                        <div class="text-xs text-orange-300/60">Alert pack of potential threat</div>
+                                    </div>
+                                </div>
+                             </button>
+                             <button onclick="initiateHowl('rally')" class="w-full group relative overflow-hidden rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 p-4 transition-all hover:border-blue-500/60 text-left">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 rounded bg-blue-500/20 text-blue-400 group-hover:scale-110 transition-transform">
+                                        <i data-lucide="flag" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-blue-300">Rally Pack</div>
+                                        <div class="text-xs text-blue-300/60">Request immediate backup</div>
+                                    </div>
+                                </div>
+                             </button>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-700">
+                        <div class="text-xs text-center text-gray-500">Secure Channel: Encrypted (AES-256-GCM)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+                <!-- Column 1: Active Hunts (Kill List) -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="flex items-center justify-between">
+                         <h3 class="text-lg font-bold flex items-center gap-2">
+                            <i data-lucide="crosshair" class="w-5 h-5 text-red-500"></i>
+                            Active Hunts
+                            <span id="hunt-count" class="bg-red-900/50 text-red-400 text-xs px-2 py-0.5 rounded-full border border-red-800">0</span>
+                        </h3>
+                        <div class="flex gap-1">
+                             <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                             <div class="text-xs text-red-400 font-mono">LIVE</div>
+                        </div>
+                    </div>
+                    
+                    <div id="active-hunts-container" class="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                        <!-- Hunts will be injected here -->
+                         <div class="flex flex-col items-center justify-center p-8 text-center text-gray-600 border border-gray-800 border-dashed rounded-xl">
+                            <i data-lucide="search" class="w-8 h-8 mb-2 opacity-50"></i>
+                            <p>Scanning sector for threats...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 2 & 3: Pack Topology & Metrics -->
+                <div class="lg:col-span-2 space-y-6">
+                     <div class="flex items-center justify-between">
+                         <h3 class="text-lg font-bold flex items-center gap-2">
+                            <i data-lucide="network" class="w-5 h-5 text-purple-500"></i>
+                            Pack Topology
+                        </h3>
+                         <div class="flex gap-4 text-xs">
+                            <div class="flex items-center gap-1"><div class="w-2 h-2 bg-red-500 rounded-full"></div>Alpha</div>
+                            <div class="flex items-center gap-1"><div class="w-2 h-2 bg-blue-500 rounded-full"></div>Hunter</div>
+                            <div class="flex items-center gap-1"><div class="w-2 h-2 bg-green-500 rounded-full"></div>Scout</div>
+                        </div>
+                    </div>
+
+                    <!-- Topology Grid -->
+                    <div class="pack-card rounded-2xl p-6 min-h-[400px]">
+                        <div id="pack-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            <!-- Peers injected here -->
+                             <div class="flex flex-col items-center justify-center col-span-full h-64 text-gray-500">
+                                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-2"></i>
+                                <span class="font-mono text-sm">Synchronizing with swarm...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Stats -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="pack-card rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-white mb-1">99.9%</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Uptime</div>
+                        </div>
+                        <div class="pack-card rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-400 mb-1" id="stat-hunts">0</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Threats Neutralized</div>
+                        </div>
+                        <div class="pack-card rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-purple-400 mb-1" id="stat-latency">-- ms</div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Avg Latency</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/static/js/packs.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

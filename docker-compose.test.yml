@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (Shared)
+  postgres:
+    image: postgres:16-alpine
+    container_name: wolf_test_postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_DB=wolf_prowler
+      - POSTGRES_USER=wolf_admin
+      - POSTGRES_PASSWORD=wolf_secure_pass_2024
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U wolf_admin -d wolf_prowler" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # My Station (Main Node for Analysis)
+  my-station:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wolf_test_my_station
+    hostname: my-station
+    environment:
+      - NODE_NAME=MY_STATION
+      - NODE_ID=my-station-001
+      - PORT=3031
+      - API_PORT=3030
+      - LOG_LEVEL=info
+      - NETWORK_ID=wolf-testnet
+      - BOOTSTRAP_NODES=random-station:3031,traffic-gen-1:3031
+      - DATABASE_URL=postgresql://wolf_admin:wolf_secure_pass_2024@postgres:5432/wolf_prowler
+      - WOLF_LLM_API_URL=http://host.docker.internal:11434/api/generate
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3030:3030" # API Port
+      - "3031:3031" # P2P Port
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Random Station (Passive Peer)
+  random-station:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wolf_test_random_station
+    hostname: random-station
+    environment:
+      - NODE_NAME=RANDOM_STATION
+      - NODE_ID=random-station-002
+      - PORT=3031
+      - API_PORT=3032
+      - LOG_LEVEL=info
+      - NETWORK_ID=wolf-testnet
+      - BOOTSTRAP_NODES=my-station:3031
+      - DATABASE_URL=postgresql://wolf_admin:wolf_secure_pass_2024@postgres:5432/wolf_prowler
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3032:3032" # API Port
+      - "3033:3031" # P2P Port
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Traffic Generator 1
+  traffic-gen-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wolf_test_gen_1
+    hostname: traffic-gen-1
+    environment:
+      - NODE_NAME=TRAFFIC_GEN_1
+      - NODE_ID=gen-001
+      - PORT=3031
+      - API_PORT=3034
+      - LOG_LEVEL=info
+      - NETWORK_ID=wolf-testnet
+      - TRAFFIC_GEN_MODE=true
+      - BOOTSTRAP_NODES=my-station:3031,random-station:3031
+      - DATABASE_URL=postgresql://wolf_admin:wolf_secure_pass_2024@postgres:5432/wolf_prowler
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3034:3034" # API Port
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Traffic Generator 2
+  traffic-gen-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wolf_test_gen_2
+    hostname: traffic-gen-2
+    environment:
+      - NODE_NAME=TRAFFIC_GEN_2
+      - NODE_ID=gen-002
+      - PORT=3031
+      - API_PORT=3036
+      - LOG_LEVEL=info
+      - NETWORK_ID=wolf-testnet
+      - TRAFFIC_GEN_MODE=true
+      - BOOTSTRAP_NODES=my-station:3031,traffic-gen-1:3031
+      - DATABASE_URL=postgresql://wolf_admin:wolf_secure_pass_2024@postgres:5432/wolf_prowler
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3036:3036" # API Port
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-test-data:
+    driver: local

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - Wolf Howl Communication</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+        }
+        
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+        
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+        }
+        
+        .wolf-comm-bg {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+        }
+        
+        .howl-message {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        
+        .howl-message:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+        }
+        
+        .howl-animation {
+            animation: howl-pulse 2s infinite;
+        }
+        
+        @keyframes howl-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+        
+        .encrypted-badge {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .pack-member-avatar {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(59, 130, 246, 0.2) 100%);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-gray-100">
+    <!-- Sidebar Navigation -->
+    <!-- Sidebar Navigation -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 glass-morphism z-50 border-r border-gray-700 overflow-y-auto">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30">
+                    <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Wolf Prowler</h1>
+                    <p class="text-xs text-gray-400">Security Suite v2.0</p>
+                </div>
+            </div>
+
+            <nav class="space-y-6">
+                <!-- Command Center -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Command Center</h3>
+                    <div class="space-y-1">
+                        <a href="/static/dashboard_modern.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Security -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Security</h3>
+                    <div class="space-y-1">
+                        <a href="/static/security.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="shield" class="w-5 h-5"></i>
+                            <span>Security Ops</span>
+                        </a>
+                        <a href="/static/firewall.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                            <span>Firewall Control</span>
+                        </a>
+                        <a href="/static/crypto_advanced_v2.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="lock" class="w-5 h-5"></i>
+                            <span>Cryptography</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- P2P -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">P2P</h3>
+                    <div class="space-y-1">
+                        <a href="/static/p2p.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="share-2" class="w-5 h-5"></i>
+                            <span>P2P Mesh</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Network -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Network</h3>
+                    <div class="space-y-1">
+                        <a href="/static/network.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="globe" class="w-5 h-5"></i>
+                            <span>Global Territory</span>
+                        </a>
+                        <a href="/static/monitoring.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="activity" class="w-5 h-5"></i>
+                            <span>System Monitoring</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Wolf Sector -->
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Wolf Sector</h3>
+                    <div class="space-y-1">
+                        <a href="/static/territory_marking.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="map-pin" class="w-5 h-5"></i>
+                            <span>Territory Marking</span>
+                        </a>
+                        <a href="/static/wolf_howl.html" class="nav-item active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="radio" class="w-5 h-5"></i>
+                            <span>Wolf Howl</span>
+                        </a>
+                        <a href="/static/wolf_den.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                            <i data-lucide="archive" class="w-5 h-5"></i>
+                            <span>Wolf Den</span>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="mt-8 pt-6 border-t border-gray-700">
+                <a href="/static/settings.html" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="/logout" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    <span>Logout</span>
+                </a>
+                <div class="mt-4 px-4 text-xs text-center text-gray-500 font-mono">
+                    <p>Wolf Prowler v0.1.0</p>
+                    <p class="mt-1">Encrypted • Secure</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="ml-64">
+        <!-- Header -->
+        <header class="glass-morphism border-b border-gray-700 px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold">Wolf Howl Communication</h2>
+                    <p class="text-gray-400 text-sm mt-1">Encrypted pack member messaging system</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/nav" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg hover-lift flex items-center space-x-2">
+                        <i data-lucide="compass" class="w-4 h-4"></i>
+                        <span>Nav Hub</span>
+                    </a>
+                    <div class="flex items-center space-x-2">
+                        <div class="moon-phase wolf-howl-animation" title="Current Moon Phase"></div>
+                        <span class="text-xs text-gray-400">Wolf Moon</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Wolf Howl Content -->
+        <main class="p-8">
+            <!-- Pack Members Status -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div class="howl-message glass-morphism rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Pack Members Online</h3>
+                        <div class="w-3 h-3 bg-green-500 rounded-full howl-animation"></div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 pack-member-avatar rounded-full flex items-center justify-center">
+                                <i data-lucide="user" class="w-4 h-4 text-purple-400"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium">Omega (You)</p>
+                                <p class="text-xs text-green-400">Online</p>
+                            </div>
+                            <div class="encrypted-badge px-2 py-1 rounded text-xs text-green-400">
+                                Alpha
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 pack-member-avatar rounded-full flex items-center justify-center">
+                                <i data-lucide="users" class="w-4 h-4 text-blue-400"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium">Alpha Tech</p>
+                                <p class="text-xs text-green-400">Online</p>
+                            </div>
+                            <div class="encrypted-badge px-2 py-1 rounded text-xs text-blue-400">
+                                Admin
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3 opacity-50">
+                            <div class="w-8 h-8 pack-member-avatar rounded-full flex items-center justify-center">
+                                <i data-lucide="user" class="w-4 h-4 text-gray-400"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium">Beta Node 1</p>
+                                <p class="text-xs text-gray-400">Offline</p>
+                            </div>
+                            <div class="px-2 py-1 rounded text-xs text-gray-400">
+                                Member
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="howl-message glass-morphism rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Communication Stats</h3>
+                        <i data-lucide="bar-chart-2" class="w-5 h-5 text-blue-400"></i>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Messages Today:</span>
+                            <span id="message-count" class="text-blue-400 mono-font">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Active Channels:</span>
+                            <span class="text-green-400 mono-font">3</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Encryption:</span>
+                            <span class="text-green-400 mono-font">AES-256</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Last Howl:</span>
+                            <span id="last-howl" class="text-purple-400 mono-font">Never</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="howl-message glass-morphism rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Quick Actions</h3>
+                        <i data-lucide="zap" class="w-5 h-5 text-yellow-400"></i>
+                    </div>
+                    <div class="space-y-2">
+                        <button onclick="showHowlModal()" class="w-full glass-morphism px-3 py-2 rounded-lg hover-lift text-left flex items-center space-x-2">
+                            <i data-lucide="send" class="w-4 h-4 text-green-400"></i>
+                            <span class="text-sm">Send Howl</span>
+                        </button>
+                        <button onclick="createChannel()" class="w-full glass-morphism px-3 py-2 rounded-lg hover-lift text-left flex items-center space-x-2">
+                            <i data-lucide="plus-circle" class="w-4 h-4 text-blue-400"></i>
+                            <span class="text-sm">New Channel</span>
+                        </button>
+                        <button onclick="exportMessages()" class="w-full glass-morphism px-3 py-2 rounded-lg hover-lift text-left flex items-center space-x-2">
+                            <i data-lucide="download" class="w-4 h-4 text-purple-400"></i>
+                            <span class="text-sm">Export Log</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Communication Channels -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Alpha Channel -->
+                <div class="howl-message glass-morphism rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Alpha Channel</h3>
+                        <span class="encrypted-badge px-2 py-1 rounded text-xs text-green-400">
+                            <i data-lucide="lock" class="w-3 h-3 inline mr-1"></i>
+                            Encrypted
+                        </span>
+                    </div>
+                    <div id="alpha-channel" class="space-y-3 max-h-64 overflow-y-auto">
+                        <div class="text-center text-gray-400 py-8">
+                            <i data-lucide="message-circle" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                            <p>No messages in Alpha channel</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pack Channel -->
+                <div class="howl-message glass-morphism rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Pack Channel</h3>
+                        <span class="encrypted-badge px-2 py-1 rounded text-xs text-green-400">
+                            <i data-lucide="lock" class="w-3 h-3 inline mr-1"></i>
+                            Encrypted
+                        </span>
+                    </div>
+                    <div id="pack-channel" class="space-y-3 max-h-64 overflow-y-auto">
+                        <div class="text-center text-gray-400 py-8">
+                            <i data-lucide="message-circle" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                            <p>No messages in Pack channel</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Howls -->
+            <div class="howl-message glass-morphism rounded-xl p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold">Recent Howls</h3>
+                    <span class="text-xs text-green-400 mono-font">Live</span>
+                </div>
+                <div id="recent-howls" class="space-y-3">
+                    <div class="text-center text-gray-400 py-8">
+                        <i data-lucide="radio" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                        <p>No howls recorded yet</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Send Howl Modal -->
+    <div id="howlModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="glass-morphism rounded-xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold mb-4">Send Encrypted Howl</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Channel</label>
+                    <select id="howlChannel" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white">
+                        <option value="alpha">Alpha Channel (Admin Only)</option>
+                        <option value="pack">Pack Channel (All Members)</option>
+                        <option value="private">Private Message</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Recipient (for private)</label>
+                    <select id="howlRecipient" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white">
+                        <option value="alpha_tech">Alpha Tech</option>
+                        <option value="beta_1">Beta Node 1</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Message</label>
+                    <textarea id="howlMessage" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white h-32" placeholder="Enter your encrypted message..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Priority</label>
+                    <select id="howlPriority" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white">
+                        <option value="normal">Normal</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex space-x-3 mt-6">
+                <button onclick="sendHowl()" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg hover-lift">
+                    Send Howl
+                </button>
+                <button onclick="hideHowlModal()" class="flex-1 glass-morphism px-4 py-2 rounded-lg hover-lift">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Communication state
+        let messageCount = 0;
+        let howls = [];
+        
+        // Show howl modal
+        function showHowlModal() {
+            document.getElementById('howlModal').classList.remove('hidden');
+        }
+        
+        // Hide howl modal
+        function hideHowlModal() {
+            document.getElementById('howlModal').classList.add('hidden');
+        }
+        
+        // Send howl message
+        async function sendHowl() {
+            const channel = document.getElementById('howlChannel').value;
+            const recipient = document.getElementById('howlRecipient').value;
+            const message = document.getElementById('howlMessage').value;
+            const priority = document.getElementById('howlPriority').value;
+            
+            if (!message.trim()) {
+                alert('Please enter a message');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/howl/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        channel,
+                        recipient,
+                        message,
+                        priority
+                    })
+                });
+                
+                if (response.ok) {
+                    // Update UI
+                    messageCount++;
+                    document.getElementById('message-count').textContent = messageCount;
+                    document.getElementById('last-howl').textContent = new Date().toLocaleTimeString();
+                    
+                    // Add to recent howls
+                    const howl = {
+                        id: Date.now(),
+                        channel,
+                        recipient,
+                        message: message.substring(0, 50) + '...',
+                        priority,
+                        timestamp: new Date().toISOString()
+                    };
+                    howls.unshift(howl);
+                    updateRecentHowls();
+                    
+                    // Clear form
+                    document.getElementById('howlMessage').value = '';
+                    hideHowlModal();
+                    
+                    // Show success
+                    alert('Howl sent successfully!');
+                } else {
+                    alert('Failed to send howl');
+                }
+            } catch (error) {
+                console.error('Send howl error:', error);
+                alert('Failed to send howl');
+            }
+        }
+        
+        // Update recent howls display
+        function updateRecentHowls() {
+            const container = document.getElementById('recent-howls');
+            
+            if (howls.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-400 py-8">
+                        <i data-lucide="radio" class="w-12 h-12 mx-auto mb-4 opacity-50"></i>
+                        <p>No howls recorded yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = howls.map(howl => `
+                <div class="flex items-start space-x-3 p-3 bg-gray-800/30 rounded-lg">
+                    <div class="w-8 h-8 pack-member-avatar rounded-full flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="radio" class="w-4 h-4 text-purple-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium">${howl.channel.toUpperCase()}</span>
+                            <span class="text-xs text-gray-400 mono-font">${new Date(howl.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                        <p class="text-sm text-gray-300 mt-1">${howl.message}</p>
+                        <div class="flex items-center space-x-2 mt-2">
+                            <span class="text-xs px-2 py-1 rounded ${getPriorityColor(howl.priority)}">
+                                ${howl.priority.toUpperCase()}
+                            </span>
+                            ${howl.recipient ? `<span class="text-xs text-gray-400">To: ${howl.recipient}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Re-initialize icons
+            lucide.createIcons();
+        }
+        
+        // Get priority color
+        function getPriorityColor(priority) {
+            switch (priority) {
+                case 'critical': return 'bg-red-500 text-white';
+                case 'urgent': return 'bg-yellow-500 text-white';
+                default: return 'bg-blue-500 text-white';
+            }
+        }
+        
+        // Create channel (placeholder)
+        function createChannel() {
+            alert('Channel creation coming soon!');
+        }
+        
+        // Export messages (placeholder)
+        function exportMessages() {
+            if (howls.length === 0) {
+                alert('No messages to export');
+                return;
+            }
+            
+            const data = JSON.stringify(howls, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'wolf_howl_log.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

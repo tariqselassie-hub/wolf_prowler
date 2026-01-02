@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolf Prowler - Firewall Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/websocket.js"></script>
+    <script src="/static/js/notifications.js"></script>
+    <script src="/static/js/api.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+            color: #e5e7eb;
+        }
+
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-morphism {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .wolf-bg {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+        }
+
+        /* Nav Item Styling */
+        .nav-item {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            transition: height 0.3s ease;
+        }
+
+        .nav-item:hover::before,
+        .nav-item.active::before {
+            height: 100%;
+        }
+
+        .nav-item:hover {
+            background: rgba(139, 92, 246, 0.1);
+            padding-left: 20px;
+        }
+
+        /* Card Styling */
+        .metric-card {
+            background: rgba(17, 24, 39, 0.7);
+            border: 1px solid rgba(75, 85, 99, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .metric-card:hover {
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 10px 30px -10px rgba(139, 92, 246, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .glow-text { text-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Paw Print Icon */
+        .paw-print { position: relative; display: inline-block; }
+        .paw-print::before {
+            content: ''; position: absolute; width: 12px; height: 12px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.6) 0%, rgba(139, 92, 246, 0.2) 70%);
+            border-radius: 50%; top: -2px; left: 50%; transform: translateX(-50%);
+        }
+        .paw-print::after {
+            content: ''; position: absolute; width: 8px; height: 8px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, rgba(139, 92, 246, 0.1) 70%);
+            border-radius: 50%; bottom: -1px; left: 2px;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <!-- Sidebar Navigation -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 glass-morphism z-50 border-r border-gray-700 overflow-y-auto">
+        <div class="p-6">
+                        <div class="flex items-center space-x-3 mb-8">
+                            <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                <i data-lucide="shield-alert" class="w-6 h-6 text-white"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Wolf Prowler</h1>
+                                <p class="text-xs text-gray-400">Security Suite v2.0</p>
+                            </div>
+                        </div>
+            
+                        <nav class="space-y-6">
+                            <!-- Command Center -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Command Center</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/dashboard_modern.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                                        <span>Dashboard</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Security -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Security</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/security.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="shield" class="w-5 h-5"></i>
+                                        <span>Security Ops</span>
+                                    </a>
+                                    <a href="/static/siem_dashboard.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                                        <span>SIEM / Logs</span>
+                                    </a>
+                                    <a href="/static/soar_dashboard.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="zap" class="w-5 h-5"></i>
+                                        <span>SOAR</span>
+                                    </a>
+                                    <a href="/static/firewall.html" class="nav-item active flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                                        <span>Firewall</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Network -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Network</h3>
+                                <div class="space-y-1">
+                                    <a href="/static/network_map.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="globe" class="w-5 h-5"></i>
+                                        <span>Topology Map</span>
+                                    </a>
+                                    <a href="/static/p2p.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="share-2" class="w-5 h-5"></i>
+                                        <span>P2P Mesh</span>
+                                    </a>
+                                    <a href="/static/howl.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="radio" class="w-5 h-5"></i>
+                                        <span>Wolf Howl</span>
+                                    </a>
+                                     <a href="/static/packs.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="users" class="w-5 h-5"></i>
+                                        <span>Wolf Packs</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- Operations -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">Operations</h3>
+                                <div class="space-y-1">
+                                     <a href="/static/monitoring.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="activity" class="w-5 h-5"></i>
+                                        <span>Monitoring</span>
+                                    </a>
+                                    <a href="/consensus" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="git-branch" class="w-5 h-5"></i>
+                                        <span>Consensus</span>
+                                    </a>
+                                    <a href="/static/crypto_advanced_v2.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="lock" class="w-5 h-5"></i>
+                                        <span>Cryptography</span>
+                                    </a>
+                                </div>
+                            </div>
+            
+                            <!-- AI -->
+                            <div>
+                                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-4">AI</h3>
+                                <div class="space-y-1">
+                                     <a href="/static/neural_center.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-all">
+                                        <i data-lucide="brain" class="w-5 h-5"></i>
+                                        <span>Neural Center</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </nav>
+            
+                        <div class="mt-8 pt-6 border-t border-gray-700">
+                            <a href="/static/settings.html" class="nav-item  flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                                <i data-lucide="settings" class="w-5 h-5"></i>
+                                <span>Settings</span>
+                            </a>
+                            <a href="/logout" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all">
+                                <i data-lucide="log-out" class="w-5 h-5"></i>
+                                <span>Logout</span>
+                            </a>
+                            <div class="mt-4 px-4 text-xs text-center text-gray-500 font-mono">
+                                <p>Wolf Prowler v0.1.0</p>
+                                <p class="mt-1">Encrypted • Secure</p>
+                            </div>
+                        </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Firewall Control</h2>
+                <div class="flex items-center mt-2 space-x-2">
+                    <div id="firewall-status-badge" class="flex items-center space-x-2">
+                        <i data-lucide="shield" class="w-4 h-4 text-green-400"></i>
+                        <span class="text-sm text-green-400 font-mono">ACTIVE PROTECTION</span>
+                    </div>
+                    <span class="text-gray-600 mx-2">|</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="firewall-toggle" class="sr-only peer" onchange="toggleFirewall()">
+                        <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                        <span class="ml-2 text-xs text-gray-400 font-medium">ENABLED</span>
+                    </label>
+                    <span class="text-gray-600 mx-2">|</span>
+                    <span class="text-sm text-gray-400 font-mono" id="utc-clock">Loading Time...</span>
+                </div>
+            </div>
+            <div class="flex space-x-4">
+                 <button onclick="refreshFirewallData()" class="glass-morphism px-4 py-2 rounded-lg hover:bg-white/10 flex items-center space-x-2 transition-all">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <span>Refresh Rules</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Add Rule Form -->
+            <div class="lg:col-span-1">
+                <div class="glass-morphism rounded-xl p-6">
+                    <h3 class="text-lg font-bold text-gray-200 mb-4 flex items-center">
+                        <i data-lucide="plus-circle" class="w-5 h-5 mr-2 text-blue-400"></i>
+                        Add New Rule
+                    </h3>
+                    <form id="addRuleForm" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Rule Name</label>
+                            <input type="text" id="ruleName" required class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:border-blue-500 focus:outline-none text-white" placeholder="block-suspicious">
+                        </div>
+
+                        <div>
+                             <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Action</label>
+                             <div class="grid grid-cols-2 gap-2">
+                                 <label class="cursor-pointer">
+                                     <input type="radio" name="ruleAction" value="allow" class="peer sr-only">
+                                     <div class="bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-center text-sm peer-checked:bg-green-500/20 peer-checked:border-green-500 peer-checked:text-green-400 transition-all hover:bg-gray-800">
+                                         ALLOW
+                                     </div>
+                                 </label>
+                                 <label class="cursor-pointer">
+                                     <input type="radio" name="ruleAction" value="deny" checked class="peer sr-only">
+                                     <div class="bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-center text-sm peer-checked:bg-red-500/20 peer-checked:border-red-500 peer-checked:text-red-400 transition-all hover:bg-gray-800">
+                                         DENY
+                                     </div>
+                                 </label>
+                             </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Target Type</label>
+                            <select id="targetType" class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:border-blue-500 focus:outline-none text-white">
+                                <option value="ip">IP Address</option>
+                                <option value="port">Port</option>
+                                <option value="peer">Peer ID</option>
+                                <option value="any">Any</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Target Value</label>
+                            <input type="text" id="targetValue" class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:border-blue-500 focus:outline-none text-white" placeholder="192.168.1.10">
+                        </div>
+
+                         <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Protocol</label>
+                                <select id="protocol" class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:border-blue-500 focus:outline-none text-white">
+                                    <option value="any">Any</option>
+                                    <option value="tcp">TCP</option>
+                                    <option value="udp">UDP</option>
+                                    <option value="icmp">ICMP</option>
+                                    <option value="wolf">WolfProto</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-400 uppercase mb-1">Direction</label>
+                                <select id="direction" class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:border-blue-500 focus:outline-none text-white">
+                                    <option value="inbound">Inbound</option>
+                                    <option value="outbound">Outbound</option>
+                                    <option value="both">Both</option>
+                                </select>
+                            </div>
+                         </div>
+
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg shadow-blue-600/20 transition-all flex justify-center items-center">
+                            <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Deploy Rule
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Rules List -->
+            <div class="lg:col-span-2">
+                <div class="glass-morphism rounded-xl overflow-hidden">
+                    <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-gray-200 flex items-center">
+                            <i data-lucide="list" class="w-5 h-5 mr-2 text-purple-400"></i>
+                            Active Firewall Rules
+                        </h3>
+                        <span class="text-xs text-gray-500" id="ruleCount">0 Rules Configured</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-800/50 text-gray-400 text-xs uppercase tracking-wider">
+                                    <th class="p-4 font-semibold">Status</th>
+                                    <th class="p-4 font-semibold">Name</th>
+                                    <th class="p-4 font-semibold">Target</th>
+                                    <th class="p-4 font-semibold">Proto/Dir</th>
+                                    <th class="p-4 font-semibold text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rulesTableBody" class="text-sm divide-y divide-gray-800">
+                                <!-- Rules injected here -->
+                                <tr>
+                                    <td colspan="5" class="p-8 text-center text-gray-500">Loading rules...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Init Icons
+        lucide.createIcons();
+
+        // Clock
+        setInterval(() => {
+            document.getElementById('utc-clock').textContent = new Date().toUTCString();
+        }, 1000);
+
+        // --- Logic ---
+        const API_BASE = '/api/v1/firewall/rules';
+
+        async function refreshFirewallData() {
+            try {
+                const rules = await fetch(API_BASE).then(r => r.json());
+                renderRules(rules);
+            } catch (e) {
+                console.error("Failed to load rules", e);
+                document.getElementById('rulesTableBody').innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-400">Error loading rules. Ensure backend is running.</td></tr>`;
+            }
+        }
+
+        function renderRules(rules) {
+            const tbody = document.getElementById('rulesTableBody');
+            document.getElementById('ruleCount').textContent = `${rules.length} Rules Configured`;
+            
+            if (rules.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">No active firewall rules.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = rules.map(rule => {
+                const isDeny = (rule.action === 'Deny' || rule.action === 'deny');
+                const badgeClass = isDeny 
+                    ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                    : 'bg-green-500/10 text-green-400 border-green-500/20';
+                
+                // Format target
+                let targetDisplay = 'Any';
+                if(rule.target) {
+                     if(rule.target.Ip) targetDisplay = `IP: ${rule.target.Ip}`;
+                     else if(rule.target.Port) targetDisplay = `Port: ${rule.target.Port}`;
+                     else if(rule.target.PeerId) targetDisplay = `Peer: ${rule.target.PeerId.substring(0,8)}...`;
+                     else if (typeof rule.target === 'string') targetDisplay = rule.target; // legacy or simple serialization
+                     else if (rule.target.type) targetDisplay = `${rule.target.type}: ${rule.target.value}`; // if custom serialized
+                     else targetDisplay = JSON.stringify(rule.target).replace(/["{}]/g, '');
+                }
+
+                return `
+                <tr class="hover:bg-white/5 transition-colors group">
+                    <td class="p-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${badgeClass}">
+                            ${(rule.action == 'Deny' || rule.action == 'deny') ? 'DENY' : 'ALLOW'}
+                        </span>
+                    </td>
+                    <td class="p-4 font-medium text-white">${rule.name}</td>
+                    <td class="p-4 text-gray-300 font-mono text-xs">${targetDisplay}</td>
+                    <td class="p-4 text-gray-400 text-xs">
+                        <div class="flex flex-col">
+                            <span>${typeof rule.protocol === 'string' ? rule.protocol : JSON.stringify(rule.protocol)}</span>
+                            <span class="text-gray-600">${typeof rule.direction === 'string' ? rule.direction : JSON.stringify(rule.direction)}</span>
+                        </div>
+                    </td>
+                    <td class="p-4 text-right">
+                        <button onclick="deleteRule('${rule.name}')" class="text-gray-500 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+            
+            lucide.createIcons();
+        }
+
+        async function addRule(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin mr-2"></i> Deploying...`;
+            lucide.createIcons();
+
+            const payload = {
+                name: document.getElementById('ruleName').value,
+                action: document.querySelector('input[name="ruleAction"]:checked').value,
+                target_type: document.getElementById('targetType').value,
+                target_value: document.getElementById('targetValue').value || '0', // 0 for Any/None
+                protocol: document.getElementById('protocol').value,
+                direction: document.getElementById('direction').value
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if(res.ok) {
+                    notify('Rule deployed successfully', 'success');
+                    document.getElementById('addRuleForm').reset();
+                    refreshFirewallData();
+                } else {
+                    const err = await res.json().catch(()=>({}));
+                    notify(`Failed to deploy rule: ${err.error || 'Unknown error'}`, 'error');
+                }
+            } catch (err) {
+                notify('Connection error', 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                lucide.createIcons();
+            }
+        }
+
+        async function deleteRule(name) {
+            if(!confirm(`Delete firewall rule "${name}"?`)) return;
+            
+            try {
+                const res = await fetch(`${API_BASE}/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rule_name: name })
+                });
+
+                if(res.ok) {
+                   notify('Rule removed', 'info');
+                   refreshFirewallData();
+                } else {
+                   notify('Failed to delete rule', 'error');
+                }
+            } catch(e) {
+                notify('Connection error', 'error');
+            }
+        }
+
+        function notify(msg, type) {
+            // Simple alert fallback if notifications.js not fully integrated
+            // But notifications.js should handle it if present.
+            // Assuming standard toast function or console
+             console.log(`[${type.toUpperCase()}] ${msg}`);
+             if(window.showNotification) window.showNotification(msg, type); // hypothetical
+             else alert(msg);
+        }
+
+        // Event Listeners
+        document.getElementById('addRuleForm').addEventListener('submit', addRule);
+        
+        // Initial Load
+        refreshFirewallData();
+        refreshFirewallStatus();
+
+        async function refreshFirewallStatus() {
+            try {
+                const res = await fetch('/api/security/status').then(r => r.json());
+                const enabled = res.firewall_enabled !== false; // Default to true if missing, but backend now sends it
+                
+                const badge = document.getElementById('firewall-status-badge');
+                const toggle = document.getElementById('firewall-toggle');
+                
+                toggle.checked = enabled;
+
+                if (enabled) {
+                    badge.innerHTML = `<i data-lucide="shield" class="w-4 h-4 text-green-400"></i><span class="text-sm text-green-400 font-mono">ACTIVE PROTECTION</span>`;
+                } else {
+                    badge.innerHTML = `<i data-lucide="shield-off" class="w-4 h-4 text-red-500"></i><span class="text-sm text-red-500 font-mono">OFFLINE</span>`;
+                }
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Failed to fetch firewall status", e);
+            }
+        }
+
+        async function toggleFirewall() {
+            const toggle = document.getElementById('firewall-toggle');
+            const enabled = toggle.checked;
+            
+            // Optimistic UI update
+            const badge = document.getElementById('firewall-status-badge');
+            if (enabled) {
+                 badge.innerHTML = `<i data-lucide="shield" class="w-4 h-4 text-green-400"></i><span class="text-sm text-green-400 font-mono">ACTIVE PROTECTION</span>`;
+            } else {
+                 badge.innerHTML = `<i data-lucide="shield-off" class="w-4 h-4 text-red-500"></i><span class="text-sm text-red-500 font-mono">OFFLINE</span>`;
+            }
+            lucide.createIcons();
+
+            try {
+                await fetch('/api/v1/firewall/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+                notify(`Firewall ${enabled ? 'Enabled' : 'Disabled'}`, 'info');
+            } catch (e) {
+                notify('Failed to toggle firewall', 'error');
+                // Revert check on error
+                toggle.checked = !enabled;
+                refreshFirewallStatus(); 
+            }
+        }
+
+    </script>
+</body>
+</html>

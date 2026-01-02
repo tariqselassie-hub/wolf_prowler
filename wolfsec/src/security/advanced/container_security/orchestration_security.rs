@@ -1,0 +1,93 @@
+use crate::security::advanced::container_security::ContainerSecurityConfig;
+use anyhow::Result;
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+pub struct OrchestrationSecurityManager {
+    config: ContainerSecurityConfig,
+}
+
+impl OrchestrationSecurityManager {
+    pub fn new(config: ContainerSecurityConfig) -> Result<Self> {
+        Ok(Self { config })
+    }
+
+    pub async fn check_security(&self) -> Result<OrchestrationSecurityReport> {
+        let mut issues = Vec::new();
+        let settings = &self.config.orchestration_security_settings;
+
+        if settings.kubernetes_security_enabled {
+            if !settings.rbac_enforcement_enabled {
+                issues.push(OrchestrationIssue {
+                    id: Uuid::new_v4(),
+                    severity: IssueSeverity::High,
+                    description: "RBAC enforcement is disabled".to_string(),
+                    component: "Kubernetes".to_string(),
+                });
+            }
+
+            if !settings.pod_security_policies_enabled {
+                issues.push(OrchestrationIssue {
+                    id: Uuid::new_v4(),
+                    severity: IssueSeverity::Medium,
+                    description: "Pod Security Policies are disabled".to_string(),
+                    component: "Kubernetes".to_string(),
+                });
+            }
+
+            if !settings.admission_control_enabled {
+                issues.push(OrchestrationIssue {
+                    id: Uuid::new_v4(),
+                    severity: IssueSeverity::High,
+                    description: "Admission Control is disabled".to_string(),
+                    component: "Kubernetes".to_string(),
+                });
+            }
+        }
+
+        if settings.docker_security_enabled {
+            if !settings.network_policies_enforced {
+                issues.push(OrchestrationIssue {
+                    id: Uuid::new_v4(),
+                    severity: IssueSeverity::Medium,
+                    description: "Network policies are not enforced".to_string(),
+                    component: "Docker".to_string(),
+                });
+            }
+        }
+
+        let score = (100.0 - (issues.len() as f64 * 15.0)).max(0.0);
+
+        Ok(OrchestrationSecurityReport {
+            check_id: Uuid::new_v4(),
+            timestamp: Utc::now(),
+            orchestration_score: score,
+            issues,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrchestrationSecurityReport {
+    pub check_id: Uuid,
+    pub timestamp: chrono::DateTime<Utc>,
+    pub orchestration_score: f64,
+    pub issues: Vec<OrchestrationIssue>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrchestrationIssue {
+    pub id: Uuid,
+    pub severity: IssueSeverity,
+    pub description: String,
+    pub component: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum IssueSeverity {
+    Low,
+    Medium,
+    High,
+    Critical,
+}
