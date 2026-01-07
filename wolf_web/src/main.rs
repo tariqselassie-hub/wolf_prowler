@@ -19,13 +19,28 @@ use lock_prowler::headless::HeadlessWolfProwler;
 use once_cell::sync::Lazy; // Import Router explicitly
 use std::collections::HashMap;
 
-use wolfsec::security::advanced::iam::sso::{SSOAuthenticationRequest, SSOCallbackRequest};
-use wolfsec::security::advanced::iam::ClientInfo;
-use wolfsec::security::advanced::iam::{IAMConfig, SSOIntegrationManager, SSOProvider};
 #[cfg(feature = "server")]
 use wolf_web::dashboard;
 #[cfg(feature = "server")]
 use wolf_web::dashboard::state::AppState;
+use wolfsec::security::advanced::iam::sso::{SSOAuthenticationRequest, SSOCallbackRequest};
+use wolfsec::security::advanced::iam::ClientInfo;
+use wolfsec::security::advanced::iam::{IAMConfig, SSOIntegrationManager, SSOProvider};
+
+mod vault_components;
+use crate::vault_components::*;
+
+mod dashboard_components;
+use crate::dashboard_components::*;
+
+mod pages;
+use crate::pages::admin::AdministrationPage;
+use crate::pages::compliance::CompliancePage;
+use crate::pages::database::DatabasePage;
+use crate::pages::intelligence::IntelligencePage;
+use crate::pages::settings::SettingsPage;
+use crate::pages::system::SystemPage;
+use crate::pages::wolfpack::WolfPackPage;
 
 // --- Types & State ---
 
@@ -36,6 +51,11 @@ pub struct SystemStats {
     pub entropy: f32,
     pub db_status: String,
     pub active_nodes: usize,
+    // New Fields
+    pub threat_level: String,
+    pub active_alerts: usize,
+    pub scanner_status: String,
+    pub network_status: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -47,42 +67,78 @@ pub struct RecordView {
 
 // Global state simulation
 #[cfg(feature = "server")]
-static PROWLER: Lazy<AsyncMutex<Option<HeadlessWolfProwler>>> = Lazy::new(|| AsyncMutex::new(None));
-#[cfg(feature = "server")]
-static SSO_MANAGER: Lazy<AsyncMutex<Option<SSOIntegrationManager>>> =
+pub(crate) static PROWLER: Lazy<AsyncMutex<Option<HeadlessWolfProwler>>> =
     Lazy::new(|| AsyncMutex::new(None));
 #[cfg(feature = "server")]
-static APP_STATE: Lazy<AsyncMutex<Option<AppState>>> = Lazy::new(|| AsyncMutex::new(None));
+pub(crate) static SSO_MANAGER: Lazy<AsyncMutex<Option<SSOIntegrationManager>>> =
+    Lazy::new(|| AsyncMutex::new(None));
+#[cfg(feature = "server")]
+pub(crate) static APP_STATE: Lazy<AsyncMutex<Option<AppState>>> =
+    Lazy::new(|| AsyncMutex::new(None));
+#[cfg(feature = "server")]
+pub(crate) static SECURITY_ENGINE: Lazy<AsyncMutex<Option<wolfsec::WolfSecurity>>> =
+    Lazy::new(|| AsyncMutex::new(None));
 
 // --- Server Functions (Dioxus 0.6 RPC) ---
 
 #[server]
 async fn get_fullstack_stats() -> Result<SystemStats, ServerFnError> {
     let prowler_lock = PROWLER.lock().await;
+    let security_lock = SECURITY_ENGINE.lock().await;
+
+    let mut stats = SystemStats {
+        volume_size: "Disconnected".to_string(),
+        encrypted_sectors: 0.0,
+        entropy: 0.0,
+        db_status: "OFFLINE".to_string(),
+        active_nodes: 0,
+        threat_level: "UNKNOWN".to_string(),
+        active_alerts: 0,
+        scanner_status: "IDLE".to_string(),
+        network_status: "DISCONNECTED".to_string(),
+    };
 
     if let Some(prowler) = prowler_lock.as_ref() {
         let db_stats = prowler.get_store_stats().await;
+        // Need to update HeadlessWolfProwler to ensure get_network_stats returns properly
+        let net_stats = prowler.get_network_stats().await;
+        let headless_status = prowler.get_status().await;
 
-        Ok(SystemStats {
-            volume_size: format!("{} Records", db_stats.total_records),
-            encrypted_sectors: if db_stats.integrity_check {
-                100.0
-            } else {
-                99.9
-            },
-            entropy: 0.95,
-            db_status: db_stats.encryption_status,
-            active_nodes: prowler.get_network_stats().await.peer_count,
-        })
-    } else {
-        Ok(SystemStats {
-            volume_size: "Disconnected".to_string(),
-            encrypted_sectors: 0.0,
-            entropy: 0.0,
-            db_status: "OFFLINE".to_string(),
-            active_nodes: 0,
-        })
+        stats.volume_size = format!("{} Records", db_stats.total_records);
+        stats.encrypted_sectors = if db_stats.integrity_check {
+            100.0
+        } else {
+            99.9
+        };
+        stats.entropy = 0.98;
+        stats.db_status = db_stats.encryption_status;
+        stats.active_nodes = net_stats.peer_count;
+        stats.network_status = if net_stats.is_connected {
+            "ONLINE".to_string()
+        } else {
+            "OFFLINE".to_string()
+        };
+
+        if headless_status.is_running {
+            stats.scanner_status = format!("SCANNING: {:.0}%", headless_status.progress);
+        }
     }
+
+    if let Some(sec) = security_lock.as_ref() {
+        let sec_status = sec.get_status().await;
+        let score = sec_status.threat_detection.metrics.security_score;
+        stats.threat_level = if score > 80.0 {
+            "LOW".to_string()
+        } else if score > 50.0 {
+            "ELEVATED".to_string()
+        } else {
+            "CRITICAL".to_string()
+        };
+
+        stats.active_alerts = sec_status.monitoring.active_alerts;
+    }
+
+    Ok(stats)
 }
 
 #[server]
@@ -193,7 +249,7 @@ async fn handle_sso_callback(
 // --- Database Server Functions ---
 
 #[server]
-async fn get_records(table: String) -> Result<Vec<RecordView>, ServerFnError> {
+pub async fn get_records(table: String) -> Result<Vec<RecordView>, ServerFnError> {
     let prowler_lock = PROWLER.lock().await;
     if let Some(prowler) = prowler_lock.as_ref() {
         let records = prowler
@@ -255,10 +311,10 @@ pub enum Route {
     Dashboard {},
     #[route("/security")]
     SecurityPage {},
-    #[route("/network")]
-    Network {}, // Renamed Network to NetworkPage logic if needed, but existing Network component is fine for now
     #[route("/system")]
     SystemPage {},
+    #[route("/wolfpack")]
+    WolfPackPage {},
     #[route("/intelligence")]
     IntelligencePage {},
     #[route("/compliance")]
@@ -268,7 +324,7 @@ pub enum Route {
     #[route("/settings")]
     SettingsPage {},
     #[route("/database")]
-    Database {},
+    DatabasePage {},
     #[route("/vault")] // Vault was specific, keeping it here
     Vault {},
     #[end_layout]
@@ -291,7 +347,9 @@ fn DashboardLayout() -> Element {
             {
                 if let Some(create_icons) = js_sys::Reflect::get(&lucide, &"createIcons".into())
                     .ok()
-                    .and_then(|v| -> Option<js_sys::Function> { v.dyn_into::<js_sys::Function>().ok() })
+                    .and_then(|v| -> Option<js_sys::Function> {
+                        v.dyn_into::<js_sys::Function>().ok()
+                    })
                 {
                     let _ = create_icons.call0(&lucide);
                 }
@@ -325,13 +383,13 @@ fn Sidebar() -> Element {
             nav { class: "flex-1 p-4 space-y-2 overflow-y-auto",
                 SidebarLink { to: Route::Dashboard {}, icon: "home", label: "Overview" }
                 SidebarLink { to: Route::SecurityPage {}, icon: "shield-alert", label: "Security" }
-                SidebarLink { to: Route::Network {}, icon: "network", label: "Network" }
+                SidebarLink { to: Route::WolfPackPage {}, icon: "network", label: "WolfPack" }
                 SidebarLink { to: Route::SystemPage {}, icon: "cpu", label: "System" }
                 SidebarLink { to: Route::IntelligencePage {}, icon: "brain", label: "Intelligence" }
                 SidebarLink { to: Route::CompliancePage {}, icon: "file-check", label: "Compliance" }
                 SidebarLink { to: Route::AdministrationPage {}, icon: "users", label: "Administration" }
                 SidebarLink { to: Route::SettingsPage {}, icon: "settings", label: "Settings" }
-                SidebarLink { to: Route::Database {}, icon: "database", label: "Database" }
+                SidebarLink { to: Route::DatabasePage {}, icon: "database", label: "Database" }
                 SidebarLink { to: Route::Vault {}, icon: "lock", label: "Vault" }
             }
 
@@ -394,24 +452,17 @@ fn Dashboard() -> Element {
             div { class: "p-8 grid grid-cols-1 lg:grid-cols-3 gap-8",
 
                 // Column 1: System Status
-                div { class: "lg:col-span-1 space-y-8",
-                    // Stats Module
-                    div { class: "border border-green-800 bg-gray-900/50 p-6 rounded relative overflow-hidden group hover:border-green-500 transition-colors",
-                         div { class: "absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40",
-                             svg { class: "w-16 h-16", fill: "currentColor", view_box: "0 0 24 24", path { d: "M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z" } }
-                         }
-                        h2 { class: "text-xl font-bold mb-4 uppercase border-b border-green-800 pb-2", "System Integrity" }
-
-                        match &*stats.read_unchecked() {
-                            Some(Ok(s)) => rsx! {
-                                div { class: "space-y-4",
-                                    StatRow { label: "Database", value: &s.db_status, active: true }
-                                    StatRow { label: "Entropy", value: &format!("{:.2}", s.entropy), active: true }
-                                    StatRow { label: "Encryption", value: &format!("{}%", s.encrypted_sectors), active: true }
-                                    StatRow { label: "Active Nodes", value: &s.active_nodes.to_string(), active: true }
-                                }
-                            },
-                            _ => rsx! { div { class: "animate-pulse", "Calibrating Sensors..." } }
+                div { class: "lg:col-span-1 space-y-6",
+                    match &*stats.read_unchecked() {
+                        Some(Ok(s)) => rsx! {
+                            SecurityBanner { stats: s.clone() }
+                            NetworkBanner { stats: s.clone() }
+                            ScannerBanner { stats: s.clone() }
+                        },
+                         _ => rsx! {
+                            div { class: "p-6 border border-green-800 animate-pulse text-center",
+                                "ESTABLISHING SECURE CONNECTION..."
+                            }
                         }
                     }
 
@@ -521,10 +572,24 @@ fn StatRow(label: String, value: String, active: bool) -> Element {
 fn Vault() -> Element {
     rsx! {
         div { class: "min-h-screen bg-black text-green-500 p-8 font-mono",
-            h1 { class: "text-4xl mb-4 font-bold uppercase", "Secure Vault" }
-            div { class: "p-12 border border-green-800 border-dashed flex items-center justify-center opacity-50",
-                "ACCESS RESTRICTED // BIOMETRIC SCAN REQUIRED"
+            Link { to: Route::Dashboard {}, class: "mb-8 inline-block hover:underline", "< RETURN TO HUD" }
+
+            div { class: "flex justify-between items-center mb-8",
+                h1 { class: "text-4xl font-bold uppercase tracking-widest", "Crypto Vault" }
+                 div { class: "flex items-center space-x-2 bg-green-900/20 px-4 py-2 rounded-full border border-green-500/30",
+                    div { class: "w-2 h-2 bg-green-500 rounded-full animate-pulse" }
+                    span { class: "text-xs font-bold uppercase", "Engine Active" }
+                }
             }
+
+            // Overview Section
+            VaultOverview {}
+
+            // Tools Section
+            VaultTools {}
+
+            // Key Management Section
+            VaultKeys {}
         }
     }
 }
@@ -828,30 +893,7 @@ fn SecurityPage() -> Element {
     }
 }
 
-#[component]
-fn SystemPage() -> Element {
-    rsx! { div { class: "p-8", h1 { class: "text-2xl font-bold", "System Administration" } } }
-}
-
-#[component]
-fn IntelligencePage() -> Element {
-    rsx! { div { class: "p-8", h1 { class: "text-2xl font-bold", "Threat Intelligence" } } }
-}
-
-#[component]
-fn CompliancePage() -> Element {
-    rsx! { div { class: "p-8", h1 { class: "text-2xl font-bold", "Compliance & Reporting" } } }
-}
-
-#[component]
-fn AdministrationPage() -> Element {
-    rsx! { div { class: "p-8", h1 { class: "text-2xl font-bold", "User Administration" } } }
-}
-
-#[component]
-fn SettingsPage() -> Element {
-    rsx! { div { class: "p-8", h1 { class: "text-2xl font-bold", "Settings" } } }
-}
+// Placeholders removed, imported from pages module
 
 // --- Main / Server Entry ---
 
@@ -878,6 +920,20 @@ async fn main() {
             println!("SSO Manager Initialized");
         }
         Err(e) => eprintln!("Failed to initialize SSO: {}", e),
+    }
+
+    // Initialize Security Engine
+    let mut sec_config = wolfsec::WolfSecurityConfig::default();
+    sec_config.db_path = std::path::PathBuf::from(&db_path).join("wolfsec.db");
+    match wolfsec::WolfSecurity::create(sec_config).await {
+        Ok(mut sec) => {
+            if let Err(e) = sec.initialize().await {
+                eprintln!("Failed to initialize WolfSecurity components: {}", e);
+            }
+            *SECURITY_ENGINE.lock().await = Some(sec);
+            println!("Wolf Security Engine Initialized");
+        }
+        Err(e) => eprintln!("Failed to create WolfSecurity: {}", e),
     }
 
     // Initialize Dashboard
