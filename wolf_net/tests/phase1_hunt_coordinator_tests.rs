@@ -18,7 +18,7 @@ async fn test_hunt_creation_and_tracking() {
     // Create coordinator
     let (swarm_tx, _swarm_rx) = tokio::sync::mpsc::channel(1);
     let (actor, sender, state) =
-        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0);
+        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0, None);
     tokio::spawn(actor.run());
 
     // Initiate a hunt
@@ -70,7 +70,7 @@ async fn test_hunt_timeout_and_cleanup() {
     // Create coordinator
     let (swarm_tx, _swarm_rx) = tokio::sync::mpsc::channel(1);
     let (actor, sender, state) =
-        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0);
+        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0, None);
     tokio::spawn(actor.run());
 
     // Initiate a hunt
@@ -118,7 +118,7 @@ async fn test_prestige_and_role_evolution() {
     // Create coordinator starting as Stray
     let (swarm_tx, _swarm_rx) = tokio::sync::mpsc::channel(1);
     let (actor, _sender, state) =
-        HuntCoordinator::new(WolfRole::Stray, swarm_tx, PeerId::random(), 0);
+        HuntCoordinator::new(WolfRole::Stray, swarm_tx, PeerId::random(), 0, None);
     tokio::spawn(actor.run());
 
     // Verify initial state
@@ -165,7 +165,7 @@ async fn test_concurrent_hunts() {
     // Create coordinator
     let (swarm_tx, _swarm_rx) = tokio::sync::mpsc::channel(1);
     let (actor, sender, state) =
-        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0);
+        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0, None);
     tokio::spawn(actor.run());
 
     // Initiate multiple hunts

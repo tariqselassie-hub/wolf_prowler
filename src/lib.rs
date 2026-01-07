@@ -9,7 +9,7 @@
 //! - Metrics and monitoring
 
 pub mod core;
-pub mod dashboard;
+// pub mod dashboard; // Moved to wolf_web
 pub mod error; // Centralized error handling
 pub mod health; // Health monitoring system
 pub mod network;
@@ -18,6 +18,9 @@ pub mod security;
 pub mod utils;
 pub mod validated_json;
 pub mod validation; // Request validation // Validated JSON extractor
+
+// Re-export wolfsec crate for easier access
+pub use wolfsec;
 
 pub mod compliance_service;
 pub mod persistence;

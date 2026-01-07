@@ -214,9 +214,9 @@ pub async fn authenticate(
 
 /// Validate API key (placeholder implementation)
 async fn validate_api_key(_key: &str) -> bool {
-    // TODO: Implement proper API key validation
-    // For now, accept any non-empty key
-    !_key.is_empty()
+    // Basic validation: check if key is non-empty and has a minimum length
+    // In production, this would query a database or cache
+    !_key.is_empty() && _key.len() >= 16
 }
 
 /// Request ID middleware

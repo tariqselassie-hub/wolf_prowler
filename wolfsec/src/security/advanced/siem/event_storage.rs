@@ -17,8 +17,8 @@ pub struct EventStorage {
     storage_path: String,
     /// Event retention days
     retention_days: i64,
-    /// Optional database pool for persistent storage
-    db_pool: Option<sqlx::PgPool>,
+    // Optional database pool for persistent storage
+    // db_pool: Option<sqlx::PgPool>,
 }
 
 impl EventStorage {
@@ -32,68 +32,36 @@ impl EventStorage {
             max_buffer_size: 10000,
             storage_path,
             retention_days,
-            db_pool: None,
+            // db_pool: None,
         })
     }
 
-    /// Create event storage with database integration
-    pub fn with_database(
-        storage_path: String,
-        retention_days: i64,
-        db_pool: sqlx::PgPool,
-    ) -> Result<Self> {
-        // Create storage directory if it doesn't exist
-        fs::create_dir_all(&storage_path)?;
+    // /// Create event storage with database integration
+    // pub fn with_database(
+    //     storage_path: String,
+    //     retention_days: i64,
+    //     db_pool: sqlx::PgPool,
+    // ) -> Result<Self> {
+    //     // Create storage directory if it doesn't exist
+    //     fs::create_dir_all(&storage_path)?;
 
-        Ok(Self {
-            events: Vec::new(),
-            max_buffer_size: 10000,
-            storage_path,
-            retention_days,
-            db_pool: Some(db_pool),
-        })
-    }
+    //     Ok(Self {
+    //         events: Vec::new(),
+    //         max_buffer_size: 10000,
+    //         storage_path,
+    //         retention_days,
+    //         // db_pool: Some(db_pool),
+    //     })
+    // }
 
     /// Store a security event
     pub async fn store_event(&mut self, event: SecurityEvent) -> Result<()> {
         debug!("💾 Storing event: {}", event.event_id);
 
         // Store in database if available
-        if let Some(pool) = &self.db_pool {
-            // Extract peer_id from affected assets if available
-            let peer_id = event
-                .affected_assets
-                .first()
-                .map(|asset| asset.asset_id.clone());
-
-            // Direct SQL insertion using runtime query to avoid macro issues
-            if let Err(e) = sqlx::query(
-                r#"
-                INSERT INTO security_events (
-                    event_id, timestamp, event_type, severity, source,
-                    peer_id, description, details, resolved
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                "#,
-            )
-            .bind(event.event_id)
-            .bind(event.timestamp)
-            .bind(format!("{:?}", event.event_type))
-            .bind(format!("{:?}", event.severity))
-            .bind(event.source.source_id.clone())
-            .bind(peer_id)
-            .bind(event.description.clone())
-            .bind(serde_json::to_value(&event.details).unwrap_or_else(|_| serde_json::json!({})))
-            .bind(false)
-            .execute(pool)
-            .await
-            {
-                // Log error but don't fail the whole storage operation (fallback to disk)
-                tracing::error!("Failed to store event in database: {}", e);
-            } else {
-                debug!("Event stored in database successfully");
-            }
-        }
+        // if let Some(pool) = &self.db_pool {
+        //     // ... code commented out ...
+        // }
 
         // Add to in-memory buffer for fast access
         self.events.push(event.clone());

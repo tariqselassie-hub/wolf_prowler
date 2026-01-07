@@ -6,6 +6,7 @@
 use crate::AppState;
 use anyhow::Result;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::broadcast;
 use tracing::{debug, error, info, warn};
 use wolf_prowler::threat_feeds::ThreatFeedManager;
@@ -18,6 +19,9 @@ pub async fn start_wolfsec_listener(
     persistence: Arc<PersistenceManager>,
 ) {
     info!("🛡️ Starting wolfsec threat intelligence listener");
+
+    // Start reputation sync task
+    start_reputation_sync(app_state.clone(), persistence.clone());
 
     // Subscribe to security events
     let mut event_rx = app_state.security.lock().await.subscribe_events();
@@ -102,6 +106,30 @@ pub async fn start_wolfsec_listener(
                 Err(e) => {
                     warn!("Error receiving security event: {}", e);
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                }
+            }
+        }
+    });
+}
+
+/// Periodically syncs in-memory reputation scores to the database
+fn start_reputation_sync(app_state: Arc<AppState>, persistence: Arc<PersistenceManager>) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(300)); // Every 5 minutes
+        loop {
+            interval.tick().await;
+            debug!("Syncing peer reputation to database...");
+
+            let security_lock = app_state.security.lock().await;
+            let threat_detector = security_lock.threat_detector();
+            let reputation_system = threat_detector.reputation_system();
+
+            let peer_scores = reputation_system.get_all_scores();
+
+            for (peer_id, score) in peer_scores {
+                // update_peer_trust_score updates the 'trust_score' column in the peers table
+                if let Err(e) = persistence.update_peer_trust_score(&peer_id, score).await {
+                    error!("Failed to sync reputation for peer {}: {}", peer_id, e);
                 }
             }
         }

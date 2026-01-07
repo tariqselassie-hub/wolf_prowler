@@ -1,6 +1,0 @@
-# Wolf Web - Dashboard & Web API Features
-# Enabled = true, Disabled = false
-
-[wolf_web]
-real_time_monitoring_ui = true         # Core dashboard UI is functional.
-websocket_updates = true               # Real-time updates via WebSockets.

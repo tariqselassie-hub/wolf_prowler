@@ -33,6 +33,8 @@ pub struct NetworkConfig {
     pub agent_id: String,
     /// Run in headless mode (no UI).
     pub headless_mode: bool,
+    /// Deterministic identity seed (for simulation/testing).
+    pub identity_seed: Option<String>,
 }
 
 impl Default for NetworkConfig {
@@ -47,6 +49,7 @@ impl Default for NetworkConfig {
             api_key: String::new(),
             agent_id: String::new(),
             headless_mode: false,
+            identity_seed: None,
         }
     }
 }

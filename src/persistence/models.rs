@@ -9,7 +9,7 @@ use uuid::Uuid;
 // PEER MODELS
 // ============================================================================
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbPeer {
     pub org_id: Option<Uuid>,
     pub peer_id: String,
@@ -17,21 +17,14 @@ pub struct DbPeer {
     pub system_type: String,
     pub version: Option<String>,
     pub status: String,
-    #[sqlx(default)]
-    pub trust_score: Option<f32>, // Changed to f32 to match database REAL type
-    #[sqlx(default)]
+    pub trust_score: Option<f32>,
     pub first_seen: Option<DateTime<Utc>>,
-    #[sqlx(default)]
     pub last_seen: Option<DateTime<Utc>>,
     pub protocol_version: Option<String>,
     pub agent_version: Option<String>,
-    #[sqlx(default)]
     pub capabilities: Option<serde_json::Value>,
-    #[sqlx(default)]
     pub metadata: Option<serde_json::Value>,
-    #[sqlx(default)]
     pub created_at: Option<DateTime<Utc>>,
-    #[sqlx(default)]
     pub updated_at: Option<DateTime<Utc>>,
 }
 
@@ -56,14 +49,11 @@ pub struct DbPeerMetrics {
 // SECURITY MODELS
 // ============================================================================
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbSecurityEvent {
     pub org_id: Option<Uuid>,
-    #[sqlx(default)]
     pub id: Option<i64>,
-    #[sqlx(default)]
     pub event_id: Option<Uuid>,
-    #[sqlx(default)]
     pub timestamp: Option<DateTime<Utc>>,
     pub event_type: String,
     pub severity: String,
@@ -71,20 +61,16 @@ pub struct DbSecurityEvent {
     pub peer_id: Option<String>,
     pub description: String,
     pub details: serde_json::Value,
-    #[sqlx(default)]
     pub resolved: Option<bool>,
     pub resolved_at: Option<DateTime<Utc>>,
     pub resolved_by: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbSecurityAlert {
     pub org_id: Option<Uuid>,
-    #[sqlx(default)]
     pub id: Option<i64>,
-    #[sqlx(default)]
     pub alert_id: Option<Uuid>,
-    #[sqlx(default)]
     pub timestamp: Option<DateTime<Utc>>,
     pub severity: String,
     pub status: String,
@@ -92,7 +78,6 @@ pub struct DbSecurityAlert {
     pub message: Option<String>,
     pub category: String,
     pub source: String,
-    #[sqlx(default)]
     pub escalation_level: Option<i32>,
     pub acknowledged_by: Option<String>,
     pub acknowledged_at: Option<DateTime<Utc>>,
@@ -101,23 +86,18 @@ pub struct DbSecurityAlert {
     pub metadata: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbThreatIntelligence {
     pub org_id: Option<Uuid>,
-    #[sqlx(default)]
     pub id: Option<i64>,
-    #[sqlx(default)]
     pub threat_id: Option<Uuid>,
     pub threat_type: String,
     pub severity: String,
     pub indicators: serde_json::Value,
-    #[sqlx(default)]
     pub first_seen: Option<DateTime<Utc>>,
-    #[sqlx(default)]
     pub last_seen: Option<DateTime<Utc>>,
     pub source: Option<String>,
     pub confidence: Option<f64>,
-    #[sqlx(default)]
     pub active: Option<bool>,
     pub metadata: serde_json::Value,
 }
@@ -157,12 +137,10 @@ impl DbSecurityEvent {
 // AUDIT MODELS
 // ============================================================================
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbAuditLog {
     pub org_id: Option<Uuid>,
-    #[sqlx(default)]
     pub id: Option<i64>,
-    #[sqlx(default)]
     pub timestamp: Option<DateTime<Utc>>,
     pub action: String,
     pub actor: Option<String>,
@@ -178,7 +156,7 @@ pub struct DbAuditLog {
 // CONFIGURATION MODELS
 // ============================================================================
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbConfig {
     pub key: String,
     pub value: serde_json::Value,
@@ -187,7 +165,7 @@ pub struct DbConfig {
     pub updated_by: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbOrganization {
     pub org_id: Uuid,
     pub name: String,
@@ -202,29 +180,24 @@ pub struct DbOrganization {
 // WOLF PACK MODELS
 // ============================================================================
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbPackMember {
     pub org_id: Option<Uuid>,
     pub peer_id: String,
     pub rank: String,
     pub pack_name: String,
-    #[sqlx(default)]
     pub joined_at: Option<DateTime<Utc>>,
-    #[sqlx(default)]
     pub last_active: Option<DateTime<Utc>>,
     pub contributions: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbPackHierarchy {
     pub org_id: Option<Uuid>,
-    #[sqlx(default)]
     pub id: Option<i64>,
     pub pack_name: String,
     pub alpha_peer_id: Option<String>,
-    #[sqlx(default)]
     pub established_at: Option<DateTime<Utc>>,
-    #[sqlx(default)]
     pub member_count: Option<i32>,
     pub territory: serde_json::Value,
 }
@@ -233,7 +206,7 @@ pub struct DbPackHierarchy {
 // SYSTEM MODELS
 // ============================================================================
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbSystemLog {
     pub org_id: Option<Uuid>,
     #[sqlx(default)]
@@ -246,12 +219,10 @@ pub struct DbSystemLog {
     pub metadata: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbNetworkMetrics {
     pub org_id: Option<Uuid>,
-    #[sqlx(default)]
     pub id: Option<i64>,
-    #[sqlx(default)]
     pub timestamp: Option<DateTime<Utc>>,
     pub active_connections: Option<i32>,
     pub total_messages_sent: Option<i64>,

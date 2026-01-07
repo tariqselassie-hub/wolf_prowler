@@ -5,7 +5,8 @@ use std::net::{IpAddr, SocketAddr};
 
 /// Placeholder for utility initialization.
 pub fn init() {
-    // TODO: Add utility initialization logic
+    // Initialize utility subsystems if needed
+    tracing::debug!("Wolf Net utilities initialized");
 }
 
 /// Sets up the logging system with a specific log level.

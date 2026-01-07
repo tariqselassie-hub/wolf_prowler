@@ -42,6 +42,8 @@ pub struct ActiveHunt {
     pub participants: HashSet<PeerId>,
     pub start_time: SystemTime,
     pub evidence: Vec<String>,
+    /// Confidence score (0.0 to 1.0) based on peer verification
+    pub confidence: f64,
 }
 
 /// The atomic state of the local Wolf Node.

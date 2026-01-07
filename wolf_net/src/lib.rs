@@ -1,12 +1,13 @@
-//! Wolf Net - Pure Networking Library
+//! 🐺 Wolf Net - Advanced P2P Networking & Coordination
 //!
-//! Network-only functionality without security concerns:
-//! - Peer ID: Network-level identification
-//! - Device ID: Hardware/device identification  
-//! - Service ID: Service/process identification
-//! - System ID: Overall system identification
-//! - Network features: ping, discovery, NAT traversal
-//! - Message routing and protocol handling
+//! A modular networking library built on libp2p, featuring the "Wolf Pack"
+//! coordination protocol for distributed threat detection and response.
+//!
+//! ### Core Components:
+//! - **WolfNode**: The primary system facade for initialization and orchestration.
+//! - **SwarmManager**: Low-level P2P swarm management, discovery, and routing.
+//! - **HuntCoordinator**: An actor-based engine managing the "Wolf Pack" lifecycle (Scent -> Stalk -> Strike).
+//! - **Internal Firewall**: Dynamic rule-based traffic control integrated with hunt outcomes.
 
 pub mod api;
 pub mod behavior;
@@ -20,7 +21,6 @@ pub mod firewall;
 pub mod geo;
 pub mod handshake;
 pub mod hub_orchestration;
-pub mod logic;
 pub mod message;
 pub mod metrics_simple;
 pub mod p2p;

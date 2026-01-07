@@ -3,6 +3,7 @@ use super::howl::{HowlMessage, HowlPayload, HowlPriority};
 use super::state::{HuntId, WolfRole, WolfState};
 use super::state_machine::{StateTransitionResult, WolfStateMachine};
 use crate::peer::PeerId;
+use crate::swarm::{ReputationReporter, SwarmCommand};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -65,12 +66,13 @@ pub enum CoordinatorMsg {
 }
 
 use super::ElectionManager;
-use crate::swarm::SwarmCommand;
 
 /// The main actor managing the Hunter-Killer Grid.
 pub struct HuntCoordinator {
-    /// Thread-safe state of the local wolf node.
-    state: Arc<RwLock<WolfState>>,
+    /// Public view of the state (shared with other components).
+    public_state: Arc<RwLock<WolfState>>,
+    /// Private state owned by the actor (no locking needed for internal logic).
+    state: WolfState,
     /// Channel for receiving actor messages.
     receiver: mpsc::Receiver<CoordinatorMsg>,
     /// Channel for sending commands to Swarm
@@ -79,6 +81,8 @@ pub struct HuntCoordinator {
     timeouts: HashMap<HuntId, std::time::SystemTime>,
     /// Election Manager
     election_manager: ElectionManager,
+    /// Reputation reporter hook
+    reputation_reporter: Option<Arc<dyn ReputationReporter>>,
 }
 
 impl HuntCoordinator {
@@ -89,19 +93,23 @@ impl HuntCoordinator {
         swarm_sender: mpsc::Sender<SwarmCommand>,
         local_peer_id: PeerId,
         initial_prestige: u32,
+        reputation_reporter: Option<Arc<dyn ReputationReporter>>,
     ) -> (Self, mpsc::Sender<CoordinatorMsg>, Arc<RwLock<WolfState>>) {
         let (tx, rx) = mpsc::channel(100); // Bounded channel for backpressure
-        let state = Arc::new(RwLock::new(WolfState::new(initial_role)));
+        let initial_state = WolfState::new(initial_role);
+        let public_state = Arc::new(RwLock::new(initial_state.clone()));
 
         let actor = Self {
-            state: state.clone(),
+            public_state: public_state.clone(),
+            state: initial_state,
             receiver: rx,
             swarm_sender,
             timeouts: HashMap::new(),
             election_manager: ElectionManager::new(local_peer_id, initial_prestige),
+            reputation_reporter,
         };
 
-        (actor, tx, state)
+        (actor, tx, public_state)
     }
 
     /// Run the actor loop. This should be spawned as a Tokio task.
@@ -174,8 +182,8 @@ impl HuntCoordinator {
             } => {
                 // For local node updates, we just update state.
                 // Distributed updates would require consensus msg.
-                let mut state = self.state.write().await;
-                WolfStateMachine::force_role(&mut state, new_role.clone());
+                WolfStateMachine::force_role(&mut self.state, new_role.clone());
+                self.sync_public_state().await;
                 info!("Rank Forced Updated to {:?}", new_role);
                 Ok(())
             }
@@ -205,10 +213,8 @@ impl HuntCoordinator {
         target_ip: String,
         evidence: String,
     ) -> Result<()> {
-        let mut state = self.state.write().await;
-
         match WolfStateMachine::on_warning_howl(
-            &mut state,
+            &mut self.state,
             source.clone(),
             target_ip.clone(),
             evidence,
@@ -223,6 +229,7 @@ impl HuntCoordinator {
                     hunt_id,
                     std::time::SystemTime::now() + Duration::from_secs(30),
                 );
+                self.sync_public_state().await;
                 Ok(())
             }
             Err(e) => Err(e),
@@ -236,11 +243,8 @@ impl HuntCoordinator {
         confirmed: bool,
     ) -> Result<()> {
         let transition_result;
-        {
-            let mut state = self.state.write().await;
-            transition_result =
-                WolfStateMachine::on_hunt_report(&mut state, &hunt_id, hunter, confirmed)?;
-        }
+        transition_result =
+            WolfStateMachine::on_hunt_report(&mut self.state, &hunt_id, hunter, confirmed)?;
 
         match transition_result {
             StateTransitionResult::Strike {
@@ -255,10 +259,7 @@ impl HuntCoordinator {
 
                 // Complete strike transition to Feast
                 let feast_result;
-                {
-                    let mut state = self.state.write().await;
-                    feast_result = WolfStateMachine::complete_strike(&mut state, &hunt_id)?;
-                }
+                feast_result = WolfStateMachine::complete_strike(&mut self.state, &hunt_id)?;
 
                 match feast_result {
                     StateTransitionResult::Feast {
@@ -286,7 +287,21 @@ impl HuntCoordinator {
     /// Execute Strike phase - ban target IP via firewall
     async fn execute_strike(&mut self, target_ip: &str, hunt_id: &str) -> Result<()> {
         info!("⚔️ STRIKE: Banning {} (Hunt: {})", target_ip, hunt_id);
-        warn!("🚫 TARGET NEUTRALIZED: {} added to blocklist", target_ip);
+
+        // Send command to Swarm to update firewall
+        self.swarm_sender
+            .send(SwarmCommand::BlockIp {
+                ip: target_ip.to_string(),
+            })
+            .await
+            .map_err(|e| {
+                WolfPackError::NetworkError(format!("Failed to send block command: {}", e))
+            })?;
+
+        warn!(
+            "🚫 TARGET NEUTRALIZED: {} added to firewall blocklist",
+            target_ip
+        );
         Ok(())
     }
 
@@ -296,8 +311,6 @@ impl HuntCoordinator {
         hunt_id: &str,
         participants: &std::collections::HashSet<PeerId>,
     ) -> Result<()> {
-        let mut state = self.state.write().await;
-
         // Award prestige to all participants
         let reward_per_hunter = 10u32; // Base reward
         let total_reward = reward_per_hunter * participants.len() as u32;
@@ -310,11 +323,25 @@ impl HuntCoordinator {
         );
 
         // Award prestige to local node if participating
-        state.add_prestige(reward_per_hunter);
+        self.state.add_prestige(reward_per_hunter);
+
+        // Award reputation to all participants
+        if let Some(reporter) = &self.reputation_reporter {
+            for peer_id in participants {
+                reporter
+                    .report_event(
+                        &peer_id.to_string(),
+                        "Security",
+                        0.05, // Positive impact for successful hunt participation
+                        format!("Participated in successful hunt {}", hunt_id),
+                    )
+                    .await;
+            }
+        }
 
         info!(
             "💎 Local prestige increased by {} (new total: {})",
-            reward_per_hunter, state.prestige
+            reward_per_hunter, self.state.prestige
         );
         Ok(())
     }
@@ -331,21 +358,24 @@ impl HuntCoordinator {
         }
 
         if !expired.is_empty() {
-            let mut state = self.state.write().await;
             for id in expired {
                 warn!("Hunt {} timed out. Marking FAILED.", id);
-                let _ = WolfStateMachine::fail_hunt(&mut state, &id);
+                let _ = WolfStateMachine::fail_hunt(&mut self.state, &id);
                 self.timeouts.remove(&id);
             }
+            self.sync_public_state().await;
         }
 
         // Prestige Decay: Reduce prestige every 60 seconds of inactivity (simulated check every tick)
         if rand::random::<f64>() < (1.0 / 60.0) {
-            let mut state = self.state.write().await;
-            state.apply_decay();
-            if state.prestige > 0 {
-                info!("📉 Prestige Decay Applied. Current: {}", state.prestige);
+            self.state.apply_decay();
+            if self.state.prestige > 0 {
+                info!(
+                    "📉 Prestige Decay Applied. Current: {}",
+                    self.state.prestige
+                );
             }
+            self.sync_public_state().await;
         }
 
         // Handle election logic tick
@@ -378,9 +408,8 @@ impl HuntCoordinator {
             source, target_ip, hunt_id
         );
 
-        let mut state = self.state.write().await;
         if let Err(e) =
-            WolfStateMachine::on_hunt_request(&mut state, source, target_ip, hunt_id.clone())
+            WolfStateMachine::on_hunt_request(&mut self.state, source, target_ip, hunt_id.clone())
         {
             warn!("Failed to process hunt request: {}", e);
             return Ok(()); // Don't crash actor
@@ -393,6 +422,7 @@ impl HuntCoordinator {
         );
 
         info!("✅ Hunt {} initiated from request", hunt_id);
+        self.sync_public_state().await;
         Ok(())
     }
 
@@ -407,6 +437,15 @@ impl HuntCoordinator {
             "☠️ KILL ORDER RECEIVED: {} ordered neutralization of {} (Reason: {})",
             authorizer, target_ip, reason
         );
+
+        WolfStateMachine::on_kill_order(
+            &mut self.state,
+            target_ip.clone(),
+            authorizer,
+            reason,
+            hunt_id.clone(),
+        )?;
+        self.sync_public_state().await;
 
         // Execute Strike immediately
         self.execute_strike(&target_ip, &hunt_id).await?;
@@ -424,10 +463,9 @@ impl HuntCoordinator {
             owner, region, status
         );
 
-        let mut state = self.state.write().await;
-        if !state.territories.contains(&region) {
-            state.territories.push(region.clone());
+        if WolfStateMachine::update_territory(&mut self.state, region.clone())? {
             info!("Added new territory: {}", region);
+            self.sync_public_state().await;
         }
         Ok(())
     }
@@ -514,7 +552,14 @@ impl HuntCoordinator {
         );
         // Heartbeats update local state. They don't generate a response to broadcast.
         self.election_manager.handle_howl(&howl)?;
+        self.sync_public_state().await;
         Ok(())
+    }
+
+    /// Synchronizes the private actor state to the public shared state.
+    async fn sync_public_state(&mut self) {
+        let mut public = self.public_state.write().await;
+        *public = self.state.clone();
     }
 }
 
@@ -533,6 +578,7 @@ mod tests {
             swarm_tx,
             local_peer_id.clone(),
             10, // Local prestige
+            None,
         );
 
         // Spawn coordinator
