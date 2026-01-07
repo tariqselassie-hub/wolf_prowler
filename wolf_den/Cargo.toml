@@ -5,6 +5,10 @@ version = "0.1.0"
 edition = "2021"
 description = "Pure cryptographic library for Wolf Prowler"
 license = "MIT OR Apache-2.0"
+authors = ["Terrence A. Jones <tariqselassie@gmail.com>"]
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["cryptography", "encryption", "aes", "chacha20", "security"]
+categories = ["cryptography", "no-std"]
 rust-version = "1.70"
 
 [features]
