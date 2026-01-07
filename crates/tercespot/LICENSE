@@ -1,0 +1,49 @@
+MIT License
+
+Copyright (c) 2026 TersecPot Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Additional Terms for Four-Eyes Vault Component
+
+The Four-Eyes Vault component of TersecPot includes additional security
+considerations and requirements:
+
+1. **Security Responsibility**: Users are responsible for proper configuration
+   and deployment of the Four-Eyes Vault system in accordance with their
+   security requirements.
+
+2. **Cryptographic Dependencies**: This component relies on post-quantum
+   cryptographic algorithms (ML-DSA-44, ML-KEM-1024) and assumes the security
+   of these algorithms as standardized by NIST.
+
+3. **Key Management**: Users must implement secure key generation, storage,
+   and rotation procedures as part of their deployment.
+
+4. **Policy Configuration**: Security policies must be carefully configured
+   to match organizational requirements and should be regularly reviewed.
+
+5. **Audit Requirements**: Users should implement appropriate logging and
+   monitoring to detect and respond to security incidents.
+
+6. **Compliance**: Users are responsible for ensuring their deployment
+   complies with relevant regulatory and compliance requirements.
+
+This software is intended for use by security professionals and organizations
+with appropriate expertise in cryptographic systems and security practices.

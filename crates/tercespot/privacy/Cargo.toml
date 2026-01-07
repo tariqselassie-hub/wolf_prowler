@@ -1,0 +1,17 @@
+[package]
+name = "privacy"
+version = "0.1.0"
+edition = "2021"
+authors = ["TersecPot Contributors"]
+description = "Zero-Knowledge Administration for Healthcare & GDPR Compliance"
+license = "MIT"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+fips203 = "0.4"
+regex = "1.0"
+tempfile = "3.0"
+shared = { path = "../shared" }

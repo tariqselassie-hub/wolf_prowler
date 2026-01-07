@@ -1,0 +1,17 @@
+[Unit]
+Description=TersecPot Sentinel Daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/tercespot-sentinel
+WorkingDirectory=/var/lib/tercespot
+StandardOutput=journal
+StandardError=journal
+Restart=always
+User=root
+# Ensure that the daemon runs with root privileges
+# and has access to necessary files/directories.
+# If using a specific user, ensure permissions are set correctly.
+
+[Install]
+WantedBy=multi-user.target

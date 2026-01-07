@@ -1,0 +1,23 @@
+# Added by WolfDb initialization
+/target
+Cargo.lock
+
+# Database files
+*.db
+*.db-journal
+*.db-wal
+wolf.db/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.tmp

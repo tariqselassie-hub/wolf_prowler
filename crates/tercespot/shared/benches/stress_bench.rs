@@ -1,0 +1,55 @@
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use fips203::ml_kem_1024;
+use fips203::traits::KeyGen;
+use fips204::ml_dsa_44;
+use fips204::traits::{KeyGen as DSAKeyGen, Signer, Verifier};
+use shared::{decrypt_from_client, encrypt_for_sentinel, parse_and_evaluate, Role};
+use std::collections::HashSet;
+
+/// Benchmark: Full end-to-end command submission pipeline
+fn bench_end_to_end_pipeline(c: &mut Criterion) {
+    let mut group = c.benchmark_group("end_to_end_pipeline");
+
+    // Setup: Generate keys
+    let (kem_pk, kem_sk) = ml_kem_1024::KG::try_keygen().unwrap();
+    let (dsa_pk, dsa_sk) = ml_dsa_44::KG::try_keygen().unwrap();
+    let command = b"systemctl restart nginx";
+
+    group.bench_function("complete_submission_flow", |b| {
+        b.iter(|| {
+            // 1. Encrypt command
+            let encrypted = encrypt_for_sentinel(black_box(command), black_box(&kem_pk));
+
+            // 2. Sign encrypted payload
+            let signature = dsa_sk.try_sign(black_box(&encrypted), b"").unwrap();
+
+            // 3. Verify signature
+            let verified = dsa_pk.verify(black_box(&encrypted), black_box(&signature), b"");
+            assert!(verified);
+
+            // 4. Decrypt command
+            let decrypted = decrypt_from_client(black_box(&encrypted), black_box(&kem_sk)).unwrap();
+            assert_eq!(decrypted, command);
+        });
+    });
+
+    group.finish();
+}
+
+/// Benchmark: Policy Evaluation
+fn bench_policy_evaluation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("policy_evaluation");
+    let mut roles = HashSet::new();
+    roles.insert(Role::DevOps);
+    roles.insert(Role::ComplianceManager);
+
+    let expression = "Role:DevOps AND Role:ComplianceManager";
+
+    group.bench_function("evaluate_complex_policy", |b| {
+        b.iter(|| parse_and_evaluate(black_box(expression), black_box(&roles)).unwrap());
+    });
+    group.finish();
+}
+
+criterion_group!(benches, bench_end_to_end_pipeline, bench_policy_evaluation);
+criterion_main!(benches);

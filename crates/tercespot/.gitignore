@@ -1,0 +1,52 @@
+# Rust
+/target
+/debug
+**/*.rs.bk
+
+# Cargo
+# Cargo.lock is usually committed for applications (binaries) but ignored for libraries.
+# Uncomment the following line if this is a library project.
+# Cargo.lock
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.iml
+.DS_Store
+.settings/
+.classpath
+.project
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment variables and Secrets (CRITICAL)
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+*.asc
+secrets/
+credentials/
+
+# Logs
+*.log
+logs/
+
+# Backup files
+*.bak
+*.old
+*.orig
+Architecture.md
+test_output/

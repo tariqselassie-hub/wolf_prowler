@@ -1,0 +1,16 @@
+[package]
+name = "airgap"
+version = "0.1.0"
+edition = "2021"
+authors = ["TersecPot Contributors"]
+description = "Quantum-Proof Air Gap Bridge for Defense Applications"
+license = "MIT"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+fips204 = "0.4"
+tempfile = "3.0"
+hex = "0.4"
