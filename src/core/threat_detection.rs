@@ -13,9 +13,7 @@ use std::collections::{HashMap, VecDeque};
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 
-use crate::core::security_simple::{
-    SecurityEvent, Severity, Threat, ThreatStatus, ThreatType,
-};
+use crate::core::security_simple::{SecurityEvent, Severity, Threat, ThreatStatus, ThreatType};
 
 /// Detection statistics
 #[derive(Debug, Clone)]
@@ -725,6 +723,24 @@ impl BehavioralAnalyzer {
     pub fn get_peer_score(&self, _peer_id: &str) -> f64 {
         // Placeholder - would calculate actual behavioral score
         0.5
+    }
+
+    /// Get average peer behavior score
+    pub fn get_average_peer_score(&self) -> f64 {
+        if self.behavior_patterns.is_empty() {
+            return 1.0;
+        }
+        let total: f64 = self
+            .behavior_patterns
+            .keys()
+            .map(|id| self.get_peer_score(id))
+            .sum();
+        total / self.behavior_patterns.len() as f64
+    }
+
+    /// Get overall behavioral score
+    pub fn get_overall_score(&self) -> f64 {
+        self.get_average_peer_score()
     }
 
     pub fn analyze_peer(&mut self, peer_id: &str) -> Result<Vec<Threat>> {

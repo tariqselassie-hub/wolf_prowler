@@ -27,6 +27,8 @@ wolf_net = { path = "../wolf_net" }
 regex = "1.9"
 md5 = "0.7"
 thiserror = "1.0"
+fips203 = "0.4.3"
+fips204 = "0.4.6"
 rand_chacha = "0.3"
 
 # Cryptographic dependencies
@@ -43,19 +45,26 @@ ring = "0.16"
 rand = "0.8"
 rcgen = "0.11"
 openssl = "0.10"
-
+jsonwebtoken = "9.2"
 # Optional advanced features
 zeroize = { version = "1.6", optional = true }
 base64 = "0.21"
+openidconnect = { version = "4.0", features = ["reqwest"] }
+sha1 = "0.10"
+data-encoding = "2.5"
+qrcode = "0.12"
 
 # Python CLI bindings
 clap = { version = "4.0", features = ["derive"], optional = true }
 
 # HTTP client for notifications
 reqwest = { version = "0.11", features = ["json", "blocking"] }
+http = "0.2"
 
 # PDF generation
 printpdf = "0.3"
+# TersecPot Shared Library
+tersec_shared = { path = "../crates/tercespot/shared", package = "shared" }
 
 # Email notifications
 lettre = { version = "0.10", features = ["tokio1", "tokio1-native-tls", "builder"] }
@@ -65,7 +74,10 @@ ort = { version = "2.0.0-rc.10", features = ["load-dynamic"], optional = true } 
 linfa = { version = "0.7", optional = true }  # Classical ML algorithms
 linfa-clustering = { version = "0.7", optional = true }
 ndarray = "0.15"  # Tensor operations (required for data structures)
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json"] }
+# TEMPORARILY DISABLED - Migrating to WolfDb
+wolf_db = { path = "../crates/WolfDb" }
+# sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json"] }
+# TODO: Remove PostgreSQL dependencies after WolfDb migration complete
 bollard = { version = "0.15", optional = true }
 
 [dev-dependencies]

@@ -1,7 +1,10 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
+use tracing::{debug, error, info};
 
 /// Represents a security or network event to be reported to the SaaS Hub.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,10 +51,57 @@ impl ReportingService {
     }
 
     pub async fn run(&mut self) {
-        // Process events from the queue
-        while let Some(event) = self.event_queue.recv().await {
-            // TODO: Implement batching and sending logic
-            println!("Processing telemetry event: {}", event.event_type);
+        info!("📊 ReportingService started (Hub: {})", self.hub_url);
+        let mut batch = Vec::new();
+        let mut interval = tokio::time::interval(Duration::from_millis(self.flush_interval_ms));
+
+        loop {
+            tokio::select! {
+                Some(event) = self.event_queue.recv() => {
+                    batch.push(event);
+                    if batch.len() >= self.batch_size {
+                        let _ = self.flush_batch(&mut batch).await;
+                    }
+                }
+                _ = interval.tick() => {
+                    if !batch.is_empty() {
+                        let _ = self.flush_batch(&mut batch).await;
+                    }
+                }
+            }
         }
+    }
+
+    async fn flush_batch(&self, batch: &mut Vec<TelemetryEvent>) -> Result<()> {
+        let events = std::mem::take(batch);
+        let token_lock = self.auth_token.read().await;
+
+        if let Some(token) = token_lock.as_ref() {
+            let url = format!("{}/api/v1/telemetry/batch", self.hub_url);
+            let res = self
+                .client
+                .post(&url)
+                .bearer_auth(token)
+                .header("X-Org-ID", &self.org_id)
+                .json(&events)
+                .send()
+                .await;
+
+            match res {
+                Ok(resp) if resp.status().is_success() => {
+                    debug!("Successfully reported {} events to Hub", events.len());
+                }
+                Ok(resp) => {
+                    error!(
+                        "Failed to report telemetry: Hub returned status {}",
+                        resp.status()
+                    );
+                }
+                Err(e) => {
+                    error!("Network error reporting telemetry: {}", e);
+                }
+            }
+        }
+        Ok(())
     }
 }

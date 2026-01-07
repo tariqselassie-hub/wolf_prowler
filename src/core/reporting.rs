@@ -1,17 +1,23 @@
 //! SaaS Hub Reporting Service
-//! 
+//!
 //! This service allows headless agents to report health, metrics, and security alerts
 //! back to the central SaaS Hub.
 
 use crate::core::AppSettings;
-use crate::dashboard::state::SystemMetricsData;
+// use crate::dashboard::state::SystemMetricsData;
+
+#[derive(Debug, Default, Clone)]
+pub struct SystemMetricsData {
+    pub current_cpu_usage: f32,
+    pub current_memory_usage: u64,
+}
 use crate::utils::metrics_simple::SystemEvent;
 use anyhow::Result;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::{info, error, warn};
 use reqwest::{Client, StatusCode};
 use serde_json::json;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tracing::{error, info, warn};
 
 pub struct ReportingService {
     settings: Arc<RwLock<AppSettings>>,
@@ -22,7 +28,10 @@ pub struct ReportingService {
 }
 
 impl ReportingService {
-    pub fn new(settings: Arc<RwLock<AppSettings>>, metrics: Arc<RwLock<SystemMetricsData>>) -> Self {
+    pub fn new(
+        settings: Arc<RwLock<AppSettings>>,
+        metrics: Arc<RwLock<SystemMetricsData>>,
+    ) -> Self {
         Self {
             settings,
             metrics,
@@ -35,7 +44,7 @@ impl ReportingService {
     /// Starts the background reporting loop
     pub async fn start(self: Arc<Self>) {
         info!("📡 Starting SaaS Hub Reporting Service...");
-        
+
         // Initial login
         if let Err(e) = self.login().await {
             error!("❌ Initial Hub login failed: {}", e);
@@ -43,7 +52,7 @@ impl ReportingService {
 
         let mut telemetry_interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
         let mut batch_interval = tokio::time::interval(tokio::time::Duration::from_secs(10));
-        
+
         loop {
             tokio::select! {
                 _ = telemetry_interval.tick() => {
@@ -69,7 +78,9 @@ impl ReportingService {
 
         if let (Some(url), Some(key)) = (hub_url, org_key) {
             let endpoint = format!("{}/api/v1/agent/login", url);
-            let response = self.client.post(&endpoint)
+            let response = self
+                .client
+                .post(&endpoint)
                 .json(&json!({ "org_key": key }))
                 .send()
                 .await?;
@@ -98,7 +109,7 @@ impl ReportingService {
 
         if let (Some(url), Some(key)) = (hub_url, org_key) {
             let metrics_data = self.metrics.read().await;
-            
+
             let payload = json!({
                 "org_key": key,
                 "timestamp": chrono::Utc::now(),
@@ -111,7 +122,7 @@ impl ReportingService {
 
             let endpoint = format!("{}/api/v1/agent/report", url);
             let token = self.auth_token.read().await.clone();
-            
+
             let mut request = self.client.post(&endpoint).json(&payload);
             if let Some(t) = token {
                 request = request.bearer_auth(t);
@@ -124,7 +135,11 @@ impl ReportingService {
             if response.status().is_success() {
                 info!("✓ Telemetry sent to Hub: {}", url);
             } else {
-                warn!("⚠️ Hub rejected telemetry: {} (Status: {})", url, response.status());
+                warn!(
+                    "⚠️ Hub rejected telemetry: {} (Status: {})",
+                    url,
+                    response.status()
+                );
             }
         } else {
             // Silently skip if not configured for SaaS Hub
@@ -137,12 +152,12 @@ impl ReportingService {
     pub async fn report_security_event(&self, event: &SystemEvent) -> Result<()> {
         let mut queue = self.event_queue.write().await;
         queue.push(event.clone());
-        
+
         if queue.len() >= 10 {
             drop(queue);
             let _ = self.flush_events().await;
         }
-        
+
         Ok(())
     }
 
@@ -150,7 +165,9 @@ impl ReportingService {
     async fn flush_events(&self) -> Result<()> {
         let events = {
             let mut queue = self.event_queue.write().await;
-            if queue.is_empty() { return Ok(()); }
+            if queue.is_empty() {
+                return Ok(());
+            }
             std::mem::take(&mut *queue)
         };
 
@@ -175,7 +192,7 @@ impl ReportingService {
             }
 
             let response = request.send().await?;
-            
+
             if response.status() == StatusCode::UNAUTHORIZED {
                 // Token might be expired, try to relogin
                 if let Ok(()) = self.login().await {

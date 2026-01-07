@@ -10,6 +10,7 @@ use crate::peer::PeerId;
 use crate::WolfBehavior; // WolfConfig removed
                          // use crate::BehaviorConfig; // Not found, commenting out
                          // block_on removed
+use async_trait::async_trait;
 use futures::StreamExt;
 use libp2p::{
     gossipsub, identity, noise, swarm::SwarmEvent, tcp, yamux, Multiaddr, PeerId as Libp2pPeerId,
@@ -51,6 +52,14 @@ pub struct NetworkMetrics {
     pub unique_peers_seen: usize,
     #[serde(skip)]
     pub last_activity: Option<Instant>,
+    // Additional fields for API
+    pub connected_peers: usize,
+    pub known_peers: usize,
+    pub average_latency: f64,
+    pub total_data_transferred: u64,
+    pub transfer_rate: f64,
+    pub active_streams: usize,
+    pub network_health: f64,
 }
 
 use crate::message::Message;
@@ -102,6 +111,10 @@ pub enum SwarmCommand {
     BlockPeer {
         peer_id: PeerId,
     },
+    /// Block an IP address in the internal firewall
+    BlockIp {
+        ip: String,
+    },
     DisconnectPeer {
         peer_id: PeerId,
     },
@@ -133,6 +146,18 @@ pub enum SwarmCommand {
         target: PeerId,
         change: i32,
     },
+    /// Add a peer address to the swarm without dialing
+    AddAddress {
+        peer_id: PeerId,
+        addr: Multiaddr,
+    },
+}
+
+/// Trait for reporting reputation-impacting events.
+/// This allows SwarmManager to notify the reputation system without a direct dependency.
+#[async_trait]
+pub trait ReputationReporter: Send + Sync + std::fmt::Debug {
+    async fn report_event(&self, peer_id: &str, category: &str, impact: f64, description: String);
 }
 
 /// Swarm manager for handling libp2p operations
@@ -167,6 +192,8 @@ pub struct SwarmManager {
     hunt_coordinator_sender: mpsc::Sender<crate::wolf_pack::coordinator::CoordinatorMsg>,
     /// Shared wolf pack state
     wolf_state: Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>,
+    /// Reputation reporter hook
+    pub reputation_reporter: Option<Arc<dyn ReputationReporter>>,
 }
 
 /// Swarm configuration
@@ -188,6 +215,10 @@ pub struct SwarmConfig {
     pub keypair_path: PathBuf,
     /// Channel for sending security events
     pub security_event_sender: Option<mpsc::UnboundedSender<crate::event::SecurityEvent>>,
+    /// Reputation reporter hook
+    pub reputation_reporter: Option<Arc<dyn ReputationReporter>>,
+    /// Deterministic identity seed
+    pub identity_seed: Option<String>,
 }
 
 impl Default for SwarmConfig {
@@ -204,6 +235,8 @@ impl Default for SwarmConfig {
             connection_timeout: Duration::from_secs(20),
             keypair_path: path,
             security_event_sender: None,
+            reputation_reporter: None,
+            identity_seed: None,
         }
     }
 }
@@ -274,48 +307,67 @@ impl SwarmManager {
         ));
 
         // Load or create a new identity with improved error handling
-        let local_key = match fs::read(&config.keypair_path) {
-            Ok(key_bytes) => {
-                identity::Keypair::from_protobuf_encoding(&key_bytes).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Failed to parse keypair from {}: {}",
-                        config.keypair_path.display(),
-                        e
-                    )
-                })?
-            }
-            Err(e) if e.kind() == io::ErrorKind::NotFound => {
-                info!(
-                    "No keypair found at {}, generating a new one",
-                    config.keypair_path.display()
-                );
-                let key = identity::Keypair::generate_ed25519();
-                let key_bytes = key
-                    .to_protobuf_encoding()
-                    .map_err(|e| anyhow::anyhow!("Failed to encode keypair: {}", e))?;
+        // Load or create a new identity with improved error handling
+        let local_key = if let Some(seed) = &config.identity_seed {
+            info!("🌱 Generating deterministic identity from seed: {}", seed);
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            std::hash::Hash::hash(&seed, &mut hasher);
+            let seed_u64 = std::hash::Hasher::finish(&hasher);
 
-                if let Some(parent) = config.keypair_path.parent() {
-                    fs::create_dir_all(parent).map_err(|e| {
-                        anyhow::anyhow!("Failed to create directory for keypair: {}", e)
-                    })?;
+            // Generate deterministic keypair (using seed as RNG seed would be better, but for now simple deterministic generation)
+            // Note: In production we'd use a CSPRNG. For simulation, this is sufficient to get consistent PeerIDs.
+            let mut bytes = [0u8; 32];
+            let seed_bytes = seed_u64.to_le_bytes();
+            for i in 0..32 {
+                bytes[i] = seed_bytes[i % 8].wrapping_add(i as u8);
+            }
+
+            identity::Keypair::ed25519_from_bytes(bytes)
+                .map_err(|e| anyhow::anyhow!("Failed to generate key from seed: {}", e))?
+        } else {
+            match fs::read(&config.keypair_path) {
+                Ok(key_bytes) => {
+                    identity::Keypair::from_protobuf_encoding(&key_bytes).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Failed to parse keypair from {}: {}",
+                            config.keypair_path.display(),
+                            e
+                        )
+                    })?
                 }
+                Err(e) if e.kind() == io::ErrorKind::NotFound => {
+                    info!(
+                        "No keypair found at {}, generating a new one",
+                        config.keypair_path.display()
+                    );
+                    let key = identity::Keypair::generate_ed25519();
+                    let key_bytes = key
+                        .to_protobuf_encoding()
+                        .map_err(|e| anyhow::anyhow!("Failed to encode keypair: {}", e))?;
 
-                fs::write(&config.keypair_path, &key_bytes).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Failed to write keypair to {}: {}",
+                    if let Some(parent) = config.keypair_path.parent() {
+                        fs::create_dir_all(parent).map_err(|e| {
+                            anyhow::anyhow!("Failed to create directory for keypair: {}", e)
+                        })?;
+                    }
+
+                    fs::write(&config.keypair_path, &key_bytes).map_err(|e| {
+                        anyhow::anyhow!(
+                            "Failed to write keypair to {}: {}",
+                            config.keypair_path.display(),
+                            e
+                        )
+                    })?;
+
+                    key
+                }
+                Err(e) => {
+                    return Err(anyhow::anyhow!(
+                        "Failed to read keypair from {}: {}",
                         config.keypair_path.display(),
                         e
-                    )
-                })?;
-
-                key
-            }
-            Err(e) => {
-                return Err(anyhow::anyhow!(
-                    "Failed to read keypair from {}: {}",
-                    config.keypair_path.display(),
-                    e
-                ))
+                    ))
+                }
             }
         };
 
@@ -421,6 +473,7 @@ impl SwarmManager {
         let security_sender_for_processor = security_sender.clone(); // Clone for security event processor
         let encrypted_handler_clone = encrypted_handler.clone();
         let firewall_clone = firewall.clone();
+        let reputation_reporter = config.reputation_reporter.clone();
 
         // Start the swarm event loop in a background task
         let consensus_manager_clone = consensus_manager.clone();
@@ -431,6 +484,7 @@ impl SwarmManager {
             command_sender.clone(),
             local_peer_id.clone(),
             0, // Initial prestige
+            reputation_reporter.clone(),
         );
         tokio::spawn(actor.run());
 
@@ -447,38 +501,8 @@ impl SwarmManager {
             let hunt_sender = hunt_sender_clone;
             let wolf_state = wolf_state_clone;
 
-            // --- Logic Engine Setup ---
-            // Wire up the HuntCoordinator sender to the Logic Engine
-            swarm.behaviour_mut().set_hunt_sender(hunt_sender.clone());
-
-            // Patrol Interval (e.g., 60 seconds)
-            let mut patrol_interval = tokio::time::interval(std::time::Duration::from_secs(60));
-
             loop {
                 tokio::select! {
-                               // --- Logic Engine Patrol ---
-                               _ = patrol_interval.tick() => {
-                                   match swarm.behaviour_mut().perform_patrol().await {
-                                        Ok(messages) => {
-                                            if !messages.is_empty() {
-                                                info!("🐺 Logic Engine: Generated {} patrol messages", messages.len());
-                                                // Process and send messages
-                                                for msg in messages {
-                                                    // For now, just log. Future: Publish to gossipsub.
-                                                    // let topic = libp2p::gossipsub::IdentTopic::new("wolf-pack/coordination/1.0.0");
-                                                    // if let Ok(data) = serde_json::to_vec(&msg) {
-                                                    //     let _ = swarm.behaviour_mut().gossipsub.publish(topic, data);
-                                                    // }
-                                                    debug!("Patrol Message: {:?}", msg);
-                                                }
-                                            }
-                                        }
-                                        Err(e) => {
-                                            warn!("⚠️ Logic Engine: Patrol failed: {}", e);
-                                        }
-                                   }
-                               }
-
                                event = swarm.select_next_some() => {
                                    match event {
                                        SwarmEvent::NewListenAddr { address, .. } => {
@@ -496,6 +520,16 @@ impl SwarmManager {
                                                    &crate::firewall::TrafficDirection::Inbound
                                                ) {
                                                    warn!("🔥 Firewall blocked incoming connection from {}", peer_id);
+
+                                                   if let Some(reporter) = &reputation_reporter {
+                                                       reporter.report_event(
+                                                           &peer_id.to_string(),
+                                                           "Security",
+                                                           -0.15,
+                                                           "Firewall blocked incoming connection".to_string()
+                                                       ).await;
+                                                   }
+
                                                    let _ = swarm.disconnect_peer_id(peer_id);
 
                                                    // Send security event for block
@@ -514,6 +548,16 @@ impl SwarmManager {
                                            // Update metrics
                                            metrics_clone.lock().await.connection_attempts += 1;
                                            info!("🤝 Connection established with: {}", peer_id);
+
+                                           if let Some(reporter) = &reputation_reporter {
+                                               reporter.report_event(
+                                                   &peer_id.to_string(),
+                                                   "Networking",
+                                                   0.02,
+                                                   "Successful connection established".to_string()
+                                               ).await;
+                                           }
+
                                            connected_peers.insert(peer_id);
 
 
@@ -574,6 +618,16 @@ impl SwarmManager {
                                        SwarmEvent::ConnectionClosed { peer_id, cause, .. } => {
                                            warn!("❌ Connection lost with {}: {:?}", peer_id, cause);
                                            connected_peers.remove(&peer_id);
+
+                                           if let Some(reporter) = &reputation_reporter {
+                                               reporter.report_event(
+                                                   &peer_id.to_string(),
+                                                   "Networking",
+                                                   0.0,
+                                                   format!("Connection closed: {:?}", cause)
+                                               ).await;
+                                           }
+
                                            active_connections_clone.lock().await.remove(&peer_id);
 
                                            // Update metrics
@@ -609,14 +663,37 @@ impl SwarmManager {
                                        }
                                         SwarmEvent::Behaviour(event) => {
                                             match event {
-                                                WolfBehaviorEvent::Kad(_) => {
-                                                    // Kademlia events - processed by internal behavior logic
+                                                WolfBehaviorEvent::Kad(event) => {
+                                                    match event {
+                                                        libp2p::kad::Event::OutboundQueryProgressed { result, .. } => {
+                                                            match result {
+                                                                libp2p::kad::QueryResult::Bootstrap(Ok(ok)) => {
+                                                                    debug!("DHT Bootstrap successful: {:?}", ok);
+                                                                }
+                                                                libp2p::kad::QueryResult::Bootstrap(Err(e)) => {
+                                                                    warn!("DHT Bootstrap failed: {:?}", e);
+                                                                }
+                                                                _ => {}
+                                                            }
+                                                        }
+                                                        _ => {}
+                                                    }
                                                 }
                                                WolfBehaviorEvent::Ping(event) => {
                                                     match event.result {
                                                         Ok(rtt) => {
                                                             debug!("Ping success to {}: {:?}", event.peer, rtt);
                                                             // Update peer registry with latency
+
+                                                           if let Some(reporter) = &reputation_reporter {
+                                                               reporter.report_event(
+                                                                   &event.peer.to_string(),
+                                                                   "Networking",
+                                                                   0.01,
+                                                                   format!("Ping success (RTT: {:?})", rtt)
+                                                               ).await;
+                                                           }
+
                                                             let mut registry = peer_registry_clone.lock().await;
                                                             let target = crate::peer::PeerId::from_libp2p(event.peer);
                                                              if let Some(info) = registry.get_mut(&target) {
@@ -626,6 +703,16 @@ impl SwarmManager {
                                                         }
                                                         Err(e) => {
                                                             warn!("Ping error to {}: {:?}", event.peer, e);
+
+                                                           if let Some(reporter) = &reputation_reporter {
+                                                               reporter.report_event(
+                                                                   &event.peer.to_string(),
+                                                                   "Networking",
+                                                                   -0.05,
+                                                                   format!("Ping failure: {:?}", e)
+                                                               ).await;
+                                                           }
+
                                                             metrics_clone.lock().await.connection_failures += 1;
                                                         }
                                                     }
@@ -633,6 +720,15 @@ impl SwarmManager {
                                                WolfBehaviorEvent::Identify(event) => {
                                                    if let libp2p::identify::Event::Received { peer_id, info } = event {
                                                        info!("Identified peer {}: {}", peer_id, info.protocol_version);
+
+                                                       if let Some(reporter) = &reputation_reporter {
+                                                           reporter.report_event(
+                                                               &peer_id.to_string(),
+                                                               "Networking",
+                                                               0.05,
+                                                               format!("Identified peer: {}", info.agent_version)
+                                                           ).await;
+                                                       }
 
                                                         // Update registry with metadata
                                                         let mut registry = peer_registry_clone.lock().await;
@@ -1063,10 +1159,7 @@ impl SwarmManager {
                                                error!("Failed to dial {}: {}", peer_id, e);
                                                metrics_clone.lock().await.connection_failures += 1;
                                             } else {
-                                                 // TODO: Restore when Kademlia is re-enabled
-                                                 // if let Some(kad) = swarm.behaviour_mut().kademlia.as_mut() {
-                                                 //     kad.add_address(&peer_id.as_libp2p(), addr.clone());
-                                                 // }
+                                                 swarm.behaviour_mut().kad.add_address(&peer_id.as_libp2p(), addr.clone());
                                                  swarm.add_peer_address(peer_id.as_libp2p(), addr);
                                             }
                                        }
@@ -1138,10 +1231,7 @@ impl SwarmManager {
                                        SwarmCommand::BlockPeer { peer_id } => {
                                            info!("🚫 Blocking peer: {}", peer_id);
                                            let _ = swarm.disconnect_peer_id(peer_id.as_libp2p());
-                                           // TODO: Restore when Kademlia is re-enabled
-                                           // if let Some(kad) = swarm.behaviour_mut().kademlia.as_mut() {
-                                           //     kad.remove_peer(&peer_id.as_libp2p());
-                                           // }
+                                           swarm.behaviour_mut().kad.remove_peer(&peer_id.as_libp2p());
                                        }
                                        SwarmCommand::DisconnectPeer { peer_id } => {
                                            info!("🔌 Disconnecting peer: {}", peer_id);
@@ -1208,6 +1298,24 @@ impl SwarmManager {
                                                 } else {
                                                     w.slash_prestige(change.abs() as u32);
                                                 }
+                                           }
+                                       }
+                                       SwarmCommand::AddAddress { peer_id, addr } => {
+                                           swarm.add_peer_address(peer_id.as_libp2p(), addr);
+                                       }
+                                       SwarmCommand::BlockIp { ip } => {
+                                           if let Ok(ip_addr) = ip.parse::<std::net::IpAddr>() {
+                                               let mut fw = firewall_clone.write().await;
+                                               fw.add_rule(crate::firewall::FirewallRule::new(
+                                                   format!("Strike-{}", ip),
+                                                   crate::firewall::RuleTarget::Ip(ip_addr),
+                                                   crate::firewall::Protocol::Any,
+                                                   crate::firewall::Action::Deny,
+                                                   crate::firewall::TrafficDirection::Both,
+                                               ));
+                                               info!("🔥 Firewall updated: Deny IP {}", ip);
+                                           } else {
+                                               error!("Invalid IP address for block: {}", ip);
                                            }
                                        }
                                    }
@@ -1296,6 +1404,7 @@ impl SwarmManager {
             info!("🔒 Security event processor started");
         }
 
+        let reputation_reporter = config.reputation_reporter.clone();
         Ok(Self {
             local_peer_id,
             config,
@@ -1311,6 +1420,7 @@ impl SwarmManager {
             consensus: consensus_manager,
             hunt_coordinator_sender: hunt_sender,
             wolf_state,
+            reputation_reporter,
         })
     }
 
@@ -1470,6 +1580,14 @@ impl SwarmManager {
     pub async fn dial_addr(&self, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
         self.command_sender
             .send(SwarmCommand::DialAddr { addr })
+            .await?;
+        Ok(())
+    }
+
+    /// Adds a peer address to the swarm without dialing.
+    pub async fn add_address(&self, peer_id: PeerId, addr: Multiaddr) -> anyhow::Result<()> {
+        self.command_sender
+            .send(SwarmCommand::AddAddress { peer_id, addr })
             .await?;
         Ok(())
     }
@@ -1658,7 +1776,16 @@ impl SwarmManager {
 
         // Check local role and prestige
         let state = self.wolf_state.read().await;
-        if state.role < crate::wolf_pack::state::WolfRole::Scout || state.prestige < 50 {
+
+        // Robust check: Strays can't initiate, Scouts need 50 prestige,
+        // but Hunters and above can always initiate for high-severity events.
+        let can_initiate = match state.role {
+            crate::wolf_pack::state::WolfRole::Stray => false,
+            crate::wolf_pack::state::WolfRole::Scout => state.prestige >= 50,
+            _ => true,
+        };
+
+        if !can_initiate {
             debug!(
                 "Node lacks authority to initiate hunt (role: {:?}, prestige: {})",
                 state.role, state.prestige

@@ -88,6 +88,7 @@ pub enum NodeCommand {
     Broadcast(Vec<u8>),
     SendDirect { peer_id: String, data: Vec<u8> },
     UpdateFirewall(FirewallUpdateRequest),
+    Coordinator(crate::wolf_pack::coordinator::CoordinatorMsg),
 }
 
 /// Handle for controlling the WolfNode asynchronously
@@ -148,5 +149,15 @@ impl WolfNodeControl {
             .send(NodeCommand::UpdateFirewall(req))
             .await
             .map_err(|_| anyhow::anyhow!("Failed to send firewall update command"))
+    }
+
+    pub async fn send_coordinator_msg(
+        &self,
+        msg: crate::wolf_pack::coordinator::CoordinatorMsg,
+    ) -> anyhow::Result<()> {
+        self.command_tx
+            .send(NodeCommand::Coordinator(msg))
+            .await
+            .map_err(|_| anyhow::anyhow!("Failed to send coordinator command"))
     }
 }

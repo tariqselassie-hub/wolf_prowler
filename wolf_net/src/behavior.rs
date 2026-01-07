@@ -1,4 +1,3 @@
-use crate::logic::WolfLogicEngine;
 use crate::protocol::WolfCodec;
 use libp2p::{
     gossipsub,
@@ -19,8 +18,6 @@ pub struct WolfBehavior {
     pub gossipsub: gossipsub::Behaviour,
     pub req_resp: request_response::Behaviour<WolfCodec>,
     pub identify: identify::Behaviour,
-    #[behaviour(ignore)]
-    pub logic: WolfLogicEngine,
 }
 
 impl WolfBehavior {
@@ -72,58 +69,6 @@ impl WolfBehavior {
             gossipsub,
             req_resp,
             identify,
-            logic: WolfLogicEngine::new(),
         })
-    }
-
-    // ... existing methods ...
-    pub async fn handle_pack_coordination(
-        &mut self,
-        peer_id: libp2p::PeerId,
-        pack_id: &str,
-        action: &crate::wolf_pack::messaging::PackAction,
-    ) -> anyhow::Result<crate::wolf_pack::messaging::WolfResponse> {
-        self.logic
-            .handle_pack_coordination(peer_id, pack_id, action)
-            .await
-    }
-
-    pub async fn handle_howl(
-        &mut self,
-        peer_id: libp2p::PeerId,
-        frequency: f32,
-        pattern: &crate::wolf_pack::messaging::HowlPattern,
-        message: Option<Vec<u8>>,
-        territory: Option<String>,
-    ) -> anyhow::Result<crate::wolf_pack::messaging::WolfResponse> {
-        self.logic
-            .handle_howl(peer_id, frequency, pattern, message, territory)
-            .await
-    }
-
-    pub async fn handle_heartbeat(
-        &mut self,
-        peer_id: libp2p::PeerId,
-        heartbeat_peer: &str,
-        status: &crate::wolf_pack::messaging::PeerStatus,
-        metrics: &crate::wolf_pack::messaging::PeerMetrics,
-    ) -> anyhow::Result<crate::wolf_pack::messaging::WolfResponse> {
-        self.logic
-            .handle_heartbeat(peer_id, heartbeat_peer, status, metrics)
-            .await
-    }
-
-    pub async fn perform_patrol(
-        &mut self,
-    ) -> anyhow::Result<Vec<crate::wolf_pack::messaging::WolfMessage>> {
-        self.logic.perform_patrol().await
-    }
-
-    pub fn set_hunt_sender(
-        &mut self,
-        sender: tokio::sync::mpsc::Sender<crate::wolf_pack::coordinator::CoordinatorMsg>,
-    ) {
-        self.logic.set_coordinator_sender(sender);
-        // Logic engine updated to support this wiring.
     }
 }

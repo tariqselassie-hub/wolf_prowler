@@ -19,7 +19,7 @@ async fn test_full_hunt_lifecycle_success() {
     // Create coordinator as Scout
     let (swarm_tx, _swarm_rx) = tokio::sync::mpsc::channel(1);
     let (actor, sender, state) =
-        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0);
+        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0, None);
     tokio::spawn(actor.run());
 
     // PHASE 1: SCENT - Initiate hunt
@@ -129,7 +129,7 @@ async fn test_hunt_lifecycle_insufficient_consensus() {
     // Create coordinator
     let (swarm_tx, _swarm_rx) = tokio::sync::mpsc::channel(1);
     let (actor, sender, state) =
-        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0);
+        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0, None);
     tokio::spawn(actor.run());
 
     // Initiate hunt
@@ -191,7 +191,7 @@ async fn test_hunt_lifecycle_minimum_participants() {
     // Create coordinator
     let (swarm_tx, _swarm_rx) = tokio::sync::mpsc::channel(1);
     let (actor, sender, state) =
-        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0);
+        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0, None);
     tokio::spawn(actor.run());
 
     // Initiate hunt
@@ -251,7 +251,7 @@ async fn test_multiple_concurrent_hunts_lifecycle() {
     // Create coordinator
     let (swarm_tx, _swarm_rx) = tokio::sync::mpsc::channel(1);
     let (actor, sender, state) =
-        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0);
+        HuntCoordinator::new(WolfRole::Scout, swarm_tx, PeerId::random(), 0, None);
     tokio::spawn(actor.run());
 
     // Initiate 3 concurrent hunts

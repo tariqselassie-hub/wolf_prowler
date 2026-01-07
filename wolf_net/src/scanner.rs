@@ -174,7 +174,7 @@ impl NetworkScanner {
                     Ok(Some(NetworkDevice {
                         ip,
                         hostname,
-                        mac_address: None, // TODO: Implement ARP lookup
+                        mac_address: None, // Populated later by resolve_mac_addresses
                         latency_ms: latency,
                         device_type,
                         last_seen: chrono::Utc::now(),

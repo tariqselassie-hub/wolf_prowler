@@ -27,9 +27,9 @@ pub struct AuthConfig {
 }
 
 /// Manages user authentication tasks like password hashing and verification.
-#[derive(Default)]
 pub struct AuthManager {
     config: AuthConfig,
+    repository: std::sync::Arc<dyn crate::domain::repositories::AuthRepository>,
 }
 
 impl std::ops::Deref for AuthManager {
@@ -42,8 +42,11 @@ impl std::ops::Deref for AuthManager {
 
 impl AuthManager {
     /// Creates a new `AuthManager`.
-    pub fn new(config: AuthConfig) -> Self {
-        Self { config }
+    pub fn new(
+        config: AuthConfig,
+        repository: std::sync::Arc<dyn crate::domain::repositories::AuthRepository>,
+    ) -> Self {
+        Self { config, repository }
     }
 
     /// Hashes a password using Argon2id with default recommended parameters.
@@ -162,11 +165,16 @@ pub struct AuthStatus {
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::repositories::AuthRepository;
+
     use super::*;
 
     #[tokio::test]
     async fn test_password_hashing_and_verification_roundtrip() {
-        let manager = AuthManager::new(AuthConfig::default());
+        let manager = AuthManager::new(
+            AuthConfig::default(),
+            Arc::new(crate::domain::repositories::AuthRepository),
+        );
         let password = b"my_s3cur3_p@ssw0rd_for_wolf_prowler!";
 
         // 1. Hash the password

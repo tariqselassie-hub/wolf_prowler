@@ -1,7 +1,7 @@
 use super::{MLBackend, ModelInfo};
 use anyhow::{Context, Result};
 use ort::session::builder::GraphOptimizationLevel;
-use ort::session::{Session, SessionInputs};
+use ort::session::Session;
 // use ort::value::Value;
 use std::path::Path;
 

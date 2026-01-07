@@ -15,8 +15,7 @@ use crate::WolfConfig;
 use crate::firewall::InternalFirewall;
 use crate::peer::{EntityInfo, PeerId, PeerInfo};
 use crate::reporting_service::{ReportingService, TelemetryEvent};
-use crate::wolf_pack::coordinator::{CoordinatorMsg, HuntCoordinator};
-use crate::wolf_pack::howl::{HowlMessage, HowlPayload};
+use crate::wolf_pack::coordinator::CoordinatorMsg;
 use crate::wolf_pack::state::{WolfRole, WolfState};
 
 /// Top-level manager to clean up main.rs initialization
@@ -32,88 +31,36 @@ pub struct WolfNode {
     pub command_rx: mpsc::Receiver<NodeCommand>,
     pub firewall: Arc<RwLock<InternalFirewall>>,
     pub metrics: Arc<RwLock<HashMap<PeerId, EntityInfo>>>,
-    pub coordinator_tx: mpsc::Sender<CoordinatorMsg>,
+    pub coordinator_tx: Option<mpsc::Sender<CoordinatorMsg>>,
     pub wolf_state: Arc<RwLock<WolfState>>,
-    swarm_command_rx: mpsc::Receiver<SwarmCommand>,
+    pub auth_token: Arc<RwLock<Option<String>>>,
+    background_tasks: Vec<tokio::task::JoinHandle<()>>,
 }
 
 impl WolfNode {
     /// Initializes all subsystems based on config
     pub async fn new(config: WolfConfig) -> Result<Self> {
-        // 1. Initialize the Internal Firewall
-        // We wrap it in Arc<RwLock> for shared concurrent access across the system
         let firewall = Arc::new(RwLock::new(InternalFirewall::new()));
-
-        // Initialize Metrics Registry
         let metrics = Arc::new(RwLock::new(HashMap::new()));
-
-        // Centralized storage for the JWT authentication token, shared between HubOrchestration and ReportingService
         let auth_token_storage = Arc::new(RwLock::new(None));
 
-        // 2. Initialize Discovery Service
         let (discovery, discovery_rx) = DiscoveryService::new(config.discovery.clone())?;
-
-        // 3. Initialize the SwarmManager
-        let mut swarm_config = SwarmConfig::default();
-        if config.network.listen_port > 0 {
-            if let Ok(addr) = format!("/ip4/0.0.0.0/tcp/{}", config.network.listen_port).parse() {
-                swarm_config.listen_addresses = vec![addr];
-            }
-        }
-
-        let swarm = SwarmManager::new(swarm_config)?;
-
-        // Initialize Command Channel
+        let swarm = Self::init_swarm(&config)?;
         let (command_tx, command_rx) = mpsc::channel(100);
 
-        // Initialize Swarm Command Channel for Coordinator
-        let (swarm_command_tx, swarm_command_rx) = mpsc::channel(100);
+        let coordinator_tx = swarm.hunt_coordinator_sender();
+        let wolf_state = swarm.get_wolf_state().await?;
 
-        // Initialize Hunt Coordinator
-        let local_peer_id = swarm.local_peer_id.clone();
-        let (coordinator, coordinator_tx, wolf_state) = HuntCoordinator::new(
-            WolfRole::Scout, // Default starting role
-            swarm_command_tx,
-            local_peer_id,
-            0, // Initial prestige
-        );
-
-        // Spawn the coordinator actor
-        tokio::spawn(async move {
-            coordinator.run().await;
-        });
-
-        // 3. Initialize SaaS-related services (ReportingService and HubOrchestration)
-        let mut reporting: Option<ReportingService> = None;
-        let mut hub_orchestration: Option<HubOrchestration> = None;
-        let mut reporting_tx = None;
-
-        // Assuming config.network contains fields like `enable_saas_features`, `hub_url`, `org_id`, `api_key`, `agent_id`, `headless_mode`
-        // You would typically load these from environment variables or a dedicated config file.
-        if config.network.enable_saas_features {
-            // Placeholder for a config flag in NetworkConfig
-            // Create a channel for telemetry events
-            let (tx_events, rx_events) = tokio::sync::mpsc::channel(100);
-            reporting_tx = Some(tx_events);
-
-            reporting = Some(ReportingService::new(
-                config.network.hub_url.clone(),
-                config.network.org_id.clone(),
-                rx_events,
-                auth_token_storage.clone(), // Pass the shared token storage
-            ));
-
-            let hub_config = HubConfig {
-                hub_url: config.network.hub_url.clone(),
-                api_key: config.network.api_key.clone(),
-                agent_id: config.network.agent_id.clone(),
-                headless: config.network.headless_mode,
-            };
-            hub_orchestration = Some(HubOrchestration::new(
-                hub_config,
-                auth_token_storage.clone(),
-            ));
+        // Set initial role from config (defaulting to Scout if not specified)
+        // Note: In a production system, this might be loaded from persistent storage
+        {
+            let mut state = wolf_state.write().await;
+            state.role = WolfRole::Scout;
         }
+
+        // 3. Initialize SaaS-related services
+        let (reporting, hub_orchestration, reporting_tx) =
+            Self::init_saas_services(&config, auth_token_storage.clone()).await;
 
         Ok(Self {
             swarm,
@@ -126,10 +73,62 @@ impl WolfNode {
             command_tx,
             command_rx,
             metrics,
-            coordinator_tx,
+            coordinator_tx: Some(coordinator_tx),
             wolf_state,
-            swarm_command_rx,
+            auth_token: auth_token_storage,
+            background_tasks: Vec::new(),
         })
+    }
+
+    /// Helper to initialize the SwarmManager
+    fn init_swarm(config: &WolfConfig) -> Result<SwarmManager> {
+        let mut swarm_config = SwarmConfig::default();
+        if config.network.listen_port > 0 {
+            if let Ok(addr) = format!("/ip4/0.0.0.0/tcp/{}", config.network.listen_port).parse() {
+                swarm_config.listen_addresses = vec![addr];
+            }
+        }
+
+        // Propagate identity seed if present
+        if let Some(seed) = &config.network.identity_seed {
+            swarm_config.identity_seed = Some(seed.clone());
+        }
+
+        SwarmManager::new(swarm_config)
+    }
+
+    /// Helper to initialize SaaS-related services
+    async fn init_saas_services(
+        config: &WolfConfig,
+        auth_token: Arc<RwLock<Option<String>>>,
+    ) -> (
+        Option<ReportingService>,
+        Option<HubOrchestration>,
+        Option<mpsc::Sender<TelemetryEvent>>,
+    ) {
+        if !config.network.enable_saas_features {
+            return (None, None, None);
+        }
+
+        let (tx_events, rx_events) = mpsc::channel(100);
+
+        let reporting = Some(ReportingService::new(
+            config.network.hub_url.clone(),
+            config.network.org_id.clone(),
+            rx_events,
+            auth_token.clone(),
+        ));
+
+        let hub_config = HubConfig {
+            hub_url: config.network.hub_url.clone(),
+            api_key: config.network.api_key.clone(),
+            agent_id: config.network.agent_id.clone(),
+            headless: config.network.headless_mode,
+        };
+
+        let hub_orchestration = Some(HubOrchestration::new(hub_config, auth_token));
+
+        (reporting, hub_orchestration, Some(tx_events))
     }
 
     /// Returns a handle to control the WolfNode from other threads/components
@@ -163,8 +162,6 @@ impl WolfNode {
                 }
             }
             NodeCommand::DisconnectPeer(peer_id_str) => {
-                // Fix: Parse PeerId correctly and use Command Sender
-                // Fix: Parse PeerId correctly and use Command Sender
                 let peer_id = crate::peer::PeerId::from_string(peer_id_str.clone());
                 if let Err(e) = self
                     .swarm
@@ -186,8 +183,7 @@ impl WolfNode {
                 }
             }
             NodeCommand::SendDirect { peer_id, data: _ } => {
-                // Fix: PeerId parsing
-                // Fix: PeerId parsing
+                // Direct requests require wrapping in WolfRequest
                 let _pid = crate::peer::PeerId::from_string(peer_id.clone());
                 // Direct requests require wrapping in WolfRequest, skipping for now as explicit command needed
                 tracing::warn!("Direct message not yet fully implemented in WolfNode handler");
@@ -201,6 +197,13 @@ impl WolfNode {
                     fw.set_policy(policy);
                 }
             }
+            NodeCommand::Coordinator(msg) => {
+                if let Some(tx) = &self.coordinator_tx {
+                    if let Err(e) = tx.send(msg).await {
+                        tracing::error!("Failed to forward command to HuntCoordinator: {}", e);
+                    }
+                }
+            }
         }
     }
 
@@ -208,18 +211,20 @@ impl WolfNode {
     pub async fn run(&mut self) -> Result<()> {
         // 1. Start Background Services
         if let Some(mut reporting) = self.reporting.take() {
-            tokio::spawn(async move {
+            let handle = tokio::task::spawn(async move {
                 reporting.run().await;
             });
+            self.background_tasks.push(handle);
         }
 
         if let Some(hub) = self.hub_orchestration.take() {
             println!("Initializing Hub Orchestration loop...");
-            tokio::spawn(async move {
+            let handle = tokio::task::spawn(async move {
                 if let Err(e) = hub.run().await {
                     tracing::error!("Hub Orchestration failed: {}", e);
                 }
             });
+            self.background_tasks.push(handle);
         }
 
         // 2. Start Discovery Service
@@ -231,100 +236,98 @@ impl WolfNode {
         // 4. Main Event Loop (Simplified: Swarm logic is handled in SwarmManager background task)
         println!("Starting Wolf Prowler Node...");
 
+        let mut discovery_rx = self
+            .discovery_rx
+            .take()
+            .expect("Discovery receiver already taken");
         let mut dht_sync_interval = tokio::time::interval(std::time::Duration::from_secs(60));
 
         loop {
             tokio::select! {
-                // Swarm events handled in background. Here we coordinate high-level logic.
-
                 _ = dht_sync_interval.tick() => {
                     self.sync_discovery_to_dht().await;
                 }
-                maybe_peer = async {
-                    if let Some(rx) = &mut self.discovery_rx {
-                        rx.recv().await
-                    } else {
-                        std::future::pending().await
-                    }
-                } => {
-                    if let Some(peer) = maybe_peer {
-                        let peer_id = peer.peer_id.as_libp2p();
-                        for addr in peer.addresses {
-                            let multiaddr = crate::utils::socketaddr_to_multiaddr(addr);
-                            // self.swarm.add_address_to_dht(&peer_id, multiaddr);
-                            tracing::debug!("Would add address to DHT: {:?}", multiaddr);
-                        }
-
-                        // Initialize metrics for new peer
-                        {
-                            let mut metrics_lock = self.metrics.write().await;
-                            if !metrics_lock.contains_key(&peer.peer_id) {
-                                let entity_info = crate::peer::EntityInfo::new(crate::peer::EntityId::new(peer.peer_id.clone(), crate::peer::DeviceId::default(), crate::peer::ServiceId::default(), crate::peer::SystemId::default()));
-                                metrics_lock.insert(peer.peer_id, entity_info);
-                            }
-                        }
-                    } else {
-                        self.discovery_rx = None;
-                    }
+                Some(peer) = discovery_rx.recv() => {
+                    self.handle_discovered_peer(peer).await;
                 }
-                cmd = self.command_rx.recv() => {
-                    if let Some(command) = cmd {
-                        if let NodeCommand::Shutdown = command {
-                            println!("Shutdown command received via API. Stopping Wolf Node...");
-                            if let Err(e) = self.discovery.stop().await {
-                                tracing::error!("Failed to stop discovery service: {}", e);
-                            }
-                            return Ok(());
-                        }
-                        self.handle_command(command).await;
-                    } else {
-                        return Ok(());
-                    }
-                }
-                Some(swarm_cmd) = self.swarm_command_rx.recv() => {
-                    match swarm_cmd {
-                        SwarmCommand::Broadcast(data) => {
-                            if let Err(e) = self.swarm.command_sender().send(SwarmCommand::Broadcast(data)).await {
-                                tracing::error!("Failed to execute swarm broadcast command: {}", e);
-                            }
-                        }
-                        _ => {
-                            tracing::warn!("Received unimplemented SwarmCommand in WolfNode proxy");
-                        }
+                command = self.command_rx.recv() => {
+                    match command {
+                        Some(NodeCommand::Shutdown) => break,
+                        Some(cmd) => self.handle_command(cmd).await,
+                        None => break,
                     }
                 }
                 _ = tokio::signal::ctrl_c() => {
-                    println!("Shutdown signal received. Stopping Wolf Node...");
-                    if let Err(e) = self.discovery.stop().await {
-                        tracing::error!("Failed to stop discovery service: {}", e);
-                    }
-                    return Ok(());
+                    break;
                 }
             }
+        }
+
+        self.perform_shutdown().await
+    }
+
+    /// Performs a graceful shutdown of all subsystems
+    async fn perform_shutdown(&mut self) -> Result<()> {
+        println!("Shutdown signal received. Stopping Wolf Node...");
+
+        // 1. Stop Discovery Service
+        let _ = self.discovery.stop().await;
+
+        // 2. Stop Swarm Manager (this also stops the swarm event loop)
+        let _ = self.swarm.stop().await;
+
+        // 3. Close channels to stop background actors (ReportingService, HuntCoordinator)
+        self.reporting_tx.take();
+        self.coordinator_tx.take();
+
+        // 4. Join background tasks. We use abort() for tasks that might be stuck in sleep (HubOrchestration).
+        for handle in self.background_tasks.drain(..) {
+            handle.abort();
+            let _ = handle.await;
+        }
+
+        Ok(())
+    }
+
+    /// Handles a newly discovered peer
+    async fn handle_discovered_peer(&self, peer: PeerInfo) {
+        let _peer_id = peer.peer_id.as_libp2p();
+        for addr in peer.addresses {
+            let _multiaddr = crate::utils::socketaddr_to_multiaddr(addr);
+            // self.swarm.add_address_to_dht(&peer_id, multiaddr);
+            tracing::debug!("Would add address to DHT: {:?}", _multiaddr);
+        }
+
+        // Initialize metrics for new peer
+        let mut metrics_lock = self.metrics.write().await;
+        if !metrics_lock.contains_key(&peer.peer_id) {
+            let entity_info = crate::peer::EntityInfo::new(crate::peer::EntityId::new(
+                peer.peer_id.clone(),
+                crate::peer::DeviceId::default(),
+                crate::peer::ServiceId::default(),
+                crate::peer::SystemId::default(),
+            ));
+            metrics_lock.insert(peer.peer_id, entity_info);
         }
     }
 
     /// Syncs discovered peers to the Swarm's DHT
     async fn sync_discovery_to_dht(&mut self) {
         let peers = self.discovery.get_known_peers().await;
-        // Logic simplified as add_address_to_dht might be missing on SwarmManager or needs exposure.
-        // If missing, we skip for now to fix build.
-        // Actually, let's check if add_address_to_dht exists. Step 555 said it was missing.
-        // So we comment out the call to fix build.
-        /*
         let mut count = 0;
         for peer in peers {
-            let peer_id = peer.peer_id.as_libp2p();
+            let peer_id = peer.peer_id.clone();
             for addr in peer.addresses {
                 let multiaddr = crate::utils::socketaddr_to_multiaddr(addr);
-                self.swarm.add_address_to_dht(&peer_id, multiaddr);
-                count += 1;
+                if let Err(e) = self.swarm.add_address(peer_id.clone(), multiaddr).await {
+                    tracing::error!("Failed to sync address to swarm: {}", e);
+                } else {
+                    count += 1;
+                }
             }
         }
         if count > 0 {
             tracing::debug!("Synced {} peer addresses from Discovery to DHT", count);
         }
-        */
-        tracing::debug!("DHT Sync placeholder (method pending on SwarmManager)");
     }
 }

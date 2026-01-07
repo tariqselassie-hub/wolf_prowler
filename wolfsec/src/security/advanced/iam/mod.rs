@@ -6,8 +6,14 @@
 pub mod authentication;
 pub mod authorization;
 pub mod identity_providers;
+pub mod jwt_auth;
+pub mod mfa;
+pub mod pqc;
 pub mod privileged_access;
+pub mod rbac;
+pub mod session;
 pub mod single_sign_on;
+pub mod sso;
 pub mod user_management;
 
 use anyhow::Result;
@@ -18,11 +24,21 @@ use tracing::{debug, info};
 use uuid::Uuid;
 
 pub use authentication::AuthenticationManager;
+pub use authentication::{ApiKey, ApiKeyStatus, ApiKeyValidationResult};
 pub use authorization::AuthorizationManager;
 /// Re-export main components
 pub use identity_providers::IdentityProviderManager;
+pub use jwt_auth::{JWTAuthenticationManager, JWTAuthenticationRequest, JWTValidationResult};
+pub use mfa::{MFAEnrollment, MFAManager, MFAVerificationResult, MFAmethod};
+pub use pqc::{PQCAlgorithm, PQCKeyPair, PQCManager, PQCVerificationResult};
 pub use privileged_access::PrivilegedAccessManager;
+pub use rbac::{AccessDecision, RBACManager, RBACQuery, WolfRoleType};
+pub use session::{Session, SessionManager, SessionStatus, SessionType, SessionValidationResult};
 pub use single_sign_on::SingleSignOnManager;
+pub use sso::{
+    SSOAuthenticationResult, SSOCallbackRequest, SSOIntegrationManager, SSOProvider,
+    SSOProviderConfig,
+};
 pub use user_management::UserManagementManager;
 
 /// Main IAM integration manager
@@ -247,27 +263,6 @@ pub struct Role {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Wolf-themed role types
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum WolfRoleType {
-    /// Alpha wolf - highest privileges
-    Alpha,
-    /// Beta wolves - high privileges
-    Beta,
-    /// Gamma wolves - medium privileges
-    Gamma,
-    /// Delta wolves - standard privileges
-    Delta,
-    /// Omega wolves - basic privileges
-    Omega,
-    /// Scout wolves - reconnaissance privileges
-    Scout,
-    /// Hunter wolves - operational privileges
-    Hunter,
-    /// Custom role
-    Custom,
-}
-
 /// Permission entity
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Permission {
@@ -350,6 +345,8 @@ pub enum AuthenticationMethod {
     Biometric,
     APIKey,
     JWT,
+    RBAC,
+    Session,
 }
 
 /// Authorization decision
@@ -373,44 +370,14 @@ pub struct AuthorizationDecision {
     pub applied_policies: Vec<String>,
 }
 
-/// Session entity
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Session {
-    /// Session ID
-    pub id: Uuid,
-    /// User ID
-    pub user_id: Uuid,
-    /// Created timestamp
-    pub created_at: DateTime<Utc>,
-    /// Expires at
-    pub expires_at: DateTime<Utc>,
-    /// Last activity
-    pub last_activity: DateTime<Utc>,
-    /// IP address
-    pub ip_address: String,
-    /// User agent
-    pub user_agent: String,
-    /// Session status
-    pub status: SessionStatus,
-}
-
-/// Session status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum SessionStatus {
-    Active,
-    Expired,
-    Terminated,
-    Suspended,
-}
-
 impl IAMIntegrationManager {
     /// Create new IAM integration manager
-    pub fn new(config: IAMConfig) -> Result<Self> {
+    pub async fn new(config: IAMConfig) -> Result<Self> {
         info!("🔐 Initializing IAM Integration Manager");
 
         let manager = Self {
             identity_providers: IdentityProviderManager::new(config.clone())?,
-            authentication: AuthenticationManager::new(config.clone())?,
+            authentication: AuthenticationManager::new(config.clone()).await?,
             authorization: AuthorizationManager::new(config.clone())?,
             user_management: UserManagementManager::new(config.clone())?,
             privileged_access: PrivilegedAccessManager::new(config.clone())?,
@@ -732,15 +699,6 @@ pub struct SessionRequest {
     pub ip_address: String,
     pub user_agent: String,
     pub remember_me: bool,
-}
-
-/// Session validation result
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SessionValidationResult {
-    pub valid: bool,
-    pub user_id: Option<Uuid>,
-    pub expires_at: Option<DateTime<Utc>>,
-    pub reason: Option<String>,
 }
 
 /// User list filters

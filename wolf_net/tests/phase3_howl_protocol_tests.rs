@@ -50,7 +50,7 @@ async fn test_coordinator_handles_p2p_messages() {
     // Create coordinator
     let (swarm_tx, _swarm_rx) = tokio::sync::mpsc::channel(1);
     let (actor, sender, state) =
-        HuntCoordinator::new(WolfRole::Beta, swarm_tx, PeerId::random(), 0);
+        HuntCoordinator::new(WolfRole::Beta, swarm_tx, PeerId::random(), 0, None);
     tokio::spawn(actor.run());
 
     // 1. Simulate receiving a HuntRequest

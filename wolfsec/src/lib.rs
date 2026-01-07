@@ -15,6 +15,8 @@ pub mod authentication;
 pub mod crypto;
 pub mod domain;
 pub mod external_feeds;
+pub mod integration;
+pub mod ml;
 // pub mod firewall; // Moved to wolf_net
 pub mod infrastructure;
 pub mod key_management;
@@ -34,7 +36,7 @@ pub use key_management::{
 };
 
 pub use monitoring::{MetricsCollector, SecurityDashboard, SecurityMonitor, SIEM};
-pub use reputation::ReputationManager;
+pub use reputation::ReputationCategory;
 
 pub use crypto::{constant_time_eq, secure_compare, CryptoConfig, SecureRandom, WolfCrypto};
 
@@ -114,6 +116,8 @@ pub struct WolfSecurity {
     pub swarm_sender: Option<mpsc::UnboundedSender<SwarmCommand>>,
     /// Container Security Manager
     pub container_manager: WolfDenContainerManager,
+    /// Persistence storage
+    pub storage: std::sync::Arc<tokio::sync::RwLock<wolf_db::storage::WolfDbStorage>>,
     // Zero Trust Manager
     // pub zero_trust_manager: security::advanced::zero_trust::ZeroTrustManager,
 }
@@ -188,22 +192,64 @@ impl SecurityEvent {
 
 impl WolfSecurity {
     /// Create a new Wolf Security instance
-    pub fn new(config: WolfSecurityConfig) -> anyhow::Result<Self> {
+    /// Create a new Wolf Security instance (Async)
+    /// Use create() instead. This method is deprecated/removed.
+
+    pub async fn create(config: WolfSecurityConfig) -> anyhow::Result<Self> {
+        let db_path = config
+            .db_path
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("Invalid DB path"))?;
+
+        // Ensure directory exists
+        if let Some(parent) = config.db_path.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+
+        let storage = wolf_db::storage::WolfDbStorage::open(db_path)
+            .map_err(|e| anyhow::anyhow!("Failed to open WolfDb: {}", e))?;
+
+        let storage = std::sync::Arc::new(tokio::sync::RwLock::new(storage));
+
+        // Initialize keystore if needed (using default for now - strictly for dev/demo)
+        {
+            let mut s = storage.write().await;
+            if !s.is_initialized() {
+                s.initialize_keystore("wolfsec_default_secret", None)?;
+            }
+            if s.get_active_sk().is_none() {
+                s.unlock("wolfsec_default_secret", None)?;
+            }
+        }
+
+        let auth_repo = std::sync::Arc::new(
+            crate::infrastructure::persistence::WolfDbAuthRepository::new(storage.clone()),
+        );
+        let alert_repo = std::sync::Arc::new(
+            crate::infrastructure::persistence::WolfDbAlertRepository::new(storage.clone()),
+        );
+        let monitoring_repo = std::sync::Arc::new(
+            crate::infrastructure::persistence::WolfDbMonitoringRepository::new(storage.clone()),
+        );
+        let threat_repo = std::sync::Arc::new(
+            crate::infrastructure::persistence::WolfDbThreatRepository::new(storage.clone()),
+        );
+
         Ok(Self {
             network_security: SecurityManager::new(
                 "wolf_security".to_string(),
                 config.network_security.default_security_level.clone(),
             ),
             crypto: WolfCrypto::new(config.crypto.clone())?,
-            threat_detector: ThreatDetector::new(config.threat_detection.clone()),
-            auth_manager: AuthManager::new(config.authentication.clone()),
+            threat_detector: ThreatDetector::new(config.threat_detection.clone(), threat_repo),
+            auth_manager: AuthManager::new(config.authentication.clone(), auth_repo),
             key_manager: KeyManager::new(config.key_management.clone()),
-            monitor: SecurityMonitor::new(config.monitoring.clone()),
+            monitor: SecurityMonitor::new(config.monitoring.clone(), monitoring_repo, alert_repo),
             vulnerability_scanner: VulnerabilityScanner::new()?,
             siem: WolfSIEMManager::new(SIEMConfig::default())?,
             swarm_sender: None,
             container_manager: WolfDenContainerManager::new(WolfDenConfig::default()),
-            // zero_trust_manager: security::advanced::zero_trust::ZeroTrustManager::new()?,
+            storage,
         })
     }
 
@@ -402,10 +448,25 @@ impl WolfSecurity {
         tracing::info!("🛡️ Wolf Security shutdown complete");
         Ok(())
     }
+
+    // Additional methods for API compatibility
+    pub async fn get_metrics(&self) -> anyhow::Result<threat_detection::SecurityMetrics> {
+        Ok(self.threat_detector.get_status().await.metrics)
+    }
+
+    pub async fn get_recent_alerts(&self) -> Vec<String> {
+        // Placeholder
+        Vec::new()
+    }
+
+    pub async fn get_recent_threats(&self) -> Vec<String> {
+        // Placeholder
+        Vec::new()
+    }
 }
 
 /// Configuration for Wolf Security
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WolfSecurityConfig {
     pub network_security: network_security::SecurityConfig,
     pub crypto: crypto::CryptoConfig,
@@ -413,7 +474,22 @@ pub struct WolfSecurityConfig {
     pub authentication: authentication::AuthConfig,
     pub key_management: key_management::KeyManagementConfig,
     pub monitoring: monitoring::MonitoringConfig,
+    pub db_path: std::path::PathBuf,
     // pub zero_trust: security::advanced::zero_trust::ZeroTrustConfig,
+}
+
+impl Default for WolfSecurityConfig {
+    fn default() -> Self {
+        Self {
+            network_security: Default::default(),
+            crypto: Default::default(),
+            threat_detection: Default::default(),
+            authentication: Default::default(),
+            key_management: Default::default(),
+            monitoring: Default::default(),
+            db_path: std::path::PathBuf::from("wolf_data/wolfsec.db"),
+        }
+    }
 }
 
 /// Overall security status
@@ -481,8 +557,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_wolf_security_creation() {
-        let config = WolfSecurityConfig::default();
-        let mut wolf_sec = WolfSecurity::new(config).unwrap();
+        let mut config = WolfSecurityConfig::default();
+        config.db_path = std::env::temp_dir().join("wolfsec_test_db_creation");
+        let mut wolf_sec = WolfSecurity::create(config).await.unwrap();
 
         wolf_sec.initialize().await.unwrap();
 
@@ -517,8 +594,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_security_event_handling() {
-        let config = WolfSecurityConfig::default();
-        let mut wolf_sec = WolfSecurity::new(config).unwrap();
+        let mut config = WolfSecurityConfig::default();
+        config.db_path = std::env::temp_dir().join("wolfsec_test_db_events");
+        let mut wolf_sec = WolfSecurity::create(config).await.unwrap();
         wolf_sec.initialize().await.unwrap();
 
         let event = SecurityEvent::new(

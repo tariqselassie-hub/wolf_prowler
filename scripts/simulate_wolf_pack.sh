@@ -2,31 +2,34 @@
 set -e
 
 # Cleanup previous runs
-pkill -f "wolf_prowler" || true
+pkill -f "headless" || true
 rm -f logs/node_*.log
+rm -rf wolf_data_node_*
 
 # Create logs directory
 mkdir -p logs
 
-echo "🔨 Building Wolf Prowler..."
-cargo build --bin wolf_prowler
+echo "🔨 Building Lock Prowler (Headless)..."
+cargo build -p lock_prowler --bin headless
+
+BINARY="./target/debug/headless"
 
 echo "🐺 Launching Alpha Node (Leader)..."
-WOLF_ROLE="Alpha" WOLF_PORT=3030 WOLF_P2P_PORT=3031 RUST_LOG=info ./target/debug/wolf_prowler > logs/node_alpha.log 2>&1 &
+WOLF_DB_PATH="./wolf_data_node_alpha" WOLF_P2P_PORT=3031 WOLF_IDENTITY_SEED="alpha_node_seed_value" RUST_LOG=info $BINARY --path ~ --no-auto-import > logs/node_alpha.log 2>&1 &
 ALPHA_PID=$!
 echo "   PID: $ALPHA_PID"
 
 sleep 5
 
 echo "🐺 Launching Beta Node..."
-WOLF_ROLE="Beta" WOLF_PORT=3040 WOLF_P2P_PORT=3041 WOLF_BOOTSTRAP="/ip4/127.0.0.1/tcp/3031" RUST_LOG=info ./target/debug/wolf_prowler > logs/node_beta.log 2>&1 &
+WOLF_DB_PATH="./wolf_data_node_beta" WOLF_P2P_PORT=3041 WOLF_IDENTITY_SEED="beta_node_seed_value" WOLF_BOOTSTRAP="/ip4/127.0.0.1/tcp/3031" RUST_LOG=info $BINARY --path ~ --no-auto-import > logs/node_beta.log 2>&1 &
 BETA_PID=$!
 echo "   PID: $BETA_PID"
 
 sleep 5
 
 echo "🐺 Launching Gamma Node..."
-WOLF_ROLE="Gamma" WOLF_PORT=3050 WOLF_P2P_PORT=3051 WOLF_BOOTSTRAP="/ip4/127.0.0.1/tcp/3031" RUST_LOG=info ./target/debug/wolf_prowler > logs/node_gamma.log 2>&1 &
+WOLF_DB_PATH="./wolf_data_node_gamma" WOLF_P2P_PORT=3051 WOLF_IDENTITY_SEED="gamma_node_seed_value" WOLF_BOOTSTRAP="/ip4/127.0.0.1/tcp/3031" RUST_LOG=info $BINARY --path ~ --no-auto-import > logs/node_gamma.log 2>&1 &
 GAMMA_PID=$!
 echo "   PID: $GAMMA_PID"
 

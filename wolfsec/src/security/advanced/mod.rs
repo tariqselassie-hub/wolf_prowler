@@ -270,7 +270,10 @@ impl TimeRange {
 
 impl SecurityManager {
     /// Create new security manager
-    pub async fn new(config: SecurityConfig) -> Result<Self> {
+    pub async fn new(
+        config: SecurityConfig,
+        threat_repo: std::sync::Arc<dyn crate::domain::repositories::ThreatRepository>,
+    ) -> Result<Self> {
         info!("🛡️ Initializing Wolf Prowler Security Manager");
 
         let (event_bus, _) = broadcast::channel(100);
@@ -301,7 +304,7 @@ impl SecurityManager {
             compliance_framework: ComplianceFrameworkManager::new(
                 config.compliance_config.clone(),
             )?,
-            iam_integration: IAMIntegrationManager::new(config.iam_config.clone())?,
+            iam_integration: IAMIntegrationManager::new(config.iam_config.clone()).await?,
             audit_trail_system: AuditTrailSystem::new(config.audit_trail_config.clone())?,
             risk_assessment: RiskAssessmentManager::new(config.risk_assessment_config.clone())?,
 
@@ -320,6 +323,7 @@ impl SecurityManager {
             audit: audit::AuditManager::new(config.audit_config.clone())?,
             threat_detector: crate::threat_detection::ThreatDetector::new(
                 config.threat_detection_config.clone(),
+                threat_repo,
             ),
             alerts: alerts::AlertManager::new(config.alerts_config.clone()).await?,
             metrics: metrics::SecurityMetrics::default(),

@@ -12,6 +12,7 @@ use tracing::{info, warn};
 use uuid;
 
 use crate::external_feeds::ThreatFeedItem;
+use crate::reputation::{ReputationConfig, ReputationSystem};
 use crate::{SecurityEvent, SecurityEventType, SecuritySeverity};
 
 /// Advanced AI-powered threat detection system
@@ -33,6 +34,12 @@ pub struct ThreatDetector {
     behavioral_baselines: Arc<RwLock<HashMap<String, BehavioralBaseline>>>,
     /// Threat intelligence cache
     threat_intel_cache: Arc<RwLock<ThreatIntelCache>>,
+    /// Reputation system
+    pub reputation: ReputationSystem,
+    /// Start time for uptime calculation
+    start_time: std::time::Instant,
+    /// Threat repository for persistence
+    threat_repo: Arc<dyn crate::domain::repositories::ThreatRepository>,
 }
 
 /// Information about a peer with enhanced behavioral tracking
@@ -135,6 +142,32 @@ pub struct BehavioralAnalyzer {
     pub baseline_window: usize,
     pub deviation_threshold: f64,
     pub patterns_detected: usize,
+}
+
+impl BehavioralAnalyzer {
+    pub fn get_overall_score(&self) -> f64 {
+        0.85
+    }
+
+    pub fn pattern_count(&self) -> usize {
+        self.patterns_detected
+    }
+
+    pub fn active_pattern_count(&self) -> usize {
+        self.patterns_detected
+    }
+
+    pub fn recent_detection_count(&self) -> usize {
+        0
+    }
+
+    pub fn get_average_peer_score(&self) -> f64 {
+        0.9
+    }
+
+    pub fn get_peer_score(&self, _peer_id: &str) -> f64 {
+        0.9
+    }
 }
 
 /// Threat prediction model
@@ -270,6 +303,7 @@ pub struct Threat {
     pub status: ThreatStatus,
     pub mitigation_actions: Vec<String>,
     pub external_info: Option<ThreatFeedItem>,
+    pub confidence: f64,
 }
 
 /// Threat types
@@ -315,9 +349,18 @@ impl Default for SecurityConfig {
     }
 }
 
+/// System metrics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemMetrics {
+    pub memory_usage: f64,
+    pub cpu_usage: f64,
+    pub disk_usage: f64,
+}
+
 /// Security metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityMetrics {
+    pub system: SystemMetrics,
     pub total_events: u64,
     pub events_by_type: HashMap<crate::SecurityEventType, u64>,
     pub events_by_severity: HashMap<crate::SecuritySeverity, u64>,
@@ -363,6 +406,18 @@ pub struct SecurityMetrics {
     pub vulnerabilities_found: u64,
     pub security_score: f64,
     pub compliance_score: f64,
+    pub average_confidence: f64,
+    // Additional fields for API
+    pub active_connections: usize,
+    pub total_messages: u64,
+    pub avg_response_time: f64,
+    pub bandwidth_in: f64,
+    pub bandwidth_out: f64,
+    pub anomaly_detection_rate: f64,
+    pub reputation_updates: u64,
+    pub max_response_time: f64,
+    pub request_rate: f64,
+    pub error_rate: f64,
 }
 
 impl Default for SecurityMetrics {
@@ -413,6 +468,23 @@ impl Default for SecurityMetrics {
             vulnerabilities_found: 0,
             security_score: 0.0,
             compliance_score: 0.0,
+            average_confidence: 0.0,
+            // Additional fields defaults
+            system: SystemMetrics {
+                memory_usage: 0.0,
+                cpu_usage: 0.0,
+                disk_usage: 0.0,
+            },
+            active_connections: 0,
+            total_messages: 0,
+            avg_response_time: 0.0,
+            bandwidth_in: 0.0,
+            bandwidth_out: 0.0,
+            anomaly_detection_rate: 0.0,
+            reputation_updates: 0,
+            max_response_time: 0.0,
+            request_rate: 0.0,
+            error_rate: 0.0,
         }
     }
 }
@@ -466,11 +538,15 @@ pub struct ThreatDetectionStatus {
     pub metrics: SecurityMetrics,
     pub ai_enabled: bool,
     pub threat_intelligence_sources: usize,
+    pub uptime: u64,
 }
 
 impl ThreatDetector {
     /// Create new threat detector with AI capabilities
-    pub fn new(config: ThreatDetectionConfig) -> Self {
+    pub fn new(
+        config: ThreatDetectionConfig,
+        threat_repo: Arc<dyn crate::domain::repositories::ThreatRepository>,
+    ) -> Self {
         let ai_models = if config.machine_learning_enabled {
             Some(AIModels {
                 anomaly_detector: AnomalyDetectionModel {
@@ -512,6 +588,41 @@ impl ThreatDetector {
                 threat_actors: HashMap::new(),
                 last_updated: Utc::now(),
             })),
+            reputation: ReputationSystem::new(ReputationConfig::default()),
+            start_time: std::time::Instant::now(),
+            threat_repo,
+        }
+    }
+
+    /// Recalculates aggregate metrics like average confidence and trust scores.
+    async fn update_aggregate_metrics(&self) {
+        let threats = self.threats.read().await;
+        let active_threats: Vec<&Threat> = threats
+            .iter()
+            .filter(|t| t.status == ThreatStatus::Active)
+            .collect();
+
+        let peers = self.peers.read().await;
+        let mut metrics = self.metrics.write().await;
+
+        // Update active threats count
+        metrics.active_threats = active_threats.len() as u64;
+
+        // Update blocked peers count
+        metrics.blocked_peers = peers.values().filter(|p| p.flags.blocked).count() as u64;
+
+        // Average Confidence
+        if active_threats.is_empty() {
+            metrics.average_confidence = 0.0;
+        } else {
+            let total_confidence: f64 = active_threats.iter().map(|t| t.confidence).sum();
+            metrics.average_confidence = total_confidence / active_threats.len() as f64;
+        }
+
+        // Average Trust Score
+        if !peers.is_empty() {
+            let total_trust: f64 = peers.values().map(|p| p.trust_level).sum();
+            metrics.trust_score_average = total_trust / peers.len() as f64;
         }
     }
 
@@ -607,6 +718,9 @@ impl ThreatDetector {
             self.start_behavioral_monitoring(&peer_id).await?;
         }
 
+        // Update aggregate metrics
+        self.update_aggregate_metrics().await;
+
         Ok(())
     }
 
@@ -663,6 +777,9 @@ impl ThreatDetector {
         // Check if this event constitutes a threat
         self.evaluate_threat(&event).await;
 
+        // Update aggregate metrics
+        self.update_aggregate_metrics().await;
+
         info!("🚨 Security event recorded: {:?}", event.event_type);
     }
 
@@ -710,6 +827,14 @@ impl ThreatDetector {
             _ => return, // Not a threat type
         };
 
+        // Initial confidence based on severity
+        let confidence = match event.severity {
+            SecuritySeverity::Low => 0.4,
+            SecuritySeverity::Medium => 0.6,
+            SecuritySeverity::High => 0.8,
+            SecuritySeverity::Critical => 0.95,
+        };
+
         let threat = Threat {
             id: uuid::Uuid::new_v4().to_string(),
             threat_type: threat_type.clone(),
@@ -720,15 +845,38 @@ impl ThreatDetector {
             status: ThreatStatus::Active,
             mitigation_actions: self.get_mitigation_actions(&event.event_type),
             external_info: None,
+            confidence,
         };
 
         {
             let mut threats = self.threats.write().await;
-            threats.push(threat);
+            threats.push(threat.clone());
         }
-        {
-            let mut metrics = self.metrics.write().await;
-            metrics.active_threats += 1;
+
+        // Persist threat
+        let entity_threat = crate::domain::entities::threat::Threat {
+            id: uuid::Uuid::parse_str(&threat.id).unwrap_or_else(|_| uuid::Uuid::new_v4()),
+            threat_type: crate::domain::entities::threat::ThreatType::Unknown, // Simple mapping for now
+            severity: match threat.severity {
+                SecuritySeverity::Low => crate::domain::entities::threat::ThreatSeverity::Low,
+                SecuritySeverity::Medium => crate::domain::entities::threat::ThreatSeverity::Medium,
+                SecuritySeverity::High => crate::domain::entities::threat::ThreatSeverity::High,
+                SecuritySeverity::Critical => {
+                    crate::domain::entities::threat::ThreatSeverity::Critical
+                }
+            },
+            description: threat.description.clone(),
+            source_peer: threat.source_peer.clone(),
+            target_asset: None,
+            detected_at: threat.detected_at,
+            confidence: threat.confidence,
+            mitigation_steps: threat.mitigation_actions.clone(),
+            related_events: Vec::new(),
+            metadata: HashMap::new(),
+        };
+
+        if let Err(e) = self.threat_repo.save(&entity_threat).await {
+            warn!("Failed to persist threat: {}", e);
         }
 
         warn!("🚨 New threat detected: {:?}", threat_type);
@@ -766,6 +914,11 @@ impl ThreatDetector {
         Ok(())
     }
 
+    /// Get the reputation system
+    pub fn reputation_system(&self) -> &ReputationSystem {
+        &self.reputation
+    }
+
     /// Block a peer
     pub async fn block_peer(&mut self, peer_id: String) -> Result<()> {
         {
@@ -774,8 +927,10 @@ impl ThreatDetector {
                 peer_info.flags.blocked = true;
                 peer_info.trust_level = 0.0;
                 drop(peers);
-                let mut metrics = self.metrics.write().await;
-                metrics.blocked_peers += 1;
+
+                // Update aggregate metrics
+                self.update_aggregate_metrics().await;
+
                 warn!("🚫 Blocked peer: {}", peer_id);
                 Ok(())
             } else {
@@ -831,6 +986,7 @@ impl ThreatDetector {
             metrics: metrics.clone(),
             ai_enabled: self.ai_models.is_some(),
             threat_intelligence_sources: 1, // Placeholder
+            uptime: self.start_time.elapsed().as_secs(),
         }
     }
 
@@ -986,6 +1142,45 @@ impl ThreatDetector {
 
         // Generate recommendations
         result.recommendations = self.generate_ai_recommendations(&result).await?;
+
+        // Find and update the corresponding threat in the list
+        let threat_type = match event.event_type {
+            SecurityEventType::AuthenticationFailure => Some(ThreatType::AuthenticationAttack),
+            SecurityEventType::NetworkIntrusion => Some(ThreatType::NetworkAttack),
+            SecurityEventType::DataBreach => Some(ThreatType::DataExfiltration),
+            SecurityEventType::MalwareDetected => Some(ThreatType::MaliciousPeer),
+            SecurityEventType::SuspiciousActivity => Some(ThreatType::SuspiciousActivity),
+            SecurityEventType::DenialOfService => Some(ThreatType::ResourceAbuse),
+            SecurityEventType::KeyCompromise => Some(ThreatType::CryptographicAttack),
+            SecurityEventType::Reconnaissance => Some(ThreatType::Reconnaissance),
+            _ => None,
+        };
+
+        if let Some(t_type) = threat_type {
+            let mut threats = self.threats.write().await;
+            // Find the most recent active threat for this peer and type
+            if let Some(threat) = threats.iter_mut().rev().find(|t| {
+                t.status == ThreatStatus::Active
+                    && t.source_peer == event.peer_id
+                    && t.threat_type == t_type
+            }) {
+                threat.confidence = result.confidence;
+                // Sync severity with AI predicted risk
+                threat.severity = match result.predicted_risk {
+                    RiskLevel::Low => SecuritySeverity::Low,
+                    RiskLevel::Medium => SecuritySeverity::Medium,
+                    RiskLevel::High => SecuritySeverity::High,
+                    RiskLevel::Critical => SecuritySeverity::Critical,
+                };
+                info!(
+                    "Updated threat {} confidence to {:.2} and severity to {:?} based on AI analysis",
+                    threat.id, threat.confidence, threat.severity
+                );
+            }
+        }
+
+        // Update aggregate metrics to reflect the new confidence
+        self.update_aggregate_metrics().await;
 
         Ok(result)
     }
