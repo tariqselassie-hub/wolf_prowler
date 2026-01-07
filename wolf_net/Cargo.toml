@@ -2,8 +2,13 @@
 name = "wolf_net"
 version = "0.1.0"
 edition = "2021"
-description = "Wolf Prowler Network Library - Built from core utilities"
+description = "P2P networking library with QUIC/HyperPulse transport, Raft consensus, and encrypted mesh networking"
 license = "MIT OR Apache-2.0"
+authors = ["Terrence A. Jones <tariqselassie@gmail.com>"]
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["p2p", "networking", "libp2p", "quic", "raft"]
+categories = ["network-programming"]
+rust-version = "1.70"
 
 [lib]
 name = "wolf_net"

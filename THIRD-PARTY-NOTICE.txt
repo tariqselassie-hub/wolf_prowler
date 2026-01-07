@@ -177,3 +177,18 @@ Compliance with the OpenSSL and SSLeay licenses requires the inclusion of the fo
           contained within such NOTICE file.
 
    (See full license at http://www.apache.org/licenses/LICENSE-2.0)
+
+===============================================================================
+SPECIAL THANKS & ACKNOWLEDGMENTS
+===============================================================================
+
+We would like to extend a special thanks to the following projects and communities 
+that have made Wolf Prowler possible. Their foundational work is deeply appreciated.
+
+* **Axum**: For providing an ergonomic and robust web application framework.
+* **Dioxus**: For their innovative approach to UI development in Rust.
+* **Libp2p**: For the comprehensive networking stack that powers our P2P layer.
+* **Post Crypto Work**: Acknowledging all the researchers and developers contributing 
+  to the advancement of post-quantum cryptography and secure systems.
+
+And to the entire Rust community for building an ecosystem of safety and performance.

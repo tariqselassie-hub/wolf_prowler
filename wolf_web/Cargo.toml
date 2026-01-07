@@ -2,6 +2,13 @@
 name = "wolf_web"
 version = "0.1.0"
 edition = "2021"
+description = "Dioxus-based Web Dashboard for Wolf Prowler Security Platform"
+license = "MIT OR Apache-2.0"
+authors = ["Terrence A. Jones <tariqselassie@gmail.com>"]
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["web", "dashboard", "security", "dioxus"]
+categories = ["web-programming"]
+rust-version = "1.70"
 
 [features]
 default = ["server"]

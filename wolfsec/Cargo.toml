@@ -2,12 +2,13 @@
 name = "wolfsec"
 version = "0.1.0"
 edition = "2021"
-authors = ["Wolf Prowler Team"]
-description = "Consolidated security module for Wolf Prowler"
+authors = ["Terrence A. Jones <tariqselassie@gmail.com>"]
+description = "Comprehensive security framework with ML-powered threat detection, SIEM correlation, and SOAR automation"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/wolfprowler/wolfprowler"
-keywords = ["security", "cryptography", "authentication", "monitoring", "siem"]
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["security", "ml", "siem", "soar", "threat-detection"]
 categories = ["cryptography", "network-programming"]
+rust-version = "1.70"
 
 [dependencies]
 # Core dependencies
