@@ -59,7 +59,7 @@ pub async fn session_auth_middleware(
         return Err((
             StatusCode::UNAUTHORIZED,
             validation_result
-                .reason
+                .error_message
                 .unwrap_or_else(|| "Invalid session".to_string()),
         ));
     }

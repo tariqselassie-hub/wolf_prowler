@@ -21,6 +21,25 @@ pub mod websocket;
 use crate::dashboard::websocket::start_system_monitoring_task;
 use wolfsec::security::advanced::iam::{AuthenticationManager, IAMConfig};
 use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetectionConfig, ThreatDetector};
+use async_trait::async_trait;
+use wolfsec::domain::repositories::ThreatRepository;
+use wolfsec::domain::entities::Threat;
+use wolfsec::domain::error::DomainError;
+use uuid::Uuid;
+
+/// Mock Threat Repository for dashboard initialization
+pub struct MockThreatRepository;
+
+#[async_trait]
+impl ThreatRepository for MockThreatRepository {
+    async fn save(&self, _threat: &Threat) -> Result<(), DomainError> {
+        Ok(())
+    }
+
+    async fn find_by_id(&self, _id: &Uuid) -> Result<Option<Threat>, DomainError> {
+        Ok(None)
+    }
+}
 
 /// Dashboard configuration
 #[derive(Debug, Clone)]
@@ -69,7 +88,8 @@ impl DashboardState {
 
     /// Initialize dashboard with default engines
     pub fn init_default() -> Self {
-        let threat_engine = ThreatDetector::new(ThreatDetectionConfig::default());
+        let threat_repo = Arc::new(MockThreatRepository);
+        let threat_engine = ThreatDetector::new(ThreatDetectionConfig::default(), threat_repo);
         let behavioral_engine = BehavioralAnalyzer {
             baseline_window: 100,
             deviation_threshold: 2.0,
@@ -80,7 +100,7 @@ impl DashboardState {
 }
 
 /// Initialize the dashboard module
-pub fn init() -> DashboardState {
+pub async fn init() -> DashboardState {
     tracing::info!("Initializing dashboard module...");
 
     let dashboard_state = DashboardState::init_default();
@@ -97,14 +117,12 @@ pub fn init() -> DashboardState {
 
     // Initialize dashboard state with WebSocket support
     let auth_manager: AuthenticationManager =
-        tokio::runtime::Runtime::new().unwrap().block_on(async {
-            AuthenticationManager::new(IAMConfig::default())
-                .await
-                .unwrap()
-        });
+        AuthenticationManager::new(IAMConfig::default())
+            .await
+            .unwrap();
 
     let app_state = crate::dashboard::state::AppState::new(
-        ThreatDetector::new(ThreatDetectionConfig::default()),
+        dashboard_state.threat_engine.as_ref().clone(),
         dashboard_state.behavioral_engine.as_ref().clone(),
         auth_manager,
     );

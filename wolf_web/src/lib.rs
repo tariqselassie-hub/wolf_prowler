@@ -1,2 +1,2 @@
-// pub mod dashboard;
+pub mod dashboard;
 // pub use dashboard::api::ApiError;

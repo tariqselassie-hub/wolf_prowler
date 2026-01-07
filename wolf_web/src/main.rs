@@ -17,9 +17,15 @@ use lock_prowler::headless::HeadlessStatus;
 #[cfg(feature = "server")]
 use lock_prowler::headless::HeadlessWolfProwler;
 use once_cell::sync::Lazy; // Import Router explicitly
+use std::collections::HashMap;
+
 use wolfsec::security::advanced::iam::sso::{SSOAuthenticationRequest, SSOCallbackRequest};
 use wolfsec::security::advanced::iam::ClientInfo;
 use wolfsec::security::advanced::iam::{IAMConfig, SSOIntegrationManager, SSOProvider};
+#[cfg(feature = "server")]
+use wolf_web::dashboard;
+#[cfg(feature = "server")]
+use wolf_web::dashboard::state::AppState;
 
 // --- Types & State ---
 
@@ -32,12 +38,21 @@ pub struct SystemStats {
     pub active_nodes: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct RecordView {
+    pub id: String,
+    pub data: String, // Scrubbed or raw JSON
+    pub has_vector: bool,
+}
+
 // Global state simulation
 #[cfg(feature = "server")]
 static PROWLER: Lazy<AsyncMutex<Option<HeadlessWolfProwler>>> = Lazy::new(|| AsyncMutex::new(None));
 #[cfg(feature = "server")]
 static SSO_MANAGER: Lazy<AsyncMutex<Option<SSOIntegrationManager>>> =
     Lazy::new(|| AsyncMutex::new(None));
+#[cfg(feature = "server")]
+static APP_STATE: Lazy<AsyncMutex<Option<AppState>>> = Lazy::new(|| AsyncMutex::new(None));
 
 // --- Server Functions (Dioxus 0.6 RPC) ---
 
@@ -175,53 +190,205 @@ async fn handle_sso_callback(
     }
 }
 
+// --- Database Server Functions ---
+
+#[server]
+async fn get_records(table: String) -> Result<Vec<RecordView>, ServerFnError> {
+    let prowler_lock = PROWLER.lock().await;
+    if let Some(prowler) = prowler_lock.as_ref() {
+        let records = prowler
+            .list_database_records(&table)
+            .await
+            .map_err(|e| ServerFnError::new(e.to_string()))?;
+        let views = records
+            .into_iter()
+            .map(|r| RecordView {
+                id: r.id,
+                data: serde_json::to_string(&r.data).unwrap_or_default(),
+                has_vector: r.vector.is_some(),
+            })
+            .collect();
+        Ok(views)
+    } else {
+        Err(ServerFnError::new("Database Offline"))
+    }
+}
+
+#[server]
+async fn add_record(table: String, key: String, data_json: String) -> Result<(), ServerFnError> {
+    let prowler_lock = PROWLER.lock().await;
+    if let Some(prowler) = prowler_lock.as_ref() {
+        // Parse data_json to HashMap
+        let data: HashMap<String, String> = serde_json::from_str(&data_json)
+            .map_err(|_| ServerFnError::new("Invalid JSON Data"))?;
+
+        prowler
+            .add_database_record(&table, &key, data)
+            .await
+            .map_err(|e| ServerFnError::new(e.to_string()))?;
+        Ok(())
+    } else {
+        Err(ServerFnError::new("Database Offline"))
+    }
+}
+
+#[server]
+async fn delete_record(table: String, id: String) -> Result<(), ServerFnError> {
+    let prowler_lock = PROWLER.lock().await;
+    if let Some(prowler) = prowler_lock.as_ref() {
+        prowler
+            .delete_database_record(&table, &id)
+            .await
+            .map_err(|e| ServerFnError::new(e.to_string()))?;
+        Ok(())
+    } else {
+        Err(ServerFnError::new("Database Offline"))
+    }
+}
+
 // --- Routing ---
 
 #[derive(Clone, Routable, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Route {
+    #[layout(DashboardLayout)]
     #[route("/")]
     Dashboard {},
-    #[route("/vault")]
-    Vault {},
+    #[route("/security")]
+    SecurityPage {},
     #[route("/network")]
-    Network {},
+    Network {}, // Renamed Network to NetworkPage logic if needed, but existing Network component is fine for now
+    #[route("/system")]
+    SystemPage {},
+    #[route("/intelligence")]
+    IntelligencePage {},
+    #[route("/compliance")]
+    CompliancePage {},
+    #[route("/admin")]
+    AdministrationPage {},
+    #[route("/settings")]
+    SettingsPage {},
+    #[route("/database")]
+    Database {},
+    #[route("/vault")] // Vault was specific, keeping it here
+    Vault {},
+    #[end_layout]
     #[route("/login")]
     Login {},
-    /*
-    #[route("/callback/:provider?code&state")]
-    Callback {
-        provider: String,
-        code: String,
-        state: String,
-    },
-    */
 }
 
 // --- Components ---
+
+#[component]
+fn DashboardLayout() -> Element {
+    // Initialize Lucide icons
+    use_effect(|| {
+        use js_sys::wasm_bindgen::JsCast;
+        let window = web_sys::window();
+        if let Some(win) = window {
+            if let Some(lucide) = js_sys::Reflect::get(&win, &"lucide".into())
+                .ok()
+                .and_then(|v| v.dyn_into::<js_sys::Object>().ok())
+            {
+                if let Some(create_icons) = js_sys::Reflect::get(&lucide, &"createIcons".into())
+                    .ok()
+                    .and_then(|v| -> Option<js_sys::Function> { v.dyn_into::<js_sys::Function>().ok() })
+                {
+                    let _ = create_icons.call0(&lucide);
+                }
+            }
+        }
+    });
+
+    rsx! {
+        div { class: "flex min-h-screen bg-black text-green-500 font-mono",
+            Sidebar {}
+            main { class: "flex-1 p-8 overflow-auto",
+                Outlet::<Route> {}
+            }
+        }
+    }
+}
+
+#[component]
+fn Sidebar() -> Element {
+    rsx! {
+        div { class: "w-64 bg-gray-900/80 backdrop-blur-sm border-r border-gray-700 flex flex-col hidden md:flex sticky top-0 h-screen",
+            // Logo
+            div { class: "p-4 border-b border-gray-700",
+                h1 { class: "text-xl font-bold flex items-center space-x-2 text-green-500",
+                    i { class: "lucide-shield w-6 h-6" } // Using standard classes referencing loaded Lucide script
+                    span { "Wolf Prowler" }
+                }
+            }
+
+            // Nav
+            nav { class: "flex-1 p-4 space-y-2 overflow-y-auto",
+                SidebarLink { to: Route::Dashboard {}, icon: "home", label: "Overview" }
+                SidebarLink { to: Route::SecurityPage {}, icon: "shield-alert", label: "Security" }
+                SidebarLink { to: Route::Network {}, icon: "network", label: "Network" }
+                SidebarLink { to: Route::SystemPage {}, icon: "cpu", label: "System" }
+                SidebarLink { to: Route::IntelligencePage {}, icon: "brain", label: "Intelligence" }
+                SidebarLink { to: Route::CompliancePage {}, icon: "file-check", label: "Compliance" }
+                SidebarLink { to: Route::AdministrationPage {}, icon: "users", label: "Administration" }
+                SidebarLink { to: Route::SettingsPage {}, icon: "settings", label: "Settings" }
+                SidebarLink { to: Route::Database {}, icon: "database", label: "Database" }
+                SidebarLink { to: Route::Vault {}, icon: "lock", label: "Vault" }
+            }
+
+            // User Info
+             div { class: "p-4 border-t border-gray-700",
+                div { class: "flex items-center space-x-3",
+                    div { class: "w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center",
+                        i { class: "lucide-user w-4 h-4 text-white" }
+                    }
+                    div {
+                        p { class: "text-sm font-medium text-gray-200", "Admin" }
+                        p { class: "text-xs text-green-400", "Online" }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn SidebarLink(to: Route, icon: &'static str, label: &'static str) -> Element {
+    rsx! {
+        Link {
+            to: to,
+            class: "flex items-center space-x-3 p-2 rounded-lg text-gray-400 hover:bg-gray-700/50 hover:text-white transition-colors",
+            active_class: "bg-purple-600/20 text-purple-300",
+            i { class: "lucide-{icon} w-5 h-5" }
+            span { "{label}" }
+        }
+    }
+}
 
 #[component]
 fn Dashboard() -> Element {
     let stats = use_resource(get_fullstack_stats);
     let mut scan_status = use_signal(|| String::new());
     let mut is_loading = use_signal(|| false);
-    // Use resource to fetch logs periodically (polling simulation)
     let logs_resource = use_resource(get_prowler_logs);
     let mut progress = use_signal(|| 0.0f32);
 
     rsx! {
-        div { class: "min-h-screen bg-black text-green-500 font-mono selection:bg-green-900 selection:text-white",
-            // HUD Header
-            div { class: "border-b border-green-800 p-4 flex justify-between items-center bg-black/90 backdrop-blur sticky top-0 z-50",
-                div { class: "flex items-center space-x-4",
-                    h1 { class: "text-2xl font-bold tracking-widest uppercase", "Wolf Prowler // HUD" }
-                    span { class: "px-2 py-0.5 bg-green-900 text-green-100 text-xs rounded animate-pulse", "CONNECTED" }
+        div { class: "min-h-screen bg-black text-green-500 font-mono p-6",
+            // HUD Header (Moved inside Dashboard content or kept as TopBar specific to Dashboard)
+            div { class: "flex justify-between items-center mb-8",
+                div {
+                    h2 { class: "text-xl font-semibold text-white", "Dashboard Overview" }
+                     div { class: "flex items-center space-x-2 mt-1",
+                        div { class: "w-3 h-3 bg-green-500 rounded-full animate-pulse" }
+                        span { class: "text-sm text-gray-400", "Real-time System Status" }
+                    }
                 }
-                div { class: "flex space-x-6 text-sm",
-                    Link { to: Route::Dashboard {}, class: "hover:text-white transition-colors uppercase", "[ Overview ]" }
-                    Link { to: Route::Vault {}, class: "hover:text-white transition-colors uppercase", "[ Vault ]" }
-                    Link { to: Route::Network {}, class: "hover:text-white transition-colors uppercase", "[ Network ]" }
+                div { class: "flex space-x-3",
+                     Link { to: Route::Login {}, class: "p-2 hover:bg-gray-800 rounded text-red-400", "[LOGOUT]" }
                 }
             }
+
+
 
             // Main Grid
             div { class: "p-8 grid grid-cols-1 lg:grid-cols-3 gap-8",
@@ -354,7 +521,6 @@ fn StatRow(label: String, value: String, active: bool) -> Element {
 fn Vault() -> Element {
     rsx! {
         div { class: "min-h-screen bg-black text-green-500 p-8 font-mono",
-            Link { to: Route::Dashboard {}, class: "mb-8 inline-block hover:underline", "< RETURN TO HUD" }
             h1 { class: "text-4xl mb-4 font-bold uppercase", "Secure Vault" }
             div { class: "p-12 border border-green-800 border-dashed flex items-center justify-center opacity-50",
                 "ACCESS RESTRICTED // BIOMETRIC SCAN REQUIRED"
@@ -367,7 +533,6 @@ fn Vault() -> Element {
 fn Network() -> Element {
     rsx! {
         div { class: "min-h-screen bg-black text-green-500 p-8 font-mono",
-            Link { to: Route::Dashboard {}, class: "mb-8 inline-block hover:underline", "< RETURN TO HUD" }
             h1 { class: "text-4xl mb-4 font-bold uppercase", "Network Grid" }
              div { class: "grid grid-cols-4 gap-4",
                 for i in 0..4 {
@@ -469,12 +634,223 @@ fn Callback(provider: String, code: String, state: String) -> Element {
 }
 
 #[component]
+fn Database() -> Element {
+    let mut selected_table = use_signal(|| "vault".to_string());
+    let mut search_query = use_signal(|| String::new());
+    let mut is_add_modal_open = use_signal(|| false);
+
+    // Add Modals states
+    let mut new_key = use_signal(|| String::new());
+    let mut new_value = use_signal(|| "{}".to_string());
+    let mut error_msg = use_signal(|| String::new());
+
+    let mut records_resource = use_resource(move || {
+        let table = selected_table.read().clone();
+        async move { get_records(table).await }
+    });
+
+    let delete_handler = move |id: String| async move {
+        let table = selected_table.read().clone();
+        if let Ok(_) = delete_record(table, id).await {
+            records_resource.restart();
+        }
+    };
+
+    let add_handler = move |_| async move {
+        let table = selected_table.read().clone();
+        let key = new_key.read().clone();
+        let data = new_value.read().clone();
+
+        match add_record(table, key, data).await {
+            Ok(_) => {
+                is_add_modal_open.set(false);
+                new_key.set(String::new());
+                new_value.set("{}".to_string());
+                records_resource.restart();
+            }
+            Err(e) => error_msg.set(e.to_string()),
+        }
+    };
+
+    rsx! {
+        div { class: "min-h-screen bg-black text-green-500 p-8 font-mono",
+            Link { to: Route::Dashboard {}, class: "mb-8 inline-block hover:underline", "< RETURN TO HUD" }
+
+            div { class: "flex justify-between items-center mb-8",
+                h1 { class: "text-4xl font-bold uppercase", "Database Manager" }
+                button {
+                    class: "px-4 py-2 border border-green-500 hover:bg-green-900/40 uppercase font-bold",
+                    onclick: move |_| is_add_modal_open.set(true),
+                    "Add Record [+]"
+                }
+            }
+
+            // Tab Bar
+            div { class: "flex space-x-1 mb-6 border-b border-green-800",
+                for tab in vec!["vault", "shards", "forensics"] {
+                    button {
+                        class: if selected_table() == tab { "px-4 py-2 bg-green-900/40 border-t border-l border-r border-green-500 text-white font-bold uppercase" } else { "px-4 py-2 text-green-700 hover:text-green-500 uppercase" },
+                        onclick: move |_| selected_table.set(tab.to_string()),
+                        "{tab}"
+                    }
+                }
+            }
+
+            // Search Filter
+            div { class: "mb-6",
+                input {
+                    class: "w-full bg-black border border-green-800 p-2 text-green-500 focus:border-green-500 focus:outline-none",
+                    placeholder: "Filter by ID...",
+                    oninput: move |evt| search_query.set(evt.value())
+                }
+            }
+
+            // Data Grid
+            div { class: "border border-green-800",
+                div { class: "grid grid-cols-12 bg-green-900/20 p-2 font-bold uppercase text-xs border-b border-green-800",
+                    div { class: "col-span-3", "Record ID" }
+                    div { class: "col-span-1", "Vector" }
+                    div { class: "col-span-7", "Data Payload" }
+                    div { class: "col-span-1 text-right", "Actions" }
+                }
+
+                match &*records_resource.read() {
+                    Some(Ok(records)) => {
+                        let filtered_records = records.iter().filter(|r| search_query.read().is_empty() || r.id.contains(&*search_query.read()));
+                        rsx! {
+                            for record in filtered_records {
+                                {
+                                    let id = record.id.clone();
+                                    rsx! {
+                                        div { class: "grid grid-cols-12 p-2 border-b border-green-900/30 hover:bg-green-900/10 text-sm font-mono items-center",
+                                            div { class: "col-span-3 truncate font-bold", "{record.id}" }
+                                            div { class: "col-span-1 text-xs opacity-70", "{record.has_vector}" }
+                                            div { class: "col-span-7 font-mono text-xs opacity-80 truncate", "{record.data}" }
+                                            div { class: "col-span-1 text-right",
+                                                button {
+                                                    class: "text-red-500 hover:text-red-300 hover:underline text-xs uppercase",
+                                                    onclick: move |_| delete_handler(id.clone()),
+                                                    "[DEL]"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    Some(Err(e)) => rsx! { div { class: "p-4 text-red-500", "Error loading data: {e}" } },
+                    None => rsx! { div { class: "p-4 animate-pulse", "Accessing Secure Storage..." } }
+                }
+            }
+
+            // Add Modal
+            if is_add_modal_open() {
+                div { class: "fixed inset-0 bg-black/90 flex items-center justify-center z-50",
+                    div { class: "bg-gray-900 border border-green-500 p-8 w-full max-w-lg shadow-[0_0_20px_rgba(34,197,94,0.2)]",
+                        h2 { class: "text-xl font-bold uppercase mb-6 border-b border-green-800 pb-2", "Inject New Record" }
+
+                        if !error_msg().is_empty() {
+                            div { class: "text-red-500 mb-4 text-sm border border-red-900 p-2 bg-red-900/10", "{error_msg}" }
+                        }
+
+                        div { class: "space-y-4",
+                            div {
+                                label { class: "block text-xs uppercase mb-1", "Partition (Table)" }
+                                div { class: "p-2 bg-black border border-green-800 text-gray-500", "{selected_table}" }
+                            }
+                            div {
+                                label { class: "block text-xs uppercase mb-1", "Record ID (Unique Key)" }
+                                input {
+                                    class: "w-full bg-black border border-green-800 p-2 text-white focus:border-green-500 focus:outline-none",
+                                    value: "{new_key}",
+                                    oninput: move |evt| new_key.set(evt.value())
+                                }
+                            }
+                            div {
+                                label { class: "block text-xs uppercase mb-1", "JSON Data Payload" }
+                                textarea {
+                                    class: "w-full h-32 bg-black border border-green-800 p-2 text-white font-mono text-xs focus:border-green-500 focus:outline-none",
+                                    value: "{new_value}",
+                                    oninput: move |evt| new_value.set(evt.value())
+                                }
+                            }
+                        }
+
+                        div { class: "flex justify-end space-x-4 mt-8",
+                            button {
+                                class: "px-4 py-2 text-green-700 hover:text-white uppercase text-sm",
+                                onclick: move |_| is_add_modal_open.set(false),
+                                "Cancel"
+                            }
+                            button {
+                                class: "px-6 py-2 bg-green-900/50 border border-green-500 hover:bg-green-600 hover:text-black uppercase font-bold transition-all",
+                                onclick: add_handler,
+                                "Commit Write"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
 fn App() -> Element {
     rsx! {
-        // Tailwind CDN for simplicity in this demo phase
+        // Tailwind CDN and Lucide Icons
          script { src: "https://cdn.tailwindcss.com" }
+         script { src: "https://unpkg.com/lucide@latest" }
          Router::<Route> {}
     }
+}
+
+// --- Placeholder Pages ---
+
+#[component]
+fn SecurityPage() -> Element {
+    rsx! {
+        div { class: "p-8",
+            h1 { class: "text-3xl font-bold mb-4", "Security Operations Center" }
+            p { class: "text-gray-400", "Threat detection and response modules." }
+            div { class: "grid grid-cols-3 gap-6 mt-8",
+                div { class: "p-6 bg-gray-800 rounded border border-red-900/30",
+                    h3 { class: "text-lg font-bold text-red-500", "Active Threats" }
+                    p { class: "text-4xl font-mono mt-2", "0" }
+                }
+                div { class: "p-6 bg-gray-800 rounded border border-blue-900/30",
+                    h3 { class: "text-lg font-bold text-blue-500", "Behavioral Score" }
+                    p { class: "text-4xl font-mono mt-2", "98/100" }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn SystemPage() -> Element {
+    rsx! { div { class: "p-8", h1 { class: "text-2xl font-bold", "System Administration" } } }
+}
+
+#[component]
+fn IntelligencePage() -> Element {
+    rsx! { div { class: "p-8", h1 { class: "text-2xl font-bold", "Threat Intelligence" } } }
+}
+
+#[component]
+fn CompliancePage() -> Element {
+    rsx! { div { class: "p-8", h1 { class: "text-2xl font-bold", "Compliance & Reporting" } } }
+}
+
+#[component]
+fn AdministrationPage() -> Element {
+    rsx! { div { class: "p-8", h1 { class: "text-2xl font-bold", "User Administration" } } }
+}
+
+#[component]
+fn SettingsPage() -> Element {
+    rsx! { div { class: "p-8", h1 { class: "text-2xl font-bold", "Settings" } } }
 }
 
 // --- Main / Server Entry ---
@@ -504,8 +880,13 @@ async fn main() {
         Err(e) => eprintln!("Failed to initialize SSO: {}", e),
     }
 
+    // Initialize Dashboard
+    let dashboard_state = dashboard::init().await;
+    let dashboard_router = dashboard::create_router(dashboard_state).await;
+
     // Initialize Axum Router
     let app = Router::new()
+        .merge(dashboard_router)
         .serve_dioxus_application(
             ServeConfig::builder()
                 .index_path("wolf_web/assets/index.html".into())

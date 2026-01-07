@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+default = ["server"]
 server = []
 
 [dependencies]
@@ -34,4 +35,7 @@ wolfsec = { path = "../wolfsec" }
 wolf_net = { path = "../wolf_net" }
 wolf_den = { path = "../wolf_den" }
 lock_prowler = { path = "../crates/lock_prowler/lock_prowler" } # Use the crate path we moved
+wolf_db = { path = "../crates/WolfDb" }
 tracing = "0.1.44" 
+js-sys = "0.3.83"
+web-sys = { version = "0.3.83", features = ["Window", "Document"] }

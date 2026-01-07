@@ -14,6 +14,7 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use uuid::Uuid;
@@ -155,7 +156,7 @@ pub async fn dashboard_ws_handler(
                         .status(401)
                         .body(axum::body::Body::from(
                             validation_result
-                                .reason
+                                .error_message
                                 .unwrap_or_else(|| "Invalid session".to_string()),
                         ))
                         .unwrap();

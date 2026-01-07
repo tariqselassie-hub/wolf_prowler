@@ -234,7 +234,7 @@ async fn validate_session_handler(
         expires_at: validation_result
             .expires_at
             .map(|dt: chrono::DateTime<chrono::Utc>| dt.to_rfc3339()),
-        error: validation_result.reason,
+        error: validation_result.error_message,
     }))
 }
 
