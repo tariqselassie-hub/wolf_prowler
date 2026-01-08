@@ -1,3 +1,15 @@
+//! Sentinel Daemon Library
+//!
+//! This library provides the core functionality for the Sentinel daemon,
+//! which implements multi-party authorization for privileged commands using
+//! post-quantum cryptography (ML-DSA-44 signatures and ML-KEM-1024 encryption).
+//!
+//! Key features:
+//! - Multi-signature verification with configurable thresholds
+//! - Policy-based authorization with time and geo-fencing
+//! - Privacy-preserving audit logging
+//! - Pulse-based authentication for physical presence verification
+
 use fips204::ml_dsa_44; // Using specific parameter set
 use fips204::traits::{SerDes, Verifier};
 use serde::{Deserialize, Serialize};
@@ -7,27 +19,20 @@ use shared::{
 };
 use std::collections::{HashMap, HashSet};
 use std::io::BufRead;
-use std::thread;
-use std::time::Duration;
-
+/// File system monitoring for command files
 pub mod file_watcher;
 
 // Add imports needed for the daemon logic
 use fips203::ml_kem_1024;
 use fips203::traits::{KeyGen, SerDes as KemSerDes};
 use privacy::{AuditStatus, PrivacyAuditLogger, PrivacyConfig, PrivacyValidator};
-// use pulse::PulseMethod; // PulseMethod was in main.rs mod pulse. We need to handle this.
-// Ah, main.rs had `mod pulse;`. We need to see if we can move that too or if it's accessible.
-// Since we are moving logic to lib.rs, we need `pulse` to be accessible.
-// The file structure shows `daemon/src/pulse.rs` likely exists since `mod pulse` was in `main.rs`.
-// We should add `pub mod pulse;` to `lib.rs` if `pulse.rs` is in `src/`.
 
 use shared::{decrypt_from_client, load_policy_config, postbox_path, KEM_SK_SIZE};
-use std::{fs, process::Command};
+use std::{fs, process::Command, thread, time::Duration};
 use tokio::sync::mpsc::unbounded_channel;
 use tokio::time::sleep;
 
-// We need to re-export or make pulse available
+/// Pulse authentication methods for physical presence verification
 pub mod pulse;
 use pulse::PulseMethod;
 
@@ -65,6 +70,13 @@ struct PendingCommand {
     signatures: Vec<PendingSignature>,
 }
 
+/// Loads authorized keys and role mappings from a JSON file
+///
+/// # Arguments
+/// * `path` - Path to the authorized_keys.json file
+///
+/// # Returns
+/// A tuple of (public keys, role mappings) where role mappings map key hex to role names
 pub fn load_authorized_keys<P: AsRef<std::path::Path>>(
     path: P,
 ) -> std::io::Result<(Vec<ml_dsa_44::PublicKey>, HashMap<String, Vec<String>>)> {
@@ -113,6 +125,15 @@ pub fn parse_wire_format(data: &[u8]) -> Option<(Vec<[u8; SIG_SIZE]>, Vec<u8>)> 
     Some((signatures, body))
 }
 
+/// Verifies an ML-DSA-44 signature against the given body and public key
+///
+/// # Arguments
+/// * `body` - The message body to verify
+/// * `sig` - The signature bytes
+/// * `public_key` - The public key to use for verification
+///
+/// # Returns
+/// true if the signature is valid, false otherwise
 pub fn verify_signature(
     body: &[u8],
     sig: &[u8; SIG_SIZE],
@@ -351,6 +372,13 @@ fn check_time_window(window: &TimeWindow) -> bool {
 //  MAIN DAEMON LOGIC EXPOSED AS LIBRARY
 // =========================================================================
 
+/// Starts the Sentinel daemon which monitors for signed command files and executes authorized commands
+///
+/// The daemon watches the postbox directory for command files signed with ML-DSA-44 keys,
+/// validates them against policies, and executes approved commands as root.
+///
+/// # Returns
+/// An IO result indicating success or failure
 pub async fn start_sentinel() -> std::io::Result<()> {
     let postbox = postbox_path();
     let auth_keys_path = format!("{}/authorized_keys.json", postbox);

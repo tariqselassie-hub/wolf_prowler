@@ -237,7 +237,6 @@ impl FileWatcher {
     }
 
     /// Send an event with debouncing to avoid duplicate events
-    /// Send an event with debouncing to avoid duplicate events
     fn send_event_with_debounce(
         event: FileSystemEvent,
         event_sender: &UnboundedSender<FileSystemEvent>,

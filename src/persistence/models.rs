@@ -209,9 +209,7 @@ pub struct DbPackHierarchy {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbSystemLog {
     pub org_id: Option<Uuid>,
-    #[sqlx(default)]
     pub id: Option<i64>,
-    #[sqlx(default)]
     pub timestamp: Option<DateTime<Utc>>,
     pub level: String,
     pub message: String,

@@ -138,7 +138,6 @@ async fn get_compliance_status(
 /// Calculate SOC2 compliance based on threat detection statistics
 fn calculate_soc2_compliance(metrics: &SecurityMetrics) -> f64 {
     // SOC2 compliance calculation based on security controls
-    let _detection_rate = metrics.active_threats as f64 / 100.0; // dummy calc
 
     // Higher detection rate may imply better monitoring, but active threats imply issues?
     // Let's rely on compliance_score if available, else derive

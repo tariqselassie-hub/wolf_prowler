@@ -4,14 +4,11 @@
 //! is logged encrypted, and content is never revealed to logging infrastructure.
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
-use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc;
-use tokio::time::{sleep, Duration};
 
 /// Configuration for privacy-preserving audit system
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,22 +47,33 @@ pub enum PolicyCondition {
 /// Time window for policy conditions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimeWindow {
+    /// Start hour of the time window (0-23)
     pub start_hour: u8,
+    /// End hour of the time window (0-23)
     pub end_hour: u8,
-    pub days_of_week: Vec<u8>, // 0=Sunday, 1=Monday, etc.
+    /// Days of the week when the window is active (0=Sunday, 1=Monday, etc.)
+    pub days_of_week: Vec<u8>,
 }
 
 /// Policy definition for access control and auditing
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Policy {
+    /// Name of the policy
     pub name: String,
+    /// Roles required for this policy
     pub roles: Vec<String>,
+    /// Operations allowed by this policy
     pub operations: Vec<String>,
+    /// Resources accessible under this policy
     pub resources: Vec<String>,
+    /// Minimum number of approvals required
     pub threshold: usize,
+    /// Additional conditions for policy evaluation
     pub conditions: Vec<PolicyCondition>,
-    pub time_windows: Option<Vec<TimeWindow>>, // Added field for time-based conditions
-    pub approval_expression: Option<String>,   // e.g., "Role:DevOps AND Role:ComplianceManager"
+    /// Time windows when the policy is active
+    pub time_windows: Option<Vec<TimeWindow>>,
+    /// Expression for approval logic (e.g., "Role:DevOps AND Role:ComplianceManager")
+    pub approval_expression: Option<String>,
 }
 
 /// Encrypted audit entry for privacy-preserving logging
@@ -365,6 +373,7 @@ mod tests {
     use fips203::traits::{KeyGen, SerDes};
     use std::fs;
     use tempfile::TempDir;
+    use tokio::time::Duration;
 
     #[tokio::test]
     async fn test_privacy_audit_logger() {

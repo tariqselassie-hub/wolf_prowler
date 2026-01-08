@@ -131,7 +131,6 @@ pub enum NodeCommand {
 pub struct WolfNodeControl {
     /// Transmitter channel for sending commands to the node's main loop.
     pub command_tx: mpsc::Sender<NodeCommand>,
-    // pub telemetry_tx: Option<mpsc::Sender<TelemetryEvent>>,
 }
 
 impl WolfNodeControl {
@@ -139,11 +138,9 @@ impl WolfNodeControl {
     #[must_use]
     pub const fn new(
         command_tx: mpsc::Sender<NodeCommand>,
-        // telemetry_tx: Option<mpsc::Sender<TelemetryEvent>>,
     ) -> Self {
         Self {
             command_tx,
-            // telemetry_tx,
         }
     }
 

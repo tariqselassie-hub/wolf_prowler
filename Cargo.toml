@@ -19,8 +19,7 @@ name = "comprehensive_security_demo"
 path = "examples/comprehensive_security_demo.rs"
 required-features = ["enterprise_security"]
 
-
-
+[dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.35", features = ["full"] }
@@ -30,7 +29,7 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 dotenv = "0.15"
 futures = "0.3"
-sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json"] }
+sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json", "macros"] }
 ipnetwork = "0.20"
 
 
@@ -104,6 +103,7 @@ plotters = { version = "0.3", features = ["chrono", "bitmap_backend"] }
 image = "0.24"
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
 rustls = { version = "0.23", features = ["ring"] }
+
 
 
 
@@ -265,6 +265,7 @@ ml-full = ["wolfsec/ml-full"]
 
 
 
+
 [workspace]
 members = [
     "wolf_net",
@@ -286,8 +287,6 @@ members = [
 ]
 
 
-
-
 "windows-aarch64-gnullvm:0.48.5" = { version = "0.53.1" }
 "windows-aarch64-gnullvm:0.52.6" = { version = "0.53.1" }
 "windows-aarch64-msvc:0.48.5" = { version = "0.53.1" }
@@ -305,12 +304,6 @@ members = [
 
 
 
-
-
-
-windows_x86_64_gnu = { version = "0.53.1" }
-windows_x86_64_gnullvm = { version = "0.53.1" }
-windows_x86_64_msvc = { version = "0.53.1" }
 
 [workspace.lints.rust]
 unsafe_code = "deny"
@@ -351,3 +344,8 @@ codegen-units = 1
 panic = "abort"
 strip = true
 opt-level = 3
+
+# Patches for dependency fixes
+[patch.crates-io]
+# Fix for arrow-arith quarter() method ambiguity
+arrow-arith = { path = "patches/arrow-arith" }

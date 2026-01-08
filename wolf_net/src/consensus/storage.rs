@@ -28,6 +28,10 @@ pub struct SledStorage {
 
 impl SledStorage {
     /// Create new Sled storage
+    /// Create new Sled storage
+    ///
+    /// # Errors
+    /// Returns an error if the database cannot be opened or initialized.
     pub fn new(path: &str) -> Result<Self> {
         let db = sled::open(path)?;
 
@@ -61,6 +65,10 @@ impl SledStorage {
     }
 
     /// Set commit index
+    /// Set commit index
+    ///
+    /// # Errors
+    /// Returns an error if the database write fails.
     pub fn set_commit_index(&self, index: u64) -> Result<()> {
         self.db.insert(KEY_COMMIT_INDEX, &index.to_le_bytes())?;
         Ok(())
@@ -95,6 +103,13 @@ impl SledStorage {
     ///
     /// # Panics
     /// Panics if the `hard_state` write lock is poisoned.
+    /// Set hard state
+    ///
+    /// # Errors
+    /// Returns an error if encoding or database write fails.
+    ///
+    /// # Panics
+    /// Panics if the `hard_state` write lock is poisoned.
     pub fn set_hard_state(&self, hs: &HardState) -> Result<()> {
         let mut data = Vec::new();
         <HardState as prost::Message>::encode(hs, &mut data)?;
@@ -104,6 +119,13 @@ impl SledStorage {
         Ok(())
     }
 
+    /// Set conf state
+    ///
+    /// # Errors
+    /// Returns an error if encoding fails or database write fails.
+    ///
+    /// # Panics
+    /// Panics if the `conf_state` write lock is poisoned.
     /// Set conf state
     ///
     /// # Errors
@@ -128,6 +150,13 @@ impl SledStorage {
     /// # Panics
     /// Panics if the internal `RwLock`s are poisoned.
     #[allow(clippy::significant_drop_tightening)]
+    /// Apply a snapshot to the storage
+    ///
+    /// # Errors
+    /// Returns a `raft::Error::Store` if encoding or writing to the database fails.
+    ///
+    /// # Panics
+    /// Panics if the internal `RwLock`s are poisoned.
     pub fn apply_snapshot(&self, snapshot: &Snapshot) -> Result<(), raft::Error> {
         let mut hs = self.hard_state.write().unwrap();
         let mut cs = self.conf_state.write().unwrap();

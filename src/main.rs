@@ -25,8 +25,8 @@ use tracing::{error, info, warn};
 use wolf_den::CryptoEngine;
 use wolf_net::{SwarmConfig, SwarmManager};
 // use wolf_prowler::persistence::PersistenceManager;
-use wolf_prowler::AppSettings;
-use wolf_prowler::AppSettings;
+use wolf_db::storage::WolfDbStorage;
+use wolf_prowler::persistence::PersistenceManager;
 // use wolf_prowler::P2PNetwork; // Removed redundant P2PNetwork
 use uuid;
 use wolf_web::dashboard::create_router_with_state;
@@ -206,7 +206,7 @@ async fn main() -> Result<()> {
         lock_store_path
     );
 
-    match WolfStore::new(lock_store_path) {
+    match WolfStore::new(lock_store_path).await {
         Ok(store) => {
             let headless_config = HeadlessConfig::default();
             // Create and start the hunter
@@ -238,7 +238,16 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
     let app_state = AppState::with_system_components(
-        ThreatDetector::new(ThreatDetectionConfig::default()),
+        ThreatDetector::new(
+            ThreatDetectionConfig::default(),
+            Arc::new(
+                wolfsec::infrastructure::persistence::WolfDbThreatRepository::new(Arc::new(
+                    RwLock::new(
+                        WolfDbStorage::open("wolf_data/wolf_prowler.db").unwrap() as WolfDbStorage
+                    ),
+                )),
+            ),
+        ),
         BehavioralAnalyzer {
             baseline_window: 100,
             deviation_threshold: 2.0,

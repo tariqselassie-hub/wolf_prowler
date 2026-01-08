@@ -87,7 +87,7 @@ pub async fn validate_libraries_simple() -> Result<SimpleValidationResults> {
 async fn test_wolfsec_basic() -> bool {
     // Test basic wolfsec functionality by creating a config and the main struct
     let config = wolfsec::WolfSecurityConfig::default();
-    match wolfsec::WolfSecurity::new(config) {
+    match wolfsec::WolfSecurity::create(config).await {
         Ok(_) => true,
         Err(e) => {
             warn!("wolfsec basic test failed during initialization: {}", e);

@@ -1,3 +1,9 @@
+/// # Submitter Library
+///
+/// This library provides functionality for creating, signing, and managing partial commands
+/// in a multi-signature system, typically used for secure command execution requiring
+/// approval from multiple roles.
+
 use fips204::ml_dsa_44;
 use fips204::traits::{Signer, Verifier};
 pub use shared::{create_partial_command, is_partial_complete, package_payload, PartialCommand};

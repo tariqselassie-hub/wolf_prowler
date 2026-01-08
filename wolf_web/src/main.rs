@@ -6,8 +6,6 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex as AsyncMutex;
 #[cfg(feature = "server")]
 use tower_http::cors::CorsLayer;
-// use futures_util::{Stream, StreamExt}; // Streaming disabled for now
-// use std::pin::Pin;
 // Use imports from lock_prowler crate (now in crates/lock_prowler)
 #[cfg(feature = "server")]
 use axum::Router;

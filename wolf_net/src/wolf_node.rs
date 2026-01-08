@@ -5,7 +5,6 @@ use tokio::sync::mpsc;
 use tokio::sync::RwLock;
 
 use crate::api::{NodeCommand, WolfNodeControl};
-// use crate::behavior::WolfEvent; // Removed unused
 use crate::discovery::DiscoveryService;
 use crate::hub_orchestration::{HubConfig, HubOrchestration};
 use crate::swarm::{SwarmCommand, SwarmConfig};

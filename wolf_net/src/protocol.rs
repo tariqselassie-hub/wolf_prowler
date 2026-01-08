@@ -43,7 +43,6 @@ pub enum WolfResponse {
 
 #[derive(Debug, Clone)]
 /// Protocol identifier for the Wolf request/response communication.
-/// Protocol identifier for the Wolf request/response communication.
 pub struct WolfProtocol;
 
 impl AsRef<str> for WolfProtocol {

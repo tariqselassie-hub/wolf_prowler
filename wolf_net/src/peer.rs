@@ -138,7 +138,7 @@ impl ServiceId {
         }
     }
 
-    /// I will check the file content next.
+    /// Create a new service ID from components
     pub fn from_components(service_type: ServiceType, name: &str, instance: u32) -> Self {
         let id = format!("svc_{}_{}_{}", service_type.prefix(), name, instance);
         Self {

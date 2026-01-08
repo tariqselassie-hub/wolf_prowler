@@ -4,8 +4,8 @@
 //! instead of hardcoded values in settings.toml. It integrates with the existing
 //! AppSettings system while providing encrypted credential storage.
 
+use crate::secrets::{SecretsVault, VaultConfig};
 use anyhow::{Context, Result};
-use secrets::{SecretsVault, VaultConfig};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;

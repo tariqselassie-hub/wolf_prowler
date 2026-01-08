@@ -3,10 +3,10 @@
 //! Defines the replicated state shared across all nodes in the cluster.
 
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::IpAddr;
-use chrono::{DateTime, Utc};
 
 use crate::consensus::proposals::Proposal;
 use crate::PeerId;
@@ -16,16 +16,16 @@ use crate::PeerId;
 pub struct SharedState {
     /// Distributed threat database
     pub threats: HashMap<String, ThreatEntry>,
-    
+
     /// Synchronized firewall rules
     pub firewall_rules: Vec<FirewallRule>,
-    
+
     /// Peer trust scores
     pub trust_scores: HashMap<PeerId, TrustScore>,
-    
+
     /// Territory mapping (discovered devices)
     pub territory: HashMap<IpAddr, DeviceInfo>,
-    
+
     /// Last applied log index
     pub last_applied: u64,
 }
@@ -50,54 +50,101 @@ impl SharedState {
     pub fn apply(&mut self, proposal: Proposal) -> Result<()> {
         match proposal {
             Proposal::AddThreat { threat, proposer } => {
-                tracing::info!(
-                    "Node {} proposed threat: {} ({})",
-                    proposer,
-                    threat.id,
-                    threat.ip
-                );
-                
-                // Merge if exists, otherwise insert
-                self.threats
-                    .entry(threat.id.clone())
-                    .and_modify(|existing| {
-                        if !existing.detected_by.contains(&proposer) {
-                            existing.detected_by.push(proposer);
-                        }
-                        existing.last_seen = threat.last_seen;
-                    })
-                    .or_insert(threat);
+                self.apply_add_threat(threat, proposer);
             }
-            
+
             Proposal::AddFirewallRule { rule, proposer } => {
-                tracing::info!("Node {} proposed firewall rule", proposer);
-                self.firewall_rules.push(rule);
+                self.apply_add_firewall_rule(rule, proposer);
             }
-            
-            Proposal::UpdateTrustScore { peer_id, score, proposer } => {
-                tracing::debug!("Node {} updated trust score for {:?}", proposer, peer_id);
-                self.trust_scores.insert(
-                    peer_id,
-                    TrustScore {
-                        score,
-                        last_updated: Utc::now(),
-                        updated_by: proposer,
-                    },
-                );
+
+            Proposal::UpdateTrustScore {
+                peer_id,
+                score,
+                proposer,
+            } => {
+                self.apply_update_trust_score(peer_id, score, proposer);
             }
-            
+
             Proposal::AddDevice { device, proposer } => {
-                tracing::debug!("Node {} added device: {}", proposer, device.ip);
-                self.territory.insert(device.ip, device);
+                self.apply_add_device(device, proposer);
             }
-            
-            Proposal::RemoveThreat { threat_id, proposer } => {
-                tracing::info!("Node {} removed threat: {}", proposer, threat_id);
-                self.threats.remove(&threat_id);
+
+            Proposal::RemoveThreat {
+                threat_id,
+                proposer,
+            } => {
+                self.apply_remove_threat(threat_id, proposer);
             }
         }
-        
+
         Ok(())
+    }
+
+    /// Apply AddThreat proposal to the state machine
+    ///
+    /// # Errors
+    /// Returns an error if the proposal cannot be applied (currently always returns Ok).
+    fn apply_add_threat(&mut self, threat: ThreatEntry, proposer: u64) {
+        tracing::info!(
+            "Node {} proposed threat: {} ({})",
+            proposer,
+            threat.id,
+            threat.ip
+        );
+
+        // Merge if exists, otherwise insert
+        self.threats
+            .entry(threat.id.clone())
+            .and_modify(|existing| {
+                if !existing.detected_by.contains(&proposer) {
+                    existing.detected_by.push(proposer);
+                }
+                existing.last_seen = threat.last_seen;
+            })
+            .or_insert(threat);
+    }
+
+    /// Apply AddFirewallRule proposal to the state machine
+    ///
+    /// # Errors
+    /// Returns an error if the proposal cannot be applied (currently always returns Ok).
+    fn apply_add_firewall_rule(&mut self, rule: FirewallRule, proposer: u64) {
+        tracing::info!("Node {} proposed firewall rule", proposer);
+        self.firewall_rules.push(rule);
+    }
+
+    /// Apply UpdateTrustScore proposal to the state machine
+    ///
+    /// # Errors
+    /// Returns an error if the proposal cannot be applied (currently always returns Ok).
+    fn apply_update_trust_score(&mut self, peer_id: PeerId, score: f64, proposer: u64) {
+        tracing::debug!("Node {} updated trust score for {:?}", proposer, peer_id);
+        self.trust_scores.insert(
+            peer_id,
+            TrustScore {
+                score,
+                last_updated: Utc::now(),
+                updated_by: proposer,
+            },
+        );
+    }
+
+    /// Apply AddDevice proposal to the state machine
+    ///
+    /// # Errors
+    /// Returns an error if the proposal cannot be applied (currently always returns Ok).
+    fn apply_add_device(&mut self, device: DeviceInfo, proposer: u64) {
+        tracing::debug!("Node {} added device: {}", proposer, device.ip);
+        self.territory.insert(device.ip, device);
+    }
+
+    /// Apply RemoveThreat proposal to the state machine
+    ///
+    /// # Errors
+    /// Returns an error if the proposal cannot be applied (currently always returns Ok).
+    fn apply_remove_threat(&mut self, threat_id: String, proposer: u64) {
+        tracing::info!("Node {} removed threat: {}", proposer, threat_id);
+        self.threats.remove(&threat_id);
     }
 
     /// Get threat count
@@ -226,7 +273,7 @@ mod tests {
     #[test]
     fn test_apply_add_threat() {
         let mut state = SharedState::new();
-        
+
         let threat = ThreatEntry {
             id: "threat-1".to_string(),
             ip: "192.168.1.100".parse().unwrap(),
@@ -250,7 +297,7 @@ mod tests {
     #[test]
     fn test_apply_add_firewall_rule() {
         let mut state = SharedState::new();
-        
+
         let rule = FirewallRule {
             action: FirewallAction::Block,
             source_ip: Some("192.168.1.100".parse().unwrap()),

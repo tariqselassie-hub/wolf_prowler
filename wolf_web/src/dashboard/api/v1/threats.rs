@@ -109,26 +109,44 @@ async fn get_threats_by_peer(
     Json(peer_threats)
 }
 
+/// Response containing threat statistics
 #[derive(Serialize)]
 pub struct ThreatsResponse {
+    /// Total number of threats detected
     pub total_threats: usize,
+    /// Number of currently active threats
     pub active_threats: usize,
+    /// Number of critical severity threats
     pub critical_threats: usize,
+    /// Number of high severity threats
     pub high_threats: usize,
+    /// Number of medium severity threats
     pub medium_threats: usize,
+    /// Number of low severity threats
     pub low_threats: usize,
+    /// Average confidence score of threats
     pub average_confidence: f64,
+    /// Rate of threat detection per second
     pub detection_rate: f64,
 }
 
+/// Response containing detailed threat information
 #[derive(Serialize)]
 pub struct ThreatDetailResponse {
+    /// Unique identifier for the threat
     pub threat_id: String,
+    /// Type of threat detected
     pub threat_type: String,
+    /// Peer that originated the threat
     pub source_peer: String,
+    /// Severity level of the threat
     pub severity: String,
+    /// Confidence score of the detection
     pub confidence: f64,
+    /// Description of the threat
     pub description: String,
+    /// Timestamp when threat was detected
     pub detected_at: String,
+    /// Current status of the threat
     pub status: String,
 }

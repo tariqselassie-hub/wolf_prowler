@@ -45,36 +45,52 @@ pub struct DetailedMetricsResponse {
 /// System metrics
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SystemMetrics {
+    /// Memory usage percentage
     pub memory_usage: f64,
+    /// CPU usage percentage
     pub cpu_usage: f64,
+    /// Disk usage percentage
     pub disk_usage: f64,
+    /// System uptime in seconds
     pub uptime: u64,
 }
 
 /// Network metrics
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NetworkMetrics {
+    /// Number of active connections
     pub active_connections: usize,
+    /// Total messages processed
     pub total_messages: u64,
+    /// Inbound bandwidth in MB/s
     pub bandwidth_in: f64,
+    /// Outbound bandwidth in MB/s
     pub bandwidth_out: f64,
 }
 
 /// Security metrics
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SecurityMetrics {
+    /// Rate of threat detection per second
     pub threat_detection_rate: f64,
+    /// Rate of anomaly detection per second
     pub anomaly_detection_rate: f64,
+    /// Number of reputation updates
     pub reputation_updates: u64,
+    /// Total security events
     pub security_events: u64,
 }
 
 /// Performance metrics
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PerformanceMetrics {
+    /// Average response time in milliseconds
     pub avg_response_time: f64,
+    /// Maximum response time in milliseconds
     pub max_response_time: f64,
+    /// Request rate per second
     pub request_rate: f64,
+    /// Error rate as percentage
     pub error_rate: f64,
 }
 

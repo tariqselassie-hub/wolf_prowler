@@ -7,9 +7,7 @@ use crate::encrypted_handler::EncryptedMessageHandler;
 use crate::encryption::MessageEncryption;
 use crate::metrics_simple;
 use crate::peer::PeerId;
-use crate::WolfBehavior; // WolfConfig removed
-                         // use crate::BehaviorConfig; // Not found, commenting out
-                         // block_on removed
+use crate::WolfBehavior;
 use async_trait::async_trait;
 use futures::StreamExt;
 use libp2p::{
@@ -30,6 +28,7 @@ use wolf_den::SecurityLevel;
 use x25519_dalek::PublicKey as X25519PublicKey;
 
 /// Connection state for a peer
+
 #[derive(Debug, Clone)]
 pub struct PeerConnection {
     /// Remote Peer ID
@@ -355,6 +354,8 @@ impl SwarmManager {
     }
 
     /// Initializes a new SwarmManager
+    #[allow(clippy::cognitive_complexity)]
+    #[allow(clippy::too_many_lines)]
     pub fn new(config: SwarmConfig) -> anyhow::Result<Self> {
         info!("Initializing SwarmManager with config: {:?}", config);
         config.validate()?;
@@ -383,6 +384,7 @@ impl SwarmManager {
             // Note: In production we'd use a CSPRNG. For simulation, this is sufficient to get consistent PeerIDs.
             let mut bytes = [0u8; 32];
             let seed_bytes = seed_u64.to_le_bytes();
+            #[allow(clippy::cast_possible_truncation)]
             for i in 0..32 {
                 bytes[i] = seed_bytes[i % 8].wrapping_add(i as u8);
             }
@@ -490,9 +492,9 @@ impl SwarmManager {
         );
         let encrypted_handler = Arc::new(EncryptedMessageHandler::new(encryption));
 
-        let consensus_manager = Arc::new(tokio::sync::RwLock::new(None::<
-            crate::consensus::manager::ConsensusManager,
-        >));
+        let consensus_manager = Arc::new(tokio::sync::RwLock::new(
+            None::<crate::consensus::manager::ConsensusManager>,
+        ));
         let consensus_manager_init = consensus_manager.clone();
         let consensus_swarm_tx = command_sender.clone();
         let consensus_keypair_path = config.keypair_path.clone();
@@ -707,7 +709,7 @@ impl SwarmManager {
                                                     info.set_status(crate::peer::EntityStatus::Offline);
                                                     // Update uptime
                                                     let uptime = active_connections_clone.lock().await.get(&peer_id)
-                                                        .map(|c| c.connected_since.elapsed().as_millis() as u64)
+                                                        .map(|c| u64::try_from(c.connected_since.elapsed().as_millis()).unwrap_or(u64::MAX))
                                                         .unwrap_or(0);
                                                     info.metrics.uptime_ms += uptime;
                                                 }
@@ -759,7 +761,7 @@ impl SwarmManager {
                                                             let mut registry = peer_registry_clone.lock().await;
                                                             let target = crate::peer::PeerId::from_libp2p(event.peer);
                                                              if let Some(info) = registry.get_mut(&target) {
-                                                                 info.metrics.latency_ms = rtt.as_millis() as u64;
+                                                                 info.metrics.latency_ms = u64::try_from(rtt.as_millis()).unwrap_or(u64::MAX);
                                                                  info.metrics.update_health();
                                                              }
                                                         }
@@ -935,10 +937,6 @@ impl SwarmManager {
                                                        _ => {}
                                                    }
                                                }
-                                               // TODO: Restore Kademlia event handling when re-enabled
-                                               // WolfBehaviorEvent::Kademlia(event) => { ... }
-                                               // TODO: Restore mDNS event handling when re-enabled
-                                               // WolfBehaviorEvent::Mdns(event) => { ... }
                                                WolfBehaviorEvent::ReqResp(event) => {
                                                     match event {
                                                        libp2p::request_response::Event::Message { peer, message } => {
@@ -1401,7 +1399,8 @@ impl SwarmManager {
             // For now, we'll create a simple processing loop
             tokio::spawn(async move {
                 #[allow(clippy::expect_used)]
-                let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
+                let ip_regex =
+                    regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
 
                 while let Some(event) = sec_rx.recv().await {
                     // Check severity threshold
@@ -1427,15 +1426,13 @@ impl SwarmManager {
 
                     // Extract target IP
                     let target_ip = if let Some(peer_id) = &event.peer_id {
-                        ip_regex.find(peer_id).map_or_else(
-                            || peer_id.clone(),
-                            |mat| mat.as_str().to_string(),
-                        )
+                        ip_regex
+                            .find(peer_id)
+                            .map_or_else(|| peer_id.clone(), |mat| mat.as_str().to_string())
                     } else {
-                        ip_regex.find(&event.description).map_or_else(
-                            || "unknown".to_string(),
-                            |mat| mat.as_str().to_string(),
-                        )
+                        ip_regex
+                            .find(&event.description)
+                            .map_or_else(|| "unknown".to_string(), |mat| mat.as_str().to_string())
                     };
 
                     // Emit WarningHowl

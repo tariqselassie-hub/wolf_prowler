@@ -8,15 +8,22 @@ use std::net::TcpListener;
 use std::path::Path;
 use std::time::Duration;
 
-/// Configures which pulse method to use
+/// Configures which pulse method to use for physical presence verification
 pub enum PulseMethod {
-    Usb(String), // Path to file on USB
-    Web(String), // Path to log file
-    Tcp(u16),    // Port to listen on
-    Crypto,      // Cryptographic Challenge-Response
+    /// USB-based pulse: waits for a file to appear on a USB device
+    Usb(String),
+    /// Web-based pulse: scans web server logs for a specific token
+    Web(String),
+    /// TCP-based pulse: waits for a connection on a specified port
+    Tcp(u16),
+    /// Cryptographic challenge-response pulse using digital signatures
+    Crypto,
 }
 
 impl PulseMethod {
+    /// Creates a PulseMethod from environment variables TERSEC_PULSE_MODE and TERSEC_PULSE_ARG
+    ///
+    /// Supported modes: USB, WEB, TCP, CRYPTO. Defaults to WEB if not specified.
     pub fn from_env() -> Self {
         let mode = std::env::var("TERSEC_PULSE_MODE").unwrap_or_else(|_| "WEB".to_string());
         let arg = std::env::var("TERSEC_PULSE_ARG").unwrap_or_else(|_| "".to_string());
@@ -47,6 +54,10 @@ impl PulseMethod {
         }
     }
 
+    /// Waits for a pulse signal based on the configured method
+    ///
+    /// # Returns
+    /// PulseMetadata if pulse is detected within timeout, None otherwise
     pub fn wait_for_pulse(&self) -> Option<shared::PulseMetadata> {
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

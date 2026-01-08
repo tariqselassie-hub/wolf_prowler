@@ -1,0 +1,33 @@
+[package]
+name = "arrow-arith"
+version = "50.0.0"
+edition = "2021"
+authors = ["Apache Arrow Developers"]
+license = "Apache-2.0"
+description = "Arithmetic kernels for Arrow arrays"
+homepage = "https://arrow.apache.org/"
+repository = "https://github.com/apache/arrow-rs"
+documentation = "https://docs.rs/arrow-arith"
+readme = "README.md"
+keywords = ["arrow", "dataframe", "data-science", "analytics", "csv", "parquet", "ipc"]
+categories = ["science"]
+rust-version = "1.75"
+
+[dependencies]
+arrow-array = "50.0"
+arrow-buffer = "50.0"
+arrow-data = "50.0"
+arrow-schema = "50.0"
+chrono = "0.4"
+half = { version = "2.1", default-features = false }
+num = { version = "0.4", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+arrow = "50.0"
+criterion = "0.5"
+rand = "0.8"
+rayon = "1.10"
+
+[[bench]]
+name = "arith"
+harness = false

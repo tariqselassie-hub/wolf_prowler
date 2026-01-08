@@ -54,7 +54,7 @@ async fn get_crypto_stats(State(state): State<Arc<AppState>>) -> Json<CryptoResp
 
     if let Some(wolf_security) = &state.wolf_security {
         let security = wolf_security.read().await;
-        let status = security.crypto.get_status().await;
+        let _status = security.crypto.get_status().await;
         // WolfSecurity doesn't currently track operation counts, so we use defaults
         response.total_operations = 0;
         response.encryption_count = 0;
@@ -83,7 +83,7 @@ async fn get_crypto_operations(State(state): State<Arc<AppState>>) -> Json<serde
     // Try to get real crypto operations data from WolfSecurity
     if let Some(wolf_security) = &state.wolf_security {
         let security = wolf_security.read().await;
-        let status = security.crypto.get_status().await;
+        let _status = security.crypto.get_status().await;
         // Stub operations data using defaults since metrics not available
         let operations = vec![
             serde_json::json!({

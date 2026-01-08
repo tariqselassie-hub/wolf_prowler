@@ -177,7 +177,6 @@ impl DiscoveryMethod for ActiveScanDiscovery {
 
 impl DiscoveryService {
     /// Create new discovery service
-    /// Creates a new `DiscoveryService` from the given configuration.
     pub fn new(config: DiscoveryConfig) -> anyhow::Result<(Self, mpsc::Receiver<PeerInfo>)> {
         let (tx, rx) = mpsc::channel(100);
         let mut methods: Vec<Arc<dyn DiscoveryMethod>> = Vec::new();

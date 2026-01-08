@@ -57,35 +57,56 @@ impl WebSocketState {
 pub enum DashboardMessage {
     /// System metrics update
     #[serde(rename = "system_metrics")]
-    SystemMetrics { cpu: f64, memory: f64, uptime: u64 },
+    SystemMetrics {
+        /// CPU usage percentage
+        cpu: f64,
+        /// Memory usage percentage
+        memory: f64,
+        /// System uptime in seconds
+        uptime: u64
+    },
 
     /// Network status update
     #[serde(rename = "network_status")]
     NetworkStatus {
+        /// Number of connected peers
         peers: usize,
+        /// Number of active connections
         connections: usize,
+        /// Network health score (0-100)
         health: f64,
     },
 
     /// Security alert
     #[serde(rename = "security_alert")]
     SecurityAlert {
+        /// Alert severity level
         severity: String,
+        /// Alert message content
         message: String,
+        /// Timestamp of the alert
         timestamp: String,
     },
 
     /// Threat detection update
     #[serde(rename = "threat_update")]
     ThreatUpdate {
+        /// Type of threat detected
         threat_type: String,
+        /// Number of threats of this type
         count: usize,
+        /// Timestamp of the update
         timestamp: String,
     },
 
     /// General notification
     #[serde(rename = "notification")]
-    Notification { title: String, message: String },
+    Notification {
+        /// Notification title
+        title: String,
+        /// Notification message
+        message: String
+    },
 }
 
 /// WebSocket handler for dashboard updates
