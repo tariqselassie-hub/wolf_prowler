@@ -6,16 +6,51 @@
 //! - Contextual authentication (context-aware access)
 //! - Continuous monitoring (constant patrol)
 
+use thiserror::Error;
+
 pub mod contextual_auth;
 pub mod microsegmentation;
 pub mod policy_engine;
 pub mod trust_engine;
 
+/// Custom Error Type for Zero Trust operations
+/// Broadly classified errors for the Zero Trust ecosystem
+#[derive(Error, Debug)]
+pub enum ZeroTrustError {
+    /// Failure during the initial bootstrap of zero trust sub-modules
+    #[error("Initialization Error: {0}")]
+    InitializationError(String),
+    /// Invalid or incompatible zero trust configuration provided
+    #[error("Configuration Error: {0}")]
+    ConfigurationError(String),
+    /// Failure in trust calculation or evaluation
+    #[error("Trust Evaluation Error: {0}")]
+    TrustEvaluationError(String),
+    /// Failure in policy matching or enforcement
+    #[error("Policy Engine Error: {0}")]
+    PolicyEngineError(String),
+    /// Failure in contextual authentication
+    #[error("Authentication Error: {0}")]
+    AuthenticationError(String),
+    /// Failure in microsegmentation enforcement
+    #[error("Segmentation Error: {0}")]
+    SegmentationError(String),
+    /// Failure in security action execution
+    #[error("Security Action Error: {0}")]
+    SecurityActionError(String),
+    /// Underlying system I/O failure
+    #[error("I/O Error: {0}")]
+    IOError(String),
+    /// Unclassified or internal unexpected failure
+    #[error("Unknown Error: {0}")]
+    Unknown(String),
+}
+
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use libp2p::PeerId;
 use serde::{Deserialize, Serialize};
- // Use libp2p's PeerId directly
+// Use libp2p's PeerId directly
 
 // Import wolf-themed configurations
 // Local definitions for configuration to ensure self-containment
@@ -118,20 +153,8 @@ pub type ComplianceStatus = PackRank;
 /// Wolf-themed security metrics
 pub type SecurityMetricsSnapshot = WolfEcosystemMetrics;
 
-/// Wolf-themed segmentation result type alias
-pub type SegmentationResultType = SegmentationResult;
-
 /// Wolf-themed configuration violation type alias
 pub type ConfigurationViolation = HuntTrigger;
-
-/// Wolf-themed policy evaluation result type alias
-pub type PolicyEvaluationResultType = PolicyEvaluationResult;
-
-/// Wolf-themed contextual requirement type alias
-pub type ContextualRequirementType = ContextualRequirement;
-
-/// Wolf-themed adaptive control type alias
-pub type AdaptiveControlType = AdaptiveControl;
 
 /// Granular trust tiers based on continuous verification and behavior analysis
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -565,6 +588,51 @@ pub struct TrustEvaluationResult {
     pub expires_at: DateTime<Utc>,
 }
 
+/// Result of a contextual authentication attempt
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuthResult {
+    /// Whether the authentication was successful
+    pub success: bool,
+    /// Statistical certainty of the authentication (0-1.0)
+    pub confidence: f64,
+    /// Calculated probability of identity spoofing (0-1.0)
+    pub risk_score: f64,
+    /// List of recommended security actions
+    pub recommended_actions: Vec<SecurityAction>,
+    /// Authentication methods that were used
+    pub auth_methods_used: Vec<String>,
+}
+
+/// Result of a microsegmentation access evaluation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SegmentationResult {
+    /// Whether access was granted
+    pub access_granted: bool,
+    /// Statistical certainty of the evaluation (0-1.0)
+    pub confidence: f64,
+    /// Calculated probability of security breach (0-1.0)
+    pub risk_score: f64,
+    /// List of recommended security actions
+    pub recommended_actions: Vec<SecurityAction>,
+    /// Segments that are accessible
+    pub accessible_segments: Vec<String>,
+}
+
+/// Result of a policy evaluation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PolicyEvaluationResult {
+    /// Minimum trust level required by the evaluated policies
+    pub required_trust_level: TrustLevel,
+    /// Statistical certainty of the evaluation (0-1.0)
+    pub confidence: f64,
+    /// Calculated probability of policy violation (0-1.0)
+    pub risk_score: f64,
+    /// List of recommended security actions
+    pub recommended_actions: Vec<SecurityAction>,
+    /// Policies that were applied during evaluation
+    pub applied_policies: Vec<String>,
+}
+
 /// A single contextual signal contributing to a trust decision.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContextualFactor {
@@ -681,49 +749,4 @@ impl ZeroTrustManager {
     pub fn get_trust_analytics(&self) -> TrustAnalytics {
         self.trust_engine.get_analytics()
     }
-}
-
-/// Detailed outcome of a policy engine evaluation
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PolicyEvaluationResult {
-    /// The calculated trust level required for the requested access
-    pub required_trust_level: TrustLevel,
-    /// Confidence in the policy match (0-1.0)
-    pub confidence: f64,
-    /// Calculated risk of the policy compliance (0-1.0)
-    pub risk_score: f64,
-    /// Actions recommended by the matching policies
-    pub recommended_actions: Vec<SecurityAction>,
-    /// List of specific policies that were evaluated and applied
-    pub applied_policies: Vec<String>,
-}
-
-/// Outcome of a contextual authentication challenge
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuthResult {
-    /// True if identity and context were successfully verified
-    pub success: bool,
-    /// Verification certainty (0-1.0)
-    pub confidence: f64,
-    /// Calculated risk of the authentication event (0-1.0)
-    pub risk_score: f64,
-    /// Actions recommended by the authenticator
-    pub recommended_actions: Vec<SecurityAction>,
-    /// List of authentication factors considered during the event
-    pub auth_methods_used: Vec<String>,
-}
-
-/// Outcome of a microsegmentation access check
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SegmentationResult {
-    /// True if network/segment access is authorized
-    pub access_granted: bool,
-    /// Confidence in the segment isolation (0-1.0)
-    pub confidence: f64,
-    /// Calculated risk of crossing the segment boundary (0-1.0)
-    pub risk_score: f64,
-    /// Actions recommended to maintain segment integrity
-    pub recommended_actions: Vec<SecurityAction>,
-    /// List of infrastructure segments accessible under current trust
-    pub accessible_segments: Vec<String>,
 }

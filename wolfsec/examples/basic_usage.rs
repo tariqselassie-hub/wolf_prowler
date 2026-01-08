@@ -15,11 +15,13 @@ async fn main() -> Result<()> {
 
     info!("🛡️ Wolf Security Basic Usage Example");
 
-    // Create Wolf Security instance with default configuration
     let config = WolfSecurityConfig::default();
-    let mut wolf_security = WolfSecurity::new(config)?;
 
-    // Initialize all security components
+    // Initialize WolfSecurity
+    // Note: create() is async
+    let mut wolf_security = WolfSecurity::create(config).await?;
+
+    // Initialize components
     wolf_security.initialize().await?;
 
     // Display status

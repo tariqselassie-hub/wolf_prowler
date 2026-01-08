@@ -123,51 +123,49 @@ async fn main() -> Result<()> {
     tokio::spawn(async move {
         info!("🌉 Security Event Bridge active");
         while let Some(net_event) = security_event_receiver.recv().await {
-            // Map wolf_net event to wolfsec event
-            // Note: Types might differ slightly, manual mapping required
-            let severity = match net_event.severity {
-                wolf_net::event::SecuritySeverity::Low => wolfsec::SecuritySeverity::Low,
-                wolf_net::event::SecuritySeverity::Medium => wolfsec::SecuritySeverity::Medium,
-                wolf_net::event::SecuritySeverity::High => wolfsec::SecuritySeverity::High,
-                wolf_net::event::SecuritySeverity::Critical => wolfsec::SecuritySeverity::Critical,
-            };
+            let wolf_security_bridge = wolf_security_bridge.clone();
+            tokio::spawn(async move {
+                // Map wolf_net event to wolfsec event
+                // Note: Types might differ slightly, manual mapping required
+                let severity = match net_event.severity {
+                    wolf_net::event::SecuritySeverity::Low => wolfsec::SecuritySeverity::Low,
+                    wolf_net::event::SecuritySeverity::Medium => wolfsec::SecuritySeverity::Medium,
+                    wolf_net::event::SecuritySeverity::High => wolfsec::SecuritySeverity::High,
+                    wolf_net::event::SecuritySeverity::Critical => wolfsec::SecuritySeverity::Critical,
+                };
 
-            let event_type = match net_event.event_type {
-                wolf_net::event::SecurityEventType::Authentication => {
-                    wolfsec::SecurityEventType::AuthenticationFailure
-                } // Approximation
-                wolf_net::event::SecurityEventType::Authorization => {
-                    wolfsec::SecurityEventType::AuthorizationFailure
+                let event_type = match net_event.event_type {
+                    wolf_net::event::SecurityEventType::Authentication => {
+                        wolfsec::SecurityEventType::AuthenticationFailure
+                    } // Approximation
+                    wolf_net::event::SecurityEventType::Authorization => {
+                        wolfsec::SecurityEventType::AuthorizationFailure
+                    }
+                    wolf_net::event::SecurityEventType::Network => {
+                        wolfsec::SecurityEventType::NetworkIntrusion
+                    } // Approximation
+                    wolf_net::event::SecurityEventType::PolicyViolation => {
+                        wolfsec::SecurityEventType::PolicyViolation
+                    }
+                    wolf_net::event::SecurityEventType::Other(s) => {
+                        wolfsec::SecurityEventType::Other(s)
+                    }
+                    _ => wolfsec::SecurityEventType::SuspiciousActivity,
+                };
+
+                let mut sec_event =
+                    wolfsec::SecurityEvent::new(event_type, severity, net_event.description.clone());
+
+                if let Some(peer_id) = net_event.peer_id {
+                    sec_event = sec_event.with_peer(peer_id);
                 }
-                wolf_net::event::SecurityEventType::Network => {
-                    wolfsec::SecurityEventType::NetworkIntrusion
-                } // Approximation
-                wolf_net::event::SecurityEventType::PolicyViolation => {
-                    wolfsec::SecurityEventType::PolicyViolation
+
+                // Feed into Security Engine
+                let mut engine = wolf_security_bridge.write().await;
+                if let Err(e) = engine.process_security_event(sec_event).await {
+                    error!("Security Engine failed to process event: {}", e);
                 }
-                wolf_net::event::SecurityEventType::Other(s) => {
-                    wolfsec::SecurityEventType::Other(s)
-                }
-                _ => wolfsec::SecurityEventType::SuspiciousActivity,
-            };
-
-            let mut sec_event =
-                wolfsec::SecurityEvent::new(event_type, severity, net_event.description.clone());
-
-            if let Some(peer_id) = net_event.peer_id {
-                sec_event = sec_event.with_peer(peer_id);
-            }
-
-            // Persistence is now handled internally by WolfSecurity via SecurityMonitor
-            // if let Some(persist) = &persistence_bridge {
-            //    ... (removed redundant code)
-            // }
-
-            // Feed into Security Engine
-            let mut engine = wolf_security_bridge.write().await;
-            if let Err(e) = engine.process_security_event(sec_event).await {
-                error!("Security Engine failed to process event: {}", e);
-            }
+            });
         }
     });
 
@@ -187,7 +185,7 @@ async fn main() -> Result<()> {
         .map(Arc::new);
 
     if persistence.is_none() {
-        warn!("⚠️ Persistence Manager unavailable - running in-memory only");
+        error!("🚨 Persistence Manager unavailable - running in-memory only! Data will be lost on restart.");
     } else {
         info!("💾 Persistence Manager active");
     }
@@ -279,22 +277,31 @@ async fn main() -> Result<()> {
             }),
         );
 
-    // Generate Certificates for HTTPS
-    info!("🔐 Generating self-signed certificates for HTTPS...");
-    let (cert_pem, key_pem) = wolf_den::certs::generate_self_signed_cert(vec![
-        "localhost".to_string(),
-        "127.0.0.1".to_string(),
-    ])
-    .expect("Failed to generate self-signed certificates");
-
     let port = settings.dashboard.port;
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
-    let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem(
-        cert_pem.as_bytes().to_vec(),
-        key_pem.as_bytes().to_vec(),
-    )
-    .await?;
+    // TLS Configuration: Check env vars or generate
+    let tls_config = if let (Ok(cert_path), Ok(key_path)) = (std::env::var("CERT_FILE"), std::env::var("KEY_FILE")) {
+        info!("🔐 Loading TLS certificates from environment: {}, {}", cert_path, key_path);
+        axum_server::tls_rustls::RustlsConfig::from_pem_file(
+            PathBuf::from(cert_path),
+            PathBuf::from(key_path),
+        )
+        .await?
+    } else {
+        info!("🔐 No certificates provided. Generating self-signed certificates for HTTPS...");
+        let (cert_pem, key_pem) = wolf_den::certs::generate_self_signed_cert(vec![
+            "localhost".to_string(),
+            "127.0.0.1".to_string(),
+        ])
+        .expect("Failed to generate self-signed certificates");
+        
+        axum_server::tls_rustls::RustlsConfig::from_pem(
+            cert_pem.as_bytes().to_vec(),
+            key_pem.as_bytes().to_vec(),
+        )
+        .await?
+    };
 
     info!("🚀 Wolf Prowler Dashboard running at https://{}", addr);
     info!("📊 Dashboard available at https://{}/dashboard", addr);

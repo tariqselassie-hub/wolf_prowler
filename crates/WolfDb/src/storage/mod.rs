@@ -2,19 +2,19 @@
 pub mod engine;
 /// Data models for storage
 pub mod model;
-/// Post-Quantum Cryptography worker pool
-pub mod pqc_pool;
 /// Storage partitioning logic
 pub mod partition;
+/// Post-Quantum Cryptography worker pool
+pub mod pqc_pool;
 
 use crate::crypto::{CryptoManager, EncryptedData};
+use crate::error::{Result, WolfDbError};
 use crate::vector::VectorIndex;
-use crate::error::{WolfDbError, Result};
-use base64::{Engine as _, engine::general_purpose};
+use base64::{engine::general_purpose, Engine as _};
 use rayon::prelude::*;
-use zeroize::Zeroizing;
 use std::collections::HashMap;
 use std::sync::Arc;
+use zeroize::Zeroizing;
 
 pub use partition::Partition;
 use serde::{Deserialize, Serialize};
@@ -71,18 +71,18 @@ impl WolfDbStorage {
         let mut engines = HashMap::new();
         let mut vector_indices = HashMap::new();
         let indexing_policies = Arc::new(std::sync::RwLock::new(HashMap::new()));
-        
+
         // Create directory structure for partitions
         std::fs::create_dir_all(path)?;
         std::fs::create_dir_all(format!("{path}/relational"))?;
         std::fs::create_dir_all(format!("{path}/vector"))?;
         std::fs::create_dir_all(format!("{path}/indices"))?;
-        
+
         // Open storage engine for each partition
         for partition in [Partition::Relational, Partition::Vector, Partition::Hybrid] {
             let db_path = partition.get_db_path(path);
             let engine = engine::StorageEngine::open(&db_path).map_err(WolfDbError::from)?;
-            
+
             // Load indexing policies from _meta table if in Relational partition (central place)
             if partition == Partition::Relational {
                 if let Ok(meta_tree) = engine.get_table("_meta") {
@@ -91,15 +91,18 @@ impl WolfDbStorage {
                         if let Some(table_name) = key_str.strip_prefix("policy:") {
                             if let Ok(policy) = serde_json::from_slice::<IndexingPolicy>(&v) {
                                 #[allow(clippy::expect_used)]
-                                indexing_policies.write().expect("Lock poisoned").insert(table_name.to_string(), policy);
+                                indexing_policies
+                                    .write()
+                                    .expect("Lock poisoned")
+                                    .insert(table_name.to_string(), policy);
                             }
                         }
                     }
                 }
             }
-            
+
             engines.insert(partition, engine);
-            
+
             // Initialize vector index for partitions that support vectors
             if partition.supports_vectors() {
                 let vector_path = partition.get_index_path(path, "hnsw_index");
@@ -151,12 +154,19 @@ impl WolfDbStorage {
     ///
     /// Returns an error if key generation or keystore saving fails.
     pub fn initialize_keystore(&mut self, password: &str, hsm_pin: Option<&str>) -> Result<()> {
-        let (kem_secret, kem_public) = crate::crypto::kem::generate_keypair().map_err(|e| WolfDbError::Crypto(e.to_string()))?;
-        let (dsa_secret, dsa_public) = crate::crypto::signature::generate_keypair().map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+        let (kem_secret, kem_public) = crate::crypto::kem::generate_keypair()
+            .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+        let (dsa_secret, dsa_public) = crate::crypto::signature::generate_keypair()
+            .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
 
         let mut keystore = crate::crypto::keystore::Keystore::create_encrypted(
-            &kem_secret, &kem_public, &dsa_secret, &dsa_public, password,
-        ).map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+            &kem_secret,
+            &kem_public,
+            &dsa_secret,
+            &dsa_public,
+            password,
+        )
+        .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
 
         if let Some(pin) = hsm_pin {
             keystore.hsm_enabled = true;
@@ -164,10 +174,13 @@ impl WolfDbStorage {
             keystore.hsm_wrapped_key = Some(general_purpose::STANDARD.encode(wrapped));
         }
 
-        crate::crypto::keystore::Keystore::save(
-            &keystore,
-            &format!("{}/keystore.json", self.path),
-        ).map_err(|e| WolfDbError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+        crate::crypto::keystore::Keystore::save(&keystore, &format!("{}/keystore.json", self.path))
+            .map_err(|e| {
+                WolfDbError::Io(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    e.to_string(),
+                ))
+            })?;
 
         self.kem_secret_key = Some(Zeroizing::new(kem_secret));
         self.kem_public_key = Some(kem_public);
@@ -187,8 +200,14 @@ impl WolfDbStorage {
     ///
     /// Panics if the internal keys are missing during migration or initialization.
     pub fn unlock(&mut self, password: &str, hsm_pin: Option<&str>) -> Result<()> {
-        let keystore = crate::crypto::keystore::Keystore::load(&format!("{}/keystore.json", self.path))
-            .map_err(|e| WolfDbError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+        let keystore =
+            crate::crypto::keystore::Keystore::load(&format!("{}/keystore.json", self.path))
+                .map_err(|e| {
+                    WolfDbError::Io(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        e.to_string(),
+                    ))
+                })?;
 
         if keystore.hsm_enabled {
             let pin = hsm_pin.ok_or_else(|| WolfDbError::Crypto("HSM PIN required".to_string()))?;
@@ -196,55 +215,94 @@ impl WolfDbStorage {
                 .hsm_wrapped_key
                 .as_ref()
                 .ok_or_else(|| WolfDbError::Crypto("No wrapped key".to_string()))?;
-            let wrapped = general_purpose::STANDARD.decode(wrapped_b64).map_err(|e| WolfDbError::Crypto(e.to_string()))?;
-            crate::crypto::hsm::MockHsm::unwrap(pin, &wrapped).map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+            let wrapped = general_purpose::STANDARD
+                .decode(wrapped_b64)
+                .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+            crate::crypto::hsm::MockHsm::unwrap(pin, &wrapped)
+                .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
         }
 
-        let (kem_sk_unlocked, maybe_dsa_sk_unlocked) = crate::crypto::keystore::Keystore::unlock_keys(&keystore, password)
-             .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
-             
+        let (kem_sk_unlocked, maybe_dsa_sk_unlocked) =
+            crate::crypto::keystore::Keystore::unlock_keys(&keystore, password)
+                .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+
         self.kem_secret_key = Some(kem_sk_unlocked);
         self.kem_public_key = Some(keystore.pk.clone());
 
         if let Some(dsa_sk_unlocked) = maybe_dsa_sk_unlocked {
             self.dsa_secret_key = Some(dsa_sk_unlocked.clone());
-            let public_key = keystore.dsa_pk.as_ref().ok_or_else(|| WolfDbError::Crypto("DSA PK missing but SK present".to_string()))?;
+            let public_key = keystore
+                .dsa_pk
+                .as_ref()
+                .ok_or_else(|| WolfDbError::Crypto("DSA PK missing but SK present".to_string()))?;
             self.dsa_public_key = Some(public_key.clone());
-            
-            let keypair = crate::crypto::signature::reconstruct_keypair(&dsa_sk_unlocked, public_key).map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+
+            let keypair = crate::crypto::signature::reconstruct_keypair(
+                dsa_sk_unlocked.as_slice(),
+                public_key,
+            )
+            .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
             self.dsa_keypair = Some(Arc::new(keypair));
         } else {
             tracing::info!("Migrating keystore: Generating missing DSA keys...");
-            let (migrated_dsa_secret, migrated_dsa_public) = crate::crypto::signature::generate_keypair().map_err(|e| WolfDbError::Crypto(e.to_string()))?;
-            
+            let (migrated_dsa_secret, migrated_dsa_public) =
+                crate::crypto::signature::generate_keypair()
+                    .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+
             #[allow(clippy::expect_used)]
-            let kem_secret_bytes = self.kem_secret_key.as_ref().expect("KEM SK missing during migration").as_slice();
+            let kem_secret_bytes = self
+                .kem_secret_key
+                .as_ref()
+                .expect("KEM SK missing during migration")
+                .as_slice();
             #[allow(clippy::expect_used)]
-            let kem_public_bytes = self.kem_public_key.as_ref().expect("KEM PK missing during migration");
+            let kem_public_bytes = self
+                .kem_public_key
+                .as_ref()
+                .expect("KEM PK missing during migration");
 
             let mut new_keystore = crate::crypto::keystore::Keystore::create_encrypted(
                 kem_secret_bytes,
                 kem_public_bytes,
                 &migrated_dsa_secret,
                 &migrated_dsa_public,
-                password
-            ).map_err(|e| WolfDbError::Crypto(e.to_string()))?;
-            
+                password,
+            )
+            .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+
             new_keystore.hsm_enabled = keystore.hsm_enabled;
-            new_keystore.hsm_wrapped_key.clone_from(&keystore.hsm_wrapped_key);
+            new_keystore
+                .hsm_wrapped_key
+                .clone_from(&keystore.hsm_wrapped_key);
 
             crate::crypto::keystore::Keystore::save(
                 &new_keystore,
                 &format!("{}/keystore.json", self.path),
-            ).map_err(|e| WolfDbError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+            )
+            .map_err(|e| {
+                WolfDbError::Io(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    e.to_string(),
+                ))
+            })?;
 
             self.dsa_secret_key = Some(Zeroizing::new(migrated_dsa_secret));
             self.dsa_public_key = Some(migrated_dsa_public);
             #[allow(clippy::expect_used)]
-            let dsa_sk_zeroized = self.dsa_secret_key.as_ref().expect("DSA SK missing after migration");
+            let dsa_sk_zeroized = self
+                .dsa_secret_key
+                .as_ref()
+                .expect("DSA SK missing after migration");
             #[allow(clippy::expect_used)]
-            let dsa_pk_ref = self.dsa_public_key.as_ref().expect("DSA PK missing after migration");
-            let keypair = crate::crypto::signature::reconstruct_keypair(dsa_sk_zeroized, dsa_pk_ref).map_err(|e: anyhow::Error| WolfDbError::Crypto(e.to_string()))?;
+            let dsa_pk_ref = self
+                .dsa_public_key
+                .as_ref()
+                .expect("DSA PK missing after migration");
+            let keypair = crate::crypto::signature::reconstruct_keypair(
+                dsa_sk_zeroized.as_slice(),
+                dsa_pk_ref,
+            )
+            .map_err(|e: anyhow::Error| WolfDbError::Crypto(e.to_string()))?;
             self.dsa_keypair = Some(Arc::new(keypair));
         }
 
@@ -252,16 +310,18 @@ impl WolfDbStorage {
     }
 
     fn get_engine(&self, partition: Partition) -> Result<&engine::StorageEngine> {
-        self.engines.get(&partition)
+        self.engines
+            .get(&partition)
             .ok_or_else(|| WolfDbError::InvalidPartition(format!("{partition:?}")))
     }
-    
+
     fn get_vector_index(&self, partition: Partition) -> Result<Arc<VectorIndex>> {
-        self.vector_indices.get(&partition)
+        self.vector_indices
+            .get(&partition)
             .cloned()
             .ok_or_else(|| WolfDbError::InvalidPartition(format!("{partition:?}")))
     }
-    
+
     /// Persists all vector indices to disk
     ///
     /// # Errors
@@ -270,7 +330,9 @@ impl WolfDbStorage {
     pub fn save(&self) -> Result<()> {
         for (partition, index) in &self.vector_indices {
             let vector_path = partition.get_index_path(&self.path, "hnsw_index");
-            index.save(&vector_path).map_err(|e| WolfDbError::Vector(e.to_string()))?;
+            index
+                .save(&vector_path)
+                .map_err(|e| WolfDbError::Vector(e.to_string()))?;
         }
         Ok(())
     }
@@ -300,11 +362,19 @@ impl WolfDbStorage {
     /// # Panics
     ///
     /// Panics if the internal indexing policy lock is poisoned.
-    pub async fn insert_record(&self, table: String, record: model::Record, kem_pk: Vec<u8>) -> Result<()> {
+    pub async fn insert_record(
+        &self,
+        table: String,
+        record: model::Record,
+        kem_pk: Vec<u8>,
+    ) -> Result<()> {
         let (partition, clean_table) = Partition::from_table(&table);
 
         if !partition.supports_vectors() && record.vector.is_some() {
-            tracing::warn!("Vector data provided for relational partition '{}', ignoring vector", table);
+            tracing::warn!(
+                "Vector data provided for relational partition '{}', ignoring vector",
+                table
+            );
         }
 
         let engine = self.get_engine(partition)?.clone();
@@ -314,21 +384,31 @@ impl WolfDbStorage {
             None
         };
 
-        let dsa_keypair = self.dsa_keypair.clone(); 
+        let dsa_keypair = self.dsa_keypair.clone();
         #[allow(clippy::expect_used)]
-        let policy = self.indexing_policies.read().expect("Lock poisoned").get(&table).cloned().unwrap_or_default();
-        
-        let crypto_manager = self.crypto; 
+        let policy = self
+            .indexing_policies
+            .read()
+            .expect("Lock poisoned")
+            .get(&table)
+            .cloned()
+            .unwrap_or_default();
+
+        let crypto_manager = self.crypto;
 
         // Move everything to blocking task
         tokio::task::spawn_blocking(move || -> Result<()> {
             let dsa_keypair_ref = dsa_keypair.as_deref();
 
             let serialized = bincode::serialize(&record)?;
-            let encrypted = crypto_manager.encrypt_at_rest(&serialized, &kem_pk, dsa_keypair_ref).map_err(|e: anyhow::Error| WolfDbError::Crypto(e.to_string()))?;
+            let encrypted = crypto_manager
+                .encrypt_at_rest(&serialized, &kem_pk, dsa_keypair_ref)
+                .map_err(|e: anyhow::Error| WolfDbError::Crypto(e.to_string()))?;
             let bin = bincode::serialize(&encrypted)?;
-            
-            engine.insert(&clean_table, record.id.as_bytes(), bin).map_err(|e: anyhow::Error| WolfDbError::Storage(e.to_string()))?;
+
+            engine
+                .insert(&clean_table, record.id.as_bytes(), bin)
+                .map_err(|e: anyhow::Error| WolfDbError::Storage(e.to_string()))?;
 
             // Index metadata based on policy
             let index_table = format!("idx_{clean_table}");
@@ -336,14 +416,18 @@ impl WolfDbStorage {
                 IndexingPolicy::All => {
                     for (field, value) in &record.data {
                         let key = format!("{field}:{value}:{}", record.id);
-                        engine.insert(&index_table, key.as_bytes(), vec![]).map_err(|e| WolfDbError::Storage(e.to_string()))?;
+                        engine
+                            .insert(&index_table, key.as_bytes(), vec![])
+                            .map_err(|e| WolfDbError::Storage(e.to_string()))?;
                     }
                 }
                 IndexingPolicy::Selected(fields) => {
                     for field in fields {
                         if let Some(value) = record.data.get(field) {
                             let key = format!("{field}:{value}:{}", record.id);
-                            engine.insert(&index_table, key.as_bytes(), vec![]).map_err(|e| WolfDbError::Storage(e.to_string()))?;
+                            engine
+                                .insert(&index_table, key.as_bytes(), vec![])
+                                .map_err(|e| WolfDbError::Storage(e.to_string()))?;
                         }
                     }
                 }
@@ -352,11 +436,14 @@ impl WolfDbStorage {
 
             if let Some(index) = vector_index {
                 if let Some(vec) = record.vector {
-                    index.insert(&record.id, &vec).map_err(|e| WolfDbError::Vector(e.to_string()))?;
+                    index
+                        .insert(&record.id, &vec)
+                        .map_err(|e| WolfDbError::Vector(e.to_string()))?;
                 }
             }
             Ok(())
-        }).await?
+        })
+        .await?
     }
 
     /// Encrypts and inserts a batch of records into the specified table efficiently
@@ -368,9 +455,14 @@ impl WolfDbStorage {
     /// # Panics
     ///
     /// Panics if the internal indexing policy lock is poisoned.
-    pub async fn insert_batch_records(&self, table: String, records: Vec<model::Record>, kem_pk: Vec<u8>) -> Result<()> {
+    pub async fn insert_batch_records(
+        &self,
+        table: String,
+        records: Vec<model::Record>,
+        kem_pk: Vec<u8>,
+    ) -> Result<()> {
         let (partition, clean_table) = Partition::from_table(&table);
-        
+
         let engine = self.get_engine(partition)?.clone();
         let vector_index = if partition.supports_vectors() {
             Some(self.get_vector_index(partition)?)
@@ -380,7 +472,13 @@ impl WolfDbStorage {
 
         let dsa_keypair = self.dsa_keypair.clone();
         #[allow(clippy::expect_used)]
-        let policy = self.indexing_policies.read().expect("Lock poisoned").get(&table).cloned().unwrap_or_default();
+        let policy = self
+            .indexing_policies
+            .read()
+            .expect("Lock poisoned")
+            .get(&table)
+            .cloned()
+            .unwrap_or_default();
 
         let crypto_manager = self.crypto;
         tokio::task::spawn_blocking(move || -> Result<()> {
@@ -398,25 +496,31 @@ impl WolfDbStorage {
                     Ok((record, bin))
                 })
                 .collect::<Result<Vec<_>>>()?;
-            
+
             // 2. Storage
             let mut vector_batch = Vec::with_capacity(processed_records.len());
             for (record, bin) in processed_records {
-                engine.insert(&clean_table, record.id.as_bytes(), bin).map_err(|e| WolfDbError::Storage(e.to_string()))?;
-                
+                engine
+                    .insert(&clean_table, record.id.as_bytes(), bin)
+                    .map_err(|e| WolfDbError::Storage(e.to_string()))?;
+
                 let index_table = format!("idx_{clean_table}");
                 match &policy {
                     IndexingPolicy::All => {
-                         for (field, value) in &record.data {
+                        for (field, value) in &record.data {
                             let key = format!("{field}:{value}:{}", record.id);
-                            engine.insert(&index_table, key.as_bytes(), vec![]).map_err(|e| WolfDbError::Storage(e.to_string()))?;
+                            engine
+                                .insert(&index_table, key.as_bytes(), vec![])
+                                .map_err(|e| WolfDbError::Storage(e.to_string()))?;
                         }
                     }
                     IndexingPolicy::Selected(fields) => {
                         for field in fields {
                             if let Some(value) = record.data.get(field) {
                                 let key = format!("{field}:{value}:{}", record.id);
-                                engine.insert(&index_table, key.as_bytes(), vec![]).map_err(|e| WolfDbError::Storage(e.to_string()))?;
+                                engine
+                                    .insert(&index_table, key.as_bytes(), vec![])
+                                    .map_err(|e| WolfDbError::Storage(e.to_string()))?;
                             }
                         }
                     }
@@ -431,11 +535,14 @@ impl WolfDbStorage {
             // 3. Vector Batch
             if !vector_batch.is_empty() {
                 if let Some(index) = vector_index {
-                    index.insert_batch(vector_batch).map_err(|e| WolfDbError::Vector(e.to_string()))?;
+                    index
+                        .insert_batch(vector_batch)
+                        .map_err(|e| WolfDbError::Vector(e.to_string()))?;
                 }
             }
             Ok(())
-        }).await?
+        })
+        .await?
     }
 
     /// Retrieves and decrypts a record by ID from the specified table
@@ -443,14 +550,21 @@ impl WolfDbStorage {
     /// # Errors
     ///
     /// Returns an error if record retrieval or decryption fails.
-    pub async fn get_record(&self, table: String, id: String, kem_sk: Vec<u8>) -> Result<Option<model::Record>> {
+    pub async fn get_record(
+        &self,
+        table: String,
+        id: String,
+        kem_sk: Vec<u8>,
+    ) -> Result<Option<model::Record>> {
         let (partition, clean_table) = Partition::from_table(&table);
         let storage_engine = self.get_engine(partition)?.clone();
         let crypto_manager = self.crypto;
         let dsa_public_key = self.dsa_public_key.clone();
 
         tokio::task::spawn_blocking(move || -> Result<Option<model::Record>> {
-            let bin = storage_engine.get(&clean_table, id.as_bytes()).map_err(|e| WolfDbError::Storage(e.to_string()))?;
+            let bin = storage_engine
+                .get(&clean_table, id.as_bytes())
+                .map_err(|e| WolfDbError::Storage(e.to_string()))?;
             if let Some(encrypted_bin) = bin {
                 let encrypted: EncryptedData = bincode::deserialize(&encrypted_bin)?;
                 let dsa_pk_ref = dsa_public_key.as_deref(); // as_deref works on Option<Vec<u8>>
@@ -462,7 +576,8 @@ impl WolfDbStorage {
             } else {
                 Ok(None)
             }
-        }).await?
+        })
+        .await?
     }
 
     /// Deletes a record from the specified table and its vector index
@@ -474,20 +589,23 @@ impl WolfDbStorage {
         let (partition, clean_table) = Partition::from_table(&table);
         let storage_engine = self.get_engine(partition)?.clone();
         let vector_index = if partition.supports_vectors() {
-             Some(self.get_vector_index(partition)?)
+            Some(self.get_vector_index(partition)?)
         } else {
-             None
+            None
         };
 
         tokio::task::spawn_blocking(move || -> Result<bool> {
-            let removed = storage_engine.delete(&clean_table, id.as_bytes()).map_err(|e| WolfDbError::Storage(e.to_string()))?;
+            let removed = storage_engine
+                .delete(&clean_table, id.as_bytes())
+                .map_err(|e| WolfDbError::Storage(e.to_string()))?;
             if removed {
                 if let Some(index) = vector_index {
                     index.delete(&id);
                 }
             }
             Ok(removed)
-        }).await?
+        })
+        .await?
     }
 
     /// Returns a list of all primary IDs in the specified table
@@ -500,7 +618,9 @@ impl WolfDbStorage {
         let storage_engine = self.get_engine(partition)?.clone();
 
         tokio::task::spawn_blocking(move || -> Result<Vec<String>> {
-            let keys = storage_engine.scan_keys(&clean_table).map_err(|e| WolfDbError::Storage(e.to_string()))?;
+            let keys = storage_engine
+                .scan_keys(&clean_table)
+                .map_err(|e| WolfDbError::Storage(e.to_string()))?;
             let mut string_keys = Vec::new();
             for k in keys {
                 if let Ok(s) = String::from_utf8(k) {
@@ -508,7 +628,8 @@ impl WolfDbStorage {
                 }
             }
             Ok(string_keys)
-        }).await?
+        })
+        .await?
     }
 
     /// Performs a filtered search for records matching a specific metadata field and value
@@ -521,13 +642,13 @@ impl WolfDbStorage {
         table: String,
         field: String,
         value: String,
-        kem_sk: Vec<u8>
+        kem_sk: Vec<u8>,
     ) -> Result<Vec<model::Record>> {
         let (partition, clean_table) = Partition::from_table(&table);
         let storage_engine = self.get_engine(partition)?.clone();
-        
-        let _sk_clone = kem_sk.clone(); 
-        
+
+        let _sk_clone = kem_sk.clone();
+
         // First pass: scan index to get IDs (sync/blocking operation)
         // We do this in a blocking task
         let ids = tokio::task::spawn_blocking(move || -> Result<Vec<String>> {
@@ -535,7 +656,8 @@ impl WolfDbStorage {
             let prefix = format!("{field}:{value}:");
             let prefix_bytes = prefix.as_bytes();
 
-            let matching = storage_engine.scan_prefix(&index_table, prefix_bytes)
+            let matching = storage_engine
+                .scan_prefix(&index_table, prefix_bytes)
                 .map_err(|e| WolfDbError::Storage(e.to_string()))?
                 .into_iter()
                 .filter_map(|(key, _)| {
@@ -543,8 +665,9 @@ impl WolfDbStorage {
                     key_str.strip_prefix(&prefix).map(ToString::to_string)
                 })
                 .collect();
-             Ok(matching)
-        }).await??;
+            Ok(matching)
+        })
+        .await??;
 
         // Second pass: fetch actual records (concurrently ideally, but let's reuse get_record)
         // We can spawn futures for each fetch
@@ -554,15 +677,15 @@ impl WolfDbStorage {
             // But we are in an async method on self.
             // Ideally we run these in parallel.
             let table = table.clone();
-            let sk = kem_sk.clone(); 
+            let sk = kem_sk.clone();
             // We can't easily spawn parallel accesses to &self without Arc<Self>.
-            // Since we don't have Arc<Self> here (we are inside &self), we have to await them sequentially 
-            // OR we rely on the fact that `engine` and `crypto` are cloneable and we can spawn tasks that don't need `&self` 
+            // Since we don't have Arc<Self> here (we are inside &self), we have to await them sequentially
+            // OR we rely on the fact that `engine` and `crypto` are cloneable and we can spawn tasks that don't need `&self`
             // but just the components.
             // Let's implement a helper that takes components to avoid `self` dependency in inner loop if we want parallelism.
             // For now, sequential await is safer for this refactor without changing architecture too much.
             // Actually, we can just call `self.get_record` sequentially.
-            tasks.push(self.get_record(table, id, sk)); 
+            tasks.push(self.get_record(table, id, sk));
         }
 
         let mut results = Vec::new();
@@ -590,7 +713,9 @@ impl WolfDbStorage {
     ) -> Result<Vec<(model::Record, f32)>> {
         let (partition, clean_table) = Partition::from_table(&table);
         if !partition.supports_vectors() {
-             return Err(WolfDbError::InvalidPartition("No vector support".to_string()));
+            return Err(WolfDbError::InvalidPartition(
+                "No vector support".to_string(),
+            ));
         }
 
         let engine = self.get_engine(partition)?.clone();
@@ -598,11 +723,12 @@ impl WolfDbStorage {
 
         // 1. Get Matching IDs (Blocking)
         let matching_ids = tokio::task::spawn_blocking(move || -> Result<Vec<String>> {
-             let index_table = format!("idx_{clean_table}");
-             let prefix = format!("{filter_field}:{filter_value}:");
-             let prefix_bytes = prefix.as_bytes();
+            let index_table = format!("idx_{clean_table}");
+            let prefix = format!("{filter_field}:{filter_value}:");
+            let prefix_bytes = prefix.as_bytes();
 
-             let ids = engine.scan_prefix(&index_table, prefix_bytes)
+            let ids = engine
+                .scan_prefix(&index_table, prefix_bytes)
                 .map_err(|e| WolfDbError::Storage(e.to_string()))?
                 .into_iter()
                 .filter_map(|(key, _)| {
@@ -610,8 +736,9 @@ impl WolfDbStorage {
                     key_str.strip_prefix(&prefix).map(ToString::to_string)
                 })
                 .collect();
-             Ok(ids)
-        }).await??;
+            Ok(ids)
+        })
+        .await??;
 
         if matching_ids.is_empty() {
             return Ok(vec![]);
@@ -623,7 +750,8 @@ impl WolfDbStorage {
         let results = tokio::task::spawn_blocking(move || {
             let allowed_internal_ids = index_clone.get_internal_ids(&matching_ids);
             index_clone.search_with_filter(&query_vector, k, Some(&allowed_internal_ids))
-        }).await?;
+        })
+        .await?;
 
         // 3. Fetch Records (Sequential async for now)
         let mut final_results = Vec::new();
@@ -634,8 +762,6 @@ impl WolfDbStorage {
         }
         Ok(final_results)
     }
-
-
 
     /// Performs a vector similarity search in the specified table
     ///
@@ -651,14 +777,15 @@ impl WolfDbStorage {
     ) -> Result<Vec<(model::Record, f32)>> {
         let (partition, _) = Partition::from_table(&table);
         if !partition.supports_vectors() {
-             return Err(WolfDbError::InvalidPartition("No vector support".to_string()));
+            return Err(WolfDbError::InvalidPartition(
+                "No vector support".to_string(),
+            ));
         }
-        
+
         let vector_index = self.get_vector_index(partition)?;
-        
-        let results = tokio::task::spawn_blocking(move || {
-            vector_index.search(&query_vector, k)
-        }).await?;
+
+        let results =
+            tokio::task::spawn_blocking(move || vector_index.search(&query_vector, k)).await?;
 
         let mut final_results = Vec::new();
         for (id, score) in results {
@@ -680,10 +807,14 @@ impl WolfDbStorage {
     /// Panics if the internal indexing policy lock is poisoned.
     pub async fn set_indexing_policy(&self, table: String, policy: IndexingPolicy) -> Result<()> {
         let (_partition, _) = Partition::from_table(&table);
-        // We actially store policies centrally in the Relational partition's _meta table 
+        // We actially store policies centrally in the Relational partition's _meta table
         // regardless of where data lives, to keep it simple.
-        let meta_engine = self.engines.get(&Partition::Relational)
-            .ok_or_else(|| WolfDbError::Storage("Relational engine missing for meta storage".to_string()))?
+        let meta_engine = self
+            .engines
+            .get(&Partition::Relational)
+            .ok_or_else(|| {
+                WolfDbError::Storage("Relational engine missing for meta storage".to_string())
+            })?
             .clone();
 
         {
@@ -694,15 +825,24 @@ impl WolfDbStorage {
 
         tokio::task::spawn_blocking(move || -> Result<()> {
             // Persist to disk
-            let meta_tree = meta_engine.get_table("_meta")
+            let meta_tree = meta_engine
+                .get_table("_meta")
                 .map_err(|e| WolfDbError::Storage(e.to_string()))?;
-            
+
             let key = format!("policy:{table}");
-            let val = serde_json::to_vec(&policy).map_err(|e| WolfDbError::Serialization(bincode::Error::from(std::io::Error::new(std::io::ErrorKind::InvalidData, e))))?;
-            
-            meta_tree.insert(key.as_bytes(), val).map_err(|e| WolfDbError::Storage(e.to_string()))?;
+            let val = serde_json::to_vec(&policy).map_err(|e| {
+                WolfDbError::Serialization(bincode::Error::from(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    e,
+                )))
+            })?;
+
+            meta_tree
+                .insert(key.as_bytes(), val)
+                .map_err(|e| WolfDbError::Storage(e.to_string()))?;
             Ok(())
-        }).await?
+        })
+        .await?
     }
 
     // Sync methods for recovery/init (rarely called, ok to block or lightweight)
@@ -717,9 +857,15 @@ impl WolfDbStorage {
     /// Returns an error if the database is locked or if backup generation fails.
     pub fn generate_recovery_backup(&self, recovery_password: &str) -> Result<String> {
         use argon2::PasswordHasher;
-        let kem_secret_key = self.kem_secret_key.as_ref().ok_or(WolfDbError::Crypto("No KEM SK".to_string()))?;
-        let dsa_secret_key = self.dsa_secret_key.as_ref().ok_or(WolfDbError::Crypto("No DSA SK".to_string()))?;
-        
+        let kem_secret_key = self
+            .kem_secret_key
+            .as_ref()
+            .ok_or(WolfDbError::Crypto("No KEM SK".to_string()))?;
+        let dsa_secret_key = self
+            .dsa_secret_key
+            .as_ref()
+            .ok_or(WolfDbError::Crypto("No DSA SK".to_string()))?;
+
         // This password hashing is slow, should technically be async/blocking too but it's rare operation
         let salt = argon2::password_hash::SaltString::generate(&mut rand::thread_rng());
         let argon2 = argon2::Argon2::default();
@@ -727,7 +873,9 @@ impl WolfDbStorage {
             .hash_password(recovery_password.as_bytes(), &salt)
             .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
 
-        let hash_output = password_hash.hash.ok_or(WolfDbError::Crypto("Hash failed".to_string()))?;
+        let hash_output = password_hash
+            .hash
+            .ok_or(WolfDbError::Crypto("Hash failed".to_string()))?;
         let hash_bytes = hash_output.as_bytes();
         let mut master_key = Zeroizing::new([0u8; 32]);
         master_key.copy_from_slice(&hash_bytes[..32]);
@@ -737,13 +885,19 @@ impl WolfDbStorage {
             "dsa_sk": general_purpose::STANDARD.encode(dsa_secret_key.as_slice())
         });
         let keys_bin = keys_to_backup.to_string();
-        let (encrypted_keys, nonce) =
-            crate::crypto::aes::encrypt(keys_bin.as_bytes(), &master_key).map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+        let (encrypted_keys, nonce) = crate::crypto::aes::encrypt(keys_bin.as_bytes(), &master_key)
+            .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
 
         #[allow(clippy::expect_used)]
-        let kem_public_key_raw = self.kem_public_key.as_ref().expect("KEM PK missing during backup");
+        let kem_public_key_raw = self
+            .kem_public_key
+            .as_ref()
+            .expect("KEM PK missing during backup");
         #[allow(clippy::expect_used)]
-        let dsa_public_key_raw = self.dsa_public_key.as_ref().expect("DSA PK missing during backup");
+        let dsa_public_key_raw = self
+            .dsa_public_key
+            .as_ref()
+            .expect("DSA PK missing during backup");
 
         let backup = serde_json::json!({
             "encrypted_keys": general_purpose::STANDARD.encode(encrypted_keys),
@@ -768,21 +922,51 @@ impl WolfDbStorage {
         new_master_password: &str,
     ) -> Result<()> {
         use argon2::PasswordHasher;
-        let decoded_json_str = String::from_utf8(general_purpose::STANDARD.decode(blob_b64).map_err(|e| WolfDbError::Serialization(bincode::Error::from(std::io::Error::new(std::io::ErrorKind::InvalidData, e))))?).map_err(WolfDbError::from)?;
-        let json: serde_json::Value = serde_json::from_str(&decoded_json_str).map_err(|e| WolfDbError::Serialization(bincode::Error::from(std::io::Error::new(std::io::ErrorKind::InvalidData, e))))?;
+        let decoded_json_str =
+            String::from_utf8(general_purpose::STANDARD.decode(blob_b64).map_err(|e| {
+                WolfDbError::Serialization(bincode::Error::from(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    e,
+                )))
+            })?)
+            .map_err(WolfDbError::from)?;
+        let json: serde_json::Value = serde_json::from_str(&decoded_json_str).map_err(|e| {
+            WolfDbError::Serialization(bincode::Error::from(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                e,
+            )))
+        })?;
 
-        let encrypted_keys_str = json["encrypted_keys"].as_str().ok_or(WolfDbError::Import("Missing encrypted_keys".to_string()))?;
-        let encrypted_keys = general_purpose::STANDARD.decode(encrypted_keys_str).map_err(|e| WolfDbError::Import(e.to_string()))?;
-        
-        let salt_str = json["salt"].as_str().ok_or(WolfDbError::Import("Missing salt".to_string()))?;
-        let nonce_str = json["nonce"].as_str().ok_or(WolfDbError::Import("Missing nonce".to_string()))?;
-        let nonce_vec = general_purpose::STANDARD.decode(nonce_str).map_err(|e| WolfDbError::Import(e.to_string()))?;
-        
-        let kem_public_key_b64 = json["kem_pk"].as_str().ok_or(WolfDbError::Import("Missing kem_pk".to_string()))?;
-        let kem_public_key_raw = general_purpose::STANDARD.decode(kem_public_key_b64).map_err(|e| WolfDbError::Import(e.to_string()))?;
-        
-        let dsa_public_key_b64 = json["dsa_pk"].as_str().ok_or(WolfDbError::Import("Missing dsa_pk".to_string()))?;
-        let dsa_public_key_raw = general_purpose::STANDARD.decode(dsa_public_key_b64).map_err(|e| WolfDbError::Import(e.to_string()))?;
+        let encrypted_keys_str = json["encrypted_keys"]
+            .as_str()
+            .ok_or(WolfDbError::Import("Missing encrypted_keys".to_string()))?;
+        let encrypted_keys = general_purpose::STANDARD
+            .decode(encrypted_keys_str)
+            .map_err(|e| WolfDbError::Import(e.to_string()))?;
+
+        let salt_str = json["salt"]
+            .as_str()
+            .ok_or(WolfDbError::Import("Missing salt".to_string()))?;
+        let nonce_str = json["nonce"]
+            .as_str()
+            .ok_or(WolfDbError::Import("Missing nonce".to_string()))?;
+        let nonce_vec = general_purpose::STANDARD
+            .decode(nonce_str)
+            .map_err(|e| WolfDbError::Import(e.to_string()))?;
+
+        let kem_public_key_b64 = json["kem_pk"]
+            .as_str()
+            .ok_or(WolfDbError::Import("Missing kem_pk".to_string()))?;
+        let kem_public_key_raw = general_purpose::STANDARD
+            .decode(kem_public_key_b64)
+            .map_err(|e| WolfDbError::Import(e.to_string()))?;
+
+        let dsa_public_key_b64 = json["dsa_pk"]
+            .as_str()
+            .ok_or(WolfDbError::Import("Missing dsa_pk".to_string()))?;
+        let dsa_public_key_raw = general_purpose::STANDARD
+            .decode(dsa_public_key_b64)
+            .map_err(|e| WolfDbError::Import(e.to_string()))?;
 
         let mut nonce = [0u8; 12];
         nonce.copy_from_slice(&nonce_vec);
@@ -794,19 +978,36 @@ impl WolfDbStorage {
             .hash_password(recovery_password.as_bytes(), &salt)
             .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
 
-        let hash_output = password_hash.hash.ok_or(WolfDbError::Crypto("Hash failed".to_string()))?;
+        let hash_output = password_hash
+            .hash
+            .ok_or(WolfDbError::Crypto("Hash failed".to_string()))?;
         let hash_bytes = hash_output.as_bytes();
         let mut master_key = Zeroizing::new([0u8; 32]);
         master_key.copy_from_slice(&hash_bytes[..32]);
 
-        let decrypted_keys_bin = crate::crypto::aes::decrypt(&encrypted_keys, &master_key, &nonce).map_err(|e| WolfDbError::Crypto(e.to_string()))?;
-        let keys_json: serde_json::Value = serde_json::from_slice(&decrypted_keys_bin).map_err(|e| WolfDbError::Serialization(bincode::Error::from(std::io::Error::new(std::io::ErrorKind::InvalidData, e))))?;
+        let decrypted_keys_bin = crate::crypto::aes::decrypt(&encrypted_keys, &master_key, &nonce)
+            .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+        let keys_json: serde_json::Value =
+            serde_json::from_slice(&decrypted_keys_bin).map_err(|e| {
+                WolfDbError::Serialization(bincode::Error::from(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    e,
+                )))
+            })?;
 
-        let kem_secret_key_b64 = keys_json["kem_sk"].as_str().ok_or(WolfDbError::Import("Missing kem_sk".to_string()))?;
-        let kem_secret_key_raw = general_purpose::STANDARD.decode(kem_secret_key_b64).map_err(|e| WolfDbError::Import(e.to_string()))?;
-        
-        let dsa_secret_key_b64 = keys_json["dsa_sk"].as_str().ok_or(WolfDbError::Import("Missing dsa_sk".to_string()))?;
-        let dsa_secret_key_raw = general_purpose::STANDARD.decode(dsa_secret_key_b64).map_err(|e| WolfDbError::Import(e.to_string()))?;
+        let kem_secret_key_b64 = keys_json["kem_sk"]
+            .as_str()
+            .ok_or(WolfDbError::Import("Missing kem_sk".to_string()))?;
+        let kem_secret_key_raw = general_purpose::STANDARD
+            .decode(kem_secret_key_b64)
+            .map_err(|e| WolfDbError::Import(e.to_string()))?;
+
+        let dsa_secret_key_b64 = keys_json["dsa_sk"]
+            .as_str()
+            .ok_or(WolfDbError::Import("Missing dsa_sk".to_string()))?;
+        let dsa_secret_key_raw = general_purpose::STANDARD
+            .decode(dsa_secret_key_b64)
+            .map_err(|e| WolfDbError::Import(e.to_string()))?;
 
         let new_keystore = crate::crypto::keystore::Keystore::create_encrypted(
             &kem_secret_key_raw,
@@ -814,12 +1015,19 @@ impl WolfDbStorage {
             &dsa_secret_key_raw,
             &dsa_public_key_raw,
             new_master_password,
-        ).map_err(|e| WolfDbError::Crypto(e.to_string()))?;
-        
+        )
+        .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
+
         crate::crypto::keystore::Keystore::save(
             &new_keystore,
             &format!("{}/keystore.json", self.path),
-        ).map_err(|e| WolfDbError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+        )
+        .map_err(|e| {
+            WolfDbError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))
+        })?;
 
         self.kem_secret_key = Some(Zeroizing::new(kem_secret_key_raw));
         self.kem_public_key = Some(kem_public_key_raw);
@@ -838,14 +1046,14 @@ impl WolfDbStorage {
         let mut total_v_count = 0;
         let mut total_v_index_size = 0;
         let mut total_v_deleted = 0;
-        
+
         for index in self.vector_indices.values() {
             let (v_count, v_index_size, v_deleted) = index.get_stats();
             total_v_count += v_count;
             total_v_index_size += v_index_size;
             total_v_deleted += v_deleted;
         }
-        
+
         Ok(serde_json::json!({
             "vector_records": total_v_count,
             "vector_index_size": total_v_index_size,

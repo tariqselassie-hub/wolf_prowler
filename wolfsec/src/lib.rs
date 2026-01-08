@@ -20,14 +20,15 @@ pub mod crypto;
 pub mod domain;
 /// Adapters for external threat intelligence feeds.
 pub mod external_feeds;
-/// Integrations with third-party security systems.
-pub mod integration;
-/// Machine learning models for behavioral analysis.
-pub mod ml;
+/// Management of certificates and transient keys.
+pub mod identity;
 /// Concrete implementations of domain repositories and services.
 pub mod infrastructure;
-/// Management of certificates and transient keys.
+/// Integrations with third-party security systems.
+pub mod integration;
 pub mod key_management;
+/// Machine learning models for behavioral analysis.
+pub mod ml;
 /// SIEM and telemetry collection subsystems.
 pub mod monitoring;
 /// Network-level security and transport protection.
@@ -41,6 +42,7 @@ pub mod threat_detection;
 /// Bridges to the broader Wolf Ecoystem.
 pub mod wolf_ecosystem_integration;
 pub use authentication::{AuthManager, Permission, Role, User};
+pub use identity::{IdentityConfig, IdentityManager, SystemIdentity};
 pub use wolf_net::wolf_pack;
 
 pub use key_management::{

@@ -1,101 +1,56 @@
-# wolf_web
+# Wolf Web Dashboard
 
-**Dioxus-based Web Dashboard for Wolf Prowler Security Platform**
+**Status**: ✅ Production Ready | **Version**: 2.0 Enterprise
 
-## Overview
+The Wolf Web Dashboard is a high-performance, Dioxus-based frontend for the Wolf Prowler ecosystem. It provides a real-time "Command Center" interface for security administrators, featuring granular controls, live metrics, and deep system insights.
 
-`wolf_web` provides a modern, reactive web dashboard for monitoring and controlling Wolf Prowler security infrastructure. Built with Dioxus 0.6, it offers real-time security monitoring, network visualization, and administrative controls through an intuitive full-stack Rust web application.
+## 🌟 Key Features
 
-## Features
+### 🖥️ Command Center Interface
+- **Admin-Centric Design**: Optimized for situational awareness and rapid response.
+- **Top Bar HUD**: Always-on visibility of critical system stats (Network Status, Database Health, Uptime).
+- **Metric Sparklines**: Real-time trend visualization for Threat Levels and Node Activity.
 
-- **🎨 Modern Dioxus UI**: Full-stack Rust with server-side rendering and hydration
-- **🔐 SSO Authentication**: OpenID Connect integration with secure session management
-- **📊 Real-time Dashboards**: Live security events, network status, and threat intelligence
-- **🌐 Multi-Section Navigation**: Dedicated views for Security, Network, System, Intelligence, Compliance, Administration, Settings, Vault, and Database management
-- **🔄 WebSocket Streaming**: Real-time updates for security events and network topology
-- **🧠 Lock Prowler Integration**: Digital forensics and incident response capabilities
-- **🗄️ WolfDb Explorer**: Browse and query the post-quantum cryptographic database
+### 🛠️ Advanced Operations
+- **Deep Scan Control**: Granular control over system scanners with progress visualization.
+- **Quick Actions**: One-click execution of routine maintenance tasks (Flush Cache, Rotate Keys, Export Logs).
+- **Live Terminal**: A real-time system output stream for monitoring low-level events.
 
-## Architecture
+### 🎨 UI Kit (`src/ui_kit.rs`)
+A custom, lightweight component library built for speed and consistency:
+- **`Card`**: Standardized container with "Glassmorphism" styling.
+- **`Button`**: Interactive elements with hover states and disabled logic.
+- **`Badge`**: Status indicators with semantic coloring (Green/Red/Blue/Yellow).
+- **`Sparkline`**: SVG-based lightweight charting component.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    wolf_web (Dioxus)                     │
-├─────────────────────────────────────────────────────────┤
-│  Dashboard Router                                        │
-│  ├─ Overview         - System status and metrics        │
-│  ├─ Security         - Threat detection and alerts      │
-│  ├─ Network          - P2P mesh and peer management     │
-│  ├─ System           - Resource monitoring              │
-│  ├─ Intelligence     - Threat feeds and ML insights     │
-│  ├─ Compliance       - Audit logs and reports           │
-│  ├─ Administration   - User and role management         │
-│  ├─ Settings         - Configuration management         │
-│  ├─ Vault            - Secret management (Wolf Den)     │
-│  └─ Database         - WolfDb query interface           │
-└─────────────────────────────────────────────────────────┘
-           │                    │                    │
-           ▼                    ▼                    ▼
-      wolfsec              wolf_net              wolf_db
-   (Security Core)     (P2P Networking)    (PQC Database)
-```
+## 🏗️ Architecture
 
-## Usage
+- **Framework**: Dioxus 0.6 (Fullstack).
+- **Styling**: Tailwind CSS (via CDN) with a custom "Cyber-Security" theme.
+- **State Management**: Robust `use_resource` and `use_signal` implementation with proper error handling and fallback states.
+- **Data Flow**: Direct server functions for seamless backend communication.
 
-### Running the Dashboard
+## 🚀 Getting Started
+
+To run the dashboard in development mode:
 
 ```bash
-# Development mode with hot-reload
-cargo run -p wolf_web
-
-# Production build
-cargo build --release -p wolf_web
-./target/release/wolf_web
+cargo run -p wolf_web --features server
 ```
 
-### Access
+Navigate to `http://127.0.0.1:8080` to access the interface.
 
-Navigate to `https://localhost:3031` (HTTPS is enforced for security).
+## 📦 Components
 
-**Default Credentials:**
-- Username: `admin`
-- Password: Set via `WOLF_ADMIN_PASSWORD` environment variable
+- **`dashboard_components.rs`**: High-level widgets like `NetworkBanner` and `SecurityBanner`.
+- **`vault_components.rs`**: Cryptographic tools interface.
+- **`ui_kit.rs`**: Core design system primitives.
+- **`types.rs`**: Shared data structures (`SystemStats`, `RecordView`).
 
-### SSO Configuration
+## 🧪 Testing
+
+Run the dashboard integration tests:
 
 ```bash
-# .env configuration
-SSO_ENABLED=true
-SSO_ISSUER=https://your-idp.com
-SSO_CLIENT_ID=your-client-id
-SSO_CLIENT_SECRET=your-client-secret
-SSO_REDIRECT_URI=https://localhost:3031/auth/callback
+cargo test -p wolf_web --test dashboard_tests
 ```
-
-## Dependencies
-
-- **Dioxus 0.6**: Full-stack framework with router and server features
-- **wolfsec**: Security monitoring and threat detection
-- **wolf_net**: P2P networking and peer management
-- **wolf_den**: Cryptographic operations
-- **lock_prowler**: Digital forensics toolkit
-- **wolf_db**: Post-quantum cryptographic database
-
-## Development
-
-```bash
-# Run with file watching
-dx serve --hot-reload
-
-# Check for errors
-cargo check -p wolf_web
-
-# Run tests
-cargo test -p wolf_web
-```
-
-## License
-
-Licensed under either of Apache License, Version 2.0 or MIT license at your option.
-
-See [LICENSE-APACHE](../../LICENSE-APACHE) and [LICENSE-MIT](../../LICENSE-MIT) for details.

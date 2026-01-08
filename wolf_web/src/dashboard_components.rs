@@ -1,4 +1,5 @@
-use crate::SystemStats;
+use wolf_web::types::SystemStats;
+use crate::ui_kit::Card;
 use dioxus::prelude::*;
 
 #[component]
@@ -15,7 +16,7 @@ pub fn NetworkBanner(stats: SystemStats) -> Element {
     };
 
     rsx! {
-        div { class: "border border-green-800 bg-black/80 backdrop-blur-sm p-6 rounded relative overflow-hidden group hover:border-green-500/50 transition-all duration-300",
+        Card {
             // Dynamic Background Grid
             div { class: "absolute inset-0 bg-[linear-gradient(rgba(0,255,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,0,0.03)_1px,transparent_1px)] bg-[size:20px_20px] opacity-20" }
             
@@ -54,7 +55,7 @@ pub fn SecurityBanner(stats: SystemStats) -> Element {
     };
 
     rsx! {
-        div { class: "border border-green-800 bg-black/80 backdrop-blur-sm p-6 rounded relative overflow-hidden group hover:border-green-500/50 transition-all duration-300 {glow_class}",
+        Card { class: "{glow_class}",
              // Scanline overlay
             div { class: "absolute inset-0 bg-repeat-y opacity-5 pointer-events-none bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAADCAYAAABS3WWCAAAAE0lEQVQIW2NkQAKrVq36zwjjAwAltoH/h0OBxQAAAABJRU5ErkJggg==')]" }
 
@@ -83,7 +84,7 @@ pub fn SecurityBanner(stats: SystemStats) -> Element {
 #[component]
 pub fn ScannerBanner(stats: SystemStats) -> Element {
     rsx! {
-        div { class: "border border-green-800 bg-black/80 backdrop-blur-sm p-6 rounded relative overflow-hidden group hover:border-green-500/50 transition-all duration-300",
+        Card {
              div { class: "absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-green-500/50 to-transparent opacity-50" }
 
             h3 { class: "text-lg font-bold mb-4 uppercase flex items-center gap-2 border-b border-green-800/50 pb-2",

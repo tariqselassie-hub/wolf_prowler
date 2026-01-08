@@ -196,15 +196,58 @@ pub struct AuthStatus {
 #[cfg(test)]
 mod tests {
     use crate::domain::repositories::AuthRepository;
+    use async_trait::async_trait;
+    use std::sync::Arc;
 
     use super::*;
 
+    /// Mock implementation of AuthRepository for testing
+    struct MockAuthRepository;
+
+    #[async_trait]
+    impl AuthRepository for MockAuthRepository {
+        async fn save_user(
+            &self,
+            _user: &crate::domain::entities::User,
+        ) -> Result<(), crate::domain::error::DomainError> {
+            Ok(())
+        }
+
+        async fn find_user_by_id(
+            &self,
+            _id: &uuid::Uuid,
+        ) -> Result<Option<crate::domain::entities::User>, crate::domain::error::DomainError>
+        {
+            Ok(None)
+        }
+
+        async fn find_user_by_username(
+            &self,
+            _username: &str,
+        ) -> Result<Option<crate::domain::entities::User>, crate::domain::error::DomainError>
+        {
+            Ok(None)
+        }
+
+        async fn save_role(
+            &self,
+            _role: &crate::domain::entities::auth::Role,
+        ) -> Result<(), crate::domain::error::DomainError> {
+            Ok(())
+        }
+
+        async fn find_role_by_name(
+            &self,
+            _name: &str,
+        ) -> Result<Option<crate::domain::entities::auth::Role>, crate::domain::error::DomainError>
+        {
+            Ok(None)
+        }
+    }
+
     #[tokio::test]
     async fn test_password_hashing_and_verification_roundtrip() {
-        let manager = AuthManager::new(
-            AuthConfig::default(),
-            Arc::new(crate::domain::repositories::AuthRepository),
-        );
+        let manager = AuthManager::new(AuthConfig::default(), Arc::new(MockAuthRepository));
         let password = b"my_s3cur3_p@ssw0rd_for_wolf_prowler!";
 
         // 1. Hash the password

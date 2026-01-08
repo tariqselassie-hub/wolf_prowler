@@ -28,7 +28,6 @@ pub async fn vault_hash_data(data: String) -> Result<String, ServerFnError> {
     let engine = wolf_den::CryptoEngine::default();
     let hash = engine
         .hash(data.as_bytes())
-        .await
         .map_err(|e| ServerFnError::new(e.to_string()))?;
 
     // Simple hex encoding
@@ -38,7 +37,7 @@ pub async fn vault_hash_data(data: String) -> Result<String, ServerFnError> {
 #[server]
 pub async fn vault_sign_data(data: String) -> Result<String, ServerFnError> {
     let engine = wolf_den::CryptoEngine::default();
-    let signature = engine.sign_message(data.as_bytes()).await;
+    let signature = engine.sign_message(data.as_bytes());
     // Signature to bytes then hex
     Ok(signature
         .to_bytes()

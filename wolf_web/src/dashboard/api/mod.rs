@@ -174,7 +174,9 @@ pub fn create_api_router(state: Arc<AppState>) -> Router {
         .route("/health", get(health_check))
         // .route("/status", get(api_status)) // Conflict with v1/status
         .route("/config", get(get_config))
+        .route("/metrics", get(metrics_handler))
         .with_state(state.clone());
+
 
     let router = v1::create_v1_router(state.clone()).merge(stateful_routes);
 
@@ -184,7 +186,7 @@ pub fn create_api_router(state: Arc<AppState>) -> Router {
                 config
                     .allowed_origins
                     .iter()
-                    .map(|origin| origin.parse().unwrap())
+                    .map(|origin: &String| origin.parse().unwrap())
                     .collect::<Vec<_>>(),
             )
             .allow_methods(vec![
@@ -210,8 +212,10 @@ pub fn create_api_router(state: Arc<AppState>) -> Router {
 
 /// Create API router with authentication middleware
 pub fn create_api_router_with_state(state: Arc<AppState>) -> Router {
+    // Create API configuration
     let config = ApiConfig::default();
 
+    // Build middleware stack
     let middleware = ServiceBuilder::new()
         .layer(TraceLayer::new_for_http())
         .layer(TimeoutLayer::new(std::time::Duration::from_secs(
@@ -223,6 +227,7 @@ pub fn create_api_router_with_state(state: Arc<AppState>) -> Router {
         .route("/health", get(health_check))
         // .route("/status", get(api_status)) // Conflict with v1/status
         .route("/config", get(get_config))
+        .route("/metrics", get(metrics_handler))
         .with_state(state.clone());
 
     let router = v1::create_v1_router(state.clone()).merge(stateful_routes);
@@ -233,7 +238,7 @@ pub fn create_api_router_with_state(state: Arc<AppState>) -> Router {
                 config
                     .allowed_origins
                     .iter()
-                    .map(|origin| origin.parse().unwrap())
+                    .map(|origin: &String| origin.parse().unwrap())
                     .collect::<Vec<_>>(),
             )
             .allow_methods(vec![
@@ -359,6 +364,44 @@ async fn get_config(State(state): State<Arc<AppState>>) -> Json<serde_json::Valu
             "zero_trust": true
         }
     }))
+}
+
+/// Prometheus metrics endpoint
+async fn metrics_handler(State(state): State<Arc<AppState>>) -> String {
+    // Collect metrics
+    let request_count = state.get_request_count().await;
+    let threat_engine = state.threat_engine.lock().await;
+    let status = threat_engine.get_status().await;
+    let stats = status.metrics;
+
+    // Format as Prometheus
+    let mut metrics = String::new();
+    
+    metrics.push_str("# HELP wolf_server_requests_total Total number of HTTP requests\n");
+    metrics.push_str("# TYPE wolf_server_requests_total counter\n");
+    metrics.push_str(&format!("wolf_server_requests_total {}\n", request_count));
+
+    metrics.push_str("# HELP wolf_security_events_total Total number of security events\n");
+    metrics.push_str("# TYPE wolf_security_events_total gauge\n");
+    metrics.push_str(&format!("wolf_security_events_total {}\n", stats.total_events));
+
+    metrics.push_str("# HELP wolf_security_risk_score Current system risk score\n");
+    metrics.push_str("# TYPE wolf_security_risk_score gauge\n");
+    metrics.push_str(&format!("wolf_security_risk_score {}\n", stats.risk_score));
+
+    metrics.push_str("# HELP wolf_security_active_connections Number of active connections\n");
+    metrics.push_str("# TYPE wolf_security_active_connections gauge\n");
+    metrics.push_str(&format!("wolf_security_active_connections {}\n", stats.active_connections));
+
+    metrics.push_str("# HELP wolf_system_cpu_usage CPU usage percentage\n");
+    metrics.push_str("# TYPE wolf_system_cpu_usage gauge\n");
+    metrics.push_str(&format!("wolf_system_cpu_usage {}\n", stats.system.cpu_usage));
+
+    metrics.push_str("# HELP wolf_system_memory_usage Memory usage in MB\n");
+    metrics.push_str("# TYPE wolf_system_memory_usage gauge\n");
+    metrics.push_str(&format!("wolf_system_memory_usage {}\n", stats.system.memory_usage));
+
+    metrics
 }
 
 pub mod v1;

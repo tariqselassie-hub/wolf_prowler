@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![allow(missing_docs)]
 
 use dioxus::prelude::*;
 use dioxus_fullstack::prelude::*;
@@ -32,6 +33,9 @@ use tokio::sync::Mutex;
 mod vault_components;
 use crate::vault_components::*;
 
+mod ui_kit;
+use crate::ui_kit::*;
+
 mod dashboard_components;
 use crate::dashboard_components::*;
 
@@ -46,27 +50,7 @@ use crate::pages::wolfpack::WolfPackPage;
 use crate::pages::logs::LogsPage;
 
 // --- Types & State ---
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct SystemStats {
-    pub volume_size: String,
-    pub encrypted_sectors: f32,
-    pub entropy: f32,
-    pub db_status: String,
-    pub active_nodes: usize,
-    // New Fields
-    pub threat_level: String,
-    pub active_alerts: usize,
-    pub scanner_status: String,
-    pub network_status: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct RecordView {
-    pub id: String,
-    pub data: String, // Scrubbed or raw JSON
-    pub has_vector: bool,
-}
+use wolf_web::types::{SystemStats, RecordView};
 
 // Global state simulation
 #[cfg(feature = "server")]
@@ -432,111 +416,165 @@ fn SidebarLink(to: Route, icon: &'static str, label: &'static str) -> Element {
 
 #[component]
 fn Dashboard() -> Element {
-    let stats = use_resource(get_fullstack_stats);
+    let mut stats_resource = use_resource(get_fullstack_stats);
     let mut scan_status = use_signal(|| String::new());
     let mut is_loading = use_signal(|| false);
-    let logs_resource = use_resource(get_prowler_logs);
+    let mut logs_resource = use_resource(get_prowler_logs);
     let mut progress = use_signal(|| 0.0f32);
 
+    let stats = stats_resource.read().clone().unwrap_or(Ok(SystemStats {
+        volume_size: "---".to_string(),
+        encrypted_sectors: 0.0,
+        entropy: 0.0,
+        db_status: "OFFLINE".to_string(),
+        active_nodes: 0,
+        threat_level: "UNKNOWN".to_string(),
+        active_alerts: 0,
+        scanner_status: "IDLE".to_string(),
+        network_status: "DISCONNECTED".to_string(),
+    })).unwrap_or(SystemStats {
+        volume_size: "Error".to_string(),
+        encrypted_sectors: 0.0,
+        entropy: 0.0,
+        db_status: "ERROR".to_string(),
+        active_nodes: 0,
+        threat_level: "ERROR".to_string(),
+        active_alerts: 0,
+        scanner_status: "ERROR".to_string(),
+        network_status: "ERROR".to_string(),
+    });
+
+    // Mock history data for sparklines (would be real in prod)
+    let threat_history = vec![10.0, 20.0, 15.0, 40.0, 30.0, 60.0, 20.0, 10.0];
+    let network_history = vec![50.0, 55.0, 60.0, 58.0, 65.0, 70.0, 75.0, 80.0];
+
     rsx! {
-        div { class: "min-h-screen text-green-500 font-mono p-6 relative",
-            // HUD Header (Moved inside Dashboard content or kept as TopBar specific to Dashboard)
-            div { class: "flex justify-between items-center mb-8 pb-4 border-b border-green-900/50",
+        div { class: "min-h-screen text-green-500 font-mono p-6 relative flex flex-col gap-6",
+            // 1. Top Bar / HUD
+            div { class: "flex justify-between items-end border-b border-green-900/50 pb-4",
                 div {
-                    h2 { class: "text-2xl font-bold text-white tracking-widest uppercase flex items-center gap-3",
+                    h2 { class: "text-3xl font-bold text-white tracking-widest uppercase flex items-center gap-3",
                         i { class: "lucide-layout-dashboard" } 
-                        "Dashboard Overview"
+                        "Command Center"
                     }
-                     div { class: "flex items-center space-x-2 mt-1",
-                        span { class: "relative flex h-3 w-3",
-                            span { class: "animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" }
-                            span { class: "relative inline-flex rounded-full h-3 w-3 bg-green-500" }
-                        }
-                        span { class: "text-sm text-green-400/80 uppercase tracking-wider text-[10px]", "System Online // Monitoring Active" }
+                    div { class: "flex items-center gap-4 mt-2",
+                        Badge { label: format!("NET: {}", stats.network_status), color: if stats.network_status == "ONLINE" { "green".to_string() } else { "red".to_string() } }
+                        Badge { label: format!("DB: {}", stats.db_status), color: "blue".to_string() }
+                        span { class: "text-xs text-green-500/60 uppercase tracking-wider", "System Uptime: 42h 12m" }
                     }
                 }
-                div { class: "flex space-x-3",
-                     Link { to: Route::Login {}, class: "px-4 py-2 border border-red-900/50 bg-red-950/20 text-red-500 hover:bg-red-900/40 rounded uppercase text-xs font-bold tracking-wider transition-all", "[ TERMINATE_SESSION ]" }
+                div { class: "flex gap-2",
+                     Button { onclick: move |_| { stats_resource.restart(); logs_resource.restart(); }, 
+                        i { class: "lucide-refresh-cw w-4 h-4 mr-2" } "Refresh" 
+                     }
+                     Link { to: Route::Login {}, class: "px-4 py-2 border border-red-900/50 bg-red-950/20 text-red-500 hover:bg-red-900/40 rounded uppercase text-xs font-bold tracking-wider transition-all flex items-center", 
+                        i { class: "lucide-log-out w-4 h-4 mr-2" } "Logout" 
+                     }
                 }
             }
 
-
-
-            // Main Grid
-            div { class: "grid grid-cols-1 lg:grid-cols-3 gap-8",
-
-                // Column 1: System Status
-                div { class: "lg:col-span-1 space-y-6",
-                    match &*stats.read_unchecked() {
-                        Some(Ok(s)) => rsx! {
-                            SecurityBanner { stats: s.clone() }
-                            NetworkBanner { stats: s.clone() }
-                            ScannerBanner { stats: s.clone() }
-                        },
-                         _ => rsx! {
-                            div { class: "p-6 border border-green-800 animate-pulse text-center bg-black/50 backdrop-blur",
-                                "ESTABLISHING SECURE CONNECTION..."
-                            }
-                        }
+            // 2. Metrics Grid (Sparklines & Key Data)
+            div { class: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6",
+                Card {
+                    h3 { class: "text-gray-400 text-xs uppercase tracking-widest mb-2", "Threat Level" }
+                    div { class: "flex justify-between items-end",
+                        span { class: "text-3xl font-bold text-white", "{stats.threat_level}" }
+                        Sparkline { data: threat_history, width: 80.0, height: 25.0, color: if stats.threat_level == "CRITICAL" { "red".to_string() } else { "green".to_string() } }
                     }
+                }
+                Card {
+                    h3 { class: "text-gray-400 text-xs uppercase tracking-widest mb-2", "Active Nodes" }
+                    div { class: "flex justify-between items-end",
+                        span { class: "text-3xl font-bold text-white", "{stats.active_nodes}" }
+                        Sparkline { data: network_history, width: 80.0, height: 25.0, color: "blue".to_string() }
+                    }
+                }
+                Card {
+                    h3 { class: "text-gray-400 text-xs uppercase tracking-widest mb-2", "Volume Encrypted" }
+                    div { class: "flex justify-between items-end",
+                        span { class: "text-3xl font-bold text-white", "{stats.encrypted_sectors}%" }
+                        i { class: "lucide-lock w-8 h-8 text-green-500 opacity-50" }
+                    }
+                }
+                Card {
+                    h3 { class: "text-gray-400 text-xs uppercase tracking-widest mb-2", "Active Alerts" }
+                    div { class: "flex justify-between items-end",
+                        span { class: "text-3xl font-bold text-yellow-500", "{stats.active_alerts}" }
+                        i { class: "lucide-bell w-8 h-8 text-yellow-500 opacity-50" }
+                    }
+                }
+            }
 
-                    // Actions Module
-                    div { class: "border border-green-800 bg-gray-900/50 p-6 rounded relative overflow-hidden",
-                         div { class: "absolute top-0 right-0 p-2 opacity-20", i { class: "lucide-cpu w-16 h-16" } }
-
-                        h2 { class: "text-lg font-bold mb-6 uppercase border-b border-green-800/50 pb-2 tracking-widest z-10 relative", "Command Operations" }
-
-                        button {
-                            class: "w-full py-4 bg-green-900/10 border border-green-600 hover:bg-green-500 hover:text-black hover:shadow-[0_0_20px_rgba(34,197,94,0.6)] transition-all duration-300 uppercase font-bold tracking-[0.2em] relative overflow-hidden group clip-path-polygon",
-                            disabled: is_loading(),
-                            onclick: move |_| async move {
-                                is_loading.set(true);
-                                progress.set(0.0);
-                                scan_status.set("INITIATING SCAN SEQUENCE...".to_string());
-                                match run_prowler_scan().await {
-                                    Ok(msg) => scan_status.set(msg),
-                                    Err(e) => scan_status.set(format!("ERROR: {e}")),
-                                }
-                                is_loading.set(false);
-                            },
-                            if is_loading() {
-                                span { class: "animate-pulse", "[ SCANNING SECTORS ]" }
-                            } else {
-                                "[ INITIALIZE DEEP SCAN ]"
-                            }
+            // 3. Main Operations Area (Split View)
+            div { class: "grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1",
+                // Left: Scanner Control & Detailed Status
+                div { class: "space-y-6",
+                    Card {
+                        h3 { class: "text-lg font-bold mb-4 uppercase border-b border-green-800/50 pb-2 flex items-center gap-2",
+                             i { class: "lucide-scan-line" } "Deep Scan Control"
                         }
-
-                         if is_loading() || progress() > 0.0 {
-                            div { class: "mt-6",
-                                div { class: "w-full bg-black border border-green-900 h-2 relative overflow-hidden",
+                        div { class: "space-y-4",
+                            div { class: "flex justify-between text-sm",
+                                span { "Scanner Status:" }
+                                span { class: "font-bold", "{stats.scanner_status}" }
+                            }
+                            if is_loading() || progress() > 0.0 {
+                                div { class: "w-full bg-black border border-green-900 h-2 relative overflow-hidden rounded",
                                     div {
-                                        class: "bg-green-500 h-full shadow-[0_0_10px_#22c55e] transition-all duration-200 relative",
+                                        class: "bg-green-500 h-full transition-all duration-200",
                                         style: "width: {progress()}%"
                                     }
                                 }
-                                div { class: "flex justify-between text-[10px] mt-1 text-green-400 font-mono",
-                                    span { "ANALYSIS_PROGRESS" }
-                                    span { "{progress().round()}%" }
+                            }
+                            Button { 
+                                class: "w-full py-4 text-lg",
+                                disabled: is_loading(),
+                                onclick: move |_| async move {
+                                    is_loading.set(true);
+                                    progress.set(0.0);
+                                    scan_status.set("INITIATING...".to_string());
+                                    // Mock progress
+                                    for i in 0..10 {
+                                        progress.set(i as f32 * 10.0);
+                                        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                                    }
+                                    match run_prowler_scan().await {
+                                        Ok(msg) => scan_status.set(msg),
+                                        Err(e) => scan_status.set(format!("ERROR: {e}")),
+                                    }
+                                    progress.set(100.0);
+                                    is_loading.set(false);
+                                },
+                                if is_loading() { "SCANNING..." } else { "INITIALIZE SCAN" }
+                            }
+                            if !scan_status.read().is_empty() {
+                                div { class: "p-2 bg-black/50 border-l-2 border-green-500 text-xs font-mono text-green-300",
+                                    "> {scan_status}"
                                 }
                             }
                         }
-
-                        if !scan_status.read().is_empty() {
-                            div { class: "mt-4 p-3 border-l-2 border-green-500 bg-black/50 text-xs font-mono text-green-300",
-                                "> {scan_status}"
-                            }
+                    }
+                    
+                    // Quick Actions
+                    Card {
+                        h3 { class: "text-lg font-bold mb-4 uppercase border-b border-green-800/50 pb-2", "Quick Actions" }
+                        div { class: "grid grid-cols-2 gap-2",
+                            Button { class: "text-xs", "Flush Cache" }
+                            Button { class: "text-xs", "Rotate Keys" }
+                            Button { class: "text-xs", "Export Logs" }
+                            Button { class: "text-xs text-red-400 border-red-900/50 hover:bg-red-900/20", "Emergency Stop" }
                         }
                     }
                 }
 
-                // Column 2 & 3: Console / Logs (Cyber-Terminal)
-                div { class: "lg:col-span-2",
-                    div { class: "border border-green-800 bg-black/90 h-[600px] lg:h-full rounded flex flex-col relative overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)]",
-                        // Top Bar
+                // Right: Live Terminal / Map
+                div { class: "lg:col-span-2 flex flex-col h-full",
+                    div { class: "border border-green-800 bg-black/90 flex-1 rounded flex flex-col relative overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)] min-h-[400px]",
+                        // Terminal Header
                         div { class: "p-2 border-b border-green-800 bg-green-900/20 flex justify-between items-center",
                             div { class: "flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-green-400/80",
                                 i { class: "lucide-terminal-square w-4 h-4" }
-                                "Terminal Output // Node_Alpha"
+                                "System Output Stream"
                             }
                             div { class: "flex space-x-1",
                                 div { class: "w-2 h-2 rounded-full bg-red-900/50" }
@@ -545,32 +583,29 @@ fn Dashboard() -> Element {
                             }
                         }
                         
-                        // CRT Screen content
-                        div { class: "flex-1 p-6 font-mono text-sm overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-green-900 scrollbar-track-black relative font-medium",
-                            // Scanline Overlay (CSS trick)
+                        // Terminal Body
+                        div { class: "flex-1 p-4 font-mono text-sm overflow-y-auto space-y-1 font-medium relative",
+                            // Scanline Overlay
                             div { class: "pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] z-20 opacity-20" }
                             
-                            match &*logs_resource.read_unchecked() {
+                            match &*logs_resource.read() {
                                 Some(Ok(logs)) => rsx! {
                                     {logs.into_iter().map(|log| {
                                         let ts = Utc::now().format("%H:%M:%S").to_string();
                                         rsx! {
                                             div { class: "hover:bg-green-500/10 px-2 py-0.5 border-l-2 border-transparent hover:border-green-500 transition-colors text-green-100/90 text-shadow-sm",
                                                 span { class: "opacity-50 mr-3 text-green-600 text-[10px]", "[{ts}]" }
-                                                span { class: "text-green-400 mr-2", ">>" }
+                                                span { class: "text-green-400 mr-2", ">" }
                                                 "{log}"
                                             }
                                         }
                                     })}
                                 },
                                 _ => rsx! {
-                                    div { class: "opacity-50",
-                                        p { "> System Ready." }
-                                        p { "> Awaiting Command input..." }
-                                    }
+                                    div { class: "opacity-50", "> System Ready. Waiting for data..." }
                                 }
                             }
-                             // Blinking cursor footer
+                             // Cursor
                             div { class: "p-2 mt-4 text-xs flex items-center gap-2",
                                 span { class: "text-green-500 font-bold", "root@wolf_prowler:~#"}
                                 span { class: "w-2 h-4 bg-green-500 animate-[pulse_1s_steps(2)_infinite]" }

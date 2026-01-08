@@ -1619,10 +1619,32 @@ impl VulnerabilityScanner {
 mod tests {
     use super::*;
 
+    /// Simple in-memory threat repository for testing
+    struct MockThreatRepository;
+
+    #[async_trait::async_trait]
+    impl crate::domain::repositories::ThreatRepository for MockThreatRepository {
+        async fn save(
+            &self,
+            _threat: &crate::domain::entities::Threat,
+        ) -> Result<(), crate::domain::error::DomainError> {
+            Ok(())
+        }
+
+        async fn find_by_id(
+            &self,
+            _id: &uuid::Uuid,
+        ) -> Result<Option<crate::domain::entities::Threat>, crate::domain::error::DomainError>
+        {
+            Ok(None)
+        }
+    }
+
     #[tokio::test]
     async fn test_threat_detector_creation() {
         let config = ThreatDetectionConfig::default();
-        let mut detector = ThreatDetector::new(config);
+        let threat_repo = Arc::new(MockThreatRepository);
+        let mut detector = ThreatDetector::new(config, threat_repo);
         detector.initialize().await.unwrap();
 
         let status = detector.get_status().await;
@@ -1632,7 +1654,8 @@ mod tests {
     #[tokio::test]
     async fn test_peer_registration() {
         let config = ThreatDetectionConfig::default();
-        let mut detector = ThreatDetector::new(config);
+        let threat_repo = Arc::new(MockThreatRepository);
+        let mut detector = ThreatDetector::new(config, threat_repo);
 
         detector
             .register_peer("test_peer".to_string(), 0.8)
@@ -1647,7 +1670,8 @@ mod tests {
     #[tokio::test]
     async fn test_security_event_recording() {
         let config = ThreatDetectionConfig::default();
-        let mut detector = ThreatDetector::new(config);
+        let threat_repo = Arc::new(MockThreatRepository);
+        let mut detector = ThreatDetector::new(config, threat_repo);
 
         let event = crate::SecurityEvent {
             id: uuid::Uuid::new_v4().to_string(),
@@ -1668,7 +1692,8 @@ mod tests {
     #[tokio::test]
     async fn test_peer_blocking() {
         let config = ThreatDetectionConfig::default();
-        let mut detector = ThreatDetector::new(config);
+        let threat_repo = Arc::new(MockThreatRepository);
+        let mut detector = ThreatDetector::new(config, threat_repo);
 
         detector
             .register_peer("test_peer".to_string(), 0.8)

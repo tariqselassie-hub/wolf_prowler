@@ -6,9 +6,28 @@ Wolf Server now includes comprehensive API endpoints for querying historical dat
 
 ## API Endpoints
 
-### Database Health & Stats
+### System Health & Metrics
 
-#### `GET /database/health`
+#### `GET /api/metrics`
+Get system metrics in Prometheus format.
+
+**Example**:
+```bash
+curl "http://localhost:3030/api/metrics"
+```
+
+**Response**:
+```text
+# HELP wolf_server_requests_total Total number of HTTP requests
+# TYPE wolf_server_requests_total counter
+wolf_server_requests_total 150
+# HELP wolf_security_events_total Total number of security events
+# TYPE wolf_security_events_total gauge
+wolf_security_events_total 12
+...
+```
+
+#### `GET /api/health`
 Check database connectivity and health status.
 
 **Response**:
