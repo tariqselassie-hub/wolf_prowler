@@ -8,12 +8,12 @@ Wolf Server now includes comprehensive API endpoints for querying historical dat
 
 ### System Health & Metrics
 
-#### `GET /api/metrics`
+#### `GET /api/prometheus`
 Get system metrics in Prometheus format.
 
 **Example**:
 ```bash
-curl "http://localhost:3030/api/metrics"
+curl "http://localhost:3030/api/prometheus"
 ```
 
 **Response**:

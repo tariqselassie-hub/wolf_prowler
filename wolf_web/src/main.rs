@@ -48,9 +48,10 @@ use crate::pages::settings::SettingsPage;
 use crate::pages::system::SystemPage;
 use crate::pages::wolfpack::WolfPackPage;
 use crate::pages::logs::LogsPage;
+use crate::pages::security::SecurityPage;
 
 // --- Types & State ---
-use wolf_web::types::{SystemStats, RecordView};
+use wolf_web::types::*;
 
 // Global state simulation
 #[cfg(feature = "server")]
@@ -65,6 +66,9 @@ pub(crate) static APP_STATE: Lazy<AsyncMutex<Option<AppState>>> =
 #[cfg(feature = "server")]
 pub(crate) static SECURITY_ENGINE: Lazy<AsyncMutex<Option<wolfsec::WolfSecurity>>> =
     Lazy::new(|| AsyncMutex::new(None));
+#[cfg(feature = "server")]
+pub(crate) static SWARM_MANAGER: Lazy<AsyncMutex<Option<Arc<wolf_net::SwarmManager>>>> =
+    Lazy::new(|| AsyncMutex::new(None));
 
 // --- Server Functions (Dioxus 0.6 RPC) ---
 
@@ -72,6 +76,7 @@ pub(crate) static SECURITY_ENGINE: Lazy<AsyncMutex<Option<wolfsec::WolfSecurity>
 async fn get_fullstack_stats() -> Result<SystemStats, ServerFnError> {
     let prowler_lock = PROWLER.lock().await;
     let security_lock = SECURITY_ENGINE.lock().await;
+    let swarm_lock = SWARM_MANAGER.lock().await;
 
     let mut stats = SystemStats {
         volume_size: "Disconnected".to_string(),
@@ -83,6 +88,7 @@ async fn get_fullstack_stats() -> Result<SystemStats, ServerFnError> {
         active_alerts: 0,
         scanner_status: "IDLE".to_string(),
         network_status: "DISCONNECTED".to_string(),
+        firewall: FirewallStats::default(),
     };
 
     if let Some(prowler) = prowler_lock.as_ref() {
@@ -125,6 +131,21 @@ async fn get_fullstack_stats() -> Result<SystemStats, ServerFnError> {
         stats.active_alerts = sec_status.monitoring.active_alerts;
     }
 
+    if let Some(swarm) = swarm_lock.as_ref() {
+        let fw = swarm.firewall.read().await;
+        stats.firewall.enabled = fw.enabled;
+        stats.firewall.policy = format!("{:?}", fw.policy);
+        stats.firewall.active_rules = fw.rules.len();
+        
+        stats.firewall.rules = fw.rules.iter().map(|r| FirewallRuleView {
+            name: r.name.clone(),
+            target: format!("{:?}", r.target),
+            protocol: format!("{:?}", r.protocol),
+            action: format!("{:?}", r.action),
+            direction: format!("{:?}", r.direction),
+        }).collect();
+    }
+
     Ok(stats)
 }
 
@@ -157,6 +178,64 @@ async fn get_prowler_status() -> Result<HeadlessStatus, ServerFnError> {
         next_scan_time: None,
         progress: 100.0,
     })
+}
+
+#[server]
+async fn get_wolfpack_data() -> Result<WolfPackTelemetry, ServerFnError> {
+    let swarm_lock = SWARM_MANAGER.lock().await;
+    
+    if let Some(swarm) = swarm_lock.as_ref() {
+        let wolf_state = swarm.get_wolf_state().await
+            .map_err(|e| ServerFnError::new(e.to_string()))?;
+        let state = wolf_state.read().await;
+        
+        let active_hunts = state.active_hunts.iter().map(|h| ActiveHuntView {
+            id: h.hunt_id.clone(),
+            target: h.target_ip.clone(),
+            status: format!("{:?}", h.status),
+            confidence: h.confidence,
+            start_time: "Now".to_string(), // Simplified for now
+        }).collect();
+
+        // Get peer list
+        let peers = swarm.list_peers().await
+            .map_err(|e| ServerFnError::new(e.to_string()))?
+            .into_iter()
+            .map(|p| PeerStatus {
+                id: p.entity_id.peer_id.to_string(),
+                status: format!("{:?}", p.status),
+                role: "Unknown".to_string(), // Need to fetch role if possible
+                rtt_ms: p.metrics.latency_ms,
+            })
+            .collect();
+
+        Ok(WolfPackTelemetry {
+            node_id: swarm.local_peer_id.to_string(),
+            raft_state: state.election_state.clone(),
+            term: state.election_term,
+            commit_index: 0, // Not exposed in WolfState yet
+            last_heartbeat: Utc::now().format("%H:%M:%S").to_string(),
+            peers,
+            network_health: 0.95, // Calculated metric
+            active_hunts,
+            role: format!("{:?}", state.role),
+            prestige: state.prestige,
+        })
+    } else {
+        // Fallback for standalone/dev
+        Ok(WolfPackTelemetry {
+            node_id: "DEV-NODE-01".to_string(),
+            raft_state: "Leader".to_string(),
+            term: 1,
+            commit_index: 100,
+            last_heartbeat: Utc::now().format("%H:%M:%S").to_string(),
+            peers: vec![],
+            network_health: 1.0,
+            active_hunts: vec![],
+            role: "Alpha".to_string(),
+            prestige: 9999,
+        })
+    }
 }
 
 // --- SSO Server Functions ---
@@ -432,6 +511,7 @@ fn Dashboard() -> Element {
         active_alerts: 0,
         scanner_status: "IDLE".to_string(),
         network_status: "DISCONNECTED".to_string(),
+        firewall: FirewallStats::default(),
     })).unwrap_or(SystemStats {
         volume_size: "Error".to_string(),
         encrypted_sectors: 0.0,
@@ -442,6 +522,7 @@ fn Dashboard() -> Element {
         active_alerts: 0,
         scanner_status: "ERROR".to_string(),
         network_status: "ERROR".to_string(),
+        firewall: FirewallStats::default(),
     });
 
     // Mock history data for sparklines (would be real in prod)
@@ -938,26 +1019,6 @@ fn App() -> Element {
 
 // --- Placeholder Pages ---
 
-#[component]
-fn SecurityPage() -> Element {
-    rsx! {
-        div { class: "p-8",
-            h1 { class: "text-3xl font-bold mb-4", "Security Operations Center" }
-            p { class: "text-gray-400", "Threat detection and response modules." }
-            div { class: "grid grid-cols-3 gap-6 mt-8",
-                div { class: "p-6 bg-gray-800 rounded border border-red-900/30",
-                    h3 { class: "text-lg font-bold text-red-500", "Active Threats" }
-                    p { class: "text-4xl font-mono mt-2", "0" }
-                }
-                div { class: "p-6 bg-gray-800 rounded border border-blue-900/30",
-                    h3 { class: "text-lg font-bold text-blue-500", "Behavioral Score" }
-                    p { class: "text-4xl font-mono mt-2", "98/100" }
-                }
-            }
-        }
-    }
-}
-
 // Placeholders removed, imported from pages module
 
 // --- Main / Server Entry ---
@@ -1008,25 +1069,17 @@ async fn main() {
 
     // Update global reference
     if let Some(_sec) = &wolf_security {
-        // *SECURITY_ENGINE.lock().await = Some(sec.read().await.clone()); 
-        // Note: WolfSecurity assumes Clone is cheap or we just copy the handle? 
-        // WolfSecurity does NOT derive Clone easily (fields like Mutex/RwLock internal?). 
-        // Actually WolfSecurity struct fields are owning. 
-        // We should PROBABLY not clone WolfSecurity into GLOBAL static if we have the Arc<RwLock>.
-        // But types match existing expected global? 
-        // Global is: static SECURITY_ENGINE: Lazy<AsyncMutex<Option<wolfsec::WolfSecurity>>>
-        // We can't put Arc<RwLock> in there easily without changing type.
-        // For now, let's keep the global for legacy, but use the Arc for AppState.
-        // CHECK TYPE: WolfSecurity DOES NOT DERIVE CLONE in lib.rs.
-        // So we can't clone it to put into SECURITY_ENGINE global AND wrap in Arc for AppState.
-        // We must wrap in Arc FIRST, then maybe just leave GLOBAL empty or change global type?
-        // Changing global type is too invasive for now.
-        // Actually, we can just NOT populate the global SECURITY_ENGINE if AppState is used everywhere.
-        // But dashboard RPCs use it: get_fullstack_stats uses SECURITY_ENGINE.lock().await.
-        // We should refactor RPCs to use AppState context, but they are Dioxus Server Functions.
-        // Dioxus Server Functions can access Axum State via FromContext? 
-        // Not easily in 0.6 server functions logic shown here.
-        // Let's rely on AppState having the security engine.
+        // ... (commented out code in original)
+    }
+
+    // Initialize SwarmManager (for Firewall stats)
+    let swarm_config = wolf_net::SwarmConfig::default();
+    match wolf_net::SwarmManager::new(swarm_config) {
+        Ok(swarm) => {
+            *SWARM_MANAGER.lock().await = Some(Arc::new(swarm));
+            println!("Swarm Manager Initialized");
+        }
+        Err(e) => eprintln!("Failed to initialize Swarm Manager: {}", e),
     }
 
     // Initialize Authentication Manager (IAM)

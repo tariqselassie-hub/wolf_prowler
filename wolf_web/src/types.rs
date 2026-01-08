@@ -21,6 +21,8 @@ pub struct SystemStats {
     pub scanner_status: String,
     /// Network connectivity status
     pub network_status: String,
+    /// Firewall status information
+    pub firewall: FirewallStats,
 }
 
 /// View model for a database record
@@ -33,3 +35,473 @@ pub struct RecordView {
     /// Whether the record has vector embedding
     pub has_vector: bool,
 }
+
+/// Firewall statistics and status
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct FirewallStats {
+    /// Whether the firewall is enabled
+    pub enabled: bool,
+    /// Default policy (Allow/Deny)
+    pub policy: String,
+    /// Number of active rules
+    pub active_rules: usize,
+    /// Number of blocked events
+    pub blocked_count: usize,
+    /// Active firewall rules
+    pub rules: Vec<FirewallRuleView>,
+    /// Recent firewall events
+    pub recent_events: Vec<FirewallEventView>,
+}
+
+impl Default for FirewallStats {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            policy: "Default".to_string(),
+            active_rules: 0,
+            blocked_count: 0,
+            rules: Vec::new(),
+            recent_events: Vec::new(),
+        }
+    }
+}
+
+/// View model for a firewall rule
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+
+pub struct FirewallRuleView {
+
+    /// Human-readable name
+
+    pub name: String,
+
+    /// Target of the rule (IP, Port, PeerID)
+
+    pub target: String,
+
+    /// Protocol (TCP, UDP, etc.)
+
+    pub protocol: String,
+
+    /// Action (Allow/Deny)
+
+    pub action: String,
+
+    /// Direction (Inbound/Outbound)
+
+    pub direction: String,
+
+}
+
+
+
+/// View model for a firewall event
+
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+
+
+
+pub struct FirewallEventView {
+
+
+
+    /// Time of the event
+
+
+
+    pub timestamp: String,
+
+
+
+    /// Source of the traffic
+
+
+
+    pub source: String,
+
+
+
+    /// Action taken
+
+
+
+    pub action: String,
+
+
+
+    /// Reason for the action
+
+
+
+    pub reason: String,
+
+
+
+}
+
+
+
+
+
+
+
+/// Telemetry data for the Wolf Pack system
+
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+
+
+
+pub struct WolfPackTelemetry {
+
+
+
+    /// The node's unique identifier
+
+
+
+    pub node_id: String,
+
+
+
+    /// Current Raft consensus state
+
+
+
+    pub raft_state: String, // "Leader", "Follower", "Candidate"
+
+
+
+    /// Current term number
+
+
+
+    pub term: u64,
+
+
+
+    /// Index of the last committed entry
+
+
+
+    pub commit_index: u64,
+
+
+
+    /// Timestamp of the last heartbeat
+
+
+
+    pub last_heartbeat: String,
+
+
+
+    /// List of connected peers
+
+
+
+    pub peers: Vec<PeerStatus>,
+
+
+
+    /// Overall network health score (0.0 - 1.0)
+
+
+
+    pub network_health: f64,
+
+
+
+    /// Active hunts
+
+
+
+    pub active_hunts: Vec<ActiveHuntView>,
+
+
+
+    /// Current role of the node
+
+
+
+    pub role: String,
+
+
+
+    /// Prestige score of the node
+
+
+
+    pub prestige: u32,
+
+
+
+}
+
+
+
+
+
+
+
+/// Status of a peer in the Wolf Pack
+
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+
+
+
+pub struct PeerStatus {
+
+
+
+    /// Peer ID
+
+
+
+    pub id: String,
+
+
+
+    /// Connection status
+
+
+
+    pub status: String, // "Active", "Unknown"
+
+
+
+    /// Role in the pack
+
+
+
+    pub role: String,   // "Voter", "Learner"
+
+
+
+    /// Round-trip time in milliseconds
+
+
+
+    pub rtt_ms: u64,
+
+
+
+}
+
+
+
+
+
+
+
+/// View model for an active hunt
+
+
+
+
+
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+
+
+
+
+
+
+
+pub struct ActiveHuntView {
+
+
+
+
+
+
+
+    /// Unique hunt ID
+
+
+
+
+
+
+
+    pub id: String,
+
+
+
+
+
+
+
+    /// Target IP address
+
+
+
+
+
+
+
+    pub target: String,
+
+
+
+
+
+
+
+    /// Current status
+
+
+
+
+
+
+
+    pub status: String,
+
+
+
+
+
+
+
+    /// Confidence score (0.0 - 1.0)
+
+
+
+
+
+
+
+    pub confidence: f64,
+
+
+
+
+
+
+
+    /// Start time
+
+
+
+
+
+
+
+    pub start_time: String,
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/// Compliance metric for dashboard
+
+
+
+
+
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+
+
+
+
+
+
+
+pub struct ComplianceMetric {
+
+
+
+
+
+
+
+    /// Name of the compliance control
+
+
+
+
+
+
+
+    pub name: String,
+
+
+
+
+
+
+
+    /// Status of the control (PASS, FAIL, WARN)
+
+
+
+
+
+
+
+    pub status: String,
+
+
+
+
+
+
+
+    /// Detailed description or reason
+
+
+
+
+
+
+
+    pub details: String,
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+

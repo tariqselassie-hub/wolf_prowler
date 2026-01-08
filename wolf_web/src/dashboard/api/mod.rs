@@ -174,7 +174,7 @@ pub fn create_api_router(state: Arc<AppState>) -> Router {
         .route("/health", get(health_check))
         // .route("/status", get(api_status)) // Conflict with v1/status
         .route("/config", get(get_config))
-        .route("/metrics", get(metrics_handler))
+        .route("/prometheus", get(metrics_handler))
         .with_state(state.clone());
 
 
@@ -227,7 +227,7 @@ pub fn create_api_router_with_state(state: Arc<AppState>) -> Router {
         .route("/health", get(health_check))
         // .route("/status", get(api_status)) // Conflict with v1/status
         .route("/config", get(get_config))
-        .route("/metrics", get(metrics_handler))
+        .route("/prometheus", get(metrics_handler))
         .with_state(state.clone());
 
     let router = v1::create_v1_router(state.clone()).merge(stateful_routes);

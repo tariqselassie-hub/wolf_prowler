@@ -1,4 +1,5 @@
 #![allow(missing_docs)]
+#![allow(missing_docs)]
 use wolfsec::security::advanced::ml_security::{MLSecurityEngine, MLSecurityConfig};
 use wolfsec::security::advanced::siem::{WolfSIEMManager, SIEMConfig, SecurityEvent, SecurityEventType, EventSeverity, AuthEventType, EventSource, SourceType, EventDetails, CorrelationData, MitreTactic};
 use wolfsec::security::advanced::soar::PlaybookEngine; // Removed unused

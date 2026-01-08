@@ -6,3 +6,4 @@ pub mod settings;
 pub mod system;
 pub mod wolfpack;
 pub mod logs;
+pub mod security;

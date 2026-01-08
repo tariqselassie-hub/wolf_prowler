@@ -1,4 +1,5 @@
 #![allow(missing_docs)]
+#![allow(missing_docs)]
 use wolfsec::external_feeds::ExternalFeedsConfig;
 
 #[test]
