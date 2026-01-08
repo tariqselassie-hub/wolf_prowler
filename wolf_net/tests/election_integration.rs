@@ -1,3 +1,4 @@
+//! Integration tests for WolfNet Election
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::sync::mpsc;

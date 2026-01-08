@@ -246,13 +246,13 @@ impl EventHandler {
     }
 
     /// Starts the event handler loop.
-    pub async fn start(&mut self) -> anyhow::Result<()> {
+    pub fn start(&mut self) -> anyhow::Result<()> {
         info!("📡 Event handler started");
         Ok(())
     }
 
     /// Gracefully stops the event handler.
-    pub async fn stop(&mut self) -> anyhow::Result<()> {
+    pub fn stop(&mut self) -> anyhow::Result<()> {
         info!("📡 Event handler stopped");
         Ok(())
     }

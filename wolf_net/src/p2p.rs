@@ -90,6 +90,7 @@ pub struct WolfNetBehavior {
 }
 
 /// Returns an optimized gossipsub configuration
+#[must_use]
 pub fn optimized_gossipsub_config() -> gossipsub::Config {
     gossipsub::ConfigBuilder::default()
         .heartbeat_interval(Duration::from_secs(1))
@@ -100,7 +101,7 @@ pub fn optimized_gossipsub_config() -> gossipsub::Config {
             gossipsub::MessageId::from(hasher.finalize().to_vec())
         })
         .duplicate_cache_time(Duration::from_secs(60))
-        .max_transmit_size(1024 * 1024) // 1MB
+        .max_transmit_size(1_048_576) // 1MB
         .build()
         .expect("Valid config")
 }
@@ -193,7 +194,7 @@ where
     io.read_exact(&mut len_buf).await?;
     let len = u32::from_be_bytes(len_buf) as usize;
 
-    if len > 10 * 1024 * 1024 {
+    if len > 10_485_760 {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "Message too large",

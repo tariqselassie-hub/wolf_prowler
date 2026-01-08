@@ -1,4 +1,3 @@
-use super::error::Result;
 use super::howl::{HowlMessage, HowlPayload, HowlPriority};
 use crate::peer::PeerId;
 use rand::Rng;
@@ -52,7 +51,8 @@ pub struct ElectionManager {
 }
 
 impl ElectionManager {
-    /// Create a new ElectionManager
+    /// Create a new `ElectionManager`
+    #[must_use]
     pub fn new(local_peer_id: PeerId, local_prestige: u32) -> Self {
         Self {
             local_peer_id,
@@ -72,7 +72,7 @@ impl ElectionManager {
         self.local_prestige = prestige;
     }
 
-    /// Proceed time and return any messages to send (e.g. Heartbeats, VoteRequests)
+    /// Proceed time and return any messages to send (e.g. Heartbeats, `VoteRequests`)
     pub fn tick(&mut self) -> Option<HowlMessage> {
         let now = Instant::now();
 
@@ -95,14 +95,15 @@ impl ElectionManager {
     }
 
     /// Process an incoming Howl message related to elections
-    pub fn handle_howl(&mut self, msg: &HowlMessage) -> Result<Option<HowlMessage>> {
+    #[must_use]
+    pub fn handle_howl(&mut self, msg: &HowlMessage) -> Option<HowlMessage> {
         match &msg.payload {
             HowlPayload::ElectionRequest {
                 term,
                 candidate_id,
                 prestige,
                 ..
-            } => self.handle_election_request(*term, candidate_id, *prestige),
+            } => Some(self.handle_election_request(*term, candidate_id, *prestige)),
             HowlPayload::ElectionVote {
                 term,
                 granted,
@@ -111,7 +112,7 @@ impl ElectionManager {
             HowlPayload::AlphaHeartbeat { term, leader_id } => {
                 self.handle_heartbeat(*term, leader_id)
             }
-            _ => Ok(None),
+            _ => None,
         }
     }
 
@@ -156,10 +157,10 @@ impl ElectionManager {
         term: u64,
         candidate_id: &PeerId,
         candidate_prestige: u32,
-    ) -> Result<Option<HowlMessage>> {
+    ) -> HowlMessage {
         // 1. Reply false if term < currentTerm
         if term < self.current_term {
-            return Ok(Some(self.send_vote(term, false)));
+            return self.send_vote(term, false);
         }
 
         // Update term if newer
@@ -186,10 +187,10 @@ impl ElectionManager {
         if can_vote && prestige_sufficient {
             self.voted_for = Some(candidate_id.clone());
             self.election_timeout = Self::randomized_timeout(); // Reset timeout
-            return Ok(Some(self.send_vote(term, true)));
+            return self.send_vote(term, true);
         }
 
-        Ok(Some(self.send_vote(term, false)))
+        self.send_vote(term, false)
     }
 
     fn handle_vote(
@@ -197,9 +198,9 @@ impl ElectionManager {
         term: u64,
         granted: bool,
         voter: PeerId,
-    ) -> Result<Option<HowlMessage>> {
+    ) -> Option<HowlMessage> {
         if term < self.current_term {
-            return Ok(None);
+            return None;
         }
 
         if self.state == ElectionState::Candidate && term == self.current_term && granted {
@@ -215,17 +216,17 @@ impl ElectionManager {
                 self.state = ElectionState::Leader;
                 self.leader_id = Some(self.local_peer_id.clone());
                 self.last_heartbeat = Instant::now();
-                return Ok(Some(self.send_heartbeat()));
+                return Some(self.send_heartbeat());
             }
         }
-        Ok(None)
+        None
     }
 
-    fn handle_heartbeat(&mut self, term: u64, leader_id: &PeerId) -> Result<Option<HowlMessage>> {
+    fn handle_heartbeat(&mut self, term: u64, leader_id: &PeerId) -> Option<HowlMessage> {
         if term < self.current_term {
             // Reply with current term? Or just ignore. Standard Raft replies with term.
             // For Gossip protocol, we might not reply directly, just ignore.
-            return Ok(None);
+            return None;
         }
 
         self.current_term = term;
@@ -234,7 +235,7 @@ impl ElectionManager {
         self.last_heartbeat = Instant::now();
         self.election_timeout = Self::randomized_timeout();
 
-        Ok(None)
+        None
     }
 
     fn send_vote(&self, term: u64, granted: bool) -> HowlMessage {

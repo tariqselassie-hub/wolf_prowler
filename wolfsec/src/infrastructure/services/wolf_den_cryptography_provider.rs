@@ -105,7 +105,7 @@ impl CryptographyProvider for WolfDenCryptographyProvider {
 
     async fn hash(&self, data: &[u8]) -> Result<HashedData, DomainError> {
         let hash =
-            self.engine.hash(data).await.map_err(|e| {
+            self.engine.hash(data).map_err(|e| {
                 DomainError::CryptoOperationFailed(format!("Hashing failed: {}", e))
             })?;
 

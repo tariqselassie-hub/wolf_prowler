@@ -9,42 +9,60 @@ use serde::{Deserialize, Serialize};
 /// Database-backed vault with persistent storage
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Vault {
+    /// List of encrypted entries.
     pub entries: Vec<VaultEntry>,
 }
 
 /// Metadata for vault entries stored in database
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VaultMetadata {
+    /// Unique identifier for the entry.
     pub id: String,
+    /// Type of the secret (e.g., "SSH", "BitLocker").
     pub secret_type: String,
+    /// Human-readable description.
     pub description: String,
+    /// Timestamp when the entry was created.
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 /// Types of secrets that can be stored in the vault
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SecretType {
+    /// BitLocker recovery key.
     BitLocker,
+    /// SSH private key.
     SSH,
+    /// PGP private key.
     PGP,
+    /// Cryptocurrency wallet seed.
     CryptoSeed,
+    /// API key or token.
     APIKey,
+    /// Generic secret data.
     Generic,
 }
 
 /// A single encrypted secret entry
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VaultEntry {
+    /// Unique identifier for this entry.
     pub id: String,
+    /// Human-readable description.
     pub description: String,
+    /// Type of the secret.
     pub secret_type: SecretType,
+    /// Encrypted secret data.
     #[serde(with = "hex_serde")]
     pub ciphertext: Vec<u8>,
+    /// Nonce used for encryption.
     #[serde(with = "hex_serde")]
     pub nonce: Vec<u8>,
 }
 
 impl Vault {
+    /// Creates a new, empty vault.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             entries: Vec::new(),

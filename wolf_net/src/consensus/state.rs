@@ -32,6 +32,7 @@ pub struct SharedState {
 
 impl SharedState {
     /// Create new empty state
+    #[must_use]
     pub fn new() -> Self {
         Self {
             threats: HashMap::new(),
@@ -43,6 +44,9 @@ impl SharedState {
     }
 
     /// Apply a proposal to the state machine
+    ///
+    /// # Errors
+    /// Returns an error if the proposal cannot be applied (currently always returns Ok).
     pub fn apply(&mut self, proposal: Proposal) -> Result<()> {
         match proposal {
             Proposal::AddThreat { threat, proposer } => {
@@ -97,16 +101,19 @@ impl SharedState {
     }
 
     /// Get threat count
+    #[must_use]
     pub fn threat_count(&self) -> usize {
         self.threats.len()
     }
 
     /// Get firewall rule count
+    #[must_use]
     pub fn firewall_rule_count(&self) -> usize {
         self.firewall_rules.len()
     }
 
     /// Get territory device count
+    #[must_use]
     pub fn device_count(&self) -> usize {
         self.territory.len()
     }

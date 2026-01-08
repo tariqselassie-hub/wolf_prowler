@@ -59,8 +59,11 @@ impl AuthManager {
     /// # Arguments
     /// * `password` - The plaintext password to hash.
     ///
-    /// # Returns
+    /// Returns
     /// A `Result` containing the securely hashed password as a `PasswordHashString`.
+    ///
+    /// # Errors
+    /// Returns an error if hashing fails (e.g. Argon2 internal error).
     pub async fn hash_password(&self, password: &[u8]) -> Result<PasswordHashString> {
         let password_bytes = password.to_vec(); // Clone password to move into the thread
 
@@ -78,17 +81,24 @@ impl AuthManager {
         .await?
     }
 
-    /// Initialize the authentication manager
+    /// Initialize the authentication manager.
+    ///
+    /// # Errors
+    /// Returns an error if initialization fails (currently no-op).
     pub async fn initialize(&mut self) -> Result<()> {
         Ok(())
     }
 
-    /// Shutdown the authentication manager
+    /// Shutdown the authentication manager.
+    ///
+    /// # Errors
+    /// Returns an error if shutdown fails (currently no-op).
     pub async fn shutdown(&mut self) -> Result<()> {
         Ok(())
     }
 
-    /// Get authentication status
+    /// Get authentication status.
+    #[must_use]
     pub fn get_status(&self) -> AuthStatus {
         AuthStatus {
             active_sessions: 0,
@@ -108,6 +118,9 @@ impl AuthManager {
     /// # Returns
     /// A `Result<bool>` which is `true` if the password is valid, and `false` otherwise.
     /// An `Err` is returned if the hash is malformed or another error occurs.
+    ///
+    /// # Errors
+    /// Returns an error if the hash string is invalid or verification fails.
     pub async fn verify_password(
         &self,
         password: &[u8],

@@ -17,7 +17,8 @@ pub struct ApiResponse<T> {
 
 impl<T> ApiResponse<T> {
     /// Creates a successful response with the given data.
-    pub fn success(data: T) -> Self {
+    #[must_use]
+    pub const fn success(data: T) -> Self {
         Self {
             success: true,
             data: Some(data),
@@ -101,7 +102,7 @@ pub struct AddRuleRequest {
 
 // --- Control Logic ---
 
-/// Commands that can be sent to the WolfNode from the API
+/// Commands that can be sent to the `WolfNode` from the API
 #[derive(Debug)]
 pub enum NodeCommand {
     /// Gracefully shutdown the node.
@@ -125,7 +126,7 @@ pub enum NodeCommand {
     Coordinator(crate::wolf_pack::coordinator::CoordinatorMsg),
 }
 
-/// Handle for controlling the WolfNode asynchronously
+/// Handle for controlling the `WolfNode` asynchronously
 #[derive(Clone)]
 pub struct WolfNodeControl {
     /// Transmitter channel for sending commands to the node's main loop.
@@ -135,7 +136,8 @@ pub struct WolfNodeControl {
 
 impl WolfNodeControl {
     /// Creates a new `WolfNodeControl` handle.
-    pub fn new(
+    #[must_use]
+    pub const fn new(
         command_tx: mpsc::Sender<NodeCommand>,
         // telemetry_tx: Option<mpsc::Sender<TelemetryEvent>>,
     ) -> Self {
@@ -146,6 +148,9 @@ impl WolfNodeControl {
     }
 
     /// Requests a graceful shutdown of the node.
+    ///
+    /// # Errors
+    /// Returns an error if the command transmitter is closed.
     pub async fn shutdown(&self) -> anyhow::Result<()> {
         self.command_tx
             .send(NodeCommand::Shutdown)
@@ -154,6 +159,9 @@ impl WolfNodeControl {
     }
 
     /// Requests the node to connect to a specific multi‑address.
+    ///
+    /// # Errors
+    /// Returns an error if the command transmitter is closed.
     pub async fn connect_peer(&self, addr: String) -> anyhow::Result<()> {
         self.command_tx
             .send(NodeCommand::ConnectPeer(addr))
@@ -162,6 +170,9 @@ impl WolfNodeControl {
     }
 
     /// Requests the node to broadcast a message to the gossipsub network.
+    ///
+    /// # Errors
+    /// Returns an error if the command transmitter is closed.
     pub async fn broadcast(&self, message: Vec<u8>) -> anyhow::Result<()> {
         self.command_tx
             .send(NodeCommand::Broadcast(message))
@@ -170,6 +181,9 @@ impl WolfNodeControl {
     }
 
     /// Requests the node to disconnect from a specific peer ID.
+    ///
+    /// # Errors
+    /// Returns an error if the command transmitter is closed.
     pub async fn disconnect_peer(&self, peer_id: String) -> anyhow::Result<()> {
         self.command_tx
             .send(NodeCommand::DisconnectPeer(peer_id))
@@ -178,6 +192,9 @@ impl WolfNodeControl {
     }
 
     /// Sends a direct message to a specific peer.
+    ///
+    /// # Errors
+    /// Returns an error if the command transmitter is closed.
     pub async fn send_direct(&self, peer_id: String, data: Vec<u8>) -> anyhow::Result<()> {
         self.command_tx
             .send(NodeCommand::SendDirect { peer_id, data })
@@ -186,6 +203,9 @@ impl WolfNodeControl {
     }
 
     /// Updates the node's firewall configuration.
+    ///
+    /// # Errors
+    /// Returns an error if the command transmitter is closed.
     pub async fn update_firewall(&self, req: FirewallUpdateRequest) -> anyhow::Result<()> {
         self.command_tx
             .send(NodeCommand::UpdateFirewall(req))
@@ -194,6 +214,9 @@ impl WolfNodeControl {
     }
 
     /// Sends a coordination message to the Wolf Pack coordinator.
+    ///
+    /// # Errors
+    /// Returns an error if the command transmitter is closed.
     pub async fn send_coordinator_msg(
         &self,
         msg: crate::wolf_pack::coordinator::CoordinatorMsg,

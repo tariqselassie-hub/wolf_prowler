@@ -38,7 +38,7 @@ struct AuthResponse {
 pub struct HubOrchestration {
     config: HubConfig,
     client: reqwest::Client,
-    /// Shared storage for the JWT token, shared with ReportingService
+    /// Shared storage for the JWT token, shared with `ReportingService`
     auth_token: Arc<RwLock<Option<String>>>,
 }
 
@@ -58,6 +58,9 @@ impl HubOrchestration {
     /// Authenticates with the Hub to retrieve a JWT token.
     ///
     /// Returns the expiration time of the token in seconds.
+    ///
+    /// # Errors
+    /// Returns an error if the request fails or the response status is not successful.
     pub async fn authenticate(&self) -> Result<u64> {
         let url = format!("{}/api/v1/agent/auth", self.config.hub_url);
 
@@ -80,8 +83,10 @@ impl HubOrchestration {
                 .await
                 .context("Failed to parse auth response")?;
 
-            let mut token_lock = self.auth_token.write().await;
-            *token_lock = Some(auth_data.token);
+            {
+                let mut token_lock = self.auth_token.write().await;
+                *token_lock = Some(auth_data.token);
+            }
 
             Ok(auth_data.expires_in)
         } else {
@@ -95,6 +100,10 @@ impl HubOrchestration {
     /// Runs the main orchestration loop, handling periodic re‑authentication.
     ///
     /// This method will loop indefinitely, refreshing the authentication token before it expires.
+    ///
+    /// # Errors
+    /// Returns error if authentication fails repeatedly (conceptually, though currently loops on error).
+    #[allow(clippy::infinite_loop)]
     pub async fn run(&self) -> Result<()> {
         loop {
             match self.authenticate().await {
@@ -106,15 +115,13 @@ impl HubOrchestration {
                         3600
                     };
                     println!(
-                        "Hub authentication successful. Token expires in {}s. Refreshing in {}s.",
-                        expires_in, refresh_secs
+                        "Hub authentication successful. Token expires in {expires_in}s. Refreshing in {refresh_secs}s."
                     );
                     tokio::time::sleep(tokio::time::Duration::from_secs(refresh_secs)).await;
                 }
                 Err(e) => {
                     eprintln!(
-                        "Hub authentication failed: {}. Retrying in 30 seconds...",
-                        e
+                        "Hub authentication failed: {e}. Retrying in 30 seconds..."
                     );
                     // Retry delay
                     tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;

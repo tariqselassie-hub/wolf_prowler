@@ -33,13 +33,16 @@ pub enum StateTransitionResult {
     },
 }
 
-/// A pure state machine for WolfPack logic.
-/// managed by the HuntCoordinator.
+/// A pure state machine for `WolfPack` logic.
+/// managed by the `HuntCoordinator`.
 pub struct WolfStateMachine;
 
 impl WolfStateMachine {
     /// Handles a Warning Howl (Scout detects threat).
     /// Initiates a new Hunt in 'Stalk' mode if valid.
+    ///
+    /// # Errors
+    /// Returns an error if the new hunt ID conflicts (unlikely).
     pub fn on_warning_howl(
         state: &mut WolfState,
         source: PeerId,
@@ -67,7 +70,7 @@ impl WolfStateMachine {
             hunt_id: hunt_id.clone(),
             target_ip,
             status: HuntStatus::Stalk,
-            participants: HashSet::from([source.clone()]),
+            participants: HashSet::from([source]),
             start_time: SystemTime::now(),
             evidence: vec![evidence],
             confidence: 0.2, // Initial confidence from a single scout
@@ -79,11 +82,14 @@ impl WolfStateMachine {
 
     /// Handles a Hunt Request from an Authority (Alpha/Beta).
     /// Initiates a new Hunt in 'Scent' mode.
+    ///
+    /// # Errors
+    /// Returns Ok(()) always (validation pending).
     pub fn on_hunt_request(
         state: &mut WolfState,
-        source: PeerId,
+        source: &PeerId,
         target_ip: String,
-        hunt_id: String,
+        hunt_id: &str,
     ) -> Result<()> {
         if state.active_hunts.iter().any(|h| h.hunt_id == hunt_id) {
             // Already active, just ignore
@@ -91,7 +97,7 @@ impl WolfStateMachine {
         }
 
         let hunt = ActiveHunt {
-            hunt_id: hunt_id.clone(),
+            hunt_id: hunt_id.to_string(),
             target_ip,
             status: HuntStatus::Scent,
             participants: HashSet::from([source.clone()]),
@@ -105,10 +111,14 @@ impl WolfStateMachine {
 
     /// Handles a Hunt Report (Hunter validates threat).
     /// Returns a transition result if the hunt status changes appropriately.
+    ///
+    /// # Errors
+    /// Returns an error if the hunt ID is not found.
+    #[allow(clippy::cast_precision_loss)]
     pub fn on_hunt_report(
         state: &mut WolfState,
         hunt_id: &str,
-        hunter: PeerId,
+        hunter: &PeerId,
         confirmed: bool,
     ) -> Result<StateTransitionResult> {
         let hunt = state
@@ -125,7 +135,7 @@ impl WolfStateMachine {
         hunt.participants.insert(hunter.clone());
 
         if confirmed {
-            hunt.evidence.push(format!("Confirmed by {}", hunter));
+            hunt.evidence.push(format!("Confirmed by {hunter}"));
         }
 
         // Consensus Logic
@@ -156,6 +166,9 @@ impl WolfStateMachine {
     }
 
     /// Marks a hunt as successfully struck and ready for rewards.
+    ///
+    /// # Errors
+    /// Returns an error if the hunt ID is not found.
     pub fn complete_strike(state: &mut WolfState, hunt_id: &str) -> Result<StateTransitionResult> {
         let hunt = state
             .active_hunts
@@ -174,6 +187,9 @@ impl WolfStateMachine {
     }
 
     /// Fails a hunt (timeout or otherwise).
+    ///
+    /// # Errors
+    /// Returns Ok(()), Result reserved for future validation.
     pub fn fail_hunt(state: &mut WolfState, hunt_id: &str) -> Result<()> {
         if let Some(pos) = state.active_hunts.iter().position(|h| h.hunt_id == hunt_id) {
             let hunt = &mut state.active_hunts[pos];
@@ -191,11 +207,14 @@ impl WolfStateMachine {
 
     /// Handles a Kill Order (Authoritative Strike).
     /// Ensures the hunt is tracked in state even if it originated externally.
+    ///
+    /// # Errors
+    /// Returns Ok(()), Result reserved for future validation.
     pub fn on_kill_order(
         state: &mut WolfState,
         target_ip: String,
-        authorizer: PeerId,
-        reason: String,
+        authorizer: &PeerId,
+        reason: &str,
         hunt_id: HuntId,
     ) -> Result<()> {
         if !state.active_hunts.iter().any(|h| h.hunt_id == hunt_id) {
@@ -215,6 +234,9 @@ impl WolfStateMachine {
 
     /// Updates territory registry.
     /// Returns true if the territory was newly added.
+    ///
+    /// # Errors
+    /// Returns an error if the territory name is invalid (currently no validation, but Result reserved).
     pub fn update_territory(state: &mut WolfState, region: String) -> Result<bool> {
         if !state.territories.contains(&region) {
             state.territories.push(region);
@@ -275,15 +297,15 @@ mod tests {
         let p3 = PeerId::new();
 
         // Report 1
-        let res1 = WolfStateMachine::on_hunt_report(&mut state, &hunt_id, p1, true).unwrap();
+        let res1 = WolfStateMachine::on_hunt_report(&mut state, &hunt_id, &p1, true).unwrap();
         assert_eq!(res1, StateTransitionResult::None);
 
         // Report 2
-        let res2 = WolfStateMachine::on_hunt_report(&mut state, &hunt_id, p2, true).unwrap();
+        let res2 = WolfStateMachine::on_hunt_report(&mut state, &hunt_id, &p2, true).unwrap();
         assert_eq!(res2, StateTransitionResult::None);
 
         // Report 3 - Should trigger Strike
-        let res3 = WolfStateMachine::on_hunt_report(&mut state, &hunt_id, p3, true).unwrap();
+        let res3 = WolfStateMachine::on_hunt_report(&mut state, &hunt_id, &p3, true).unwrap();
 
         match res3 {
             StateTransitionResult::Strike {
@@ -337,8 +359,8 @@ mod tests {
         WolfStateMachine::on_kill_order(
             &mut state,
             target_ip.clone(),
-            authorizer.clone(),
-            "Malicious activity".to_string(),
+            &authorizer,
+            "Malicious activity",
             hunt_id.clone(),
         )
         .unwrap();

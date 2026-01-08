@@ -21,9 +21,9 @@ pub struct NetworkConfig {
     pub max_connections: usize,
     /// Bootstrap nodes for P2P discovery.
     pub bootstrap_peers: Vec<(PeerId, Multiaddr)>,
-    /// Enable SaaS integration features.
+    /// Enable `SaaS` integration features.
     pub enable_saas_features: bool,
-    /// URL of the Central SaaS Hub.
+    /// URL of the Central `SaaS` Hub.
     pub hub_url: String,
     /// Organization ID for multi-tenancy.
     pub org_id: String,
@@ -89,11 +89,15 @@ impl Default for DiscoveryConfig {
 
 impl WolfConfig {
     /// Creates a new default configuration.
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Loads configuration from a JSON file.
+    ///
+    /// # Errors
+    /// Returns an error if the file cannot be opened or deserialized.
     pub fn load_from_file<P: AsRef<std::path::Path>>(path: P) -> anyhow::Result<Self> {
         let file = std::fs::File::open(path)?;
         let reader = std::io::BufReader::new(file);
@@ -102,6 +106,9 @@ impl WolfConfig {
     }
 
     /// Saves configuration to a JSON file.
+    ///
+    /// # Errors
+    /// Returns an error if the file cannot be created or serialized.
     pub fn save_to_file<P: AsRef<std::path::Path>>(&self, path: P) -> anyhow::Result<()> {
         let file = std::fs::File::create(path)?;
         let writer = std::io::BufWriter::new(file);

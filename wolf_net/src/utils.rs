@@ -9,16 +9,20 @@ pub fn init() {
     tracing::debug!("Wolf Net utilities initialized");
 }
 
-/// Sets up the logging system with a specific log level.
-pub fn setup_logging(level: tracing::Level) -> anyhow::Result<()> {
+/// Initializes the logging system
+///
+/// # Errors
+/// Returns an error if the logging system cannot be initialized (e.g. already initialized).
+pub fn init_logging(level: tracing::Level) -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(level)
         .with_target(false)
         .try_init()
-        .map_err(|e| anyhow::anyhow!("Failed to initialize logging: {}", e))
+        .map_err(|e| anyhow::anyhow!("Failed to initialize logging: {e}"))
 }
 
-/// Converts a Multiaddr to a SocketAddr if possible.
+/// Converts a Multiaddr to a `SocketAddr` if possible.
+#[must_use]
 pub fn multiaddr_to_socketaddr(addr: &Multiaddr) -> Option<SocketAddr> {
     let mut iter = addr.iter();
     let ip = match iter.next()? {
@@ -26,15 +30,16 @@ pub fn multiaddr_to_socketaddr(addr: &Multiaddr) -> Option<SocketAddr> {
         libp2p::multiaddr::Protocol::Ip6(ip) => IpAddr::V6(ip),
         _ => return None,
     };
-    let port = match iter.next()? {
-        libp2p::multiaddr::Protocol::Tcp(port) => port,
-        libp2p::multiaddr::Protocol::Udp(port) => port,
-        _ => return None,
+    let (libp2p::multiaddr::Protocol::Tcp(port) | libp2p::multiaddr::Protocol::Udp(port)) =
+        iter.next()?
+    else {
+        return None;
     };
     Some(SocketAddr::new(ip, port))
 }
 
-/// Converts a SocketAddr to a Multiaddr (TCP).
+/// Converts a `SocketAddr` to a Multiaddr (TCP).
+#[must_use]
 pub fn socketaddr_to_multiaddr(addr: SocketAddr) -> Multiaddr {
     let mut ma = Multiaddr::empty();
     match addr.ip() {
@@ -54,7 +59,7 @@ mod tests {
         // Attempt to set up logging.
         // Note: This may fail if logging was already initialized by another test,
         // which is expected behavior for tracing_subscriber.
-        let result = setup_logging(tracing::Level::DEBUG);
+        let result = init_logging(tracing::Level::DEBUG);
         if let Err(e) = result {
             assert!(e.to_string().contains("Failed to initialize logging"));
         }

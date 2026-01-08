@@ -10,10 +10,15 @@ use wolf_db::storage::WolfDbStorage;
 /// Configuration for WolfStore database operations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WolfStoreConfig {
+    /// Whether to automatically save changes to disk.
     pub auto_save: bool,
+    /// Whether to create backups.
     pub backup_enabled: bool,
+    /// Interval between backups in seconds.
     pub backup_interval: u64, // in seconds
+    /// Maximum number of backup files to keep.
     pub max_backup_files: usize,
+    /// Encryption algorithm used for the database.
     pub encryption_level: String,
 }
 
@@ -32,13 +37,21 @@ impl Default for WolfStoreConfig {
 /// Database statistics and health information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseStats {
+    /// Total number of records across all tables.
     pub total_records: usize,
+    /// Number of records in the vault table.
     pub vault_records: usize,
+    /// Number of records in the shards table.
     pub shard_records: usize,
+    /// Number of records in the forensics table.
     pub session_records: usize,
+    /// Timestamp of the last backup.
     pub last_backup: Option<DateTime<Utc>>,
+    /// Timestamp of the last save operation.
     pub last_save: Option<DateTime<Utc>>,
+    /// Current encryption status (LOCKED, UNLOCKED, INITIALIZED).
     pub encryption_status: String,
+    /// Whether the last integrity check passed.
     pub integrity_check: bool,
 }
 
@@ -50,6 +63,7 @@ pub struct Transaction<'a> {
 }
 
 impl<'a> Transaction<'a> {
+    /// Creates a new transaction for the given store.
     pub fn new(store: &'a mut WolfStore) -> Self {
         Self {
             store,
@@ -101,6 +115,10 @@ impl<'a> Transaction<'a> {
         Ok(())
     }
 
+    /// Commits the transaction, persisting changes to disk.
+    ///
+    /// # Errors
+    /// Returns an error if the save operation fails or if the transaction was already committed.
     pub fn commit(mut self) -> Result<()> {
         if self.committed {
             return Err(anyhow::anyhow!("Transaction already committed"));
@@ -128,6 +146,7 @@ impl<'a> Drop for Transaction<'a> {
     }
 }
 
+/// Main storage manager for Wolf Prowler, wrapping WolfDb.
 pub struct WolfStore {
     storage: WolfDbStorage,
     connected: bool,

@@ -32,14 +32,17 @@ pub struct ConsensusManager {
 
 impl ConsensusManager {
     /// Create and start a new Consensus Manager
-    pub async fn start(
+    ///
+    /// # Errors
+    /// Returns an error if the consensus engine fails to initialize.
+    pub fn start(
         node_id: u64,
         peers: Vec<u64>,
         storage_path: &str,
         swarm_tx: mpsc::Sender<crate::swarm::SwarmCommand>,
     ) -> Result<Self> {
         let (command_tx, mut command_rx) = mpsc::channel(100);
-        let mut engine = ConsensusEngine::new(node_id, peers, storage_path).await?;
+        let mut engine = ConsensusEngine::new(node_id, peers, storage_path)?;
 
         let manager_handle = Self { command_tx };
 
@@ -58,7 +61,7 @@ impl ConsensusManager {
                     Some(cmd) = command_rx.recv() => {
                         match cmd {
                             ConsensusCommand::Propose(proposal) => {
-                                if let Err(e) = engine.propose(proposal).await {
+                                if let Err(e) = engine.propose(proposal) {
                                     error!("Proposal failed: {}", e);
                                 }
                             }
@@ -96,7 +99,13 @@ impl ConsensusManager {
         let raft_messages = engine.step_ready().await?;
 
         for msg in raft_messages {
-            let net_msg = RaftNetworkMessage::new(engine.node_id, msg.to, msg);
+            let net_msg = match RaftNetworkMessage::new(engine.node_id, msg.to, &msg) {
+                Ok(m) => m,
+                Err(e) => {
+                    error!("Failed to create network message from Raft message: {}", e);
+                    continue;
+                }
+            };
             if let Err(e) = swarm_tx
                 .send(crate::swarm::SwarmCommand::ConsensusMessage(net_msg))
                 .await
@@ -109,6 +118,9 @@ impl ConsensusManager {
     }
 
     /// Propose a change
+    ///
+    /// # Errors
+    /// Returns an error if the proposal command cannot be sent to the consensus loop.
     pub async fn propose(&self, proposal: Proposal) -> Result<()> {
         self.command_tx
             .send(ConsensusCommand::Propose(proposal))
@@ -117,6 +129,9 @@ impl ConsensusManager {
     }
 
     /// Process a received message
+    ///
+    /// # Errors
+    /// Returns an error if the message processing command cannot be sent to the consensus loop.
     pub async fn process_message(&self, msg: RaftNetworkMessage) -> Result<()> {
         self.command_tx
             .send(ConsensusCommand::ProcessMessage(msg))
@@ -125,6 +140,9 @@ impl ConsensusManager {
     }
 
     /// Get status
+    ///
+    /// # Errors
+    /// Returns an error if the status request cannot be sent or the response cannot be received.
     pub async fn get_status(&self) -> Result<NodeStatus> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.command_tx
@@ -134,6 +152,9 @@ impl ConsensusManager {
     }
 
     /// Get state
+    ///
+    /// # Errors
+    /// Returns an error if the state request cannot be sent or the response cannot be received.
     pub async fn get_state(&self) -> Result<SharedState> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.command_tx.send(ConsensusCommand::GetState(tx)).await?;

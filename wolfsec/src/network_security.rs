@@ -60,7 +60,7 @@ pub enum SignatureAlgorithm {
     RSA4096,
 }
 
-/// complete cryptographic suite definition for a security tier
+/// Complete cryptographic suite definition for a security tier.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityLevel {
     /// encryption primitive for payload confidentiality
@@ -136,7 +136,10 @@ pub struct KeyPair {
 }
 
 impl KeyPair {
-    /// provision a new key pair for a specified cryptographic algorithm.
+    /// Provision a new key pair for a specified cryptographic algorithm.
+    ///
+    /// # Errors
+    /// Returns an error if key generation fails (currently deterministic/placeholder).
     pub fn new(algorithm: KeyExchange) -> Result<Self> {
         let now = Utc::now();
         let expires_at = now + chrono::Duration::days(365); // 1 year expiry
@@ -162,6 +165,7 @@ impl KeyPair {
     }
 
     /// Check if key is expired
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         match self.expires_at {
             Some(expiry) => Utc::now() > expiry,
@@ -170,6 +174,7 @@ impl KeyPair {
     }
 
     /// Get key fingerprint
+    #[must_use]
     pub fn fingerprint(&self) -> String {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
@@ -258,6 +263,7 @@ impl SecuritySession {
     }
 
     /// Check if session is expired
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         Utc::now() > self.expires_at
     }
@@ -305,6 +311,7 @@ impl AuthToken {
     }
 
     /// Check if token is valid
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         !self.revoked && Utc::now() < self.expires_at
     }
@@ -350,7 +357,10 @@ impl SecurityManager {
         }
     }
 
-    /// bootstraps the manager and generates initial cryptographic materials.
+    /// Bootstraps the manager and generates initial cryptographic materials.
+    ///
+    /// # Errors
+    /// Returns an error if key generation fails.
     pub async fn initialize(&self) -> Result<()> {
         info!("🔐 Initializing security manager for {}", self.entity_id);
 

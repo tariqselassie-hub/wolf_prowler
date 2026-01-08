@@ -4,9 +4,10 @@ use std::collections::HashSet;
 use std::time::SystemTime;
 
 /// The role of this specific node in the pack hierarchy.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub enum WolfRole {
     /// Untrusted / New (Can only listen)
+    #[default]
     Stray,
     /// Detector (Can initiate warnings)
     Scout,
@@ -20,11 +21,6 @@ pub enum WolfRole {
     Omega,
 }
 
-impl Default for WolfRole {
-    fn default() -> Self {
-        WolfRole::Stray
-    }
-}
 
 /// Unique identifier for a Hunt operation.
 pub type HuntId = String;
@@ -98,7 +94,8 @@ impl Default for WolfState {
 }
 
 impl WolfState {
-    /// Creates a new WolfState with a specific role
+    /// Creates a new `WolfState` with a specific role
+    #[must_use]
     pub fn new(role: WolfRole) -> Self {
         Self {
             role,

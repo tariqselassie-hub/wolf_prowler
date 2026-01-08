@@ -5,6 +5,7 @@
 // - Timeout and garbage collection
 // - Role evolution and prestige tracking
 
+//! Phase 1 Hunt Coordinator Tests
 use std::time::Duration;
 use tokio::time::sleep;
 use wolf_net::peer::PeerId;

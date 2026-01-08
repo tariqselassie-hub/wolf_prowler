@@ -1,4 +1,5 @@
-pub mod algorithms;
+#![allow(missing_docs)]
+
 pub mod crypto;
 pub mod hunter;
 pub mod metadata;

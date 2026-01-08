@@ -15,15 +15,15 @@ use crate::external_feeds::ThreatFeedItem;
 use crate::reputation::{ReputationConfig, ReputationSystem};
 use crate::{SecurityEvent, SecurityEventType, SecuritySeverity};
 
-/// Advanced AI-powered threat detection system
-/// orchestrator for high-level threat identification and behavioral analysis
+/// Advanced AI-powered threat detection system.
+/// Orchestrator for high-level threat identification and behavioral analysis.
 #[derive(Clone)]
 pub struct ThreatDetector {
-    /// registry of known peers and their associated metadata
+    /// Registry of known peers and their associated metadata.
     peers: Arc<RwLock<HashMap<String, PeerInfo>>>,
-    /// chronological log of system and network events
+    /// Chronological log of system and network events.
     events: Arc<RwLock<Vec<crate::SecurityEvent>>>,
-    /// active and historical security threats identified by the system
+    /// Active and historical security threats identified by the system.
     threats: Arc<RwLock<Vec<Threat>>>,
     /// operational settings for detection sensitivity and persistence
     config: ThreatDetectionConfig,
@@ -43,7 +43,7 @@ pub struct ThreatDetector {
     threat_repo: Arc<dyn crate::domain::repositories::ThreatRepository>,
 }
 
-/// security-focused metadata and status for a network participant
+/// Security-focused metadata and status for a network participant.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PeerInfo {
     /// unique identifier for the peer
@@ -68,7 +68,7 @@ pub struct PeerInfo {
     pub device_fingerprint: Option<String>,
 }
 
-/// binary security indicators for a network participant
+/// Binary security indicators for a network participant.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PeerFlags {
     /// true if the identity has been cryptographically verified
@@ -101,7 +101,8 @@ pub struct AIModels {
 }
 
 impl AIModels {
-    /// bootstraps the AI/ML detection engines with default configurations and trained state.
+    /// Bootstraps the AI/ML detection engines with default configurations and trained state.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             anomaly_detector: AnomalyDetectionModel {
@@ -139,8 +140,8 @@ impl AIModels {
     }
 }
 
-/// Anomaly detection model
-/// Model for identifying outliers in network and system behavior
+/// Anomaly detection model.
+/// Model for identifying outliers in network and system behavior.
 #[derive(Debug, Clone)]
 pub struct AnomalyDetectionModel {
     /// Type of anomaly detection algorithm
@@ -153,8 +154,8 @@ pub struct AnomalyDetectionModel {
     pub is_trained: bool,
 }
 
-/// Behavioral analyzer
-/// Analyzer for identifying changes in peer and system behavior over time
+/// Behavioral analyzer.
+/// Analyzer for identifying changes in peer and system behavior over time.
 #[derive(Debug, Clone)]
 pub struct BehavioralAnalyzer {
     /// Moving average window size

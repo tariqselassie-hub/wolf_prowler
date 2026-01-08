@@ -1,3 +1,4 @@
+//! API Methods Tests
 #[allow(unused_imports)]
 use wolf_net::peer::{EntityInfo, PeerId};
 use wolf_net::{SwarmCommand, SwarmConfig, SwarmManager};
@@ -14,7 +15,7 @@ async fn test_api_backend_methods() -> anyhow::Result<()> {
 
     let mut swarm = SwarmManager::new(config)?;
     println!("Step 2: Starting SwarmManager");
-    swarm.start().await?;
+    swarm.start()?;
     println!("Step 3: SwarmManager started");
 
     // 2. Test get_stats()

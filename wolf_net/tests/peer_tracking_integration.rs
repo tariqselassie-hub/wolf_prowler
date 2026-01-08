@@ -1,4 +1,5 @@
-use wolf_net::peer::EntityStatus;
+//! Peer Tracking Integration Tests
+use wolf_net::peer::{EntityStatus, PeerId};
 use wolf_net::swarm::{SwarmConfig, SwarmManager};
 use std::time::Duration;
 
@@ -9,13 +10,13 @@ async fn test_peer_tracking_lifecycle() {
     config1.keypair_path = "target/test_peer_tracking_1.key".into();
     config1.listen_addresses = vec!["/ip4/127.0.0.1/tcp/0".parse().unwrap()];
     let mut swarm1 = SwarmManager::new(config1).unwrap();
-    swarm1.start().await.unwrap();
+    swarm1.start().unwrap();
 
     let mut config2 = SwarmConfig::default();
     config2.keypair_path = "target/test_peer_tracking_2.key".into();
     config2.listen_addresses = vec!["/ip4/127.0.0.1/tcp/0".parse().unwrap()];
     let mut swarm2 = SwarmManager::new(config2).unwrap();
-    swarm2.start().await.unwrap();
+    swarm2.start().unwrap();
 
     let peer2_id = swarm2.local_peer_id.clone();
 

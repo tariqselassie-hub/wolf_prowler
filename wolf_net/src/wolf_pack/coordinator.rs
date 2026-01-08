@@ -10,7 +10,7 @@ use std::time::Duration;
 use tokio::sync::{mpsc, RwLock};
 use tracing::{info, warn};
 
-/// Messages handled by the HuntCoordinator actor.
+/// Messages handled by the `HuntCoordinator` actor.
 #[derive(Debug)]
 pub enum CoordinatorMsg {
     /// A Scout has detected a threat and is requesting a Hunt.
@@ -110,7 +110,7 @@ pub struct HuntCoordinator {
     receiver: mpsc::Receiver<CoordinatorMsg>,
     /// Channel for sending commands to Swarm
     swarm_sender: mpsc::Sender<SwarmCommand>,
-    /// active hunt timeouts tracking (HuntID -> Expiration Time)
+    /// active hunt timeouts tracking (`HuntID` -> Expiration Time)
     timeouts: HashMap<HuntId, std::time::SystemTime>,
     /// Election Manager
     election_manager: ElectionManager,
@@ -119,8 +119,8 @@ pub struct HuntCoordinator {
 }
 
 impl HuntCoordinator {
-    /// Create a new Coordinator actor.
-    /// Returns the actor struct (to be run) and a sender handle.
+    /// Create a new `HuntCoordinator`
+    #[must_use]
     pub fn new(
         initial_role: WolfRole,
         swarm_sender: mpsc::Sender<SwarmCommand>,
@@ -145,7 +145,8 @@ impl HuntCoordinator {
         (actor, tx, public_state)
     }
 
-    /// Run the actor loop. This should be spawned as a Tokio task.
+    /// Start the coordinator actor
+    #[allow(clippy::cognitive_complexity)]
     pub async fn run(mut self) {
         info!("🐺 HuntCoordinator Actor Started");
 
@@ -154,15 +155,13 @@ impl HuntCoordinator {
         loop {
             tokio::select! {
                 msg = self.receiver.recv() => {
-                    match msg {                        Some(m) => {
-                            if let Err(e) = self.handle_message(m).await {
-                                warn!("Error handling coordinator message: {}", e);
-                            }
+                    if let Some(m) = msg {
+                        if let Err(e) = self.handle_message(m).await {
+                            warn!("Error handling coordinator message: {e}");
                         }
-                        None => {
-                            warn!("HuntCoordinator channel closed. Shutting down.");
-                            break;
-                        }
+                    } else {
+                        warn!("HuntCoordinator channel closed. Shutting down.");
+                        break;
                     }
                 }
                 _ = interval.tick() => {
@@ -215,7 +214,7 @@ impl HuntCoordinator {
             } => {
                 // For local node updates, we just update state.
                 // Distributed updates would require consensus msg.
-                WolfStateMachine::force_role(&mut self.state, new_role.clone());
+                WolfStateMachine::force_role(&mut self.state, new_role);
                 self.sync_public_state().await;
                 info!("Rank Forced Updated to {:?}", new_role);
                 Ok(())
@@ -275,50 +274,23 @@ impl HuntCoordinator {
         hunter: PeerId,
         confirmed: bool,
     ) -> Result<()> {
-        let transition_result;
-        transition_result =
-            WolfStateMachine::on_hunt_report(&mut self.state, &hunt_id, hunter, confirmed)?;
+        let transition_result =
+            WolfStateMachine::on_hunt_report(&mut self.state, &hunt_id, &hunter, confirmed)?;
 
-        match transition_result {
-            StateTransitionResult::Strike {
-                hunt_id,
-                target_ip,
-                participants: _,
-            } => {
-                info!("🎯 Hunt {}: STRIKE EXECUTION on {}", hunt_id, target_ip);
-
-                // Execute Strike (firewall ban)
-                self.execute_strike(&target_ip, &hunt_id).await?;
-
-                // Complete strike transition to Feast
-                let feast_result;
-                feast_result = WolfStateMachine::complete_strike(&mut self.state, &hunt_id)?;
-
-                match feast_result {
-                    StateTransitionResult::Feast {
-                        hunt_id: _,
-                        participants,
-                    } => {
-                        self.distribute_rewards(&hunt_id, &participants).await?;
-                        info!("✅ Hunt {} completed successfully", hunt_id);
-                    }
-                    _ => warn!(
-                        "Unexpected state after strike completion for hunt {}",
-                        hunt_id
-                    ),
-                }
-            }
-            StateTransitionResult::None => {
-                // No transition, just logged/updated evidence by state machine
-            }
-            _ => {}
+        if let StateTransitionResult::Strike {
+            hunt_id,
+            target_ip,
+            participants: _,
+        } = transition_result
+        {
+            self.handle_strike_transition(hunt_id, target_ip).await?;
         }
 
         Ok(())
     }
 
     /// Execute Strike phase - ban target IP via firewall
-    async fn execute_strike(&mut self, target_ip: &str, hunt_id: &str) -> Result<()> {
+    async fn execute_strike(&self, target_ip: &str, hunt_id: &str) -> Result<()> {
         info!("⚔️ STRIKE: Banning {} (Hunt: {})", target_ip, hunt_id);
 
         // Send command to Swarm to update firewall
@@ -328,13 +300,35 @@ impl HuntCoordinator {
             })
             .await
             .map_err(|e| {
-                WolfPackError::NetworkError(format!("Failed to send block command: {}", e))
+                WolfPackError::NetworkError(format!("Failed to send block command: {e}"))
             })?;
 
         warn!(
             "🚫 TARGET NEUTRALIZED: {} added to firewall blocklist",
             target_ip
         );
+        Ok(())
+    }
+
+    async fn handle_strike_transition(&mut self, hunt_id: String, target_ip: String) -> Result<()> {
+        info!("🎯 Hunt {}: STRIKE EXECUTION on {}", hunt_id, target_ip);
+
+        // Execute Strike (firewall ban)
+        self.execute_strike(&target_ip, &hunt_id).await?;
+
+        // Complete strike transition to Feast
+        let feast_result = WolfStateMachine::complete_strike(&mut self.state, &hunt_id)?;
+
+        if let StateTransitionResult::Feast {
+            hunt_id: _,
+            participants,
+        } = feast_result
+        {
+            self.distribute_rewards(&hunt_id, &participants).await?;
+            info!("✅ Hunt {} completed successfully", hunt_id);
+        } else {
+            warn!("Unexpected state after strike completion for hunt {hunt_id}");
+        }
         Ok(())
     }
 
@@ -346,7 +340,8 @@ impl HuntCoordinator {
     ) -> Result<()> {
         // Award prestige to all participants
         let reward_per_hunter = 10u32; // Base reward
-        let total_reward = reward_per_hunter * participants.len() as u32;
+        let count = u32::try_from(participants.len()).unwrap_or(u32::MAX);
+        let total_reward = reward_per_hunter.saturating_mul(count);
 
         info!(
             "🍖 FEAST: Distributing {} prestige among {} hunters (Hunt: {})",
@@ -366,7 +361,7 @@ impl HuntCoordinator {
                         &peer_id.to_string(),
                         "Security",
                         0.05, // Positive impact for successful hunt participation
-                        format!("Participated in successful hunt {}", hunt_id),
+                        format!("Participated in successful hunt {hunt_id}"),
                     )
                     .await;
             }
@@ -421,8 +416,7 @@ impl HuntCoordinator {
                 .await
                 .map_err(|e| {
                     WolfPackError::CoordinationError(format!(
-                        "Failed to send election tick to swarm: {}",
-                        e
+                        "Failed to send election tick to swarm: {e}"
                     ))
                 })?;
         }
@@ -442,7 +436,7 @@ impl HuntCoordinator {
         );
 
         if let Err(e) =
-            WolfStateMachine::on_hunt_request(&mut self.state, source, target_ip, hunt_id.clone())
+            WolfStateMachine::on_hunt_request(&mut self.state, &source, target_ip, &hunt_id)
         {
             warn!("Failed to process hunt request: {}", e);
             return Ok(()); // Don't crash actor
@@ -474,8 +468,8 @@ impl HuntCoordinator {
         WolfStateMachine::on_kill_order(
             &mut self.state,
             target_ip.clone(),
-            authorizer,
-            reason,
+            &authorizer,
+            &reason,
             hunt_id.clone(),
         )?;
         self.sync_public_state().await;
@@ -520,7 +514,7 @@ impl HuntCoordinator {
             },
         );
         match self.election_manager.handle_howl(&howl) {
-            Ok(Some(response_howl)) => {
+            Some(response_howl) => {
                 if let Ok(bytes) = response_howl.to_bytes() {
                     // A vote response should ideally be sent directly to the candidate.
                     // For now, we broadcast it as per the simple gossipsub model.
@@ -529,15 +523,13 @@ impl HuntCoordinator {
                         .await
                         .map_err(|e| {
                             WolfPackError::ElectionError(format!(
-                                "Failed to send election vote response to swarm: {}",
-                                e
+                                "Failed to send election vote response to swarm: {e}"
                             ))
                         })?;
                 }
                 Ok(())
             }
-            Ok(None) => Ok(()),
-            Err(e) => Err(e),
+            None => Ok(()),
         }
     }
 
@@ -557,7 +549,7 @@ impl HuntCoordinator {
             },
         );
         match self.election_manager.handle_howl(&howl) {
-            Ok(Some(response_howl)) => {
+            Some(response_howl) => {
                 // This response would be a heartbeat if we won the election.
                 if let Ok(bytes) = response_howl.to_bytes() {
                     self.swarm_sender
@@ -565,15 +557,13 @@ impl HuntCoordinator {
                         .await
                         .map_err(|e| {
                             WolfPackError::ElectionError(format!(
-                                "Failed to send election result to swarm: {}",
-                                e
+                                "Failed to send election result to swarm: {e}"
                             ))
                         })?;
                 }
                 Ok(())
             }
-            Ok(None) => Ok(()),
-            Err(e) => Err(e),
+            None => Ok(()),
         }
     }
 
@@ -584,13 +574,13 @@ impl HuntCoordinator {
             HowlPayload::AlphaHeartbeat { term, leader_id },
         );
         // Heartbeats update local state. They don't generate a response to broadcast.
-        self.election_manager.handle_howl(&howl)?;
+        let _ = self.election_manager.handle_howl(&howl);
         self.sync_public_state().await;
         Ok(())
     }
 
     /// Synchronizes the private actor state to the public shared state.
-    async fn sync_public_state(&mut self) {
+    async fn sync_public_state(&self) {
         let mut public = self.public_state.write().await;
         *public = self.state.clone();
     }

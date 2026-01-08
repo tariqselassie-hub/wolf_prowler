@@ -38,7 +38,10 @@ pub struct ConsensusEngine {
 
 impl ConsensusEngine {
     /// Create a new consensus engine
-    pub async fn new(node_id: u64, peers: Vec<u64>, storage_path: &str) -> Result<Self> {
+    ///
+    /// # Errors
+    /// Returns an error if storage initialization fails, config validation fails, or raw node creation fails.
+    pub fn new(node_id: u64, peers: Vec<u64>, storage_path: &str) -> Result<Self> {
         tracing::info!(
             "Initializing consensus engine: node_id={}, peers={:?}",
             node_id,
@@ -92,7 +95,10 @@ impl ConsensusEngine {
     }
 
     /// Propose a change to the cluster
-    pub async fn propose(&mut self, proposal: Proposal) -> Result<()> {
+    ///
+    /// # Errors
+    /// Returns an error if not the leader, or if serialization or proposal fails.
+    pub fn propose(&mut self, proposal: Proposal) -> Result<()> {
         if !self.is_leader() {
             anyhow::bail!("Only leader can propose changes");
         }
@@ -151,7 +157,7 @@ impl ConsensusEngine {
         self.state_machine.read().await
     }
 
-    async fn apply_committed_entries(&mut self, entries: Vec<raft::prelude::Entry>) -> Result<()> {
+    async fn apply_committed_entries(&self, entries: Vec<raft::prelude::Entry>) -> Result<()> {
         for entry in entries {
             if entry.data.is_empty() {
                 continue;
@@ -195,7 +201,7 @@ impl ConsensusEngine {
         }
 
         if !ready.snapshot().is_empty() {
-            self.storage.apply_snapshot(ready.snapshot().clone())?;
+            self.storage.apply_snapshot(ready.snapshot())?;
         }
 
         // Advance
@@ -246,9 +252,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let storage_path = temp_dir.path().to_str().unwrap();
 
-        let engine = ConsensusEngine::new(1, vec![2, 3], storage_path)
-            .await
-            .unwrap();
+        let engine = ConsensusEngine::new(1, vec![2, 3], storage_path).unwrap();
 
         assert_eq!(engine.node_id, 1);
         assert_eq!(engine.peers, vec![2, 3]);
@@ -259,9 +263,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let storage_path = temp_dir.path().to_str().unwrap();
 
-        let engine = ConsensusEngine::new(1, vec![2, 3], storage_path)
-            .await
-            .unwrap();
+        let engine = ConsensusEngine::new(1, vec![2, 3], storage_path).unwrap();
 
         let status = engine.status();
         assert_eq!(status.node_id, 1);

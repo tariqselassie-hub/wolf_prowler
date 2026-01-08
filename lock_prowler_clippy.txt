@@ -1,0 +1,3811 @@
+    Checking wolf_net v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_net)
+error: the function has a cognitive complexity of (37/25)
+  --> wolf_net/src/consensus/state.rs:50:12
+   |
+50 |     pub fn apply(&mut self, proposal: Proposal) -> Result<()> {
+   |            ^^^^^
+   |
+   = help: you could split it up into multiple smaller functions
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+   = note: requested on the command line with `-D clippy::cognitive-complexity`
+
+error: docs for function returning `Result` missing `# Errors` section
+  --> wolf_net/src/consensus/storage.rs:31:5
+   |
+31 |     pub fn new(path: &str) -> Result<Self> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+   = note: `-D clippy::missing-errors-doc` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::missing_errors_doc)]`
+
+error: docs for function returning `Result` missing `# Errors` section
+  --> wolf_net/src/consensus/storage.rs:64:5
+   |
+64 |     pub fn set_commit_index(&self, index: u64) -> Result<()> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:102:10
+    |
+102 |         *self.hard_state.write().unwrap() = hs.clone();
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+    = note: `-D clippy::unwrap-used` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unwrap_used)]`
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:118:10
+    |
+118 |         *self.conf_state.write().unwrap() = cs.clone();
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:132:22
+    |
+132 |         let mut hs = self.hard_state.write().unwrap();
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:133:22
+    |
+133 |         let mut cs = self.conf_state.write().unwrap();
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:134:24
+    |
+134 |         let mut snap = self.snapshot.write().unwrap();
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:174:25
+    |
+174 |             hard_state: self.hard_state.read().unwrap().clone(),
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:175:25
+    |
+175 |             conf_state: self.conf_state.read().unwrap().clone(),
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/consensus/storage.rs:220:13
+    |
+219 |       fn term(&self, idx: u64) -> raft::Result<u64> {
+    |  ___________________________________________________-
+220 | |         let snapshot = self.snapshot.read().unwrap();
+    | |             ^^^^^^^^
+221 | |         if idx == snapshot.get_metadata().index {
+222 | |             return Ok(snapshot.get_metadata().term);
+...   |
+238 | |     }
+    | |_____- temporary `snapshot` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+    = note: `-D clippy::significant-drop-tightening` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::significant_drop_tightening)]`
+help: drop the temporary after the end of its last usage
+    |
+222 ~             return Ok(snapshot.get_metadata().term);
+223 +             drop(snapshot);
+    |
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:220:24
+    |
+220 |         let snapshot = self.snapshot.read().unwrap();
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:241:24
+    |
+241 |         let snapshot = self.snapshot.read().unwrap();
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:251:42
+    |
+251 |                   let idx_bytes: [u8; 8] = key[PREFIX_ENTRY.len()..PREFIX_ENTRY.len() + 8]
+    |  __________________________________________^
+252 | |                     .try_into()
+253 | |                     .unwrap();
+    | |_____________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:265:12
+    |
+265 |         Ok(self.snapshot.read().unwrap().clone())
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: adding items after statements is confusing, since items exist from the start of the scope
+  --> wolf_net/src/consensus/mod.rs:67:9
+   |
+67 |         use slog::Drain;
+   |         ^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#items_after_statements
+   = note: `-D clippy::items-after-statements` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::items_after_statements)]`
+
+error: field assignment outside of initializer for an instance created with Default::default()
+  --> wolf_net/src/consensus/mod.rs:84:13
+   |
+84 |             conf_state.voters = peers.clone();
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: consider initializing the variable with `raft::prelude::ConfState { voters: peers.clone(), ..Default::default() }` and removing relevant reassignments
+  --> wolf_net/src/consensus/mod.rs:83:13
+   |
+83 |             let mut conf_state = raft::eraftpb::ConfState::default();
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#field_reassign_with_default
+   = note: `-D clippy::field-reassign-with-default` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::field_reassign_with_default)]`
+
+error: assigning the result of `Clone::clone()` may be inefficient
+  --> wolf_net/src/consensus/mod.rs:84:13
+   |
+84 |             conf_state.voters = peers.clone();
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use `clone_from()`: `conf_state.voters.clone_from(&peers)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assigning_clones
+   = note: `-D clippy::assigning-clones` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::assigning_clones)]`
+
+error: this argument is passed by value, but not consumed in the function body
+   --> wolf_net/src/consensus/mod.rs:101:41
+    |
+101 |     pub fn propose(&mut self, proposal: Proposal) -> Result<()> {
+    |                                         ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_pass_by_value
+    = note: `-D clippy::needless-pass-by-value` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_pass_by_value)]`
+help: consider taking a reference instead
+    |
+101 |     pub fn propose(&mut self, proposal: &Proposal) -> Result<()> {
+    |                                         +
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/consensus/mod.rs:120:12
+    |
+120 |     pub fn is_leader(&self) -> bool {
+    |            ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+    = note: `-D clippy::must-use-candidate` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::must_use_candidate)]`
+help: add the attribute
+    |
+120 ~     #[must_use] 
+121 ~     pub fn is_leader(&self) -> bool {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/consensus/mod.rs:125:12
+    |
+125 |     pub fn leader_id(&self) -> Option<u64> {
+    |            ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+125 ~     #[must_use] 
+126 ~     pub fn leader_id(&self) -> Option<u64> {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/consensus/mod.rs:125:5
+    |
+125 | /     pub fn leader_id(&self) -> Option<u64> {
+126 | |         let leader = self.raw_node.raft.r.leader_id;
+127 | |         if leader == 0 {
+128 | |             None
+...   |
+132 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+    = note: `-D clippy::missing-const-for-fn` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::missing_const_for_fn)]`
+help: make the function `const`
+    |
+125 |     pub const fn leader_id(&self) -> Option<u64> {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/consensus/mod.rs:135:12
+    |
+135 |     pub fn status(&self) -> NodeStatus {
+    |            ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+135 ~     #[must_use] 
+136 ~     pub fn status(&self) -> NodeStatus {
+    |
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/consensus/mod.rs:178:5
+    |
+178 |     pub async fn step_ready(&mut self) -> Result<Vec<raft::prelude::Message>> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: implicitly cloning a `Vec` by calling `to_vec` on its dereferenced type
+   --> wolf_net/src/consensus/mod.rs:189:33
+    |
+189 |         let committed_entries = ready.committed_entries().to_vec();
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `ready.committed_entries().clone()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#implicit_clone
+    = note: `-D clippy::implicit-clone` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::implicit_clone)]`
+
+error: implicitly cloning a `Vec` by calling `to_vec` on its dereferenced type
+   --> wolf_net/src/consensus/mod.rs:214:39
+    |
+214 |         let light_committed_entries = light_rd.committed_entries().to_vec();
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using: `light_rd.committed_entries().clone()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#implicit_clone
+
+error: used `unwrap()` on a `Result` value
+  --> wolf_net/src/discovery.rs:70:35
+   |
+70 |             peer_info.add_address(format!("127.0.0.1:{}", 8080 + i).parse().unwrap());
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/discovery.rs:113:35
+    |
+113 |             peer_info.add_address(format!("127.0.0.1:{}", 9000 + i).parse().unwrap());
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: this could be a `const fn`
+   --> wolf_net/src/discovery.rs:136:5
+    |
+136 | /     pub fn new(enabled: bool, ports: Vec<u16>) -> Self {
+137 | |         Self { enabled, ports }
+138 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+136 |     pub const fn new(enabled: bool, ports: Vec<u16>) -> Self {
+    |         +++++
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/discovery.rs:154:31
+    |
+154 |             if let Ok(addr) = format!("127.0.0.1:{}", port).parse::<SocketAddr>() {
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+    = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+    |
+154 -             if let Ok(addr) = format!("127.0.0.1:{}", port).parse::<SocketAddr>() {
+154 +             if let Ok(addr) = format!("127.0.0.1:{port}").parse::<SocketAddr>() {
+    |
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/discovery.rs:181:5
+    |
+181 |     pub fn new(config: DiscoveryConfig) -> anyhow::Result<(Self, mpsc::Receiver<PeerInfo>)> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: docs for function which may panic missing `# Panics` section
+   --> wolf_net/src/discovery.rs:214:5
+    |
+214 |     pub fn start(&mut self) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: first possible panic found here
+   --> wolf_net/src/discovery.rs:283:35
+    |
+283 |   ...                   > chrono::Duration::from_std(Duration::from_secs(config.peer_timeout_secs))
+    |  _________________________^
+284 | | ...                       .unwrap()
+    | |___________________________________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_panics_doc
+    = note: `-D clippy::missing-panics-doc` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::missing_panics_doc)]`
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/discovery.rs:214:5
+    |
+214 |     pub fn start(&mut self) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/discovery.rs:277:33
+    |
+235 |                       _ = interval.tick() => {
+    |  ____________________________________________-
+236 | |                         debug!("Running discovery cycle...");
+237 | |
+238 | |                         for method in &methods {
+...   |
+277 | |                         let mut known_peers = known_peers.write().await;
+    | |                                 ^^^^^^^^^^^
+...   |
+298 | |                         );
+299 | |                     }
+    | |_____________________- temporary `known_peers` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: drop the temporary after the end of its last usage
+   --> /home/t4riq/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-0.1.44/src/macros.rs:2967:123
+    |
+2967~         $crate::valueset_all!(@ { ($crate::__macro_support::Option::Some(&$crate::__macro_support::format_args!($($rest)+)
+2968~                         drop(known_peers); as &dyn $crate::field::Value)), $($out),* },)
+    |
+
+error: redundant pattern matching, consider using `is_err()`
+   --> wolf_net/src/discovery.rs:253:48
+    |
+253 | ...                   if let Err(_) = event_tx.send(peer).await {
+    |                       -------^^^^^^---------------------------- help: try: `if (event_tx.send(peer).await).is_err()`
+    |
+    = note: this will change drop order of the result, as well as all temporaries
+    = note: add `#[allow(clippy::redundant_pattern_matching)]` if this is important
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_pattern_matching
+    = note: `-D clippy::redundant-pattern-matching` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::redundant_pattern_matching)]`
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/discovery.rs:283:35
+    |
+283 |   ...                   > chrono::Duration::from_std(Duration::from_secs(config.peer_timeout_secs))
+    |  _________________________^
+284 | | ...                       .unwrap()
+    | |___________________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/discovery.rs:313:5
+    |
+313 |     pub async fn stop(&mut self) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/discovery.rs:358:12
+    |
+358 |     pub fn get_known_peers_handle(&self) -> Arc<RwLock<HashMap<PeerId, PeerInfo>>> {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+358 ~     #[must_use] 
+359 ~     pub fn get_known_peers_handle(&self) -> Arc<RwLock<HashMap<PeerId, PeerInfo>>> {
+    |
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/discovery.rs:365:28
+    |
+365 |         let (service, _) = Self::new(config).expect("Failed to create DiscoveryService");
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+    = note: `-D clippy::expect-used` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::expect_used)]`
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/encrypted_handler.rs:35:27
+   |
+35 |     /// Peer public keys (peer_id -> public_key)
+   |                           ^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+   = note: `-D clippy::doc-markdown` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::doc_markdown)]`
+help: try
+   |
+35 -     /// Peer public keys (peer_id -> public_key)
+35 +     /// Peer public keys (`peer_id` -> public_key)
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/encrypted_handler.rs:35:38
+   |
+35 |     /// Peer public keys (peer_id -> public_key)
+   |                                      ^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+35 -     /// Peer public keys (peer_id -> public_key)
+35 +     /// Peer public keys (peer_id -> `public_key`)
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/encrypted_handler.rs:43:12
+   |
+43 |     pub fn new(encryption: Arc<MessageEncryption>) -> Self {
+   |            ^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+43 ~     #[must_use] 
+44 ~     pub fn new(encryption: Arc<MessageEncryption>) -> Self {
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/encrypted_handler.rs:52:12
+   |
+52 |     pub fn with_enforcement(encryption: Arc<MessageEncryption>, enforce: bool) -> Self {
+   |            ^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+52 ~     #[must_use] 
+53 ~     pub fn with_enforcement(encryption: Arc<MessageEncryption>, enforce: bool) -> Self {
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/encrypted_handler.rs:61:12
+   |
+61 |     pub fn public_key(&self) -> PublicKey {
+   |            ^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+61 ~     #[must_use] 
+62 ~     pub fn public_key(&self) -> PublicKey {
+   |
+
+error: temporary with significant `Drop` can be early dropped
+  --> wolf_net/src/encrypted_handler.rs:79:17
+   |
+78 |       pub async fn remove_peer_key(&self, peer_id: &PeerId) {
+   |  ___________________________________________________________-
+79 | |         let mut keys = self.peer_keys.write().await;
+   | |                 ^^^^
+80 | |         keys.remove(&peer_id.to_string());
+...  |
+83 | |         self.encryption.clear_session(&peer_id.to_string()).await;
+84 | |     }
+   | |_____- temporary `keys` is currently being dropped at the end of its contained scope
+   |
+   = note: this might lead to unnecessary resource contention
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+   |
+79 ~         
+80 +         self.peer_keys.write().await.remove(&peer_id.to_string());
+81 ~         
+   |
+
+error: docs for function returning `Result` missing `# Errors` section
+  --> wolf_net/src/encrypted_handler.rs:87:5
+   |
+87 | /     pub async fn encrypt_request(
+88 | |         &self,
+89 | |         peer_id: &PeerId,
+90 | |         request: &WolfRequest,
+91 | |     ) -> Result<EncryptedMessage> {
+   | |_________________________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/encrypted_handler.rs:112:5
+    |
+112 | /     pub async fn decrypt_request(
+113 | |         &self,
+114 | |         peer_id: &PeerId,
+115 | |         encrypted: &EncryptedMessage,
+116 | |     ) -> Result<WolfRequest> {
+    | |____________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/encrypted_handler.rs:132:5
+    |
+132 | /     pub async fn encrypt_response(
+133 | |         &self,
+134 | |         peer_id: &PeerId,
+135 | |         response: &WolfResponse,
+136 | |     ) -> Result<EncryptedMessage> {
+    | |_________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/encrypted_handler.rs:157:5
+    |
+157 | /     pub async fn decrypt_response(
+158 | |         &self,
+159 | |         peer_id: &PeerId,
+160 | |         encrypted: &EncryptedMessage,
+161 | |     ) -> Result<WolfResponse> {
+    | |_____________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/encrypted_handler.rs:177:12
+    |
+177 |     pub fn is_encryption_enforced(&self) -> bool {
+    |            ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+177 ~     #[must_use] 
+178 ~     pub fn is_encryption_enforced(&self) -> bool {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/encrypted_handler.rs:177:5
+    |
+177 | /     pub fn is_encryption_enforced(&self) -> bool {
+178 | |         self.enforce_encryption
+179 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+177 |     pub const fn is_encryption_enforced(&self) -> bool {
+    |         +++++
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/encryption.rs:72:32
+   |
+72 |     /// Session keys per peer (peer_id -> session_key)
+   |                                ^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+72 -     /// Session keys per peer (peer_id -> session_key)
+72 +     /// Session keys per peer (`peer_id` -> session_key)
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/encryption.rs:72:43
+   |
+72 |     /// Session keys per peer (peer_id -> session_key)
+   |                                           ^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+72 -     /// Session keys per peer (peer_id -> session_key)
+72 +     /// Session keys per peer (peer_id -> `session_key`)
+   |
+
+error: docs for function returning `Result` missing `# Errors` section
+  --> wolf_net/src/encryption.rs:83:5
+   |
+83 |     pub fn new(security_level: SecurityLevel) -> Result<Self> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/encryption.rs:100:12
+    |
+100 |     pub fn public_key(&self) -> PublicKey {
+    |            ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+100 ~     #[must_use] 
+101 ~     pub fn public_key(&self) -> PublicKey {
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/encryption.rs:117:17
+    |
+116 |       ) -> Result<SessionKey> {
+    |  _____________________________-
+117 | |         let mut sessions = self.session_keys.write().await;
+    | |                 ^^^^^^^^
+...   |
+139 | |         Ok(session)
+140 | |     }
+    | |_____- temporary `sessions` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: drop the temporary after the end of its last usage
+    |
+138 ~         sessions.insert(peer_id.to_string(), session.clone());
+139 +         drop(sessions);
+    |
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/encryption.rs:151:5
+    |
+151 | /     pub async fn encrypt(
+152 | |         &self,
+153 | |         plaintext: &[u8],
+154 | |         peer_id: &str,
+155 | |         peer_public_key: &PublicKey,
+156 | |     ) -> Result<EncryptedMessage> {
+    | |_________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/encryption.rs:198:5
+    |
+198 |     pub async fn decrypt(&self, encrypted: &EncryptedMessage, peer_id: &str) -> Result<Vec<u8>> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/encryption.rs:265:9
+    |
+265 |         Self::new(SecurityLevel::Standard).expect("Failed to create MessageEncryption")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/event.rs:59:12
+   |
+59 |     pub fn new(
+   |            ^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+59 ~     #[must_use] 
+60 ~     pub fn new(
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/event.rs:75:12
+   |
+75 |     pub fn with_peer(mut self, peer_id: String) -> Self {
+   |            ^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+75 ~     #[must_use] 
+76 ~     pub fn with_peer(mut self, peer_id: String) -> Self {
+   |
+
+error: missing `#[must_use]` attribute on a method returning `Self`
+  --> wolf_net/src/event.rs:75:5
+   |
+75 | /     pub fn with_peer(mut self, peer_id: String) -> Self {
+76 | |         self.peer_id = Some(peer_id);
+77 | |         self
+78 | |     }
+   | |_____^
+   |
+   = help: consider adding the `#[must_use]` attribute to the method or directly to the `Self` type
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#return_self_not_must_use
+   = note: `-D clippy::return-self-not-must-use` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::return_self_not_must_use)]`
+
+error: large size difference between variants
+   --> wolf_net/src/event.rs:83:1
+    |
+ 83 | /   pub enum NetworkEvent {
+ 84 | |       /// A new peer has connected to the node.
+ 85 | |       PeerConnected { 
+ 86 | |           /// ID of the connected peer.
+...   |
+ 99 | | /     MessageReceived { 
+100 | | |         /// ID of the sender.
+101 | | |         from: PeerId, 
+102 | | |         /// The message content.
+103 | | |         message: Message 
+104 | | |     },
+    | | |_____- the largest variant contains at least 360 bytes
+...   |
+113 | | /     PeerDiscovered { 
+114 | | |         /// Information about the discovered peer.
+115 | | |         peer_info: PeerInfo 
+116 | | |     },
+    | | |_____- the second-largest variant contains at least 144 bytes
+...   |
+144 | |       Security(SecurityEvent),
+145 | |   }
+    | |___^ the entire enum is at least 360 bytes
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#large_enum_variant
+    = note: `-D clippy::large-enum-variant` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::large_enum_variant)]`
+help: consider boxing the large fields or introducing indirection in some other way to reduce the total size of the enum
+    |
+103 -         message: Message 
+103 +         message: Box<Message> 
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/event.rs:196:12
+    |
+196 |     pub fn new() -> Self {
+    |            ^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+196 ~     #[must_use] 
+197 ~     pub fn new() -> Self {
+    |
+
+error: use of `or_insert_with` to construct default value
+   --> wolf_net/src/event.rs:210:14
+    |
+210 |             .or_insert_with(Vec::new)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `or_default()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_or_default
+    = note: `-D clippy::unwrap-or-default` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unwrap_or_default)]`
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/event.rs:218:5
+    |
+218 |     pub fn emit(&mut self, event: NetworkEvent) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/event.rs:230:5
+    |
+230 |     pub fn process_event(&mut self, event: &NetworkEvent) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/event.rs:249:5
+    |
+249 |     pub fn start(&mut self) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/event.rs:255:5
+    |
+255 |     pub fn stop(&mut self) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/event.rs:261:12
+    |
+261 |     pub fn stats(&self) -> &EventHandlerStats {
+    |            ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+261 ~     #[must_use] 
+262 ~     pub fn stats(&self) -> &EventHandlerStats {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/event.rs:261:5
+    |
+261 | /     pub fn stats(&self) -> &EventHandlerStats {
+262 | |         &self.stats
+263 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+261 |     pub const fn stats(&self) -> &EventHandlerStats {
+    |         +++++
+
+error: unused `self` argument
+   --> wolf_net/src/event.rs:266:23
+    |
+266 |     fn get_event_type(&self, event: &NetworkEvent) -> String {
+    |                       ^^^^^
+    |
+    = help: consider refactoring to an associated function
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unused_self
+    = note: `-D clippy::unused-self` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unused_self)]`
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/event.rs:276:17
+    |
+276 |                 format!("swarm_{:?}", event_type).to_lowercase()
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+276 -                 format!("swarm_{:?}", event_type).to_lowercase()
+276 +                 format!("swarm_{event_type:?}").to_lowercase()
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/event.rs:284:12
+    |
+284 |     pub fn peer_connected(peer_id: PeerId, address: String) -> NetworkEvent {
+    |            ^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+284 ~     #[must_use] 
+285 ~     pub fn peer_connected(peer_id: PeerId, address: String) -> NetworkEvent {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/event.rs:284:5
+    |
+284 | /     pub fn peer_connected(peer_id: PeerId, address: String) -> NetworkEvent {
+285 | |         NetworkEvent::PeerConnected { peer_id, address }
+286 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+284 |     pub const fn peer_connected(peer_id: PeerId, address: String) -> NetworkEvent {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/event.rs:289:12
+    |
+289 |     pub fn peer_disconnected(peer_id: PeerId, reason: String) -> NetworkEvent {
+    |            ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+289 ~     #[must_use] 
+290 ~     pub fn peer_disconnected(peer_id: PeerId, reason: String) -> NetworkEvent {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/event.rs:289:5
+    |
+289 | /     pub fn peer_disconnected(peer_id: PeerId, reason: String) -> NetworkEvent {
+290 | |         NetworkEvent::PeerDisconnected { peer_id, reason }
+291 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+289 |     pub const fn peer_disconnected(peer_id: PeerId, reason: String) -> NetworkEvent {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/event.rs:294:12
+    |
+294 |     pub fn message_received(from: PeerId, message: Message) -> NetworkEvent {
+    |            ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+294 ~     #[must_use] 
+295 ~     pub fn message_received(from: PeerId, message: Message) -> NetworkEvent {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/event.rs:294:5
+    |
+294 | /     pub fn message_received(from: PeerId, message: Message) -> NetworkEvent {
+295 | |         NetworkEvent::MessageReceived { from, message }
+296 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+294 |     pub const fn message_received(from: PeerId, message: Message) -> NetworkEvent {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/event.rs:299:12
+    |
+299 |     pub fn message_sent(to: PeerId, message_id: String) -> NetworkEvent {
+    |            ^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+299 ~     #[must_use] 
+300 ~     pub fn message_sent(to: PeerId, message_id: String) -> NetworkEvent {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/event.rs:299:5
+    |
+299 | /     pub fn message_sent(to: PeerId, message_id: String) -> NetworkEvent {
+300 | |         NetworkEvent::MessageSent { to, message_id }
+301 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+299 |     pub const fn message_sent(to: PeerId, message_id: String) -> NetworkEvent {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/event.rs:304:12
+    |
+304 |     pub fn peer_discovered(peer_info: PeerInfo) -> NetworkEvent {
+    |            ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+304 ~     #[must_use] 
+305 ~     pub fn peer_discovered(peer_info: PeerInfo) -> NetworkEvent {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/event.rs:304:5
+    |
+304 | /     pub fn peer_discovered(peer_info: PeerInfo) -> NetworkEvent {
+305 | |         NetworkEvent::PeerDiscovered { peer_info }
+306 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+304 |     pub const fn peer_discovered(peer_info: PeerInfo) -> NetworkEvent {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/event.rs:309:12
+    |
+309 |     pub fn connection_error(peer_id: PeerId, error: String) -> NetworkEvent {
+    |            ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+309 ~     #[must_use] 
+310 ~     pub fn connection_error(peer_id: PeerId, error: String) -> NetworkEvent {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/event.rs:309:5
+    |
+309 | /     pub fn connection_error(peer_id: PeerId, error: String) -> NetworkEvent {
+310 | |         NetworkEvent::ConnectionError { peer_id, error }
+311 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+309 |     pub const fn connection_error(peer_id: PeerId, error: String) -> NetworkEvent {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/event.rs:327:12
+    |
+327 |     pub fn new(log_level: tracing::Level) -> Self {
+    |            ^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+327 ~     #[must_use] 
+328 ~     pub fn new(log_level: tracing::Level) -> Self {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/event.rs:327:5
+    |
+327 | /     pub fn new(log_level: tracing::Level) -> Self {
+328 | |         Self { log_level }
+329 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+327 |     pub const fn new(log_level: tracing::Level) -> Self {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/event.rs:332:12
+    |
+332 |     pub fn create_callback(&self) -> EventCallback {
+    |            ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+332 ~     #[must_use] 
+333 ~     pub fn create_callback(&self) -> EventCallback {
+    |
+
+error: the function has a cognitive complexity of (37/25)
+   --> wolf_net/src/event.rs:334:23
+    |
+334 |         Box::new(move |event: &NetworkEvent| -> anyhow::Result<()> {
+    |                       ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: you could split it up into multiple smaller functions
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/firewall.rs:17:12
+   |
+17 |     pub fn new() -> Self {
+   |            ^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+17 ~     #[must_use] 
+18 ~     pub fn new() -> Self {
+   |
+
+error: this could be a `const fn`
+  --> wolf_net/src/firewall.rs:17:5
+   |
+17 | /     pub fn new() -> Self {
+18 | |         Self {
+19 | |             rules: Vec::new(),
+20 | |             policy: FirewallPolicy::Default,
+...  |
+23 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+   |
+17 |     pub const fn new() -> Self {
+   |         +++++
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/firewall.rs:45:12
+   |
+45 |     pub fn check_access(
+   |            ^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+45 ~     #[must_use] 
+46 ~     pub fn check_access(
+   |
+
+error: these match arms have identical bodies
+  --> wolf_net/src/firewall.rs:67:13
+   |
+67 |             FirewallPolicy::Default => true, // Default allow if not specified? Or safe fail?
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+68 |             FirewallPolicy::AllowAll => true,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: if this is unintentional make the arms return different values
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#match_same_arms
+   = note: `-D clippy::match-same-arms` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::match_same_arms)]`
+help: otherwise merge the patterns into a single arm
+   |
+67 ~             // Default allow if not specified? Or safe fail?
+68 ~             FirewallPolicy::Default | FirewallPolicy::AllowAll => true,
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/firewall.rs:96:44
+   |
+96 |     /// The target of this rule (Port, IP, PeerID, or Any).
+   |                                            ^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+96 -     /// The target of this rule (Port, IP, PeerID, or Any).
+96 +     /// The target of this rule (Port, IP, `PeerID`, or Any).
+   |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/firewall.rs:125:12
+    |
+125 |     pub fn matches(
+    |            ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+125 ~     #[must_use] 
+126 ~     pub fn matches(
+    |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/geo.rs:34:37
+   |
+34 |     /// Timezone identifier (e.g., "America/New_York").
+   |                                     ^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+34 -     /// Timezone identifier (e.g., "America/New_York").
+34 +     /// Timezone identifier (e.g., "`America/New_York`").
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/geo.rs:51:5
+   |
+51 | /// GeoIP service configuration
+   |     ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+51 - /// GeoIP service configuration
+51 + /// `GeoIP` service configuration
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/geo.rs:54:25
+   |
+54 |     /// Base URL of the GeoIP API.
+   |                         ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+54 -     /// Base URL of the GeoIP API.
+54 +     /// Base URL of the `GeoIP` API.
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/geo.rs:72:5
+   |
+72 | /// GeoIP service for resolving IP addresses to geographic locations
+   |     ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+72 - /// GeoIP service for resolving IP addresses to geographic locations
+72 + /// `GeoIP` service for resolving IP addresses to geographic locations
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/geo.rs:80:22
+   |
+80 |     /// Create a new GeoIP service
+   |                      ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+80 -     /// Create a new GeoIP service
+80 +     /// Create a new `GeoIP` service
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/geo.rs:81:12
+   |
+81 |     pub fn new(config: GeoIPConfig) -> Self {
+   |            ^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+81 ~     #[must_use] 
+82 ~     pub fn new(config: GeoIPConfig) -> Self {
+   |
+
+error: docs for function returning `Result` missing `# Errors` section
+  --> wolf_net/src/geo.rs:95:5
+   |
+95 |     pub async fn resolve(&self, ip: &IpAddr) -> anyhow::Result<GeoLocation> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/geo.rs:137:26
+    |
+137 |             .map_err(|e| anyhow::anyhow!("Failed to fetch GeoIP data: {}", e))?;
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+137 -             .map_err(|e| anyhow::anyhow!("Failed to fetch GeoIP data: {}", e))?;
+137 +             .map_err(|e| anyhow::anyhow!("Failed to fetch GeoIP data: {e}"))?;
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/geo.rs:149:26
+    |
+149 |             .map_err(|e| anyhow::anyhow!("Failed to parse GeoIP response: {}", e))?;
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+149 -             .map_err(|e| anyhow::anyhow!("Failed to parse GeoIP response: {}", e))?;
+149 +             .map_err(|e| anyhow::anyhow!("Failed to parse GeoIP response: {e}"))?;
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/geo.rs:174:13
+    |
+173 |       pub async fn cache_stats(&self) -> (usize, usize) {
+    |  _______________________________________________________-
+174 | |         let cache = self.cache.read().await;
+    | |             ^^^^^
+175 | |         let total = cache.len();
+176 | |         let expired = cache
+...   |
+181 | |         (total, expired)
+182 | |     }
+    | |_____- temporary `cache` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: drop the temporary after the end of its last usage
+    |
+179 ~             .count();
+180 +         drop(cache);
+    |
+
+error: this `impl` can be derived
+   --> wolf_net/src/message.rs:114:1
+    |
+114 | / impl Default for MessagePriority {
+115 | |     fn default() -> Self {
+116 | |         Self::Normal
+117 | |     }
+118 | | }
+    | |_^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#derivable_impls
+    = note: `-D clippy::derivable-impls` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::derivable_impls)]`
+help: replace the manual implementation with a derive attribute and mark the default variant
+    |
+103 + #[derive(Default)]
+104 | pub enum MessagePriority {
+105 |     /// Low priority - may be delayed
+106 |     Low = 0,
+107 |     /// Normal priority - standard delivery
+108 ~     #[default]
+109 ~     Normal = 1,
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:170:12
+    |
+170 |     pub fn to_peer(from: PeerId, to: PeerId, message_type: MessageType) -> Self {
+    |            ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+170 ~     #[must_use] 
+171 ~     pub fn to_peer(from: PeerId, to: PeerId, message_type: MessageType) -> Self {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:177:12
+    |
+177 |     pub fn broadcast(from: PeerId, message_type: MessageType) -> Self {
+    |            ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+177 ~     #[must_use] 
+178 ~     pub fn broadcast(from: PeerId, message_type: MessageType) -> Self {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:182:12
+    |
+182 |     pub fn with_priority(mut self, priority: MessagePriority) -> Self {
+    |            ^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+182 ~     #[must_use] 
+183 ~     pub fn with_priority(mut self, priority: MessagePriority) -> Self {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/message.rs:182:5
+    |
+182 | /     pub fn with_priority(mut self, priority: MessagePriority) -> Self {
+183 | |         self.priority = priority;
+184 | |         self
+185 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+182 |     pub const fn with_priority(mut self, priority: MessagePriority) -> Self {
+    |         +++++
+
+error: missing `#[must_use]` attribute on a method returning `Self`
+   --> wolf_net/src/message.rs:182:5
+    |
+182 | /     pub fn with_priority(mut self, priority: MessagePriority) -> Self {
+183 | |         self.priority = priority;
+184 | |         self
+185 | |     }
+    | |_____^
+    |
+    = help: consider adding the `#[must_use]` attribute to the method or directly to the `Self` type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#return_self_not_must_use
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:188:12
+    |
+188 |     pub fn with_ttl(mut self, ttl: chrono::Duration) -> Self {
+    |            ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+188 ~     #[must_use] 
+189 ~     pub fn with_ttl(mut self, ttl: chrono::Duration) -> Self {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/message.rs:188:5
+    |
+188 | /     pub fn with_ttl(mut self, ttl: chrono::Duration) -> Self {
+189 | |         self.ttl = Some(ttl);
+190 | |         self
+191 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+188 |     pub const fn with_ttl(mut self, ttl: chrono::Duration) -> Self {
+    |         +++++
+
+error: missing `#[must_use]` attribute on a method returning `Self`
+   --> wolf_net/src/message.rs:188:5
+    |
+188 | /     pub fn with_ttl(mut self, ttl: chrono::Duration) -> Self {
+189 | |         self.ttl = Some(ttl);
+190 | |         self
+191 | |     }
+    | |_____^
+    |
+    = help: consider adding the `#[must_use]` attribute to the method or directly to the `Self` type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#return_self_not_must_use
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:194:12
+    |
+194 |     pub fn with_metadata(mut self, key: String, value: String) -> Self {
+    |            ^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+194 ~     #[must_use] 
+195 ~     pub fn with_metadata(mut self, key: String, value: String) -> Self {
+    |
+
+error: missing `#[must_use]` attribute on a method returning `Self`
+   --> wolf_net/src/message.rs:194:5
+    |
+194 | /     pub fn with_metadata(mut self, key: String, value: String) -> Self {
+195 | |         self.metadata.insert(key, value);
+196 | |         self
+197 | |     }
+    | |_____^
+    |
+    = help: consider adding the `#[must_use]` attribute to the method or directly to the `Self` type
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#return_self_not_must_use
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:205:12
+    |
+205 |     pub fn is_expired(&self) -> bool {
+    |            ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+205 ~     #[must_use] 
+206 ~     pub fn is_expired(&self) -> bool {
+    |
+
+error: use Option::map_or instead of an if let/else
+   --> wolf_net/src/message.rs:206:9
+    |
+206 | /         if let Some(ttl) = self.ttl {
+207 | |             Utc::now() > self.timestamp + ttl
+208 | |         } else {
+209 | |             false
+210 | |         }
+    | |_________^ help: try: `self.ttl.map_or(false, |ttl| Utc::now() > self.timestamp + ttl)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#option_if_let_else
+    = note: `-D clippy::option-if-let-else` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::option_if_let_else)]`
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:214:12
+    |
+214 |     pub fn is_for_local(&self, local_peer_id: &PeerId) -> bool {
+    |            ^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+214 ~     #[must_use] 
+215 ~     pub fn is_for_local(&self, local_peer_id: &PeerId) -> bool {
+    |
+
+error: use Option::map_or instead of an if let/else
+   --> wolf_net/src/message.rs:215:9
+    |
+215 | /         match &self.to {
+216 | |             Some(target) => target == local_peer_id,
+217 | |             None => true, // Broadcast
+218 | |         }
+    | |_________^ help: try: `self.to.as_ref().map_or(true, |target| target == local_peer_id)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#option_if_let_else
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:222:12
+    |
+222 |     pub fn size_estimate(&self) -> usize {
+    |            ^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+222 ~     #[must_use] 
+223 ~     pub fn size_estimate(&self) -> usize {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:228:12
+    |
+228 |     pub fn chat(from: PeerId, content: String) -> Self {
+    |            ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+228 ~     #[must_use] 
+229 ~     pub fn chat(from: PeerId, content: String) -> Self {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:233:12
+    |
+233 |     pub fn heartbeat(from: PeerId) -> Self {
+    |            ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+233 ~     #[must_use] 
+234 ~     pub fn heartbeat(from: PeerId) -> Self {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:238:12
+    |
+238 |     pub fn discovery(from: PeerId) -> Self {
+    |            ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+238 ~     #[must_use] 
+239 ~     pub fn discovery(from: PeerId) -> Self {
+    |
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/message.rs:285:5
+    |
+285 |     pub fn new(config: MessageConfig) -> anyhow::Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/message.rs:296:5
+    |
+296 |     pub fn start(&mut self) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/message.rs:302:5
+    |
+302 |     pub fn stop(&mut self) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: this argument is passed by value, but not consumed in the function body
+   --> wolf_net/src/message.rs:324:55
+    |
+324 |     pub fn register_callback(&mut self, message_type: MessageType, callback: MessageCallback) {
+    |                                                       ^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_pass_by_value
+help: consider taking a reference instead
+    |
+324 |     pub fn register_callback(&mut self, message_type: &MessageType, callback: MessageCallback) {
+    |                                                       +
+
+error: use of `or_insert_with` to construct default value
+   --> wolf_net/src/message.rs:327:14
+    |
+327 |             .or_insert_with(Vec::new)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `or_default()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_or_default
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/message.rs:332:5
+    |
+332 |     pub fn process_message(&self, message: Message) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: this argument is passed by value, but not consumed in the function body
+   --> wolf_net/src/message.rs:332:44
+    |
+332 |     pub fn process_message(&self, message: Message) -> anyhow::Result<()> {
+    |                                            ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_pass_by_value
+help: consider taking a reference instead
+    |
+332 |     pub fn process_message(&self, message: &Message) -> anyhow::Result<()> {
+    |                                            +
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/message.rs:352:12
+    |
+352 |     pub fn outgoing_receiver(&self) -> Option<tokio::sync::mpsc::UnboundedReceiver<Message>> {
+    |            ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+352 ~     #[must_use] 
+353 ~     pub fn outgoing_receiver(&self) -> Option<tokio::sync::mpsc::UnboundedReceiver<Message>> {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/message.rs:352:5
+    |
+352 | /     pub fn outgoing_receiver(&self) -> Option<tokio::sync::mpsc::UnboundedReceiver<Message>> {
+353 | |         // Note: This is a simplified approach. In practice, you'd need a different design
+354 | |         // to get the receiver since the sender is consumed.
+355 | |         None
+356 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+352 |     pub const fn outgoing_receiver(&self) -> Option<tokio::sync::mpsc::UnboundedReceiver<Message>> {
+    |         +++++
+
+error: parameter of type `HashMap` should be generalized over different hashers
+  --> wolf_net/src/metrics_simple.rs:10:20
+   |
+10 |     registry: &mut HashMap<PeerId, EntityInfo>,
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#implicit_hasher
+   = note: `-D clippy::implicit-hasher` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::implicit_hasher)]`
+help: add a type parameter for `BuildHasher`
+   |
+ 9 ~ pub fn update_peer_metrics<S: ::std::hash::BuildHasher>(
+10 ~     registry: &mut HashMap<PeerId, EntityInfo, S>,
+   |
+
+error: this function could have a `#[must_use]` attribute
+  --> wolf_net/src/metrics_simple.rs:21:8
+   |
+21 | pub fn calculate_network_health(registry: &HashMap<PeerId, EntityInfo>) -> f64 {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+21 + #[must_use] 
+22 | pub fn calculate_network_health(registry: &HashMap<PeerId, EntityInfo>) -> f64 {
+   |
+
+error: parameter of type `HashMap` should be generalized over different hashers
+  --> wolf_net/src/metrics_simple.rs:21:44
+   |
+21 | pub fn calculate_network_health(registry: &HashMap<PeerId, EntityInfo>) -> f64 {
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#implicit_hasher
+help: add a type parameter for `BuildHasher`
+   |
+21 | pub fn calculate_network_health<S: ::std::hash::BuildHasher>(registry: &HashMap<PeerId, EntityInfo, S>) -> f64 {
+   |                                +++++++++++++++++++++++++++++                                      +++
+
+error: casting `usize` to `f64` causes a loss of precision on targets with 64-bit wide pointers (`usize` is 64 bits wide, but `f64`'s mantissa is only 52 bits wide)
+  --> wolf_net/src/metrics_simple.rs:30:20
+   |
+30 |     total_health / registry.len() as f64
+   |                    ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+   = note: requested on the command line with `-D clippy::cast-precision-loss`
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/p2p.rs:11:26
+   |
+11 | /// Alias for the libp2p PeerId type to avoid naming conflicts.
+   |                          ^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+11 - /// Alias for the libp2p PeerId type to avoid naming conflicts.
+11 + /// Alias for the libp2p `PeerId` type to avoid naming conflicts.
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/p2p.rs:30:12
+   |
+30 |     pub fn to_topic_name(&self) -> String {
+   |            ^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+30 ~     #[must_use] 
+31 ~     pub fn to_topic_name(&self) -> String {
+   |
+
+error: unnecessary structure name repetition
+  --> wolf_net/src/p2p.rs:32:13
+   |
+32 |             MessagePriority::Low => "wolf-prowler-low".to_string(),
+   |             ^^^^^^^^^^^^^^^ help: use the applicable keyword: `Self`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#use_self
+   = note: `-D clippy::use-self` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::use_self)]`
+
+error: unnecessary structure name repetition
+  --> wolf_net/src/p2p.rs:33:13
+   |
+33 |             MessagePriority::Medium => "wolf-prowler-medium".to_string(),
+   |             ^^^^^^^^^^^^^^^ help: use the applicable keyword: `Self`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#use_self
+
+error: unnecessary structure name repetition
+  --> wolf_net/src/p2p.rs:34:13
+   |
+34 |             MessagePriority::High => "wolf-prowler-high".to_string(),
+   |             ^^^^^^^^^^^^^^^ help: use the applicable keyword: `Self`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#use_self
+
+error: unnecessary structure name repetition
+  --> wolf_net/src/p2p.rs:35:13
+   |
+35 |             MessagePriority::Critical => "wolf-prowler-critical".to_string(),
+   |             ^^^^^^^^^^^^^^^ help: use the applicable keyword: `Self`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#use_self
+
+error: docs for function which may panic missing `# Panics` section
+   --> wolf_net/src/p2p.rs:94:1
+    |
+ 94 | pub fn optimized_gossipsub_config() -> gossipsub::Config {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: first possible panic found here
+   --> wolf_net/src/p2p.rs:95:5
+    |
+ 95 | /     gossipsub::ConfigBuilder::default()
+ 96 | |         .heartbeat_interval(Duration::from_secs(1))
+ 97 | |         .validation_mode(gossipsub::ValidationMode::Strict)
+ 98 | |         .message_id_fn(|message: &gossipsub::Message| {
+...   |
+105 | |         .build()
+106 | |         .expect("Valid config")
+    | |_______________________________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_panics_doc
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/p2p.rs:95:5
+    |
+ 95 | /     gossipsub::ConfigBuilder::default()
+ 96 | |         .heartbeat_interval(Duration::from_secs(1))
+ 97 | |         .validation_mode(gossipsub::ValidationMode::Strict)
+ 98 | |         .message_id_fn(|message: &gossipsub::Message| {
+...   |
+105 | |         .build()
+106 | |         .expect("Valid config")
+    | |_______________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: returning a `str` unnecessarily tied to the lifetime of arguments
+   --> wolf_net/src/p2p.rs:115:25
+    |
+115 |     fn as_ref(&self) -> &str {
+    |                         ^^^^ help: try: `&'static str`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unnecessary_literal_bound
+    = note: `-D clippy::unnecessary-literal-bound` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unnecessary_literal_bound)]`
+
+error: item in documentation is missing backticks
+   --> wolf_net/src/p2p.rs:125:53
+    |
+125 | /// Generic request wrapper (legacy, consider using crate::protocol::WolfRequest)
+    |                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+125 - /// Generic request wrapper (legacy, consider using crate::protocol::WolfRequest)
+125 + /// Generic request wrapper (legacy, consider using `crate::protocol::WolfRequest`)
+    |
+
+error: item in documentation is missing backticks
+   --> wolf_net/src/p2p.rs:129:54
+    |
+129 | /// Generic response wrapper (legacy, consider using crate::protocol::WolfResponse)
+    |                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+129 - /// Generic response wrapper (legacy, consider using crate::protocol::WolfResponse)
+129 + /// Generic response wrapper (legacy, consider using `crate::protocol::WolfResponse`)
+    |
+
+error: casting `usize` to `u32` may truncate the value on targets with 64-bit wide pointers
+   --> wolf_net/src/p2p.rs:214:15
+    |
+214 |     let len = data.len() as u32;
+    |               ^^^^^^^^^^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_possible_truncation
+    = note: requested on the command line with `-D clippy::cast-possible-truncation`
+help: ... or use `try_from` and handle the error accordingly
+    |
+214 -     let len = data.len() as u32;
+214 +     let len = u32::try_from(data.len());
+    |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:25:12
+   |
+25 |     pub fn new() -> Self {
+   |            ^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+25 ~     #[must_use] 
+26 ~     pub fn new() -> Self {
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:30:12
+   |
+30 |     pub fn from_string(id: String) -> Self {
+   |            ^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+30 ~     #[must_use] 
+31 ~     pub fn from_string(id: String) -> Self {
+   |
+
+error: this could be a `const fn`
+  --> wolf_net/src/peer.rs:30:5
+   |
+30 | /     pub fn from_string(id: String) -> Self {
+31 | |         Self(id)
+32 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+   |
+30 |     pub const fn from_string(id: String) -> Self {
+   |         +++++
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:35:12
+   |
+35 |     pub fn as_str(&self) -> &str {
+   |            ^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+35 ~     #[must_use] 
+36 ~     pub fn as_str(&self) -> &str {
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/peer.rs:39:32
+   |
+39 |     /// Get peer ID (alias for as_str for compatibility)
+   |                                ^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+39 -     /// Get peer ID (alias for as_str for compatibility)
+39 +     /// Get peer ID (alias for `as_str` for compatibility)
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:40:12
+   |
+40 |     pub fn peer_id(&self) -> &str {
+   |            ^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+40 ~     #[must_use] 
+41 ~     pub fn peer_id(&self) -> &str {
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:45:12
+   |
+45 |     pub fn is_valid(&self) -> bool {
+   |            ^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+45 ~     #[must_use] 
+46 ~     pub fn is_valid(&self) -> bool {
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/peer.rs:49:27
+   |
+49 |     /// Convert to libp2p PeerId
+   |                           ^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+49 -     /// Convert to libp2p PeerId
+49 +     /// Convert to libp2p `PeerId`
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:50:12
+   |
+50 |     pub fn as_libp2p(&self) -> Libp2pPeerId {
+   |            ^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+50 ~     #[must_use] 
+51 ~     pub fn as_libp2p(&self) -> Libp2pPeerId {
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/peer.rs:55:28
+   |
+55 |     /// Create from libp2p PeerId
+   |                            ^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+55 -     /// Create from libp2p PeerId
+55 +     /// Create from libp2p `PeerId`
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:56:12
+   |
+56 |     pub fn from_libp2p(libp2p_id: Libp2pPeerId) -> Self {
+   |            ^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+56 ~     #[must_use] 
+57 ~     pub fn from_libp2p(libp2p_id: Libp2pPeerId) -> Self {
+   |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/peer.rs:60:46
+   |
+60 |     /// Generate a random peer ID (alias for new())
+   |                                              ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+60 -     /// Generate a random peer ID (alias for new())
+60 +     /// Generate a random peer ID (alias for `new()`)
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:61:12
+   |
+61 |     pub fn random() -> Self {
+   |            ^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+61 ~     #[must_use] 
+62 ~     pub fn random() -> Self {
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:85:12
+   |
+85 |     pub fn new() -> Self {
+   |            ^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+85 ~     #[must_use] 
+86 ~     pub fn new() -> Self {
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:90:12
+   |
+90 |     pub fn from_hardware(hardware_id: &str) -> Self {
+   |            ^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+90 ~     #[must_use] 
+91 ~     pub fn from_hardware(hardware_id: &str) -> Self {
+   |
+
+error: variables can be used directly in the `format!` string
+  --> wolf_net/src/peer.rs:91:14
+   |
+91 |         Self(format!("device_hw_{}", hardware_id))
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+91 -         Self(format!("device_hw_{}", hardware_id))
+91 +         Self(format!("device_hw_{hardware_id}"))
+   |
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/peer.rs:95:12
+   |
+95 |     pub fn from_string(id: String) -> Self {
+   |            ^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+95 ~     #[must_use] 
+96 ~     pub fn from_string(id: String) -> Self {
+   |
+
+error: this could be a `const fn`
+  --> wolf_net/src/peer.rs:95:5
+   |
+95 | /     pub fn from_string(id: String) -> Self {
+96 | |         Self(id)
+97 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+   |
+95 |     pub const fn from_string(id: String) -> Self {
+   |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:100:12
+    |
+100 |     pub fn as_str(&self) -> &str {
+    |            ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+100 ~     #[must_use] 
+101 ~     pub fn as_str(&self) -> &str {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:105:12
+    |
+105 |     pub fn hardware_id(&self) -> Option<&str> {
+    |            ^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+105 ~     #[must_use] 
+106 ~     pub fn hardware_id(&self) -> Option<&str> {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:132:12
+    |
+132 |     pub fn new(service_type: ServiceType, instance: u32) -> Self {
+    |            ^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+132 ~     #[must_use] 
+133 ~     pub fn new(service_type: ServiceType, instance: u32) -> Self {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:142:12
+    |
+142 |     pub fn from_components(service_type: ServiceType, name: &str, instance: u32) -> Self {
+    |            ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+142 ~     #[must_use] 
+143 ~     pub fn from_components(service_type: ServiceType, name: &str, instance: u32) -> Self {
+    |
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/peer.rs:152:5
+    |
+152 |     pub fn from_string(id: String) -> anyhow::Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:170:12
+    |
+170 |     pub fn as_str(&self) -> &str {
+    |            ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+170 ~     #[must_use] 
+171 ~     pub fn as_str(&self) -> &str {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:175:12
+    |
+175 |     pub fn service_type(&self) -> ServiceType {
+    |            ^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+175 ~     #[must_use] 
+176 ~     pub fn service_type(&self) -> ServiceType {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:175:5
+    |
+175 | /     pub fn service_type(&self) -> ServiceType {
+176 | |         self.service_type
+177 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+175 |     pub const fn service_type(&self) -> ServiceType {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:180:12
+    |
+180 |     pub fn instance(&self) -> u32 {
+    |            ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+180 ~     #[must_use] 
+181 ~     pub fn instance(&self) -> u32 {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:180:5
+    |
+180 | /     pub fn instance(&self) -> u32 {
+181 | |         self.instance
+182 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+180 |     pub const fn instance(&self) -> u32 {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:236:12
+    |
+236 |     pub fn prefix(&self) -> &'static str {
+    |            ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+236 ~     #[must_use] 
+237 ~     pub fn prefix(&self) -> &'static str {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:236:5
+    |
+236 | /     pub fn prefix(&self) -> &'static str {
+237 | |         match self {
+238 | |             Self::Unknown => "unknown",
+239 | |             Self::Router => "router",
+...   |
+255 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+236 |     pub const fn prefix(&self) -> &'static str {
+    |         +++++
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/peer.rs:258:5
+    |
+258 |     pub fn from_prefix(prefix: &str) -> anyhow::Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/peer.rs:276:22
+    |
+276 |             _ => Err(anyhow::anyhow!("Unknown service type prefix: {}", prefix)),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+276 -             _ => Err(anyhow::anyhow!("Unknown service type prefix: {}", prefix)),
+276 +             _ => Err(anyhow::anyhow!("Unknown service type prefix: {prefix}")),
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:281:12
+    |
+281 |     pub fn name(&self) -> &'static str {
+    |            ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+281 ~     #[must_use] 
+282 ~     pub fn name(&self) -> &'static str {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:281:5
+    |
+281 | /     pub fn name(&self) -> &'static str {
+282 | |         match self {
+283 | |             Self::Unknown => "Unknown Service",
+284 | |             Self::Router => "Router",
+...   |
+300 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+281 |     pub const fn name(&self) -> &'static str {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:314:12
+    |
+314 |     pub fn new(system_type: SystemType, version: &str) -> Self {
+    |            ^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+314 ~     #[must_use] 
+315 ~     pub fn new(system_type: SystemType, version: &str) -> Self {
+    |
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/peer.rs:330:5
+    |
+330 |     pub fn from_string(id: String) -> anyhow::Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:349:12
+    |
+349 |     pub fn as_str(&self) -> &str {
+    |            ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+349 ~     #[must_use] 
+350 ~     pub fn as_str(&self) -> &str {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:354:12
+    |
+354 |     pub fn system_type(&self) -> SystemType {
+    |            ^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+354 ~     #[must_use] 
+355 ~     pub fn system_type(&self) -> SystemType {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:354:5
+    |
+354 | /     pub fn system_type(&self) -> SystemType {
+355 | |         self.system_type
+356 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+354 |     pub const fn system_type(&self) -> SystemType {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:359:12
+    |
+359 |     pub fn version(&self) -> &str {
+    |            ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+359 ~     #[must_use] 
+360 ~     pub fn version(&self) -> &str {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:364:12
+    |
+364 |     pub fn created_at(&self) -> DateTime<Utc> {
+    |            ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+364 ~     #[must_use] 
+365 ~     pub fn created_at(&self) -> DateTime<Utc> {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:364:5
+    |
+364 | /     pub fn created_at(&self) -> DateTime<Utc> {
+365 | |         self.created_at
+366 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+364 |     pub const fn created_at(&self) -> DateTime<Utc> {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:410:12
+    |
+410 |     pub fn prefix(&self) -> &'static str {
+    |            ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+410 ~     #[must_use] 
+411 ~     pub fn prefix(&self) -> &'static str {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:410:5
+    |
+410 | /     pub fn prefix(&self) -> &'static str {
+411 | |         match self {
+412 | |             Self::Unknown => "unknown",
+413 | |             Self::Development => "dev",
+...   |
+424 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+410 |     pub const fn prefix(&self) -> &'static str {
+    |         +++++
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/peer.rs:427:5
+    |
+427 |     pub fn from_prefix(prefix: &str) -> anyhow::Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/peer.rs:440:22
+    |
+440 |             _ => Err(anyhow::anyhow!("Unknown system type prefix: {}", prefix)),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+440 -             _ => Err(anyhow::anyhow!("Unknown system type prefix: {}", prefix)),
+440 +             _ => Err(anyhow::anyhow!("Unknown system type prefix: {prefix}")),
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:445:12
+    |
+445 |     pub fn name(&self) -> &'static str {
+    |            ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+445 ~     #[must_use] 
+446 ~     pub fn name(&self) -> &'static str {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:445:5
+    |
+445 | /     pub fn name(&self) -> &'static str {
+446 | |         match self {
+447 | |             Self::Unknown => "Unknown System",
+448 | |             Self::Development => "Development System",
+...   |
+459 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+445 |     pub const fn name(&self) -> &'static str {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:493:12
+    |
+493 |     pub fn new(
+    |            ^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+493 ~     #[must_use] 
+494 ~     pub fn new(
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:517:12
+    |
+517 |     pub fn create(service_type: ServiceType, system_type: SystemType, version: &str) -> Self {
+    |            ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+517 ~     #[must_use] 
+518 ~     pub fn create(service_type: ServiceType, system_type: SystemType, version: &str) -> Self {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:538:12
+    |
+538 |     pub fn get_metadata(&self, key: &str) -> Option<&String> {
+    |            ^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+538 ~     #[must_use] 
+539 ~     pub fn get_metadata(&self, key: &str) -> Option<&String> {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:543:12
+    |
+543 |     pub fn summary(&self) -> String {
+    |            ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+543 ~     #[must_use] 
+544 ~     pub fn summary(&self) -> String {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:551:12
+    |
+551 |     pub fn is_service_type(&self, service_type: ServiceType) -> bool {
+    |            ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+551 ~     #[must_use] 
+552 ~     pub fn is_service_type(&self, service_type: ServiceType) -> bool {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:556:12
+    |
+556 |     pub fn is_system_type(&self, system_type: SystemType) -> bool {
+    |            ^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+556 ~     #[must_use] 
+557 ~     pub fn is_system_type(&self, system_type: SystemType) -> bool {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:561:12
+    |
+561 |     pub fn age(&self) -> chrono::Duration {
+    |            ^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+561 ~     #[must_use] 
+562 ~     pub fn age(&self) -> chrono::Duration {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:602:12
+    |
+602 |     pub fn new(entity_id: EntityId) -> Self {
+    |            ^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+602 ~     #[must_use] 
+603 ~     pub fn new(entity_id: EntityId) -> Self {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:642:12
+    |
+642 |     pub fn is_online(&self) -> bool {
+    |            ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+642 ~     #[must_use] 
+643 ~     pub fn is_online(&self) -> bool {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:642:5
+    |
+642 | /     pub fn is_online(&self) -> bool {
+643 | |         matches!(self.status, EntityStatus::Online)
+644 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+642 |     pub const fn is_online(&self) -> bool {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:647:12
+    |
+647 |     pub fn is_trusted(&self) -> bool {
+    |            ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+647 ~     #[must_use] 
+648 ~     pub fn is_trusted(&self) -> bool {
+    |
+
+error: this `if` has identical blocks
+   --> wolf_net/src/peer.rs:742:53
+    |
+742 |           let latency_score = if self.latency_ms == 0 {
+    |  _____________________________________________________^
+743 | |             1.0
+744 | |         } else if self.latency_ms < 50 {
+    | |_________^
+    |
+note: same as this
+   --> wolf_net/src/peer.rs:744:40
+    |
+744 |           } else if self.latency_ms < 50 {
+    |  ________________________________________^
+745 | |             1.0
+746 | |         } else if self.latency_ms < 200 {
+    | |_________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#if_same_then_else
+    = note: `-D clippy::if-same-then-else` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::if_same_then_else)]`
+
+error: casting `u64` to `f64` causes a loss of precision (`u64` is 64 bits wide, but `f64`'s mantissa is only 52 bits wide)
+   --> wolf_net/src/peer.rs:758:13
+    |
+758 |             self.requests_success as f64 / total_requests as f64
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+
+error: casting `u64` to `f64` causes a loss of precision (`u64` is 64 bits wide, but `f64`'s mantissa is only 52 bits wide)
+   --> wolf_net/src/peer.rs:758:44
+    |
+758 |             self.requests_success as f64 / total_requests as f64
+    |                                            ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:788:12
+    |
+788 |     pub fn new(peer_id: PeerId) -> Self {
+    |            ^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+788 ~     #[must_use] 
+789 ~     pub fn new(peer_id: PeerId) -> Self {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:825:12
+    |
+825 |     pub fn session_secret(&self) -> Option<&[u8]> {
+    |            ^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+825 ~     #[must_use] 
+826 ~     pub fn session_secret(&self) -> Option<&[u8]> {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:830:12
+    |
+830 |     pub fn is_trusted(&self) -> bool {
+    |            ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+830 ~     #[must_use] 
+831 ~     pub fn is_trusted(&self) -> bool {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:835:12
+    |
+835 |     pub fn status(&self) -> EntityStatus {
+    |            ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+835 ~     #[must_use] 
+836 ~     pub fn status(&self) -> EntityStatus {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:840:12
+    |
+840 |     pub fn trust_score(&self) -> f64 {
+    |            ^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+840 ~     #[must_use] 
+841 ~     pub fn trust_score(&self) -> f64 {
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:840:5
+    |
+840 | /     pub fn trust_score(&self) -> f64 {
+841 | |         self.trust_score
+842 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+840 |     pub const fn trust_score(&self) -> f64 {
+    |         +++++
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:845:12
+    |
+845 |     pub fn capabilities(&self) -> &[String] {
+    |            ^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+845 ~     #[must_use] 
+846 ~     pub fn capabilities(&self) -> &[String] {
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/peer.rs:850:12
+    |
+850 |     pub fn addresses(&self) -> &[SocketAddr] {
+    |            ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+850 ~     #[must_use] 
+851 ~     pub fn addresses(&self) -> &[SocketAddr] {
+    |
+
+error: returning a `str` unnecessarily tied to the lifetime of arguments
+  --> wolf_net/src/protocol.rs:50:25
+   |
+50 |     fn as_ref(&self) -> &str {
+   |                         ^^^^ help: try: `&'static str`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unnecessary_literal_bound
+
+error: casting `usize` to `u32` may truncate the value on targets with 64-bit wide pointers
+   --> wolf_net/src/protocol.rs:136:15
+    |
+136 |     let len = data.len() as u32;
+    |               ^^^^^^^^^^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+    |
+136 -     let len = data.len() as u32;
+136 +     let len = u32::try_from(data.len());
+    |
+
+error: item in documentation is missing backticks
+ --> wolf_net/src/reporting_service.rs:9:66
+  |
+9 | /// Represents a security or network event to be reported to the SaaS Hub.
+  |                                                                  ^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+  |
+9 - /// Represents a security or network event to be reported to the SaaS Hub.
+9 + /// Represents a security or network event to be reported to the `SaaS` Hub.
+  |
+
+error: item in documentation is missing backticks
+  --> wolf_net/src/reporting_service.rs:42:39
+   |
+42 |     /// * `hub_url` - Base URL of the SaaS hub API.
+   |                                       ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+42 -     /// * `hub_url` - Base URL of the SaaS hub API.
+42 +     /// * `hub_url` - Base URL of the `SaaS` hub API.
+   |
+
+error: the function has a cognitive complexity of (27/25)
+  --> wolf_net/src/reporting_service.rs:87:14
+   |
+87 |     async fn flush_batch(&self, batch: &mut Vec<TelemetryEvent>) -> Result<()> {
+   |              ^^^^^^^^^^^
+   |
+   = help: you could split it up into multiple smaller functions
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/reporting_service.rs:89:13
+    |
+ 87 |       async fn flush_batch(&self, batch: &mut Vec<TelemetryEvent>) -> Result<()> {
+    |  ________________________________________________________________________________-
+ 88 | |         let events = std::mem::take(batch);
+ 89 | |         let token_lock = self.auth_token.read().await;
+    | |             ^^^^^^^^^^
+...   |
+118 | |         Ok(())
+119 | |     }
+    | |_____- temporary `token_lock` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+    |
+ 89 ~         
+ 90 +         self.auth_token.read().await.;
+ 91 |
+ 92 ~         
+    |
+
+error: docs for function returning `Result` missing `# Errors` section
+  --> wolf_net/src/scanner.rs:85:5
+   |
+85 |     pub async fn run(&mut self) -> anyhow::Result<Self> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: the borrowed expression implements the required traits
+  --> wolf_net/src/scanner.rs:99:19
+   |
+99 |             .args(&["route", "show", "default"])
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `["route", "show", "default"]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_borrows_for_generic_args
+   = note: `-D clippy::needless-borrows-for-generic-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::needless_borrows_for_generic_args)]`
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/scanner.rs:131:5
+    |
+131 |     pub async fn scan_network(&self) -> anyhow::Result<Vec<NetworkDevice>> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: casting `u128` to `u64` may truncate the value
+   --> wolf_net/src/scanner.rs:184:35
+    |
+184 |                     let latency = start.elapsed().as_millis() as u64;
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+    |
+184 -                     let latency = start.elapsed().as_millis() as u64;
+184 +                     let latency = u64::try_from(start.elapsed().as_millis());
+    |
+
+error: calling `to_string` on `&&str`
+   --> wolf_net/src/scanner.rs:268:62
+    |
+268 | ...                   arp_table.insert(ip.to_string(), mac_part.to_string());
+    |                                                        ^^^^^^^^^^^^^^^^^^^^ help: try dereferencing the receiver: `(*mac_part).to_string()`
+    |
+    = help: `&str` implements `ToString` through a slower blanket impl, but `str` has a fast specialization of `ToString`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#inefficient_to_string
+    = note: `-D clippy::inefficient-to-string` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::inefficient_to_string)]`
+
+error: it is more idiomatic to use `Option<&T>` instead of `&Option<T>`
+   --> wolf_net/src/scanner.rs:280:5
+    |
+280 |       fn classify_device(hostname: &Option<String>) -> DeviceType {
+    |       ^                            --------------- help: change this to: `Option<&String>`
+    |  _____|
+    | |
+281 | |         if let Some(name) = hostname {
+282 | |             let name_lower = name.to_lowercase();
+...   |
+309 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#ref_option
+    = note: `-D clippy::ref-option` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::ref_option)]`
+
+error: use Option::map_or instead of an if let/else
+   --> wolf_net/src/scanner.rs:281:9
+    |
+281 | /         if let Some(name) = hostname {
+282 | |             let name_lower = name.to_lowercase();
+283 | |
+284 | |             if name_lower.contains("router") || name_lower.contains("gateway") {
+...   |
+307 | |             DeviceType::Unknown
+308 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#option_if_let_else
+help: try
+    |
+281 ~         hostname.as_ref().map_or(DeviceType::Unknown, |name| {
+282 +             let name_lower = name.to_lowercase();
+283 + 
+284 +             if name_lower.contains("router") || name_lower.contains("gateway") {
+285 +                 DeviceType::Router
+286 +             } else if name_lower.contains("printer")
+287 +                 || name_lower.contains("hp")
+288 +                 || name_lower.contains("canon")
+289 +             {
+290 +                 DeviceType::Printer
+291 +             } else if name_lower.contains("phone")
+292 +                 || name_lower.contains("android")
+293 +                 || name_lower.contains("iphone")
+294 +             {
+295 +                 DeviceType::Phone
+296 +             } else if name_lower.contains("iot") || name_lower.contains("smart") {
+297 +                 DeviceType::IoT
+298 +             } else if name_lower.contains("pc")
+299 +                 || name_lower.contains("laptop")
+300 +                 || name_lower.contains("desktop")
+301 +             {
+302 +                 DeviceType::Computer
+303 +             } else {
+304 +                 DeviceType::Unknown
+305 +             }
+306 +         })
+    |
+
+error: casts from `u8` to `u32` can be expressed infallibly using `From`
+   --> wolf_net/src/scanner.rs:324:34
+    |
+324 |         let num_hosts = 2u32.pow(host_bits as u32) - 2; // Exclude network and broadcast
+    |                                  ^^^^^^^^^^^^^^^^
+    |
+    = help: an `as` cast can become silently lossy if the types change in the future
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_lossless
+    = note: `-D clippy::cast-lossless` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::cast_lossless)]`
+help: use `u32::from` instead
+    |
+324 -         let num_hosts = 2u32.pow(host_bits as u32) - 2; // Exclude network and broadcast
+324 +         let num_hosts = 2u32.pow(u32::from(host_bits)) - 2; // Exclude network and broadcast
+    |
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/scanner.rs:339:5
+    |
+339 |     pub async fn list_interfaces() -> anyhow::Result<Vec<NetworkInterface>> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: the borrowed expression implements the required traits
+   --> wolf_net/src/scanner.rs:341:19
+    |
+341 |             .args(&["-j", "-4", "addr", "show"])
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `["-j", "-4", "addr", "show"]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_borrows_for_generic_args
+
+error: this method could have a `#[must_use]` attribute
+  --> wolf_net/src/security.rs:28:12
+   |
+28 |     pub fn new() -> Self {
+   |            ^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+   |
+28 ~     #[must_use] 
+29 ~     pub fn new() -> Self {
+   |
+
+error: use of `default` to create a unit struct
+  --> wolf_net/src/security.rs:29:9
+   |
+29 |         Self::default()
+   |         ^^^^-----------
+   |             |
+   |             help: remove this call to `default`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#default_constructed_unit_structs
+   = note: `-D clippy::default-constructed-unit-structs` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::default_constructed_unit_structs)]`
+
+error: docs for function returning `Result` missing `# Errors` section
+  --> wolf_net/src/security.rs:37:5
+   |
+37 |     pub fn sign(&self, keypair: &Keypair, payload: &[u8]) -> Result<SignedEnvelope> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: variables can be used directly in the `format!` string
+  --> wolf_net/src/security.rs:40:26
+   |
+40 |             .map_err(|e| anyhow!("Failed to sign payload: {}", e))?;
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+40 -             .map_err(|e| anyhow!("Failed to sign payload: {}", e))?;
+40 +             .map_err(|e| anyhow!("Failed to sign payload: {e}"))?;
+   |
+
+error: docs for function returning `Result` missing `# Errors` section
+  --> wolf_net/src/security.rs:59:5
+   |
+59 |     pub fn verify(&self, envelope: &SignedEnvelope) -> Result<(PublicKey, Vec<u8>)> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: variables can be used directly in the `format!` string
+  --> wolf_net/src/security.rs:61:26
+   |
+61 |             .map_err(|e| anyhow!("Failed to decode public key from envelope: {}", e))?;
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+61 -             .map_err(|e| anyhow!("Failed to decode public key from envelope: {}", e))?;
+61 +             .map_err(|e| anyhow!("Failed to decode public key from envelope: {e}"))?;
+   |
+
+error: item in documentation is missing backticks
+   --> wolf_net/src/swarm.rs:150:16
+    |
+150 |     /// Send a WolfRequest
+    |                ^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+150 -     /// Send a WolfRequest
+150 +     /// Send a `WolfRequest`
+    |
+
+error: item in documentation is missing backticks
+   --> wolf_net/src/swarm.rs:226:17
+    |
+226 | /// This allows SwarmManager to notify the reputation system without a direct dependency.
+    |                 ^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+226 - /// This allows SwarmManager to notify the reputation system without a direct dependency.
+226 + /// This allows `SwarmManager` to notify the reputation system without a direct dependency.
+    |
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/swarm.rs:300:36
+    |
+300 |             listen_addresses: vec!["/ip4/0.0.0.0/tcp/0".parse().unwrap()],
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/swarm.rs:316:5
+    |
+316 |     pub fn validate(&self) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:327:28
+    |
+327 |                   return Err(anyhow::anyhow!(
+    |  ____________________________^
+328 | |                     "Invalid listen address format: {}. Must start with /ip4/ or /ip6/",
+329 | |                     addr
+330 | |                 ));
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+
+error: item in documentation is missing backticks
+   --> wolf_net/src/swarm.rs:339:27
+    |
+339 |     /// Initializes a new SwarmManager
+    |                           ^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+339 -     /// Initializes a new SwarmManager
+339 +     /// Initializes a new `SwarmManager`
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/swarm.rs:346:12
+    |
+346 |     pub fn command_sender(&self) -> mpsc::Sender<SwarmCommand> {
+    |            ^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+346 ~     #[must_use] 
+347 ~     pub fn command_sender(&self) -> mpsc::Sender<SwarmCommand> {
+    |
+
+error: item in documentation is missing backticks
+   --> wolf_net/src/swarm.rs:350:40
+    |
+350 |     /// Returns a sender handle to the HuntCoordinator
+    |                                        ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+350 -     /// Returns a sender handle to the HuntCoordinator
+350 +     /// Returns a sender handle to the `HuntCoordinator`
+    |
+
+error: this method could have a `#[must_use]` attribute
+   --> wolf_net/src/swarm.rs:351:12
+    |
+351 |     pub fn hunt_coordinator_sender(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#must_use_candidate
+help: add the attribute
+    |
+351 ~     #[must_use] 
+352 ~     pub fn hunt_coordinator_sender(
+    |
+
+error: item in documentation is missing backticks
+   --> wolf_net/src/swarm.rs:357:27
+    |
+357 |     /// Initializes a new SwarmManager
+    |                           ^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+357 -     /// Initializes a new SwarmManager
+357 +     /// Initializes a new `SwarmManager`
+    |
+
+error: docs for function which may panic missing `# Panics` section
+    --> wolf_net/src/swarm.rs:358:5
+     |
+ 358 |     pub fn new(config: SwarmConfig) -> anyhow::Result<Self> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+note: first possible panic found here
+    --> wolf_net/src/swarm.rs:1404:32
+     |
+1404 |                 let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_panics_doc
+
+error: docs for function returning `Result` missing `# Errors` section
+   --> wolf_net/src/swarm.rs:358:5
+    |
+358 |     pub fn new(config: SwarmConfig) -> anyhow::Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_errors_doc
+
+error: the function has a cognitive complexity of (50/25)
+   --> wolf_net/src/swarm.rs:358:12
+    |
+358 |     pub fn new(config: SwarmConfig) -> anyhow::Result<Self> {
+    |            ^^^
+    |
+    = help: you could split it up into multiple smaller functions
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+
+error: this function has too many lines (954/100)
+   --> wolf_net/src/swarm.rs:358:5
+    |
+358 |     pub fn new(config: SwarmConfig) -> anyhow::Result<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#too_many_lines
+    = note: requested on the command line with `-D clippy::too-many-lines`
+
+error: casting `usize` to `u8` may truncate the value
+   --> wolf_net/src/swarm.rs:387:59
+    |
+387 |                 bytes[i] = seed_bytes[i % 8].wrapping_add(i as u8);
+    |                                                           ^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+    |
+387 -                 bytes[i] = seed_bytes[i % 8].wrapping_add(i as u8);
+387 +                 bytes[i] = seed_bytes[i % 8].wrapping_add(u8::try_from(i));
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:391:30
+    |
+391 |                 .map_err(|e| anyhow::anyhow!("Failed to generate key from seed: {}", e))?
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+391 -                 .map_err(|e| anyhow::anyhow!("Failed to generate key from seed: {}", e))?
+391 +                 .map_err(|e| anyhow::anyhow!("Failed to generate key from seed: {e}"))?
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:408:38
+    |
+408 |                         .map_err(|e| anyhow::anyhow!("Failed to encode keypair: {}", e))?;
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+408 -                         .map_err(|e| anyhow::anyhow!("Failed to encode keypair: {}", e))?;
+408 +                         .map_err(|e| anyhow::anyhow!("Failed to encode keypair: {e}"))?;
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:412:29
+    |
+412 | ...                   anyhow::anyhow!("Failed to create directory for keypair: {}", e)
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+412 -                             anyhow::anyhow!("Failed to create directory for keypair: {}", e)
+412 +                             anyhow::anyhow!("Failed to create directory for keypair: {e}")
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:441:26
+    |
+441 |             .map_err(|e| anyhow::anyhow!("Failed to create behavior: {}", e))?;
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+441 -             .map_err(|e| anyhow::anyhow!("Failed to create behavior: {}", e))?;
+441 +             .map_err(|e| anyhow::anyhow!("Failed to create behavior: {e}"))?;
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:450:26
+    |
+450 |             .map_err(|e| anyhow::anyhow!("Failed to create TCP transport: {}", e))?
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+450 -             .map_err(|e| anyhow::anyhow!("Failed to create TCP transport: {}", e))?
+450 +             .map_err(|e| anyhow::anyhow!("Failed to create TCP transport: {e}"))?
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:459:30
+    |
+459 |                 .map_err(|e| anyhow::anyhow!("Failed to listen on {}: {}", addr, e))?;
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+459 -                 .map_err(|e| anyhow::anyhow!("Failed to listen on {}: {}", addr, e))?;
+459 +                 .map_err(|e| anyhow::anyhow!("Failed to listen on {addr}: {e}"))?;
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:477:21
+    |
+477 |                     anyhow::anyhow!("Failed to subscribe to topic {}: {}", topic_name, e)
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+477 -                     anyhow::anyhow!("Failed to subscribe to topic {}: {}", topic_name, e)
+477 +                     anyhow::anyhow!("Failed to subscribe to topic {topic_name}: {e}")
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:489:30
+    |
+489 |                 .map_err(|e| anyhow::anyhow!("Failed to initialize encryption: {}", e))?,
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+489 -                 .map_err(|e| anyhow::anyhow!("Failed to initialize encryption: {}", e))?,
+489 +                 .map_err(|e| anyhow::anyhow!("Failed to initialize encryption: {e}"))?,
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/swarm.rs:520:29
+    |
+519 |                   Ok(cm) => {
+    |  ___________________________-
+520 | |                     let mut lock = consensus_manager_init.write().await;
+    | |                             ^^^^
+521 | |                     *lock = Some(cm);
+522 | |                     info!("Consensus Manager started and registered");
+523 | |                 }
+    | |_________________- temporary `lock` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+    |
+520 ~                     
+521 +                     consensus_manager_init.write().await.;
+522 ~                     
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:511:23
+    |
+511 |                 .join(format!("consensus_db_{}", node_id));
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+511 -                 .join(format!("consensus_db_{}", node_id));
+511 +                 .join(format!("consensus_db_{node_id}"));
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/swarm.rs:655:57
+    |
+654 | / ...                   {
+655 | | ...                       let mut registry = peer_registry_clone.lock().await;
+    | |                                   ^^^^^^^^
+656 | | ...                       let target = crate::peer::PeerId::from_libp2p(peer_id);
+657 | | ...                       let entry = registry.entry(target).or_insert_with(|| {
+...   |
+667 | | ...                       entry.set_status(crate::peer::EntityStatus::Online);
+668 | | ...                   }
+    | |_______________________- temporary `registry` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+    |
+655 ~                                                 
+656 +                                                 let entry = peer_registry_clone.lock().await.or_insert_with(|| {
+657 +                                                     let entity_id = crate::peer::EntityId::create(
+658 +                                                         crate::peer::ServiceType::Unknown,
+659 +                                                         crate::peer::SystemType::Unknown,
+660 +                                                         "0.1.0",
+661 +                                                     );
+662 +                                                     let mut info = crate::peer::EntityInfo::new(entity_id);
+663 +                                                     info.entity_id.peer_id = PeerId::from_libp2p(peer_id);
+664 +                                                     info
+665 +                                                 });
+666 |                                                 let target = crate::peer::PeerId::from_libp2p(peer_id);
+667 ~                                                 
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/swarm.rs:796:65
+    |
+783 |   ...                   if let libp2p::identify::Event::Received { peer_id, info } = event {
+    |  __________________________________________________________________________________________-
+784 | | ...                       info!("Identified peer {}: {}", peer_id, info.protocol_version);
+785 | | ...
+786 | | ...                       if let Some(reporter) = &reputation_reporter {
+...   |
+796 | | ...                        let mut registry = peer_registry_clone.lock().await;
+    | |                                    ^^^^^^^^
+...   |
+822 | | ...                   }
+    | |_______________________- temporary `registry` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+    |
+796 ~                                                         
+797 +                                                         let entry = peer_registry_clone.lock().await.or_insert_with(|| {
+798 +                                                             let entity_id = crate::peer::EntityId::create(
+799 +                                                                 crate::peer::ServiceType::Unknown,
+800 +                                                                 crate::peer::SystemType::Unknown,
+801 +                                                                 "0.1.0",
+802 +                                                             );
+803 +                                                             let mut info = crate::peer::EntityInfo::new(entity_id);
+804 +                                                             info.entity_id.peer_id = PeerId::from_libp2p(peer_id);
+805 +                                                             info
+806 +                                                         });
+807 |                                                         let target = crate::peer::PeerId::from_libp2p(peer_id);
+808 ~                                                         
+    |
+
+error: temporary with significant `Drop` can be early dropped
+    --> wolf_net/src/swarm.rs:1324:48
+     |
+1323 |   ...                   SwarmCommand::ListPeers { responder } => {
+     |  ________________________________________________________________-
+1324 | | ...                       let registry = peer_registry_clone.lock().await;
+     | |                               ^^^^^^^^
+1325 | | ...                       let peers = registry.values().cloned().collect();
+1326 | | ...                       let _ = responder.send(peers);
+1327 | | ...                   }
+     | |_______________________- temporary `registry` is currently being dropped at the end of its contained scope
+     |
+     = note: this might lead to unnecessary resource contention
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+     |
+1324 ~                                            
+1325 +                                            let peers = peer_registry_clone.lock().await.collect();
+1326 ~                                            
+     |
+
+error: temporary with significant `Drop` can be early dropped
+    --> wolf_net/src/swarm.rs:1329:49
+     |
+1328 |   ...                   SwarmCommand::GetPeerInfo { peer_id, responder } => {
+     |  ___________________________________________________________________________-
+1329 | | ...                        let registry = peer_registry_clone.lock().await;
+     | |                                ^^^^^^^^
+1330 | | ...                        let info = registry.get(&peer_id).cloned(); // peer_id is already crate::peer::PeerId
+1331 | | ...                        let _ = responder.send(info);
+1332 | | ...                   }
+     | |_______________________- temporary `registry` is currently being dropped at the end of its contained scope
+     |
+     = note: this might lead to unnecessary resource contention
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+     |
+1329 ~                                             
+1330 +                                             let info = peer_registry_clone.lock().await.cloned();
+1331 ~                                              // peer_id is already crate::peer::PeerId
+     |
+
+error: temporary with significant `Drop` can be early dropped
+    --> wolf_net/src/swarm.rs:1366:56
+     |
+1365 |   ...                   if let Ok(ip_addr) = ip.parse::<std::net::IpAddr>() {
+     |  ___________________________________________________________________________-
+1366 | | ...                       let mut fw = firewall_clone.write().await;
+     | |                                   ^^
+1367 | | ...                       fw.add_rule(crate::firewall::FirewallRule::new(
+1368 | | ...                           format!("Strike-{ip}"),
+...    |
+1374 | | ...                       info!("🔥 Firewall updated: Deny IP {}", ip);
+1375 | | ...                   } else {
+     | |_______________________- temporary `fw` is currently being dropped at the end of its contained scope
+     |
+     = note: this might lead to unnecessary resource contention
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+     |
+1366 ~                                                
+1367 +                                                firewall_clone.write().await.add_rule(crate::firewall::FirewallRule::new(
+1368 +                                                    format!("Strike-{ip}"),
+1369 +                                                    crate::firewall::RuleTarget::Ip(ip_addr),
+1370 +                                                    crate::firewall::Protocol::Any,
+1371 +                                                    crate::firewall::Action::Deny,
+1372 +                                                    crate::firewall::TrafficDirection::Both,
+1373 +                                                ));
+1374 ~                                                
+     |
+
+error: collection is never read
+   --> wolf_net/src/swarm.rs:560:13
+    |
+560 |             let mut received_messages = Vec::new();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#collection_is_never_read
+    = note: `-D clippy::collection-is-never-read` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::collection_is_never_read)]`
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:602:60
+    |
+602 | ...                   format!("Firewall blocked peer {}", peer_id),
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+602 -                                                            format!("Firewall blocked peer {}", peer_id),
+602 +                                                            format!("Firewall blocked peer {peer_id}"),
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:675:52
+    |
+675 | ...                   format!("Connected to {}", peer_id),
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+675 -                                                    format!("Connected to {}", peer_id),
+675 +                                                    format!("Connected to {peer_id}"),
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:689:52
+    |
+689 | ...                   format!("Connection closed: {:?}", cause)
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+689 -                                                    format!("Connection closed: {:?}", cause)
+689 +                                                    format!("Connection closed: {cause:?}")
+    |
+
+error: called `map(<f>).unwrap_or(<a>)` on an `Option` value
+   --> wolf_net/src/swarm.rs:709:66
+    |
+709 |   ...                   let uptime = active_connections_clone.lock().await.get(&peer_id)
+    |  ____________________________________^
+710 | | ...                       .map(|c| c.connected_since.elapsed().as_millis() as u64)
+711 | | ...                       .unwrap_or(0);
+    | |_______________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#map_unwrap_or
+    = note: `-D clippy::map-unwrap-or` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::map_unwrap_or)]`
+help: use `map_or(<a>, <f>)` instead
+    |
+710 -                                                         .map(|c| c.connected_since.elapsed().as_millis() as u64)
+710 +                                                         .map_or(0, |c| c.connected_since.elapsed().as_millis() as u64);
+    |
+
+error: casting `u128` to `u64` may truncate the value
+   --> wolf_net/src/swarm.rs:710:66
+    |
+710 | ...                   .map(|c| c.connected_since.elapsed().as_millis() as u64)
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+    |
+710 -                                                         .map(|c| c.connected_since.elapsed().as_millis() as u64)
+710 +                                                         .map(|c| u64::try_from(c.connected_since.elapsed().as_millis()))
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:721:52
+    |
+721 | ...                   format!("Connection closed with {}: {:?}", peer_id, cause),
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+721 -                                                    format!("Connection closed with {}: {:?}", peer_id, cause),
+721 +                                                    format!("Connection closed with {peer_id}: {cause:?}"),
+    |
+
+error: you seem to be trying to use `match` for destructuring a single pattern. Consider using `if let`
+   --> wolf_net/src/swarm.rs:729:53
+    |
+729 | / ...                   match event {
+730 | | ...                       libp2p::kad::Event::OutboundQueryProgressed { result, .. } => {
+731 | | ...                           match result {
+732 | | ...                               libp2p::kad::QueryResult::Bootstrap(Ok(ok)) => {
+...   |
+741 | | ...                       _ => {}
+742 | | ...                   }
+    | |_______________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#single_match
+    = note: `-D clippy::single-match` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::single_match)]`
+help: try
+    |
+729 ~                                                     if let libp2p::kad::Event::OutboundQueryProgressed { result, .. } = event {
+730 +                                                         match result {
+731 +                                                             libp2p::kad::QueryResult::Bootstrap(Ok(ok)) => {
+732 +                                                                 debug!("DHT Bootstrap successful: {:?}", ok);
+733 +                                                             }
+734 +                                                             libp2p::kad::QueryResult::Bootstrap(Err(e)) => {
+735 +                                                                 warn!("DHT Bootstrap failed: {:?}", e);
+736 +                                                             }
+737 +                                                             _ => {}
+738 +                                                         }
+739 +                                                     }
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:755:68
+    |
+755 | ...                   format!("Ping success (RTT: {:?})", rtt)
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+755 -                                                                    format!("Ping success (RTT: {:?})", rtt)
+755 +                                                                    format!("Ping success (RTT: {rtt:?})")
+    |
+
+error: casting `u128` to `u64` may truncate the value
+   --> wolf_net/src/swarm.rs:762:92
+    |
+762 | ...                   info.metrics.latency_ms = rtt.as_millis() as u64;
+    |                                                 ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+    |
+762 -                                                                  info.metrics.latency_ms = rtt.as_millis() as u64;
+762 +                                                                  info.metrics.latency_ms = u64::try_from(rtt.as_millis());
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:774:68
+    |
+774 | ...                   format!("Ping failure: {:?}", e)
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+774 -                                                                    format!("Ping failure: {:?}", e)
+774 +                                                                    format!("Ping failure: {e:?}")
+    |
+
+error: you seem to be trying to use `match` for destructuring a single pattern. Consider using `if let`
+   --> wolf_net/src/swarm.rs:825:52
+    |
+825 | / ...                   match event {
+826 | | ...                       gossipsub::Event::Message {
+827 | | ...                           propagation_source: _peer_id,
+828 | | ...                           message_id: _message_id,
+...   |
+935 | | ...                       _ => {}
+936 | | ...                   }
+    | |_______________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#single_match
+help: try
+    |
+825 ~                                                    if let gossipsub::Event::Message {
+826 +                                                            propagation_source: _peer_id,
+827 +                                                            message_id: _message_id,
+828 +                                                            message,
+829 +                                                        } = event {
+830 +                                                         // Update metrics
+831 +                                                         let mut m = metrics_clone.lock().await;
+832 +                                                         m.total_messages_received += 1;
+833 +                                                         m.total_bytes_received += message.data.len() as u64;
+834 +                                                         m.last_activity = Some(Instant::now());
+835 +                                                         drop(m);
+836 + 
+837 +                                                          // Update peer registry message count and bytes
+838 +                                                          if let Some(peer_id) = message.source {
+839 +                                                              let mut registry = peer_registry_clone.lock().await;
+840 +                                                              let target = crate::peer::PeerId::from_libp2p(peer_id);
+841 +                                                              if let Some(info) = registry.get_mut(&target) {
+842 +                                                                  info.metrics.messages_received += 1;
+843 +                                                                  info.metrics.bytes_received += message.data.len() as u64;
+844 +                                                                  info.metrics.update_health();
+845 +                                                              }
+846 +                                                          }
+847 + 
+848 +                                                        // Try to deserialize and store the message
+849 +                                                        if message.topic.as_str() == "wolf-prowler-consensus" {
+850 +                                                            if let Ok(net_msg) = serde_json::from_slice::<crate::consensus::network::RaftNetworkMessage>(&message.data) {
+851 +                                                                let cm_lock = consensus_manager.read().await;
+852 +                                                                if let Some(cm) = &*cm_lock {
+853 +                                                                    let _ = cm.process_message(net_msg).await;
+854 +                                                                }
+855 +                                                            }
+856 +                                                        } else if message.topic.as_str() == "wolf-pack/gossip/1.0.0" {
+857 +                                                            // Handle Howl Protocol Messages
+858 +                                                            if let Ok(howl) = crate::wolf_pack::howl::HowlMessage::from_bytes(&message.data) {
+859 ~                                                                info!("📢 RECEIVED HOWL: {:?} from {}", howl.priority, howl.sender);
+860 + 
+861 +                                                                // Map HowlPayload to CoordinatorMsg
+862 +                                                                let coord_msg = match howl.payload {
+863 +                                                                    crate::wolf_pack::howl::HowlPayload::WarningHowl { target_ip, evidence } => {
+864 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+865 +                                                                            source: howl.sender,
+866 +                                                                            target_ip,
+867 +                                                                            evidence,
+868 +                                                                        })
+869 +                                                                    }
+870 +                                                                    crate::wolf_pack::howl::HowlPayload::HuntRequest { hunt_id, target_ip, min_role } => {
+871 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntRequest {
+872 +                                                                            hunt_id,
+873 +                                                                            source: howl.sender,
+874 +                                                                            target_ip,
+875 +                                                                            min_role,
+876 +                                                                        })
+877 +                                                                    }
+878 +                                                                    crate::wolf_pack::howl::HowlPayload::HuntReport { hunt_id, hunter, confirmed } => {
+879 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+880 +                                                                            hunt_id,
+881 +                                                                            hunter,
+882 +                                                                            confirmed,
+883 +                                                                        })
+884 +                                                                    }
+885 +                                                                    crate::wolf_pack::howl::HowlPayload::KillOrder { target_ip, reason, hunt_id } => {
+886 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::KillOrder {
+887 +                                                                            target_ip,
+888 +                                                                            authorizer: howl.sender,
+889 +                                                                            reason,
+890 +                                                                            hunt_id,
+891 +                                                                        })
+892 +                                                                    }
+893 +                                                                    crate::wolf_pack::howl::HowlPayload::TerritoryUpdate { region_cidr, owner, status } => {
+894 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::TerritoryUpdate {
+895 +                                                                            region: region_cidr,
+896 +                                                                            owner,
+897 +                                                                            status,
+898 +                                                                        })
+899 +                                                                    }
+900 +                                                                    crate::wolf_pack::howl::HowlPayload::ElectionRequest { term, candidate_id, prestige, .. } => {
+901 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionRequest {
+902 +                                                                            term,
+903 +                                                                            candidate_id,
+904 +                                                                            prestige,
+905 +                                                                        })
+906 +                                                                    }
+907 +                                                                    crate::wolf_pack::howl::HowlPayload::ElectionVote { term, voter_id, granted } => {
+908 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionVote {
+909 +                                                                            term,
+910 +                                                                            voter_id,
+911 +                                                                            granted,
+912 +                                                                        })
+913 +                                                                    }
+914 +                                                                    crate::wolf_pack::howl::HowlPayload::AlphaHeartbeat { term, leader_id } => {
+915 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::AlphaHeartbeat {
+916 +                                                                            term,
+917 +                                                                            leader_id,
+918 +                                                                        })
+919 +                                                                    }
+920 +                                                                };
+921 + 
+922 +                                                                if let Some(msg) = coord_msg {
+923 +                                                                    let _ = hunt_sender.send(msg).await;
+924 +                                                                }
+925 +                                                            } else {
+926 +                                                                warn!("Failed to deserialize Howl message");
+927 +                                                            }
+928 +                                                        } else if let Ok(msg) = serde_json::from_slice::<Message>(&message.data) {
+929 +                                                            received_messages.push(msg);
+930 +                                                        } else {
+931 +                                                            warn!("Failed to deserialize gossipsub message");
+932 +                                                        }
+933 +                                                    }
+    |
+
+error: could not compile `wolf_net` (lib) due to 283 previous errors

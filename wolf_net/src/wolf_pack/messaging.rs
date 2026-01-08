@@ -356,7 +356,8 @@ impl Codec for WolfCodec {
         let message_data =
             serde_json::to_vec(&req).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
-        let len = message_data.len() as u32;
+        let len = u32::try_from(message_data.len())
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
         io.write_all(&len.to_be_bytes()).await?;
         io.write_all(&message_data).await?;
         io.close().await?;
@@ -376,7 +377,8 @@ impl Codec for WolfCodec {
         let response_data =
             serde_json::to_vec(&res).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
-        let len = response_data.len() as u32;
+        let len = u32::try_from(response_data.len())
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
         io.write_all(&len.to_be_bytes()).await?;
         io.write_all(&response_data).await?;
         io.close().await?;
@@ -393,6 +395,9 @@ pub struct MessageRouter {
 /// Trait for message handlers
 pub trait MessageHandler {
     /// Process the incoming message
+    ///
+    /// # Errors
+    /// Returns an error if handling fails.
     fn handle_message(&self, message: &WolfMessage) -> Result<WolfResponse>;
     /// Check if this handler can process the message type
     fn can_handle(&self, message: &WolfMessage) -> bool;
@@ -400,6 +405,7 @@ pub trait MessageHandler {
 
 impl MessageRouter {
     /// Create a new message router
+    #[must_use]
     pub fn new() -> Self {
         Self {
             handlers: std::collections::HashMap::new(),
@@ -416,8 +422,12 @@ impl MessageRouter {
     }
 
     /// Route a message to the appropriate handler
+    ///
+    /// # Errors
+    /// Returns an error if no handler is registered or the handler fails.
+    #[allow(clippy::option_if_let_else)]
     pub fn route_message(&self, message: &WolfMessage) -> Result<WolfResponse> {
-        let message_type = self.get_message_type(message);
+        let message_type = Self::get_message_type(message);
 
         if let Some(handler) = self.handlers.get(&message_type) {
             if handler.can_handle(message) {
@@ -432,14 +442,14 @@ impl MessageRouter {
         } else {
             Ok(WolfResponse::Error {
                 code: "NO_HANDLER".to_string(),
-                message: format!("No handler registered for message type: {}", message_type),
+                message: format!("No handler registered for message type: {message_type}"),
                 details: None,
             })
         }
     }
 
     /// Get message type string
-    fn get_message_type(&self, message: &WolfMessage) -> String {
+    fn get_message_type(message: &WolfMessage) -> String {
         match message {
             WolfMessage::Handshake { .. } => "handshake".to_string(),
             WolfMessage::PackCoordination { .. } => "pack_coordination".to_string(),
@@ -477,7 +487,7 @@ impl MessageHandler for DefaultMessageHandler {
             } => Ok(WolfResponse::Ack {
                 message_id: uuid::Uuid::new_v4().to_string(),
                 status: "received".to_string(),
-                timestamp: chrono::Utc::now().timestamp() as u64,
+                timestamp: chrono::Utc::now().timestamp().try_into().unwrap_or(0),
             }),
             _ => Ok(WolfResponse::Error {
                 code: "NOT_IMPLEMENTED".to_string(),

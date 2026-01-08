@@ -31,22 +31,33 @@ mod hex_serde {
 }
 
 /// A shard of a recovery key.
+/// A shard of a recovery key.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyShard {
+    /// Unique identifier for this shard.
     pub shard_id: String,
+    /// Identifier of the secret this shard belongs to.
     pub secret_id: String,
+    /// Index of this shard (x-coordinate).
     pub index: u8,
+    /// Shard data (y-coordinate/value).
     #[serde(with = "hex_serde")]
     pub data: Vec<u8>,
 }
 
 /// Metadata for shard storage
+/// Metadata for shard storage.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShardMetadata {
+    /// Unique identifier for this shard.
     pub shard_id: String,
+    /// Identifier of the secret this shard belongs to.
     pub secret_id: String,
+    /// Index of this shard.
     pub index: u8,
+    /// Total number of shards created for this secret.
     pub total_shards: u8,
+    /// Threshold number of shards required for reconstruction.
     pub threshold: u8,
 }
 
@@ -347,11 +358,15 @@ impl ShardManager {
     }
 }
 
-/// Status of shard collection
+/// Status of shard collection for a specific secret.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ShardStatus {
+    /// Total number of shards found.
     pub total_shards: u8,
+    /// Threshold required for reconstruction.
     pub threshold: u8,
+    /// Number of additional shards needed for recovery.
     pub needed_for_recovery: u8,
+    /// Whether enough shards are available to reconstruct the secret.
     pub can_reconstruct: bool,
 }

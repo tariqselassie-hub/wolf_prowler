@@ -103,7 +103,6 @@ pub enum SwarmCommand {
         message: Message,
     },
     /// Broadcast a Howl message (P2P Protocol)
-    /// Broadcast a Howl message (P2P Protocol)
     BroadcastHowl {
         /// Howl message
         message: crate::wolf_pack::howl::HowlMessage,
@@ -163,7 +162,6 @@ pub enum SwarmCommand {
         peer_id: PeerId,
     },
     /// Block an IP address in the internal firewall
-    /// Block an IP address in the internal firewall
     BlockIp {
         /// IP to block
         ip: String,
@@ -197,12 +195,10 @@ pub enum SwarmCommand {
     /// Send a consensus message to the network
     ConsensusMessage(crate::consensus::network::RaftNetworkMessage),
     /// Get Wolf Pack state
-    /// Get Wolf Pack state
     GetWolfState {
         /// Responder
         responder: oneshot::Sender<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>>,
     },
-    /// Omega: Force Rank
     /// Omega: Force Rank
     OmegaForceRank {
         /// Target peer
@@ -211,14 +207,12 @@ pub enum SwarmCommand {
         role: crate::wolf_pack::state::WolfRole,
     },
     /// Omega: Force Prestige
-    /// Omega: Force Prestige
     OmegaForcePrestige {
         /// Target peer
         target: PeerId,
         /// Prestige delta
         change: i32,
     },
-    /// Add a peer address to the swarm without dialing
     /// Add a peer address to the swarm without dialing
     AddAddress {
         /// Peer ID
@@ -342,13 +336,7 @@ impl SwarmConfig {
 }
 
 impl SwarmManager {
-    /// Creates a new SwarmManager with the given configuration.
-    ///
-    /// # Arguments
-    /// * `config` - Configuration for the swarm
-    ///
-    /// # Returns
-    /// A new [SwarmManager](cci:2://file:///c:/Users/Student/Rust%20Project%201/wolf_prowler/wolf_net/src/swarm.rs:62:0-71:1) instance or an error if initialization fails
+    /// Initializes a new SwarmManager
     ///
     /// # Errors
     /// Returns an error if:
@@ -385,7 +373,6 @@ impl SwarmManager {
         ));
 
         // Load or create a new identity with improved error handling
-        // Load or create a new identity with improved error handling
         let local_key = if let Some(seed) = &config.identity_seed {
             info!("🌱 Generating deterministic identity from seed: {}", seed);
             let mut hasher = std::collections::hash_map::DefaultHasher::new();
@@ -406,11 +393,8 @@ impl SwarmManager {
             match fs::read(&config.keypair_path) {
                 Ok(key_bytes) => {
                     identity::Keypair::from_protobuf_encoding(&key_bytes).map_err(|e| {
-                        anyhow::anyhow!(
-                            "Failed to parse keypair from {}: {}",
-                            config.keypair_path.display(),
-                            e
-                        )
+                        let path = config.keypair_path.display();
+                        anyhow::anyhow!("Failed to parse keypair from {path}: {e}")
                     })?
                 }
                 Err(e) if e.kind() == io::ErrorKind::NotFound => {
@@ -506,7 +490,9 @@ impl SwarmManager {
         );
         let encrypted_handler = Arc::new(EncryptedMessageHandler::new(encryption));
 
-        let consensus_manager = Arc::new(tokio::sync::RwLock::new(None));
+        let consensus_manager = Arc::new(tokio::sync::RwLock::new(None::<
+            crate::consensus::manager::ConsensusManager,
+        >));
         let consensus_manager_init = consensus_manager.clone();
         let consensus_swarm_tx = command_sender.clone();
         let consensus_keypair_path = config.keypair_path.clone();
@@ -529,9 +515,7 @@ impl SwarmManager {
                 vec![node_id],
                 storage_path.to_str().unwrap_or("/tmp/wolf_consensus"),
                 consensus_swarm_tx,
-            )
-            .await
-            {
+            ) {
                 Ok(cm) => {
                     let mut lock = consensus_manager_init.write().await;
                     *lock = Some(cm);
@@ -1099,7 +1083,7 @@ impl SwarmManager {
                                                                 info.metrics.update_health();
                                                             }
                                                         }
-                                                       _ => {}
+                                                       libp2p::request_response::Event::ResponseSent { .. } => {}
                                                     }
                                                }
                                            }
@@ -1216,16 +1200,13 @@ impl SwarmManager {
 
                                                let topic = gossipsub::IdentTopic::new("wolf-pack/gossip/1.0.0");
                                                if let Err(e) = swarm.behaviour_mut().gossipsub.publish(topic, bytes) {
-                                                   match e {
-                                                       libp2p::gossipsub::PublishError::InsufficientPeers => {
-                                                           warn!("📢 Howl broadcast locally only (no peers connected).");
-                                                           // This is not a failure of the system, just a state of isolation.
-                                                       }
-                                                       _ => {
-                                                           error!("Failed to broadcast Howl: {}", e);
-                                                           metrics_clone.lock().await.connection_failures += 1;
-                                                       }
-                                                   }
+                                                if matches!(e, libp2p::gossipsub::PublishError::InsufficientPeers) {
+                                                    warn!("📢 Howl broadcast locally only (no peers connected).");
+                                                    // This is not a failure of the system, just a state of isolation.
+                                                } else {
+                                                    error!("Failed to broadcast Howl: {}", e);
+                                                    metrics_clone.lock().await.connection_failures += 1;
+                                                }
                                                }
                                            } else {
                                                error!("Failed to serialize Howl message for broadcast");
@@ -1238,7 +1219,6 @@ impl SwarmManager {
                                                metrics_clone.lock().await.connection_failures += 1;
                                             } else {
                                                  swarm.behaviour_mut().kad.add_address(&peer_id.as_libp2p(), addr.clone());
-                                                 swarm.add_peer_address(peer_id.as_libp2p(), addr);
                                             }
                                        }
                                        SwarmCommand::DialAddr { addr } => {
@@ -1372,20 +1352,20 @@ impl SwarmManager {
                                            if target == local_peer_id_clone {
                                                 let mut w = wolf_state.write().await;
                                                 if change > 0 {
-                                                    w.add_prestige(change as u32);
-                                                } else {
-                                                    w.slash_prestige(change.abs() as u32);
+                                                    w.add_prestige(change.unsigned_abs());
+                                               } else {
+                                                    w.slash_prestige(change.unsigned_abs());
                                                 }
                                            }
                                        }
-                                       SwarmCommand::AddAddress { peer_id, addr } => {
-                                           swarm.add_peer_address(peer_id.as_libp2p(), addr);
-                                       }
+                                        SwarmCommand::AddAddress { peer_id, addr } => {
+                                            swarm.add_peer_address(peer_id.as_libp2p(), addr);
+                                        }
                                        SwarmCommand::BlockIp { ip } => {
                                            if let Ok(ip_addr) = ip.parse::<std::net::IpAddr>() {
                                                let mut fw = firewall_clone.write().await;
                                                fw.add_rule(crate::firewall::FirewallRule::new(
-                                                   format!("Strike-{}", ip),
+                                                   format!("Strike-{ip}"),
                                                    crate::firewall::RuleTarget::Ip(ip_addr),
                                                    crate::firewall::Protocol::Any,
                                                    crate::firewall::Action::Deny,
@@ -1420,6 +1400,9 @@ impl SwarmManager {
             // Store the sender in a way that can be accessed
             // For now, we'll create a simple processing loop
             tokio::spawn(async move {
+                #[allow(clippy::expect_used)]
+                let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
+
                 while let Some(event) = sec_rx.recv().await {
                     // Check severity threshold
                     if !matches!(
@@ -1444,19 +1427,15 @@ impl SwarmManager {
 
                     // Extract target IP
                     let target_ip = if let Some(peer_id) = &event.peer_id {
-                        let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").unwrap();
-                        if let Some(mat) = ip_regex.find(peer_id) {
-                            mat.as_str().to_string()
-                        } else {
-                            peer_id.clone()
-                        }
+                        ip_regex.find(peer_id).map_or_else(
+                            || peer_id.clone(),
+                            |mat| mat.as_str().to_string(),
+                        )
                     } else {
-                        let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").unwrap();
-                        if let Some(mat) = ip_regex.find(&event.description) {
-                            mat.as_str().to_string()
-                        } else {
-                            "unknown".to_string()
-                        }
+                        ip_regex.find(&event.description).map_or_else(
+                            || "unknown".to_string(),
+                            |mat| mat.as_str().to_string(),
+                        )
                     };
 
                     // Emit WarningHowl
@@ -1502,11 +1481,14 @@ impl SwarmManager {
         })
     }
 
-    /// Starts the SwarmManager.
+    /// Starts the `SwarmManager`.
     ///
     /// # Returns
     /// `Ok(())` if started successfully, or an error if already running or startup fails.
-    pub async fn start(&mut self) -> anyhow::Result<()> {
+    ///
+    /// # Errors
+    /// Returns an error if the swarm is already running.
+    pub fn start(&mut self) -> anyhow::Result<()> {
         if self.running {
             return Err(anyhow::anyhow!("SwarmManager is already running"));
         }
@@ -1521,10 +1503,14 @@ impl SwarmManager {
         Ok(())
     }
 
-    /// Stops the SwarmManager.
+    /// Stops the `SwarmManager`.
     ///
     /// # Returns
     /// `Ok(())` if stopped successfully, or an error if already stopped or shutdown fails.
+    ///
+    /// # Errors
+    /// Returns an error if the swarm is not running.
+    #[allow(clippy::cognitive_complexity)]
     pub async fn stop(&mut self) -> anyhow::Result<()> {
         if !self.running {
             return Err(anyhow::anyhow!("SwarmManager is not running"));
@@ -1647,6 +1633,9 @@ impl SwarmManager {
     }
 
     /// Dials a peer at the specified address.
+    ///
+    /// # Errors
+    /// Returns an error if the dial command cannot be sent.
     pub async fn dial(&self, peer_id: PeerId, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
         self.command_sender
             .send(SwarmCommand::Dial { peer_id, addr })
@@ -1654,7 +1643,10 @@ impl SwarmManager {
         Ok(())
     }
 
-    /// Dials a peer at the specified address without knowing PeerId.
+    /// Dials a peer at the specified address without knowing `PeerId`.
+    ///
+    /// # Errors
+    /// Returns an error if the dial command cannot be sent.
     pub async fn dial_addr(&self, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
         self.command_sender
             .send(SwarmCommand::DialAddr { addr })
@@ -1663,6 +1655,9 @@ impl SwarmManager {
     }
 
     /// Adds a peer address to the swarm without dialing.
+    ///
+    /// # Errors
+    /// Returns an error if the add address command cannot be sent.
     pub async fn add_address(&self, peer_id: PeerId, addr: Multiaddr) -> anyhow::Result<()> {
         self.command_sender
             .send(SwarmCommand::AddAddress { peer_id, addr })
@@ -1671,13 +1666,16 @@ impl SwarmManager {
     }
 
     /// Gets the current listen addresses of the swarm.
+    ///
+    /// # Errors
+    /// Returns an error if the listeners cannot be retrieved.
     pub async fn get_listeners(&self) -> anyhow::Result<Vec<libp2p::Multiaddr>> {
         let (tx, rx) = oneshot::channel();
         self.command_sender
             .send(SwarmCommand::GetListeners { responder: tx })
             .await?;
         rx.await
-            .map_err(|e| anyhow::anyhow!("Failed to get listeners: {}", e))
+            .map_err(|e| anyhow::anyhow!("Failed to get listeners: {e}"))
     }
 
     /// Updates a peer's connection information.
@@ -1711,16 +1709,22 @@ impl SwarmManager {
     }
 
     /// List all known peers and their information.
+    ///
+    /// # Errors
+    /// Returns an error if the peer list cannot be retrieved.
     pub async fn list_peers(&self) -> anyhow::Result<Vec<crate::peer::EntityInfo>> {
         let (tx, rx) = oneshot::channel();
         self.command_sender
             .send(SwarmCommand::ListPeers { responder: tx })
             .await?;
         rx.await
-            .map_err(|e| anyhow::anyhow!("Failed to list peers: {}", e))
+            .map_err(|e| anyhow::anyhow!("Failed to list peers: {e}"))
     }
 
     /// Get information about a specific peer.
+    ///
+    /// # Errors
+    /// Returns an error if the peer info cannot be retrieved.
     pub async fn get_peer_info(
         &self,
         peer_id: PeerId,
@@ -1733,17 +1737,20 @@ impl SwarmManager {
             })
             .await?;
         rx.await
-            .map_err(|e| anyhow::anyhow!("Failed to get peer info: {}", e))
+            .map_err(|e| anyhow::anyhow!("Failed to get peer info: {e}"))
     }
 
     /// Gets overall swarm statistics.
+    ///
+    /// # Errors
+    /// Returns an error if stats cannot be retrieved.
     pub async fn get_stats(&self) -> anyhow::Result<SwarmStats> {
         let (tx, rx) = oneshot::channel();
         self.command_sender
             .send(SwarmCommand::GetStats { responder: tx })
             .await?;
         rx.await
-            .map_err(|e| anyhow::anyhow!("Failed to get stats: {}", e))
+            .map_err(|e| anyhow::anyhow!("Failed to get stats: {e}"))
     }
 
     /// Initiates a hunt for a suspicious target.
@@ -1754,12 +1761,15 @@ impl SwarmManager {
     ///
     /// # Returns
     /// The hunt ID if successful
+    ///
+    /// # Errors
+    /// Returns an error if the hunt initiation fails (e.g. invalid target).
     pub async fn initiate_hunt(
         &self,
         target_ip: String,
         evidence: String,
     ) -> anyhow::Result<String> {
-        let hunt_id = format!("hunt-{}-{}", target_ip, uuid::Uuid::new_v4());
+        let hunt_id = format!("hunt-{target_ip}-{}", uuid::Uuid::new_v4());
 
         self.hunt_coordinator_sender
             .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
@@ -1768,9 +1778,9 @@ impl SwarmManager {
                 evidence,
             })
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to send hunt initiation: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to send hunt initiation: {e}"))?;
 
-        info!("🎯 Hunt initiated: {}", hunt_id);
+        info!("🎯 Hunt initiated: {hunt_id}");
         Ok(hunt_id)
     }
 
@@ -1779,6 +1789,9 @@ impl SwarmManager {
     /// # Arguments
     /// * `hunt_id` - The ID of the hunt
     /// * `confirmed` - Whether the threat was confirmed
+    ///
+    /// # Errors
+    /// Returns an error if the report cannot be sent.
     pub async fn report_hunt(&self, hunt_id: String, confirmed: bool) -> anyhow::Result<()> {
         self.hunt_coordinator_sender
             .send(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
@@ -1787,7 +1800,7 @@ impl SwarmManager {
                 confirmed,
             })
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to send hunt report: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to send hunt report: {e}"))?;
 
         Ok(())
     }
@@ -1796,6 +1809,9 @@ impl SwarmManager {
     ///
     /// # Returns
     /// A vector of active hunts
+    ///
+    /// # Errors
+    /// Returns an error if the lock cannot be acquired or state is invalid.
     pub async fn get_active_hunts(
         &self,
     ) -> anyhow::Result<Vec<crate::wolf_pack::state::ActiveHunt>> {
@@ -1804,6 +1820,9 @@ impl SwarmManager {
     }
 
     /// Gets current Wolf Pack state.
+    ///
+    /// # Errors
+    /// Returns an error if the command cannot be sent to the swarm actor.
     pub async fn get_wolf_state(
         &self,
     ) -> anyhow::Result<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>> {
@@ -1812,34 +1831,39 @@ impl SwarmManager {
             .send(SwarmCommand::GetWolfState { responder: tx })
             .await?;
         rx.await
-            .map_err(|e| anyhow::anyhow!("Failed to get wolf state: {}", e))
+            .map_err(|e| anyhow::anyhow!("Failed to get wolf state: {e}"))
     }
 
     /// Extract target IP from security event
-    fn extract_target_ip(event: &crate::event::SecurityEvent) -> anyhow::Result<String> {
+    fn extract_target_ip(event: &crate::event::SecurityEvent) -> String {
         // Try to extract from peer_id if it looks like an IP
         if let Some(peer_id) = &event.peer_id {
             // Simple IP regex check
-            let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").unwrap();
+            #[allow(clippy::expect_used)]
+            let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
             if let Some(mat) = ip_regex.find(peer_id) {
-                return Ok(mat.as_str().to_string());
+                return mat.as_str().to_string();
             }
         }
 
         // Try to extract from description
-        let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").unwrap();
+        #[allow(clippy::expect_used)]
+        let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
         if let Some(mat) = ip_regex.find(&event.description) {
-            return Ok(mat.as_str().to_string());
+            return mat.as_str().to_string();
         }
 
         // Fallback: use peer_id or "unknown"
-        Ok(event
+        event
             .peer_id
             .clone()
-            .unwrap_or_else(|| "unknown".to_string()))
+            .unwrap_or_else(|| "unknown".to_string())
     }
 
     /// Process security event and potentially trigger hunt
+    ///
+    /// # Errors
+    /// Returns an error if `WarningHowl` cannot be sent.
     pub async fn process_security_event(
         &self,
         event: crate::event::SecurityEvent,
@@ -1873,7 +1897,7 @@ impl SwarmManager {
         drop(state);
 
         // Extract target IP from event
-        let target_ip = Self::extract_target_ip(&event)?;
+        let target_ip = Self::extract_target_ip(&event);
 
         // Emit WarningHowl to initiate hunt
         self.hunt_coordinator_sender
@@ -1883,7 +1907,7 @@ impl SwarmManager {
                 evidence: event.description.clone(),
             })
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to send WarningHowl: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to send WarningHowl: {e}"))?;
 
         info!(
             "🐺 Scout node initiated hunt for {} (severity: {:?})",

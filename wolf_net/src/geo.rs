@@ -127,7 +127,7 @@ impl GeoIPService {
 
     /// Fetch location data from the API
     async fn fetch_from_api(&self, ip: &str) -> anyhow::Result<GeoLocation> {
-        let url = format!("{}/{}", self.config.api_url, ip);
+        let url = format!("{}/{ip}", self.config.api_url);
 
         let response = self
             .client

@@ -207,8 +207,8 @@ impl WolfCrypto {
         // This is a simplified encryption method. In a real application, you would
         // use a proper symmetric cipher from wolf_den and handle nonces.
         let salt = self.engine.generate_salt(16)?;
-        let derived_key = self.engine.derive_key(key, &salt, 32).await?;
-        let mac = self.engine.mac(plaintext, &derived_key).await?;
+        let derived_key = self.engine.derive_key(key, &salt, 32)?;
+        let mac = self.engine.mac(plaintext, &derived_key)?;
         Ok(mac)
     }
 
@@ -216,8 +216,8 @@ impl WolfCrypto {
     pub async fn decrypt(&self, key: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>> {
         // This is a simplified decryption method. It's not a real decryption.
         let salt = self.engine.generate_salt(16)?;
-        let derived_key = self.engine.derive_key(key, &salt, 32).await?;
-        let mac = self.engine.mac(ciphertext, &derived_key).await?;
+        let derived_key = self.engine.derive_key(key, &salt, 32)?;
+        let mac = self.engine.mac(ciphertext, &derived_key)?;
         Ok(mac)
     }
 
@@ -225,7 +225,6 @@ impl WolfCrypto {
     pub async fn hash(&self, data: &[u8]) -> Result<Vec<u8>> {
         self.engine
             .hash(data)
-            .await
             .map_err(|e| anyhow::anyhow!("Hash error: {}", e))
     }
 
@@ -233,7 +232,6 @@ impl WolfCrypto {
     pub async fn hmac(&self, key: &[u8], data: &[u8]) -> Result<Vec<u8>> {
         self.engine
             .mac(data, key)
-            .await
             .map_err(|e| anyhow::anyhow!("HMAC error: {}", e))
     }
 
@@ -241,7 +239,6 @@ impl WolfCrypto {
     pub async fn derive_key(&self, password: &[u8], salt: &[u8], length: usize) -> Result<Vec<u8>> {
         self.engine
             .derive_key(password, salt, length)
-            .await
             .map_err(|e| anyhow::anyhow!("Key derivation error: {}", e))
     }
 

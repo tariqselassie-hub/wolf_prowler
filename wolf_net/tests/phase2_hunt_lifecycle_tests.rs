@@ -1,3 +1,5 @@
+//! Phase 2 Tests: Full Hunt Lifecycle
+
 // Phase 2 Tests: Full Hunt Lifecycle
 //
 // Tests the complete hunt lifecycle from detection through rewards:

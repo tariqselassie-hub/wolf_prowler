@@ -74,6 +74,9 @@ impl SledStorage {
     }
 
     /// Append entries
+    ///
+    /// # Errors
+    /// Returns an error if encoding or database write fails.
     pub fn append(&self, entries: &[Entry]) -> Result<()> {
         for entry in entries {
             let key = Self::entry_key(entry.index);
@@ -86,6 +89,12 @@ impl SledStorage {
     }
 
     /// Set hard state
+    ///
+    /// # Errors
+    /// Returns an error if encoding or database write fails.
+    ///
+    /// # Panics
+    /// Panics if the `hard_state` write lock is poisoned.
     pub fn set_hard_state(&self, hs: &HardState) -> Result<()> {
         let mut data = Vec::new();
         <HardState as prost::Message>::encode(hs, &mut data)?;
@@ -96,6 +105,12 @@ impl SledStorage {
     }
 
     /// Set conf state
+    ///
+    /// # Errors
+    /// Returns an error if encoding fails or database write fails.
+    ///
+    /// # Panics
+    /// Panics if the `conf_state` write lock is poisoned.
     pub fn set_conf_state(&self, cs: &ConfState) -> Result<()> {
         let mut data = Vec::new();
         <ConfState as prost::Message>::encode(cs, &mut data)?;
@@ -106,7 +121,14 @@ impl SledStorage {
     }
 
     /// Apply a snapshot to the storage
-    pub fn apply_snapshot(&self, snapshot: Snapshot) -> Result<(), raft::Error> {
+    ///
+    /// # Errors
+    /// Returns a `raft::Error::Store` if encoding or writing to the database fails.
+    ///
+    /// # Panics
+    /// Panics if the internal `RwLock`s are poisoned.
+    #[allow(clippy::significant_drop_tightening)]
+    pub fn apply_snapshot(&self, snapshot: &Snapshot) -> Result<(), raft::Error> {
         let mut hs = self.hard_state.write().unwrap();
         let mut cs = self.conf_state.write().unwrap();
         let mut snap = self.snapshot.write().unwrap();
@@ -224,16 +246,14 @@ impl Storage for SledStorage {
         // Scan for last entry
         let mut last_idx = self.first_index()? - 1;
 
-        for item in self.db.scan_prefix(PREFIX_ENTRY) {
-            if let Ok((key, _)) = item {
-                if key.len() >= PREFIX_ENTRY.len() + 8 {
-                    let idx_bytes: [u8; 8] = key[PREFIX_ENTRY.len()..PREFIX_ENTRY.len() + 8]
-                        .try_into()
-                        .unwrap();
-                    let idx = u64::from_le_bytes(idx_bytes);
-                    if idx > last_idx {
-                        last_idx = idx;
-                    }
+        for (key, _) in self.db.scan_prefix(PREFIX_ENTRY).flatten() {
+            if key.len() >= PREFIX_ENTRY.len() + 8 {
+                let idx_bytes: [u8; 8] = key[PREFIX_ENTRY.len()..PREFIX_ENTRY.len() + 8]
+                    .try_into()
+                    .unwrap();
+                let idx = u64::from_le_bytes(idx_bytes);
+                if idx > last_idx {
+                    last_idx = idx;
                 }
             }
         }

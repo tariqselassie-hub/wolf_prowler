@@ -42,5 +42,5 @@ pub enum WolfPackError {
     HuntNotFound(String),
 }
 
-/// Convenience Result type for WolfPack operations
+/// Convenience Result type for `WolfPack` operations
 pub type Result<T> = std::result::Result<T, WolfPackError>;

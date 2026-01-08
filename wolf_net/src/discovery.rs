@@ -45,7 +45,8 @@ pub struct MdnsDiscovery {
 
 impl MdnsDiscovery {
     /// Creates a new `MdnsDiscovery` instance.
-    pub fn new(enabled: bool) -> Self {
+    #[must_use]
+    pub const fn new(enabled: bool) -> Self {
         Self { enabled }
     }
 }
@@ -87,7 +88,8 @@ pub struct DhtDiscovery {
 
 impl DhtDiscovery {
     /// Creates a new `DhtDiscovery` instance.
-    pub fn new(enabled: bool) -> Self {
+    #[must_use]
+    pub const fn new(enabled: bool) -> Self {
         Self { enabled }
     }
 }
@@ -130,6 +132,7 @@ pub struct ActiveScanDiscovery {
 
 impl ActiveScanDiscovery {
     /// Creates a new `ActiveScanDiscovery` instance.
+    #[must_use]
     pub fn new(enabled: bool, ports: Vec<u16>) -> Self {
         Self { enabled, ports }
     }
@@ -208,7 +211,7 @@ impl DiscoveryService {
     }
 
     /// Start the discovery service
-    pub async fn start(&mut self) -> anyhow::Result<()> {
+    pub fn start(&mut self) -> anyhow::Result<()> {
         if self.running {
             return Ok(());
         }
@@ -334,7 +337,7 @@ impl DiscoveryService {
     }
 
     /// Add a peer manually
-    pub async fn add_peer(&mut self, peer_info: PeerInfo) {
+    pub async fn add_peer(&self, peer_info: PeerInfo) {
         self.known_peers
             .write()
             .await
@@ -342,7 +345,7 @@ impl DiscoveryService {
     }
 
     /// Remove a peer
-    pub async fn remove_peer(&mut self, peer_id: &PeerId) {
+    pub async fn remove_peer(&self, peer_id: &PeerId) {
         self.known_peers.write().await.remove(peer_id);
     }
 
@@ -398,7 +401,7 @@ mod tests {
         let (mut service, _rx) = DiscoveryService::new(config).expect("Failed to create service");
 
         // Start the service
-        service.start().await.expect("Failed to start service");
+        service.start().expect("Failed to start service");
 
         // Let it run for a short duration
         tokio::time::sleep(Duration::from_millis(100)).await;

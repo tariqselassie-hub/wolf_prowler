@@ -1,11 +1,12 @@
+#![allow(missing_docs)]
 //! Wolf Security - Consolidated Security Module for Wolf Prowler.
 //!
 //! This module serves as the primary security orchestrator, integrating:
 //! - **Network Security**: Based on `wolf_net`, providing firewalling and transport protection.
 //! - **Cryptographic Operations**: Leveraging `wolf_den` for PQC-secured encryption and signing.
-//! - **Identity & Access**: Comprehensive MFA, RBAC, and SSO management.
-//! - **SIEM & Monitoring**: Real-time telemetry, alerting, and SOAR capabilities.
-//! - **Zero Trust**: Adaptive authentication and microsegmentation.
+//! - **`WolfNode`**: The primary system facade for initialization and orchestration.
+//! - **`SwarmManager`**: Low-level P2P swarm management, discovery, and routing.
+//! - **`HuntCoordinator`**: An actor-based engine managing the "Wolf Pack" lifecycle (`Scent` -> `Stalk` -> `Strike`).
 
 /// Security alerts and notifications.
 pub mod alerts;
@@ -228,12 +229,14 @@ impl SecurityEvent {
     }
 
     /// Associate a peer with the event
+    #[must_use]
     pub fn with_peer(mut self, peer_id: String) -> Self {
         self.peer_id = Some(peer_id);
         self
     }
 
     /// Add metadata to the event
+    #[must_use]
     pub fn with_metadata(mut self, key: String, value: String) -> Self {
         self.metadata.insert(key, value);
         self
@@ -245,7 +248,10 @@ impl WolfSecurity {
     /// Create a new Wolf Security instance (Async)
     /// Use create() instead. This method is deprecated/removed.
 
-    /// Asynchronously creates and configures a new WolfSecurity instance using the provided parameters.
+    /// Asynchronously creates and configures a new `WolfSecurity` instance using the provided parameters.
+    ///
+    /// # Errors
+    /// Returns an error if the database path is invalid, DB cannot be opened, or components fail to initialize.
     pub async fn create(config: WolfSecurityConfig) -> anyhow::Result<Self> {
         let db_path = config
             .db_path
@@ -306,6 +312,9 @@ impl WolfSecurity {
 
     /// Initialize all security components
     /// bootstraps all security sub-modules and prepares the engine for operation.
+    ///
+    /// # Errors
+    /// Returns an error if any component fails to initialize.
     pub async fn initialize(&mut self) -> anyhow::Result<()> {
         tracing::info!("🛡️ Initializing Wolf Security");
 
@@ -367,6 +376,9 @@ impl WolfSecurity {
 
     /// Process a security event
     /// routes a security signal to detection, monitoring, and automated response modules.
+    ///
+    /// # Errors
+    /// Returns an error if event processing or response actions fail.
     pub async fn process_security_event(&mut self, event: SecurityEvent) -> anyhow::Result<()> {
         // Route event to appropriate handlers
         self.threat_detector.handle_event(event.clone()).await?;
@@ -491,6 +503,9 @@ impl WolfSecurity {
 
     /// Shutdown all security components
     /// gracefully shuts down all security components and clears sensitive memory.
+    ///
+    /// # Errors
+    /// Returns an error if shutdown sequence fails.
     pub async fn shutdown(&mut self) -> anyhow::Result<()> {
         tracing::info!("🛡️ Shutting down Wolf Security");
 

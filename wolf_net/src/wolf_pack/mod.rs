@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 pub mod coordinator;
 /// Election and consensus logic
 pub mod election;
-/// WolfPack error definitions
+/// `WolfPack` error definitions
 pub mod error;
 /// Local messaging/howl logic
 pub mod howl;
@@ -22,7 +22,7 @@ pub mod state_machine;
 
 pub use state::WolfRole;
 
-/// Alias for WolfRole indicating rank
+/// Alias for `WolfRole` indicating rank
 pub type WolfRank = WolfRole;
 
 pub use election::ElectionManager;
@@ -97,7 +97,8 @@ pub struct PackMember {
 
 impl PackMember {
     /// Create a new pack member
-    pub fn new(peer_id: PeerId, rank: WolfRole) -> Self {
+    #[must_use]
+    pub const fn new(peer_id: PeerId, rank: WolfRole) -> Self {
         Self {
             peer_id,
             rank,
@@ -123,7 +124,10 @@ pub struct WolfPack {
 }
 
 impl WolfPack {
-    /// Creates a new WolfPack instance
+    /// Creates a new `WolfPack` instance
+    ///
+    /// # Errors
+    /// Returns an error if the discovery service fails to initialize.
     pub fn new(pack_name: String, discovery_config: DiscoveryConfig) -> anyhow::Result<Self> {
         let (service, _) = DiscoveryService::new(discovery_config)?;
         let discovery = Arc::new(Mutex::new(service));
@@ -142,10 +146,13 @@ impl WolfPack {
     }
 
     /// Starts the background services.
+    ///
+    /// # Errors
+    /// Returns an error if the discovery service fails to start.
     pub async fn start(&mut self) -> anyhow::Result<()> {
         if let Some(discovery) = &self.discovery {
             let mut discovery = discovery.lock().await;
-            discovery.start().await?;
+            discovery.start()?;
         }
         Ok(())
     }
@@ -187,6 +194,7 @@ impl WolfPack {
     }
 
     /// Returns a list of all Alphas (should ideally be one).
+    #[must_use]
     pub fn get_alphas(&self) -> Vec<&PackMember> {
         self.members
             .values()

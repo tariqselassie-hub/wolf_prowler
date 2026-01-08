@@ -5,6 +5,7 @@
 // - Coordinator processing of P2P messages (HuntRequest, KillOrder, etc.)
 // - Protocol flow from "network" to "coordinator"
 
+//! Phase 3 Howl Protocol Tests
 use std::time::Duration;
 use tokio::time::sleep;
 use wolf_net::peer::PeerId;

@@ -4,9 +4,9 @@
 //! coordination protocol for distributed threat detection and response.
 //!
 //! ### Core Components:
-//! - **WolfNode**: The primary system facade for initialization and orchestration.
-//! - **SwarmManager**: Low-level P2P swarm management, discovery, and routing.
-//! - **HuntCoordinator**: An actor-based engine managing the "Wolf Pack" lifecycle (Scent -> Stalk -> Strike).
+//! - **`WolfNode`**: The primary system facade for initialization and orchestration.
+//! - **`SwarmManager`**: Low-level P2P swarm management, discovery, and routing.
+//! - **`HuntCoordinator`**: An actor-based engine managing the "Wolf Pack" lifecycle (`Scent` -> `Stalk` -> `Strike`).
 //! - **Internal Firewall**: Dynamic rule-based traffic control integrated with hunt outcomes.
 
 /// API for external control and status.
@@ -85,15 +85,19 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const NAME: &str = "Wolf Net";
 
 /// Initialize Wolf Net ID system
+///
+/// # Errors
+/// Returns an error if logging setup fails.
 pub fn init() -> anyhow::Result<()> {
     // Initialize logging
-    let _ = utils::setup_logging(tracing::Level::INFO);
+    let _ = utils::init_logging(tracing::Level::INFO);
 
     tracing::info!("🐺 {} v{} ID system initialized", NAME, VERSION);
     Ok(())
 }
 
 /// Create a new entity with specified types
+#[must_use]
 pub fn create_entity(
     service_type: ServiceType,
     system_type: SystemType,
@@ -103,6 +107,7 @@ pub fn create_entity(
 }
 
 /// Create entity info for network tracking
+#[must_use]
 pub fn create_entity_info(
     service_type: ServiceType,
     system_type: SystemType,

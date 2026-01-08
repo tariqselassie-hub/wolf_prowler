@@ -53,6 +53,12 @@ pub struct WolfNode {
 
 impl WolfNode {
     /// Initializes all subsystems based on the provided configuration.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// * Discovery service fails to initialize
+    /// * Swarm init fails
+    /// * Wolf Pack state cannot be retrieved
     pub async fn new(config: WolfConfig) -> Result<Self> {
         let firewall = Arc::new(RwLock::new(InternalFirewall::new()));
         let metrics = Arc::new(RwLock::new(HashMap::new()));
@@ -74,7 +80,7 @@ impl WolfNode {
 
         // 3. Initialize SaaS-related services
         let (reporting, hub_orchestration, reporting_tx) =
-            Self::init_saas_services(&config, auth_token_storage.clone()).await;
+            Self::init_saas_services(&config, auth_token_storage.clone());
 
         Ok(Self {
             swarm,
@@ -94,7 +100,10 @@ impl WolfNode {
         })
     }
 
-    /// Helper to initialize the SwarmManager
+    /// Helper to initialize the `SwarmManager`
+    ///
+    /// # Errors
+    /// Returns an error if the swarm manager setup fails (e.g. invalid keys).
     fn init_swarm(config: &WolfConfig) -> Result<SwarmManager> {
         let mut swarm_config = SwarmConfig::default();
         if config.network.listen_port > 0 {
@@ -112,7 +121,7 @@ impl WolfNode {
     }
 
     /// Helper to initialize SaaS-related services
-    async fn init_saas_services(
+    fn init_saas_services(
         config: &WolfConfig,
         auth_token: Arc<RwLock<Option<String>>>,
     ) -> (
@@ -145,7 +154,8 @@ impl WolfNode {
         (reporting, hub_orchestration, Some(tx_events))
     }
 
-    /// Returns a handle to control the WolfNode from other components.
+    /// Returns a handle to control the `WolfNode` from other components.
+    #[must_use]
     pub fn get_control(&self) -> WolfNodeControl {
         WolfNodeControl::new(self.command_tx.clone())
     }
@@ -160,68 +170,81 @@ impl WolfNode {
     }
 
     /// Processes a single command
-    async fn handle_command(&mut self, command: NodeCommand) {
+    async fn handle_command(&self, command: NodeCommand) {
         match command {
-            NodeCommand::Shutdown => {
-                tracing::info!("Shutdown command received");
-            }
-            NodeCommand::ConnectPeer(addr_str) => {
-                if let Ok(addr) = addr_str.parse() {
-                    // Fix: Use dial_addr for multiaddr
-                    if let Err(e) = self.swarm.dial_addr(addr).await {
-                        tracing::error!("Failed to dial peer: {}", e);
-                    }
-                } else {
-                    tracing::error!("Invalid multiaddr: {}", addr_str);
-                }
-            }
+            NodeCommand::Shutdown => tracing::info!("Shutdown command received"),
+            NodeCommand::ConnectPeer(addr_str) => self.handle_connect_peer(addr_str).await,
             NodeCommand::DisconnectPeer(peer_id_str) => {
-                let peer_id = crate::peer::PeerId::from_string(peer_id_str.clone());
-                if let Err(e) = self
-                    .swarm
-                    .command_sender()
-                    .send(SwarmCommand::DisconnectPeer { peer_id })
-                    .await
-                {
-                    tracing::error!("Failed to disconnect peer: {}", e);
-                }
+                self.handle_disconnect_peer(peer_id_str).await;
             }
-            NodeCommand::Broadcast(msg) => {
-                if let Err(e) = self
-                    .swarm
-                    .command_sender()
-                    .send(SwarmCommand::Broadcast(msg))
-                    .await
-                {
-                    tracing::error!("Failed to broadcast message: {}", e);
-                }
-            }
+            NodeCommand::Broadcast(msg) => self.handle_broadcast(msg).await,
             NodeCommand::SendDirect { peer_id, data: _ } => {
-                // Direct requests require wrapping in WolfRequest
-                let _pid = crate::peer::PeerId::from_string(peer_id.clone());
-                // Direct requests require wrapping in WolfRequest, skipping for now as explicit command needed
+                let _pid = crate::peer::PeerId::from_string(peer_id);
                 tracing::warn!("Direct message not yet fully implemented in WolfNode handler");
             }
-            NodeCommand::UpdateFirewall(req) => {
-                let mut fw = self.firewall.write().await;
-                if let Some(enabled) = req.enabled {
-                    fw.enabled = enabled;
-                }
-                if let Some(policy) = req.policy {
-                    fw.set_policy(policy);
-                }
+            NodeCommand::UpdateFirewall(req) => self.handle_update_firewall(req).await,
+            NodeCommand::Coordinator(msg) => self.handle_coordinator_msg(msg).await,
+        }
+    }
+
+    async fn handle_connect_peer(&self, addr_str: String) {
+        if let Ok(addr) = addr_str.parse() {
+            if let Err(e) = self.swarm.dial_addr(addr).await {
+                tracing::error!("Failed to dial peer: {}", e);
             }
-            NodeCommand::Coordinator(msg) => {
-                if let Some(tx) = &self.coordinator_tx {
-                    if let Err(e) = tx.send(msg).await {
-                        tracing::error!("Failed to forward command to HuntCoordinator: {}", e);
-                    }
-                }
+        } else {
+            tracing::error!("Invalid multiaddr: {}", addr_str);
+        }
+    }
+
+    async fn handle_disconnect_peer(&self, peer_id_str: String) {
+        let peer_id = crate::peer::PeerId::from_string(peer_id_str);
+        if let Err(e) = self
+            .swarm
+            .command_sender()
+            .send(SwarmCommand::DisconnectPeer { peer_id })
+            .await
+        {
+            tracing::error!("Failed to disconnect peer: {}", e);
+        }
+    }
+
+    async fn handle_broadcast(&self, msg: Vec<u8>) {
+        if let Err(e) = self
+            .swarm
+            .command_sender()
+            .send(SwarmCommand::Broadcast(msg))
+            .await
+        {
+            tracing::error!("Failed to broadcast message: {}", e);
+        }
+    }
+
+    async fn handle_update_firewall(&self, req: crate::api::FirewallUpdateRequest) {
+        let mut fw = self.firewall.write().await;
+        if let Some(enabled) = req.enabled {
+            fw.enabled = enabled;
+        }
+        if let Some(policy) = req.policy {
+            fw.set_policy(policy);
+        }
+    }
+
+    async fn handle_coordinator_msg(&self, msg: crate::wolf_pack::coordinator::CoordinatorMsg) {
+        if let Some(tx) = &self.coordinator_tx {
+            if let Err(e) = tx.send(msg).await {
+                tracing::error!("Failed to forward command to HuntCoordinator: {}", e);
             }
         }
     }
 
-    /// Starts the main event loop and runs the node until shutdown.
+    /// Run the main event loop
+    ///
+    /// # Errors
+    /// Returns an error if the node fails to shutdown cleanly.
+    ///
+    /// # Panics
+    /// Panics if the discovery receiver has already been taken (should never happen in normal operation).
     pub async fn run(&mut self) -> Result<()> {
         // 1. Start Background Services
         if let Some(mut reporting) = self.reporting.take() {
@@ -243,17 +266,18 @@ impl WolfNode {
 
         // 2. Start Discovery Service
         println!("Starting Discovery Service...");
-        self.discovery.start().await?;
+        self.discovery.start()?;
 
         // Swarm Listener already started in SwarmManager::new
 
         // 4. Main Event Loop (Simplified: Swarm logic is handled in SwarmManager background task)
         println!("Starting Wolf Prowler Node...");
 
+        #[allow(clippy::expect_used)]
         let mut discovery_rx = self
             .discovery_rx
             .take()
-            .expect("Discovery receiver already taken");
+            .expect("Discovery receiver already taken"); // Critical failure if missing
         let mut dht_sync_interval = tokio::time::interval(std::time::Duration::from_secs(60));
 
         loop {
@@ -266,9 +290,8 @@ impl WolfNode {
                 }
                 command = self.command_rx.recv() => {
                     match command {
-                        Some(NodeCommand::Shutdown) => break,
+                        Some(NodeCommand::Shutdown) | None => break,
                         Some(cmd) => self.handle_command(cmd).await,
-                        None => break,
                     }
                 }
                 _ = tokio::signal::ctrl_c() => {
@@ -281,6 +304,9 @@ impl WolfNode {
     }
 
     /// Performs a graceful shutdown of all subsystems
+    ///
+    /// # Errors
+    /// Returns an error if any subsystem fails to shutdown cleanly.
     async fn perform_shutdown(&mut self) -> Result<()> {
         println!("Shutdown signal received. Stopping Wolf Node...");
 
@@ -307,26 +333,26 @@ impl WolfNode {
     async fn handle_discovered_peer(&self, peer: PeerInfo) {
         let _peer_id = peer.peer_id.as_libp2p();
         for addr in peer.addresses {
-            let _multiaddr = crate::utils::socketaddr_to_multiaddr(addr);
+            let multiaddr = crate::utils::socketaddr_to_multiaddr(addr);
             // self.swarm.add_address_to_dht(&peer_id, multiaddr);
-            tracing::debug!("Would add address to DHT: {:?}", _multiaddr);
+            tracing::debug!("Would add address to DHT: {:?}", multiaddr);
         }
 
         // Initialize metrics for new peer
         let mut metrics_lock = self.metrics.write().await;
-        if !metrics_lock.contains_key(&peer.peer_id) {
-            let entity_info = crate::peer::EntityInfo::new(crate::peer::EntityId::new(
-                peer.peer_id.clone(),
+        let info_id = peer.peer_id.clone();
+        metrics_lock.entry(peer.peer_id).or_insert_with(|| {
+            crate::peer::EntityInfo::new(crate::peer::EntityId::new(
+                info_id,
                 crate::peer::DeviceId::default(),
                 crate::peer::ServiceId::default(),
                 crate::peer::SystemId::default(),
-            ));
-            metrics_lock.insert(peer.peer_id, entity_info);
-        }
+            ))
+        });
     }
 
     /// Syncs discovered peers to the Swarm's DHT
-    async fn sync_discovery_to_dht(&mut self) {
+    async fn sync_discovery_to_dht(&self) {
         let peers = self.discovery.get_known_peers().await;
         let mut count = 0;
         for peer in peers {

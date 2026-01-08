@@ -76,7 +76,8 @@ pub struct NetworkScanner {
 
 impl NetworkScanner {
     /// Create a new network scanner
-    pub fn new(config: ScannerConfig) -> Self {
+    #[must_use]
+    pub const fn new(config: ScannerConfig) -> Self {
         Self { config }
     }
 
@@ -112,7 +113,7 @@ impl NetworkScanner {
                                 let octets = gateway.octets();
                                 let subnet =
                                     format!("{}.{}.{}.0/24", octets[0], octets[1], octets[2]);
-                                tracing::info!("🔍 Auto-detected subnet: {}", subnet);
+                                tracing::info!("🔍 Auto-detected subnet: {subnet}");
                                 return Ok(subnet);
                             }
                         }

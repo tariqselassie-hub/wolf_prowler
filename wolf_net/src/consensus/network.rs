@@ -19,15 +19,20 @@ pub struct RaftNetworkMessage {
 
 impl RaftNetworkMessage {
     /// Create a new network message from a Raft message
-    pub fn new(from: u64, to: u64, msg: RaftMessage) -> Self {
+    ///
+    /// # Errors
+    /// Returns an error if encoding the Raft message fails.
+    pub fn new(from: u64, to: u64, msg: &RaftMessage) -> Result<Self, prost::EncodeError> {
         let mut data = Vec::new();
-        msg.encode(&mut data)
-            .expect("Failed to encode Raft message");
+        msg.encode(&mut data)?;
 
-        Self { from, to, data }
+        Ok(Self { from, to, data })
     }
 
     /// Decode the inner Raft message
+    ///
+    /// # Errors
+    /// Returns an error if decoding the Raft message fails.
     pub fn decode(&self) -> Result<RaftMessage, prost::DecodeError> {
         RaftMessage::decode(&self.data[..])
     }

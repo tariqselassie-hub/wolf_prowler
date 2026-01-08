@@ -76,6 +76,9 @@ impl WolfBehavior {
     ///
     /// * `local_key` - Keypair used for identity and signing.
     /// * `_config` - Swarm configuration parameters.
+    ///
+    /// # Errors
+    /// Returns an error if the gossipsub configuration or behaviour cannot be created.
     pub fn new(
         local_key: &libp2p::identity::Keypair,
         _config: &crate::swarm::SwarmConfig,
@@ -92,15 +95,15 @@ impl WolfBehavior {
 
         // Gossipsub
         let gossipsub_config = libp2p::gossipsub::ConfigBuilder::default()
-            .max_transmit_size(262144)
+            .max_transmit_size(262_144)
             .build()
-            .map_err(|e| anyhow::anyhow!("Failed to build gossipsub config: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to build gossipsub config: {e}"))?;
 
         let message_authenticity =
             libp2p::gossipsub::MessageAuthenticity::Signed(local_key.clone());
         let gossipsub =
             libp2p::gossipsub::Behaviour::new(message_authenticity, gossipsub_config)
-                .map_err(|e| anyhow::anyhow!("Failed to create gossipsub behaviour: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to create gossipsub behaviour: {e}"))?;
 
         // Request-Response
         let req_resp = request_response::Behaviour::with_codec(

@@ -7,14 +7,14 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// Wrapper for MessageType that implements Hash and Eq
+/// Wrapper for `MessageType` that implements Hash and Eq
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct MessageTypeKey(String);
 
 impl From<&MessageType> for MessageTypeKey {
     fn from(msg_type: &MessageType) -> Self {
         // Use a string representation for hashing
-        Self(format!("{:?}", msg_type))
+        Self(format!("{msg_type:?}"))
     }
 }
 
@@ -148,6 +148,7 @@ pub struct Message {
 
 impl Message {
     /// Create a new message
+    #[must_use]
     pub fn new(from: PeerId, message_type: MessageType) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -292,19 +293,22 @@ impl MessageHandler {
     }
 
     /// Start the message handler
-    pub async fn start(&mut self) -> anyhow::Result<()> {
+    pub fn start(&mut self) -> anyhow::Result<()> {
         tracing::info!("📨 Message handler started");
         Ok(())
     }
 
     /// Stop the message handler
-    pub async fn stop(&mut self) -> anyhow::Result<()> {
+    pub fn stop(&mut self) -> anyhow::Result<()> {
         tracing::info!("📨 Message handler stopped");
         Ok(())
     }
 
     /// Send a message
-    pub async fn send_message(&self, message: Message) -> anyhow::Result<()> {
+    ///
+    /// # Errors
+    /// Returns an error if the message is too large or if the channel is closed.
+    pub fn send_message(&self, message: Message) -> anyhow::Result<()> {
         if message.size_estimate() > self.config.max_message_size {
             return Err(anyhow::anyhow!(
                 "Message too large: {} bytes",
@@ -325,7 +329,7 @@ impl MessageHandler {
     }
 
     /// Process an incoming message
-    pub async fn process_message(&self, message: Message) -> anyhow::Result<()> {
+    pub fn process_message(&self, message: Message) -> anyhow::Result<()> {
         // Check if message is expired
         if message.is_expired() {
             tracing::warn!("Expired message received: {}", message.id);

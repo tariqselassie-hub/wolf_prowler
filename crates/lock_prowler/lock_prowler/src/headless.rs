@@ -13,12 +13,18 @@ use wolf_net::libp2p;
 use wolf_net::wolf_node::WolfNode;
 use wolf_net::WolfConfig;
 
+/// Configuration for the headless operation mode.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HeadlessConfig {
+    /// Paths to scan for secrets.
     pub scan_paths: Vec<String>,
+    /// Interval between scans in seconds.
     pub scan_interval: u64, // seconds
+    /// Whether to automatically import discovered secrets.
     pub auto_import: bool,
+    /// Minimum number of shards required to reconstruct a secret.
     pub shard_threshold: u8,
+    /// Whether to enable WolfPack P2P features.
     pub enable_wolfpack: bool,
 }
 
@@ -34,32 +40,50 @@ impl Default for HeadlessConfig {
     }
 }
 
+/// Current operational status of the headless service.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HeadlessStatus {
+    /// Whether the service is currently active.
     pub is_running: bool,
+    /// The path currently being scanned, if any.
     pub current_target: Option<String>,
+    /// Scan progress percentage (0.0 - 100.0).
     pub progress: f32,
+    /// Total number of secrets discovered in the current session.
     pub discovered_secrets: usize,
+    /// Total number of secrets imported into the vault.
     pub imported_secrets: usize,
+    /// Timestamp of the last completed scan.
     pub last_scan_time: Option<DateTime<Utc>>,
+    /// Scheduled time for the next scan.
     pub next_scan_time: Option<DateTime<Utc>>,
 }
 
+/// Statistics about the P2P network connection.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkStats {
+    /// Number of connected peers.
     pub peer_count: usize,
+    /// Unique identifier of this node.
     pub node_id: Option<String>,
+    /// Whether the node is connected to the swarm.
     pub is_connected: bool,
+    /// List of active node IDs in the vicinity.
     pub active_wolfpack_nodes: Vec<String>,
 }
 
+/// Aggregated system statistics.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FullSystemStats {
+    /// Headless service status.
     pub headless: HeadlessStatus,
+    /// Database storage statistics.
     pub database: crate::storage::DatabaseStats,
+    /// Network connectivity statistics.
     pub network: NetworkStats,
 }
 
+/// Main manager for the headless Wolf Prowler service.
 pub struct HeadlessWolfProwler {
     config: HeadlessConfig,
     status: Arc<Mutex<HeadlessStatus>>,
@@ -71,6 +95,7 @@ pub struct HeadlessWolfProwler {
 }
 
 impl HeadlessWolfProwler {
+    /// Creates a new `HeadlessWolfProwler` instance.
     pub fn new(config: HeadlessConfig, store: WolfStore) -> Self {
         let (log_tx, _) = broadcast::channel(100);
         let wolf_node = Arc::new(RwLock::new(None));
@@ -144,6 +169,7 @@ impl HeadlessWolfProwler {
         }
     }
 
+    /// Subscribes to the log broadcast channel.
     pub fn subscribe_logs(&self) -> broadcast::Receiver<String> {
         self.log_tx.subscribe()
     }
@@ -155,6 +181,10 @@ impl HeadlessWolfProwler {
         let _ = self.log_tx.send(formatted);
     }
 
+    /// Starts the headless service and background tasks.
+    ///
+    /// # Errors
+    /// Returns an error if the service fails to start or if WolfNode fails to initialize.
     pub async fn start(&self) -> Result<()> {
         let mut status = self.status.lock().await;
         status.is_running = true;
@@ -199,6 +229,10 @@ impl HeadlessWolfProwler {
         Ok(())
     }
 
+    /// Stops the headless service.
+    ///
+    /// # Errors
+    /// Returns an error if the service state cannot be updated.
     pub async fn stop(&self) -> Result<()> {
         let mut status = self.status.lock().await;
         status.is_running = false;
@@ -207,16 +241,22 @@ impl HeadlessWolfProwler {
         Ok(())
     }
 
+    /// Retrieves the current status of the service.
     pub async fn get_status(&self) -> HeadlessStatus {
         let status = self.status.lock().await;
         status.clone()
     }
 
+    /// Retrieves statistics from the storage layer.
     pub async fn get_store_stats(&self) -> crate::storage::DatabaseStats {
         let store = self.store.lock().await;
         store.get_stats().clone()
     }
 
+    /// Lists records from a specified database table.
+    ///
+    /// # Errors
+    /// Returns an error if the database query fails.
     pub async fn list_database_records(
         &self,
         table: &str,
@@ -225,6 +265,10 @@ impl HeadlessWolfProwler {
         store.list_table_records(table).await
     }
 
+    /// Adds a record to a specified database table.
+    ///
+    /// # Errors
+    /// Returns an error if the insert operation fails.
     pub async fn add_database_record(
         &self,
         table: &str,
@@ -235,11 +279,16 @@ impl HeadlessWolfProwler {
         store.generic_insert(table, id, data).await
     }
 
+    /// Deletes a record from a specified database table.
+    ///
+    /// # Errors
+    /// Returns an error if the delete operation fails.
     pub async fn delete_database_record(&self, table: &str, id: &str) -> Result<()> {
         let mut store = self.store.lock().await;
         store.delete_record(table, id).await
     }
 
+    /// Retrieves current network statistics.
     pub async fn get_network_stats(&self) -> NetworkStats {
         let guard: tokio::sync::RwLockReadGuard<Option<WolfNode>> = self.wolf_node.read().await;
         if let Some(node) = guard.as_ref() {
@@ -268,6 +317,10 @@ impl HeadlessWolfProwler {
         }
     }
 
+    /// Manually triggers a scan of a specific target path.
+    ///
+    /// # Errors
+    /// Returns an error if the path does not exist or scanning fails.
     pub async fn scan_target(&mut self, target_path: &str) -> Result<Vec<DiscoveredSecret>> {
         self.log(format!("Starting manual scan of: {}", target_path));
 

@@ -100,7 +100,7 @@ pub struct HowlMessage {
     pub timestamp: SystemTime,
     /// The node sending the message
     pub sender: PeerId,
-    /// Cryptographic signature of the payload (to be implemented with wolf_den)
+    /// Cryptographic signature of the payload (to be implemented with `wolf_den`)
     pub signature: Vec<u8>,
     /// Priority level for processing
     pub priority: HowlPriority,
@@ -109,7 +109,8 @@ pub struct HowlMessage {
 }
 
 impl HowlMessage {
-    /// Create a new HowlMessage
+    /// Create a new `HowlMessage`
+    #[must_use]
     pub fn new(sender: PeerId, priority: HowlPriority, payload: HowlPayload) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -122,12 +123,18 @@ impl HowlMessage {
     }
 
     /// Serializes the message for network transmission
+    ///
+    /// # Errors
+    /// Returns an error if serialization fails.
     pub fn to_bytes(&self) -> anyhow::Result<Vec<u8>> {
-        bincode::serialize(self).map_err(|e| anyhow::anyhow!("Serialization error: {}", e))
+        bincode::serialize(self).map_err(|e| anyhow::anyhow!("Serialization error: {e}"))
     }
 
     /// Deserializes a message from network bytes
+    ///
+    /// # Errors
+    /// Returns an error if deserialization fails.
     pub fn from_bytes(bytes: &[u8]) -> anyhow::Result<Self> {
-        bincode::deserialize(bytes).map_err(|e| anyhow::anyhow!("Deserialization error: {}", e))
+        bincode::deserialize(bytes).map_err(|e| anyhow::anyhow!("Deserialization error: {e}"))
     }
 }

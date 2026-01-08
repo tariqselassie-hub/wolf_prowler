@@ -1,3 +1,4 @@
+//! Encryption Integration Tests
 use anyhow::Result;
 use std::time::Duration;
 use tokio::sync::oneshot;
@@ -17,7 +18,7 @@ async fn test_p2p_encryption_handshake() -> Result<()> {
     alice_config.keypair_path = alice_path;
     
     let mut alice_swarm = SwarmManager::new(alice_config)?;
-    alice_swarm.start().await?;
+    alice_swarm.start()?;
     let alice_peer_id = alice_swarm.local_peer_id.clone();
     
     // Get Alice's actual listening address
@@ -34,7 +35,7 @@ async fn test_p2p_encryption_handshake() -> Result<()> {
     bob_config.keypair_path = bob_path;
     
     let mut bob_swarm = SwarmManager::new(bob_config)?;
-    bob_swarm.start().await?;
+    bob_swarm.start()?;
     let bob_peer_id = bob_swarm.local_peer_id.clone();
 
     // 3. Connect Bob to Alice

@@ -55,33 +55,35 @@ pub enum Proposal {
 
 impl Proposal {
     /// Get the proposer node ID
-    pub fn proposer(&self) -> u64 {
+    #[must_use]
+    pub const fn proposer(&self) -> u64 {
         match self {
-            Proposal::AddThreat { proposer, .. } => *proposer,
-            Proposal::AddFirewallRule { proposer, .. } => *proposer,
-            Proposal::UpdateTrustScore { proposer, .. } => *proposer,
-            Proposal::AddDevice { proposer, .. } => *proposer,
-            Proposal::RemoveThreat { proposer, .. } => *proposer,
+            Self::AddThreat { proposer, .. }
+            | Self::AddFirewallRule { proposer, .. }
+            | Self::UpdateTrustScore { proposer, .. }
+            | Self::AddDevice { proposer, .. }
+            | Self::RemoveThreat { proposer, .. } => *proposer,
         }
     }
 
     /// Get a human-readable description of the proposal
+    #[must_use]
     pub fn description(&self) -> String {
         match self {
-            Proposal::AddThreat { threat, .. } => {
+            Self::AddThreat { threat, .. } => {
                 format!("Add threat: {} ({})", threat.id, threat.ip)
             }
-            Proposal::AddFirewallRule { rule, .. } => {
+            Self::AddFirewallRule { rule, .. } => {
                 format!("Add firewall rule: {:?}", rule.action)
             }
-            Proposal::UpdateTrustScore { peer_id, score, .. } => {
-                format!("Update trust score for {:?}: {:.2}", peer_id, score)
+            Self::UpdateTrustScore { peer_id, score, .. } => {
+                format!("Update trust score for {peer_id:?}: {score:.2}")
             }
-            Proposal::AddDevice { device, .. } => {
+            Self::AddDevice { device, .. } => {
                 format!("Add device: {}", device.ip)
             }
-            Proposal::RemoveThreat { threat_id, .. } => {
-                format!("Remove threat: {}", threat_id)
+            Self::RemoveThreat { threat_id, .. } => {
+                format!("Remove threat: {threat_id}")
             }
         }
     }

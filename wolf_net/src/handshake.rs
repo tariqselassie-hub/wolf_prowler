@@ -19,7 +19,7 @@ use x25519_dalek::{PublicKey, StaticSecret};
 #[derive(Clone)]
 pub struct HandshakeManager {
     /// Pending handshakes where we initiated and are waiting for a response.
-    /// Maps Target PeerId -> Our Ephemeral Private Key
+    /// Maps Target `PeerId` -> Our Ephemeral Private Key
     pending_handshakes: Arc<Mutex<HashMap<PeerId, StaticSecret>>>,
 }
 
@@ -30,7 +30,8 @@ impl Default for HandshakeManager {
 }
 
 impl HandshakeManager {
-    /// Create a new HandshakeManager
+    /// Create a new `HandshakeManager`
+    #[must_use]
     pub fn new() -> Self {
         Self {
             pending_handshakes: Arc::new(Mutex::new(HashMap::new())),
@@ -40,7 +41,10 @@ impl HandshakeManager {
     /// Initiates a handshake with a target peer.
     ///
     /// Generates an ephemeral keypair, stores the private key, and returns
-    /// a KeyExchange message containing the public key to be sent to the target.
+    /// a `KeyExchange` message containing the public key to be sent to the target.
+    ///
+    /// # Errors
+    /// Returns an error if the pending handshakes map cannot be locked.
     pub fn initiate_handshake(
         &self,
         local_peer_id: PeerId,
@@ -68,20 +72,20 @@ impl HandshakeManager {
         Ok(Message::to_peer(local_peer_id, target_peer_id, msg_type))
     }
 
-    /// Processes an incoming KeyExchange message.
+    /// Processes an incoming `KeyExchange` message.
     ///
-    /// * If we initiated the handshake (found in pending), we complete it by deriving the secret.
-    /// * If we are the responder, we generate our own keypair, derive the secret, and return a response message.
+    /// # Errors
+    /// Returns an error if the public key cannot be decoded or if its length is invalid, or if the pending handshakes map cannot be locked.
     pub fn handle_handshake(
         &self,
         local_peer_id: PeerId,
         sender_peer_id: PeerId,
-        public_key_hex: String,
+        public_key_hex: &str,
         peer_info: &mut PeerInfo,
     ) -> Result<Option<Message>> {
         // 1. Decode the received public key
-        let peer_public_bytes = hex::decode(&public_key_hex)
-            .map_err(|e| anyhow!("Failed to decode public key hex: {}", e))?;
+        let peer_public_bytes = hex::decode(public_key_hex)
+            .map_err(|e| anyhow!("Failed to decode public key hex: {e}"))?;
 
         if peer_public_bytes.len() != 32 {
             return Err(anyhow!(

@@ -43,13 +43,7 @@ impl ReportingService {
     /// * `org_id` - Organization identifier for multi‑tenant routing.
     /// * `event_queue` - Receiver channel for incoming telemetry events.
     /// * `auth_token` - Shared token storage for authentication.
-    /// Creates a new `ReportingService` instance.
-    ///
-    /// # Arguments
-    /// * `hub_url` - Base URL of the SaaS hub API.
-    /// * `org_id` - Organization identifier for multi‑tenant routing.
-    /// * `event_queue` - Receiver channel for incoming telemetry events.
-    /// * `auth_token` - Shared token storage for authentication.
+    #[must_use]
     pub fn new(
         hub_url: String,
         org_id: String,
@@ -95,7 +89,8 @@ impl ReportingService {
         let token_lock = self.auth_token.read().await;
 
         if let Some(token) = token_lock.as_ref() {
-            let url = format!("{}/api/v1/telemetry/batch", self.hub_url);
+            let hub_url = &self.hub_url;
+            let url = format!("{hub_url}/api/v1/telemetry/batch");
             let res = self
                 .client
                 .post(&url)

@@ -102,10 +102,9 @@ impl MessageEncryption {
     }
 
     /// Derive a session key from a shared secret using HKDF
-    async fn derive_session_key(&self, shared_secret: &[u8]) -> Result<Vec<u8>> {
+    fn derive_session_key(&self, shared_secret: &[u8]) -> Result<Vec<u8>> {
         self.crypto_engine
             .derive_key(shared_secret, b"wolf-prowler-session-key-v1", 32)
-            .await
             .map_err(|e| anyhow::anyhow!(e))
     }
 
@@ -128,7 +127,7 @@ impl MessageEncryption {
 
         // Create new session key via ECDH
         let shared_secret = self.x25519_secret.diffie_hellman(peer_public_key);
-        let key = self.derive_session_key(shared_secret.as_bytes()).await?;
+        let key = self.derive_session_key(shared_secret.as_bytes())?;
 
         let session = SessionKey {
             key,
@@ -176,7 +175,6 @@ impl MessageEncryption {
         let ciphertext = self
             .cipher
             .encrypt(plaintext, &session.key, &nonce)
-            .await
             .context("Failed to encrypt message")?;
 
         let x25519_public_key_bytes = self.public_key().to_bytes();
@@ -184,8 +182,7 @@ impl MessageEncryption {
         let ed25519_public_key_bytes = ed25519_public_key.to_bytes();
         let signature = self
             .crypto_engine
-            .sign_message(&x25519_public_key_bytes)
-            .await;
+            .sign_message(&x25519_public_key_bytes);
 
         Ok(EncryptedMessage {
             ciphertext,
@@ -234,8 +231,7 @@ impl MessageEncryption {
                 &encrypted.sender_x25519_public_key,
                 &signature,
                 &peer_ed25519_public_key,
-            )
-            .await?;
+            )?;
 
         // Get or create session key
         let session = self
@@ -246,7 +242,6 @@ impl MessageEncryption {
         let plaintext = self
             .cipher
             .decrypt(&encrypted.ciphertext, &session.key, &encrypted.nonce)
-            .await
             .context("Failed to decrypt message")?;
 
         Ok(plaintext)

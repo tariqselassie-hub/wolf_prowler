@@ -2,23 +2,37 @@ use anyhow::{Result, bail};
 
 pub const FVE_SIGNATURE: &[u8; 8] = b"-FVE-FS-";
 
+/// Header information for FVE (Full Volume Encryption) metadata.
 #[derive(Debug)]
 pub struct FveHeader {
+    /// FVE signature string.
     pub signature: [u8; 8],
+    /// Metadata version number.
     pub version: u16,
+    /// Total size of the metadata in bytes.
     pub metadata_size: u32,
+    /// Offset to the last entry in the metadata block.
     pub last_entry_offset: u32,
 }
 
+/// Types of entries found in FVE metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FveEntryType {
+    /// Protects the volume encryption key.
     KeyProtector,
+    /// Full Volume Encryption Key (FVEK).
     Fvek,
+    /// Validation information.
     Validation,
+    /// Volume description.
     Description,
+    /// Auto-unlock configuration.
     AutoUnlock,
+    /// Drive label information.
     DriveLabel,
+    /// Encryption method details.
     EncryptionMethod,
+    /// Unknown entry type.
     Unknown(u16),
 }
 
@@ -37,19 +51,30 @@ impl From<u16> for FveEntryType {
     }
 }
 
+/// A generic entry within the FVE metadata.
 pub struct FveEntry {
+    /// Size of the entry in bytes.
     pub size: u16,
+    /// Type of the entry.
     pub entry_type: FveEntryType,
+    /// Raw data content of the entry.
     pub data: Vec<u8>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Types of key protectors used to secure the volume.
 pub enum KeyProtectorType {
+    /// Trusted Platform Module.
     Tpm,
+    /// External key file (e.g., USB key).
     ExternalKey,
+    /// Numerical recovery password.
     RecoveryPassword,
+    /// User password.
     Password,
+    /// Data Recovery Agent.
     Dra,
+    /// Unknown protector type.
     Unknown(u16),
 }
 
@@ -66,19 +91,31 @@ impl From<u16> for KeyProtectorType {
     }
 }
 
+/// A specific key protector instance.
 pub struct KeyProtector {
+    /// Type of the protector.
     pub p_type: KeyProtectorType,
+    /// Unique identifier for the protector.
     pub id: [u8; 16],
+    /// Specific data associated with the protector (e.g., key material).
     pub data: Vec<u8>,
 }
 
+/// Parsed BitLocker metadata structure.
 pub struct BitLockerMetadata {
+    /// Metadata header.
     pub header: FveHeader,
+    /// List of all parsed entries.
     pub entries: Vec<FveEntry>,
+    /// List of identified key protectors.
     pub protectors: Vec<KeyProtector>,
 }
 
 impl BitLockerMetadata {
+    /// Parses raw bytes into a `BitLockerMetadata` structure.
+    ///
+    /// # Errors
+    /// Returns an error if the data is too short or if the signature is invalid.
     pub fn parse(data: &[u8]) -> Result<Self> {
         if data.len() < 48 {
             bail!("Metadata too short");
@@ -154,6 +191,7 @@ pub struct EntropySampler {
 }
 
 impl EntropySampler {
+    /// Creates a new `EntropySampler`.
     pub fn new() -> Self {
         Self {
             simulation_state: 0.0,
