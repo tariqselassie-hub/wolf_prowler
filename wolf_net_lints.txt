@@ -1,0 +1,1131 @@
+    Checking wolf_net v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_net)
+error: missing documentation for a module
+  --> wolf_net/src/lib.rs:12:1
+   |
+12 | pub mod api;
+   | ^^^^^^^^^^^
+   |
+   = note: requested on the command line with `-D missing-docs`
+
+error: missing documentation for a module
+  --> wolf_net/src/lib.rs:13:1
+   |
+13 | pub mod behavior;
+   | ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a module
+  --> wolf_net/src/lib.rs:20:1
+   |
+20 | pub mod firewall;
+   | ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a module
+  --> wolf_net/src/lib.rs:23:1
+   |
+23 | pub mod hub_orchestration;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a module
+  --> wolf_net/src/lib.rs:28:1
+   |
+28 | pub mod protocol;
+   | ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a module
+  --> wolf_net/src/lib.rs:29:1
+   |
+29 | pub mod reporting_service;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a module
+  --> wolf_net/src/lib.rs:31:1
+   |
+31 | pub mod security;
+   | ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a module
+  --> wolf_net/src/lib.rs:34:1
+   |
+34 | pub mod wolf_node;
+   | ^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a module
+  --> wolf_net/src/lib.rs:35:1
+   |
+35 | pub mod wolf_pack;
+   | ^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a constant
+  --> wolf_net/src/lib.rs:60:1
+   |
+60 | pub const NAME: &str = "Wolf Net";
+   | ^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:10:5
+   |
+10 |     pub success: bool,
+   |     ^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:11:5
+   |
+11 |     pub data: Option<T>,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:12:5
+   |
+12 |     pub error: Option<String>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for an associated function
+  --> wolf_net/src/api.rs:16:5
+   |
+16 |     pub fn success(data: T) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for an associated function
+  --> wolf_net/src/api.rs:24:5
+   |
+24 |     pub fn error(message: impl Into<String>) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct
+  --> wolf_net/src/api.rs:36:1
+   |
+36 | pub struct NodeStatus {
+   | ^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:37:5
+   |
+37 |     pub peer_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:38:5
+   |
+38 |     pub listeners: Vec<String>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:39:5
+   |
+39 |     pub connected_peers: usize,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:40:5
+   |
+40 |     pub uptime_secs: u64,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:41:5
+   |
+41 |     pub version: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct
+  --> wolf_net/src/api.rs:45:1
+   |
+45 | pub struct PeerInfo {
+   | ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:46:5
+   |
+46 |     pub peer_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:47:5
+   |
+47 |     pub address: Option<String>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:48:5
+   |
+48 |     pub connected_since: Option<u64>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct
+  --> wolf_net/src/api.rs:54:1
+   |
+54 | pub struct ConnectPeerRequest {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:55:5
+   |
+55 |     pub multiaddr: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct
+  --> wolf_net/src/api.rs:59:1
+   |
+59 | pub struct SendMessageRequest {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:60:5
+   |
+60 |     pub peer_id: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:61:5
+   |
+61 |     pub message: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct
+  --> wolf_net/src/api.rs:65:1
+   |
+65 | pub struct BroadcastRequest {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:66:5
+   |
+66 |     pub message: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct
+  --> wolf_net/src/api.rs:70:1
+   |
+70 | pub struct FirewallUpdateRequest {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:71:5
+   |
+71 |     pub enabled: Option<bool>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:72:5
+   |
+72 |     pub policy: Option<FirewallPolicy>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct
+  --> wolf_net/src/api.rs:76:1
+   |
+76 | pub struct AddRuleRequest {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:77:5
+   |
+77 |     pub rule: FirewallRule,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/api.rs:85:5
+   |
+85 |     Shutdown,
+   |     ^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/api.rs:86:5
+   |
+86 |     ConnectPeer(String),
+   |     ^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/api.rs:87:5
+   |
+87 |     DisconnectPeer(String),
+   |     ^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/api.rs:88:5
+   |
+88 |     Broadcast(Vec<u8>),
+   |     ^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/api.rs:89:5
+   |
+89 |     SendDirect { peer_id: String, data: Vec<u8> },
+   |     ^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:89:18
+   |
+89 |     SendDirect { peer_id: String, data: Vec<u8> },
+   |                  ^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:89:35
+   |
+89 |     SendDirect { peer_id: String, data: Vec<u8> },
+   |                                   ^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/api.rs:90:5
+   |
+90 |     UpdateFirewall(FirewallUpdateRequest),
+   |     ^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/api.rs:91:5
+   |
+91 |     Coordinator(crate::wolf_pack::coordinator::CoordinatorMsg),
+   |     ^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/api.rs:97:5
+   |
+97 |     pub command_tx: mpsc::Sender<NodeCommand>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for an associated function
+   --> wolf_net/src/api.rs:102:5
+    |
+102 | /     pub fn new(
+103 | |         command_tx: mpsc::Sender<NodeCommand>,
+104 | |         // telemetry_tx: Option<mpsc::Sender<TelemetryEvent>>,
+105 | |     ) -> Self {
+    | |_____________^
+
+error: missing documentation for a method
+   --> wolf_net/src/api.rs:112:5
+    |
+112 |     pub async fn shutdown(&self) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a method
+   --> wolf_net/src/api.rs:119:5
+    |
+119 |     pub async fn connect_peer(&self, addr: String) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a method
+   --> wolf_net/src/api.rs:126:5
+    |
+126 |     pub async fn broadcast(&self, message: Vec<u8>) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a method
+   --> wolf_net/src/api.rs:133:5
+    |
+133 |     pub async fn disconnect_peer(&self, peer_id: String) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a method
+   --> wolf_net/src/api.rs:140:5
+    |
+140 |     pub async fn send_direct(&self, peer_id: String, data: Vec<u8>) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a method
+   --> wolf_net/src/api.rs:147:5
+    |
+147 |     pub async fn update_firewall(&self, req: FirewallUpdateRequest) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a method
+   --> wolf_net/src/api.rs:154:5
+    |
+154 | /     pub async fn send_coordinator_msg(
+155 | |         &self,
+156 | |         msg: crate::wolf_pack::coordinator::CoordinatorMsg,
+157 | |     ) -> anyhow::Result<()> {
+    | |___________________________^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/behavior.rs:16:5
+   |
+16 |     pub ping: ping::Behaviour,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/behavior.rs:17:5
+   |
+17 |     pub kad: kad::Behaviour<kad::store::MemoryStore>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/behavior.rs:18:5
+   |
+18 |     pub gossipsub: gossipsub::Behaviour,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/behavior.rs:19:5
+   |
+19 |     pub req_resp: request_response::Behaviour<WolfCodec>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/behavior.rs:20:5
+   |
+20 |     pub identify: identify::Behaviour,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/behavior.rs:14:10
+   |
+14 | #[derive(NetworkBehaviour)]
+   |          ^^^^^^^^^^^^^^^^
+   |
+   = note: this error originates in the derive macro `NetworkBehaviour` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: missing documentation for an associated function
+  --> wolf_net/src/behavior.rs:24:5
+   |
+24 | /     pub fn new(
+25 | |         local_key: &libp2p::identity::Keypair,
+26 | |         _config: &crate::swarm::SwarmConfig,
+27 | |     ) -> anyhow::Result<Self> {
+   | |_____________________________^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/mod.rs:227:5
+    |
+227 |     pub node_id: u64,
+    |     ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/mod.rs:228:5
+    |
+228 |     pub state: String,
+    |     ^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/mod.rs:229:5
+    |
+229 |     pub leader_id: Option<u64>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/mod.rs:230:5
+    |
+230 |     pub term: u64,
+    |     ^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/mod.rs:231:5
+    |
+231 |     pub peers: Vec<u64>,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:15:9
+   |
+15 |         threat: ThreatEntry,
+   |         ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:16:9
+   |
+16 |         proposer: u64,
+   |         ^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:21:9
+   |
+21 |         rule: FirewallRule,
+   |         ^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:22:9
+   |
+22 |         proposer: u64,
+   |         ^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:27:9
+   |
+27 |         peer_id: PeerId,
+   |         ^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:28:9
+   |
+28 |         score: f64,
+   |         ^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:29:9
+   |
+29 |         proposer: u64,
+   |         ^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:34:9
+   |
+34 |         device: DeviceInfo,
+   |         ^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:35:9
+   |
+35 |         proposer: u64,
+   |         ^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:40:9
+   |
+40 |         threat_id: String,
+   |         ^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/consensus/proposals.rs:41:9
+   |
+41 |         proposer: u64,
+   |         ^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:124:5
+    |
+124 |     pub id: String,
+    |     ^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:125:5
+    |
+125 |     pub ip: IpAddr,
+    |     ^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:126:5
+    |
+126 |     pub severity: ThreatSeverity,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:127:5
+    |
+127 |     pub detected_by: Vec<u64>,  // Node IDs
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:128:5
+    |
+128 |     pub first_seen: DateTime<Utc>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:129:5
+    |
+129 |     pub last_seen: DateTime<Utc>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:130:5
+    |
+130 |     pub blocked: bool,
+    |     ^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/consensus/state.rs:136:5
+    |
+136 |     Low,
+    |     ^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/consensus/state.rs:137:5
+    |
+137 |     Medium,
+    |     ^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/consensus/state.rs:138:5
+    |
+138 |     High,
+    |     ^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/consensus/state.rs:139:5
+    |
+139 |     Critical,
+    |     ^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:145:5
+    |
+145 |     pub action: FirewallAction,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:146:5
+    |
+146 |     pub source_ip: Option<IpAddr>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:147:5
+    |
+147 |     pub destination_ip: Option<IpAddr>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:148:5
+    |
+148 |     pub port: Option<u16>,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:149:5
+    |
+149 |     pub reason: String,
+    |     ^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/consensus/state.rs:155:5
+    |
+155 |     Allow,
+    |     ^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/consensus/state.rs:156:5
+    |
+156 |     Block,
+    |     ^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/consensus/state.rs:157:5
+    |
+157 |     Log,
+    |     ^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:163:5
+    |
+163 |     pub score: f64,
+    |     ^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:164:5
+    |
+164 |     pub last_updated: DateTime<Utc>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:165:5
+    |
+165 |     pub updated_by: u64,  // Node ID
+    |     ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:171:5
+    |
+171 |     pub ip: IpAddr,
+    |     ^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:172:5
+    |
+172 |     pub hostname: Option<String>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:173:5
+    |
+173 |     pub mac_address: Option<String>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:174:5
+    |
+174 |     pub device_type: String,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:175:5
+    |
+175 |     pub first_seen: DateTime<Utc>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/consensus/state.rs:176:5
+    |
+176 |     pub last_seen: DateTime<Utc>,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for an associated function
+  --> wolf_net/src/discovery.rs:47:5
+   |
+47 |     pub fn new(enabled: bool) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for an associated function
+  --> wolf_net/src/discovery.rs:88:5
+   |
+88 |     pub fn new(enabled: bool) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for an associated function
+   --> wolf_net/src/discovery.rs:130:5
+    |
+130 |     pub fn new(enabled: bool, ports: Vec<u16>) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/encrypted_handler.rs:21:19
+   |
+21 |     KeyExchange { public_key: Vec<u8> },
+   |                   ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:13:5
+   |
+13 |     Low,
+   |     ^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:14:5
+   |
+14 |     Medium,
+   |     ^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:15:5
+   |
+15 |     High,
+   |     ^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:16:5
+   |
+16 |     Critical,
+   |     ^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:22:5
+   |
+22 |     Authentication,
+   |     ^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:23:5
+   |
+23 |     Authorization,
+   |     ^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:24:5
+   |
+24 |     Encryption,
+   |     ^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:25:5
+   |
+25 |     Network,
+   |     ^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:26:5
+   |
+26 |     PolicyViolation,
+   |     ^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:27:5
+   |
+27 |     Other(String),
+   |     ^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:33:5
+   |
+33 |     pub id: String,
+   |     ^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:34:5
+   |
+34 |     pub timestamp: chrono::DateTime<chrono::Utc>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:35:5
+   |
+35 |     pub event_type: SecurityEventType,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:36:5
+   |
+36 |     pub severity: SecuritySeverity,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:37:5
+   |
+37 |     pub description: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:38:5
+   |
+38 |     pub peer_id: Option<String>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for an associated function
+  --> wolf_net/src/event.rs:42:5
+   |
+42 | /     pub fn new(
+43 | |         event_type: SecurityEventType,
+44 | |         severity: SecuritySeverity,
+45 | |         description: String,
+46 | |     ) -> Self {
+   | |_____________^
+
+error: missing documentation for a method
+  --> wolf_net/src/event.rs:57:5
+   |
+57 |     pub fn with_peer(mut self, peer_id: String) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:67:21
+   |
+67 |     PeerConnected { peer_id: PeerId, address: String },
+   |                     ^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:67:38
+   |
+67 |     PeerConnected { peer_id: PeerId, address: String },
+   |                                      ^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:69:24
+   |
+69 |     PeerDisconnected { peer_id: PeerId, reason: String },
+   |                        ^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:69:41
+   |
+69 |     PeerDisconnected { peer_id: PeerId, reason: String },
+   |                                         ^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:71:23
+   |
+71 |     MessageReceived { from: PeerId, message: Message },
+   |                       ^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:71:37
+   |
+71 |     MessageReceived { from: PeerId, message: Message },
+   |                                     ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:73:19
+   |
+73 |     MessageSent { to: PeerId, message_id: String },
+   |                   ^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:73:31
+   |
+73 |     MessageSent { to: PeerId, message_id: String },
+   |                               ^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:75:22
+   |
+75 |     PeerDiscovered { peer_info: PeerInfo },
+   |                      ^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:77:19
+   |
+77 |     PeerExpired { peer_id: PeerId },
+   |                   ^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:79:23
+   |
+79 |     ConnectionError { peer_id: PeerId, error: String },
+   |                       ^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:79:40
+   |
+79 |     ConnectionError { peer_id: PeerId, error: String },
+   |                                        ^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:82:9
+   |
+82 |         event_type: SwarmEventType,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:83:9
+   |
+83 |         details: HashMap<String, String>,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:87:9
+   |
+87 |         event_type: String,
+   |         ^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/event.rs:88:9
+   |
+88 |         data: HashMap<String, String>,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:97:5
+   |
+97 |     ListeningStarted,
+   |     ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:98:5
+   |
+98 |     ListeningStopped,
+   |     ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/event.rs:99:5
+   |
+99 |     IncomingConnection,
+   |     ^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/event.rs:100:5
+    |
+100 |     OutgoingConnection,
+    |     ^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/event.rs:101:5
+    |
+101 |     BootstrapStarted,
+    |     ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/event.rs:102:5
+    |
+102 |     BootstrapCompleted,
+    |     ^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/event.rs:103:5
+    |
+103 |     DiscoveryStarted,
+    |     ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/event.rs:104:5
+    |
+104 |     DiscoveryCompleted,
+    |     ^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/event.rs:123:5
+    |
+123 |     pub events_processed: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/event.rs:124:5
+    |
+124 |     pub events_failed: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/event.rs:125:5
+    |
+125 |     pub callbacks_registered: usize,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+   --> wolf_net/src/event.rs:126:5
+    |
+126 |     pub events_queued: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+ --> wolf_net/src/firewall.rs:7:5
+  |
+7 |     pub rules: Vec<FirewallRule>,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+ --> wolf_net/src/firewall.rs:8:5
+  |
+8 |     pub policy: FirewallPolicy,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+ --> wolf_net/src/firewall.rs:9:5
+  |
+9 |     pub enabled: bool,
+  |     ^^^^^^^^^^^^^^^^^
+
+error: missing documentation for an associated function
+  --> wolf_net/src/firewall.rs:13:5
+   |
+13 |     pub fn new() -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/firewall.rs:79:5
+   |
+79 |     Default, // Context dependent, usually Allow
+   |     ^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/firewall.rs:80:5
+   |
+80 |     AllowAll,
+   |     ^^^^^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/firewall.rs:81:5
+   |
+81 |     DenyAll,
+   |     ^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/firewall.rs:87:5
+   |
+87 |     pub name: String,
+   |     ^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/firewall.rs:88:5
+   |
+88 |     pub target: RuleTarget,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/firewall.rs:89:5
+   |
+89 |     pub protocol: Protocol,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/firewall.rs:90:5
+   |
+90 |     pub action: Action,
+   |     ^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> wolf_net/src/firewall.rs:91:5
+   |
+91 |     pub direction: TrafficDirection,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for an associated function
+   --> wolf_net/src/firewall.rs:95:5
+    |
+ 95 | /     pub fn new(
+ 96 | |         name: impl Into<String>,
+ 97 | |         target: RuleTarget,
+ 98 | |         protocol: Protocol,
+ 99 | |         action: Action,
+100 | |         direction: TrafficDirection,
+101 | |     ) -> Self {
+    | |_____________^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:141:5
+    |
+141 |     Any,
+    |     ^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:142:5
+    |
+142 |     Port(u16),
+    |     ^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:143:5
+    |
+143 |     Ip(IpAddr),
+    |     ^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:144:5
+    |
+144 |     PeerId(String), // String representation of PeerId
+    |     ^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:150:5
+    |
+150 |     Allow,
+    |     ^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:151:5
+    |
+151 |     Deny,
+    |     ^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:157:5
+    |
+157 |     Any,
+    |     ^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:158:5
+    |
+158 |     TCP,
+    |     ^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:159:5
+    |
+159 |     UDP,
+    |     ^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:160:5
+    |
+160 |     ICMP,
+    |     ^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:161:5
+    |
+161 |     WolfProto, // Our custom app protocol
+    |     ^^^^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:167:5
+    |
+167 |     Inbound,
+    |     ^^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:168:5
+    |
+168 |     Outbound,
+    |     ^^^^^^^^
+
+error: missing documentation for a variant
+   --> wolf_net/src/firewall.rs:169:5
+    |
+169 |     Both,
+    |     ^^^^
+
+error: missing documentation for a variant
+  --> wolf_net/src/p2p.rs:41:10
+   |
+41 | #[derive(NetworkBehaviour)]
+   |          ^^^^^^^^^^^^^^^^
+   |
+   = note: this error originates in the derive macro `NetworkBehaviour` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: could not compile `wolf_net` (lib) due to 184 previous errors

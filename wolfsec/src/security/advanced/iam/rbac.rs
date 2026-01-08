@@ -9,222 +9,224 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 use uuid::Uuid;
 
 use crate::security::advanced::iam::{
-    AuthenticationManager, AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
-    SessionRequest, UserStatus,
+    AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
 };
 
-/// Resource action
+/// Definitive set of operations that can be performed on protected system resources
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ResourceAction {
-    /// Read access
+    /// Capability to view or retrieve resource state
     Read,
-    /// Write access
+    /// Capability to modify or update existing resource state
     Write,
-    /// Delete access
+    /// Capability to remove or destroy resource state
     Delete,
-    /// Admin access
+    /// Full management capabilities within a specific resource scope
     Admin,
-    /// Super admin access
+    /// Absolute administrative control over all aspects of a resource
     SuperAdmin,
-    /// Custom action
+    /// Proprietary action string for domain-specific security rules
     Custom(String),
 }
 
-/// Resource type
+/// Classification of assets and functional areas protected by the IAM system
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum ResourceType {
-    /// Dashboard access
+    /// Central command and monitoring interface
     Dashboard,
-    /// Network resources
+    /// P2P networking and swarm communication layer
     Network,
-    /// Security resources
+    /// Threat detection and cryptographic sub-systems
     Security,
-    /// System resources
+    /// Core operating system and hardware interactions
     System,
-    /// User management
+    /// Identity lifecycles, roles, and credential management
     UserManagement,
-    /// Audit logs
+    /// Immutable record of system events and security decisions
     Audit,
-    /// Configuration
+    /// Global and module-specific settings registry
     Configuration,
-    /// Custom resource
+    /// Specialized or extended resource type defined by an integration
     Custom(String),
 }
 
-/// Permission entity
+/// An atomic unit of authorization defining an allowable action on a specific resource type
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Permission {
-    /// Permission ID
+    /// Unique internal identifier for the permission definition
     pub id: Uuid,
-    /// Resource type
+    /// The category of resource this permission applies to
     pub resource_type: ResourceType,
-    /// Resource action
+    /// The specific operation permitted by this definition
     pub action: ResourceAction,
-    /// Resource ID (optional, for specific resource access)
+    /// Optional specific resource instance ID for fine-grained object-level access
     pub resource_id: Option<String>,
-    /// Permission name
+    /// Human-readable name for the permission
     pub name: String,
-    /// Permission description
+    /// Detailed explanation of what this permission enables
     pub description: String,
-    /// Created timestamp
+    /// Point in time when the permission was initially defined
     pub created_at: DateTime<Utc>,
-    /// Last updated
+    /// Most recent update to the name or description of this permission
     pub updated_at: DateTime<Utc>,
 }
 
-/// Role entity with wolf pack hierarchy
+/// A logical collection of permissions assigned to users, adhering to the wolf pack hierarchy
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Role {
-    /// Role ID
+    /// Unique internal identifier for the role
     pub id: Uuid,
-    /// Role name
+    /// Descriptive name (e.g., "Security Auditor")
     pub name: String,
-    /// Role description
+    /// Detailed purpose and scope of the role
     pub description: String,
-    /// Wolf pack hierarchy level (0-100, higher = more privileges)
+    /// numeric hierarchy level (0-100) where higher values allow inheritance and override
     pub hierarchy_level: u8,
-    /// Wolf-themed role type
+    /// The wolf pack tier this role occupies
     pub wolf_role_type: WolfRoleType,
-    /// Permissions
+    /// Set of unique permission IDs directly granted to this role
     pub permissions: HashSet<Uuid>,
-    /// Inherited roles
+    /// IDs of roles from which this role inherits additional permissions
     pub inherited_roles: HashSet<Uuid>,
-    /// Created timestamp
+    /// When the role was first defined
     pub created_at: DateTime<Utc>,
-    /// Last updated
+    /// When the role's definition or permissions were last altered
     pub updated_at: DateTime<Utc>,
-    /// Active status
+    /// If false, users assigned this role will not receive its permissions during evaluation
     pub active: bool,
 }
 
-/// Wolf-themed role types
+/// Categorization of roles according to the traditional Wolf Pack hierarchy
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum WolfRoleType {
-    /// Alpha wolf - highest privileges (CEO, CTO, Security Admin)
+    /// Command tier: Absolute administrative control over the entire ecosystem
     Alpha,
-    /// Beta wolves - high privileges (Senior Admins, Team Leads)
+    /// Executive tier: High-level administration for senior personnel and leads
     Beta,
-    /// Gamma wolves - medium privileges (Regular Admins, Security Analysts)
+    /// Engineering tier: Professional administrators and dedicated security analysts
     Gamma,
-    /// Delta wolves - standard privileges (Regular Users, Operators)
+    /// Operator tier: Standard authenticated users and system operators
     Delta,
-    /// Omega wolves - basic privileges (Read-only users, Viewers)
+    /// Observation tier: Fundamental restricted access for read-only viewing
     Omega,
-    /// Scout wolves - reconnaissance privileges (Auditors, Monitors)
+    /// Reconnaissance tier: Specialized access for auditing and external monitoring
     Scout,
-    /// Hunter wolves - operational privileges (Incident Responders, SOC)
+    /// Tactical tier: Operational access for incident responders and SOC personnel
     Hunter,
-    /// Sentinel wolves - security privileges (Security Engineers, DevSecOps)
+    /// Defense tier: Specialized security engineering and DevSecOps access
     Sentinel,
-    /// Custom role
+    /// Unclassified or dynamically defined pack role
     Custom,
 }
 
-/// User role assignment
+/// Records the granting of a role to a specific identity
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserRole {
-    /// User ID
+    /// The identity receiving the permissions
     pub user_id: Uuid,
-    /// Role ID
+    /// The role metadata being applied
     pub role_id: Uuid,
-    /// Assignment reason
+    /// Documented justification for the assignment
     pub reason: String,
-    /// Assigned by
+    /// The identity that authorized this assignment
     pub assigned_by: Uuid,
-    /// Assigned at
+    /// Precise point in time when the assignment was authorized
     pub assigned_at: DateTime<Utc>,
-    /// Expires at (optional)
+    /// Optional deadline after which the assignment naturally expires
     pub expires_at: Option<DateTime<Utc>>,
-    /// Active status
+    /// If false, the assignment is administratively suspended
     pub active: bool,
 }
 
-/// Access control decision
+/// The finalized outcome and justification of an access control evaluation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessDecision {
-    /// Decision ID
+    /// Unique internal identifier for the decision record
     pub id: Uuid,
-    /// User ID
+    /// The identity for whom the decision was rendered
     pub user_id: Uuid,
-    /// Resource type
+    /// The category of resource targeted in the request
     pub resource_type: ResourceType,
-    /// Resource action
+    /// The specific action evaluated
     pub action: ResourceAction,
-    /// Resource ID
+    /// Precise instance identifier of the resource, if object-level access was checked
     pub resource_id: Option<String>,
-    /// Decision (allow/deny)
+    /// Formal grant or denial of access
     pub decision: AccessDecisionType,
-    /// Reason for decision
+    /// Detailed policy-driven explanation for the decision
     pub reason: String,
-    /// Applied roles
+    /// List of role identifiers that influenced this evaluation
     pub applied_roles: Vec<Uuid>,
-    /// Applied permissions
+    /// List of specific permission identifiers that satisfied the request
     pub applied_permissions: Vec<Uuid>,
-    /// Decision timestamp
+    /// Precise point in time when the evaluation occurred
     pub timestamp: DateTime<Utc>,
-    /// Client info
+    /// requester environment snapshot at time of decision
     pub client_info: Option<ClientInfo>,
 }
 
-/// Access decision type
+/// Primary outcomes of an access control evaluation
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum AccessDecisionType {
-    /// Access granted
+    /// Access is formally authorized
     Allow,
-    /// Access denied
+    /// Access is formally rejected
     Deny,
 }
 
-/// RBAC manager
+/// Central engine for managing and evaluating role-based permissions and hierarchies
 pub struct RBACManager {
-    /// Roles storage
+    /// Thread-safe localized registry of all system-defined roles
     roles: Arc<Mutex<HashMap<Uuid, Role>>>,
-    /// Permissions storage
+    /// Thread-safe localized registry of all atomic permissions
     permissions: Arc<Mutex<HashMap<Uuid, Permission>>>,
-    /// User roles storage
+    /// Multi-map of active role assignments for each user identity
     user_roles: Arc<Mutex<HashMap<Uuid, Vec<UserRole>>>>,
-    /// Configuration
+    /// Global IAM configuration settings
     config: IAMConfig,
-    /// Access decisions cache
+    /// Thread-safe cache of recent evaluation outcomes to improve performance
     access_cache: Arc<Mutex<HashMap<String, AccessDecision>>>,
 }
 
-/// RBAC query
+/// Encapsulated parameters for a formal authorization request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RBACQuery {
-    /// User ID
+    /// The user identity requesting authorization
     pub user_id: Uuid,
-    /// Resource type
+    /// The target resource category
     pub resource_type: ResourceType,
-    /// Resource action
+    /// The specific operation being attempted
     pub action: ResourceAction,
-    /// Resource ID (optional)
+    /// Identifier for a specific resource instance if required for the check
     pub resource_id: Option<String>,
-    /// Client info (for context-based decisions)
+    /// Environmental context of the requester
     pub client_info: Option<ClientInfo>,
 }
 
-/// RBAC statistics
+/// System-wide summary of the RBAC engine's current state and workload
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RBACStats {
-    /// Total roles
+    /// Count of distinctly defined roles in the registry
     pub total_roles: usize,
-    /// Total permissions
+    /// Count of distinctly defined permissions in the registry
     pub total_permissions: usize,
-    /// Total user-role assignments
+    /// Count of active user-role assignments across the ecosystem
     pub total_user_roles: usize,
-    /// Active access decisions
+    /// Current number of entries reside in the evaluation cache
     pub active_decisions: usize,
-    /// Last update
+    /// Timestamp of the most recent statistics calculation
     pub last_update: DateTime<Utc>,
 }
 
 impl RBACManager {
-    /// Create new RBAC manager
+    /// Initializes a new `RBACManager` and establishes the default system-level roles and permissions.
+    ///
+    /// # Errors
+    /// Returns an error if initialization or default role creation fails.
     pub async fn new(config: IAMConfig) -> Result<Self> {
         info!("🔐 Initializing RBAC Manager");
 
@@ -400,7 +402,10 @@ impl RBACManager {
         Ok(())
     }
 
-    /// Create permission
+    /// Formally registers a new atomic permission in the global registry.
+    ///
+    /// # Errors
+    /// Returns an error if storage fails.
     pub async fn create_permission(&self, permission: Permission) -> Result<Permission> {
         debug!("🔐 Creating permission: {}", permission.name);
 
@@ -411,7 +416,10 @@ impl RBACManager {
         Ok(permission)
     }
 
-    /// Create role
+    /// Formally registers a new collection of permissions and attributes as a role.
+    ///
+    /// # Errors
+    /// Returns an error if storage fails.
     pub async fn create_role(&self, role: Role) -> Result<Role> {
         debug!("🔐 Creating role: {}", role.name);
 
@@ -422,7 +430,10 @@ impl RBACManager {
         Ok(role)
     }
 
-    /// Assign role to user
+    /// Grants a role to an identity, establishing a link for permission evaluation.
+    ///
+    /// # Errors
+    /// Returns an error if the role is not found, inactive, or assignment fails.
     pub async fn assign_role(
         &self,
         user_id: Uuid,
@@ -461,7 +472,10 @@ impl RBACManager {
         Ok(user_role)
     }
 
-    /// Revoke role from user
+    /// administratively removes a role from an identity's active permission set.
+    ///
+    /// # Errors
+    /// Returns an error if revocation fails.
     pub async fn revoke_role(&self, user_id: Uuid, role_id: Uuid) -> Result<()> {
         debug!("🔐 Revoking role {} from user {}", role_id, user_id);
 
@@ -474,7 +488,10 @@ impl RBACManager {
         Ok(())
     }
 
-    /// Check access
+    /// Evaluates a user request against their assigned roles and effective permission set.
+    ///
+    /// # Errors
+    /// Returns an error if evaluation fails.
     pub async fn check_access(&self, query: RBACQuery) -> Result<AccessDecision> {
         debug!(
             "🔐 Checking access for user {} to {:?} {:?}",
@@ -603,7 +620,7 @@ impl RBACManager {
         )
     }
 
-    /// Get RBAC statistics
+    /// Retrieves current system-wide metrics and workload information for the RBAC engine.
     pub async fn get_stats(&self) -> RBACStats {
         let roles = self.roles.lock().await;
         let permissions = self.permissions.lock().await;
@@ -621,13 +638,13 @@ impl RBACManager {
         }
     }
 
-    /// List user permissions
+    /// Aggregates all atomic permissions granted to a user via their active direct and inherited roles.
     pub async fn list_user_permissions(&self, user_id: Uuid) -> Result<Vec<Permission>> {
         let user_roles = self.get_user_roles(user_id).await?;
         self.get_effective_permissions(&user_roles).await
     }
 
-    /// Check if user has specific permission
+    /// Convenience method to perform a single-permission authorization check for a user.
     pub async fn user_has_permission(
         &self,
         user_id: Uuid,
@@ -647,7 +664,7 @@ impl RBACManager {
         Ok(decision.decision == AccessDecisionType::Allow)
     }
 
-    /// Clean up expired role assignments
+    /// Scans the assignment registry and removes role links that have passed their expiration deadline.
     pub async fn cleanup_expired_roles(&self) -> Result<()> {
         let mut user_roles = self.user_roles.lock().await;
         let now = Utc::now();
@@ -660,13 +677,13 @@ impl RBACManager {
         Ok(())
     }
 
-    /// Get role by ID
+    /// Retrieves a complete role definition snapshot from the registry.
     pub async fn get_role(&self, role_id: Uuid) -> Option<Role> {
         let roles = self.roles.lock().await;
         roles.get(&role_id).cloned()
     }
 
-    /// Get permission by ID
+    /// Retrieves a specific permission definition snapshot from the registry.
     pub async fn get_permission(&self, permission_id: Uuid) -> Option<Permission> {
         let permissions = self.permissions.lock().await;
         permissions.get(&permission_id).cloned()

@@ -1,25 +1,29 @@
+//! High-concurrency stress tests for `WolfDb`.
+
 use wolf_db::storage::WolfDbStorage;
 use wolf_db::storage::model::Record;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tempfile::tempdir;
-use tokio::sync::Mutex;
 
+/// Tests high-concurrency record insertions.
 #[tokio::test]
-async fn test_high_concurrency_stress() {
-    let dir = tempdir().expect("Failed to create temp dir");
-    let path = dir.path().to_str().unwrap();
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::cast_precision_loss)]
+async fn test_high_concurrency_stress() -> anyhow::Result<()> {
+    let dir = tempdir()?;
+    let path_buf = dir.path().to_owned();
+    let path = path_buf.to_str().ok_or_else(|| anyhow::anyhow!("Invalid path"))?;
     let password = "StressPassword";
 
-    let mut storage = WolfDbStorage::open(path).expect("Failed to open storage");
+    let mut storage = WolfDbStorage::open(path)?;
     storage
-        .initialize_keystore(password, None)
-        .expect("Init failed");
+        .initialize_keystore(password, None)?;
 
-    let pk = storage.get_active_pk().unwrap().to_vec();
-    let _sk = storage.get_active_sk().unwrap().to_vec();
-
-    let storage = Arc::new(Mutex::new(storage));
+    let pk = storage.get_active_pk().ok_or_else(|| anyhow::anyhow!("No PK"))?.to_vec();
+    let _sk = storage.get_active_sk().ok_or_else(|| anyhow::anyhow!("No SK"))?.to_vec();
+    
+    // No Mutex needed for insert_record as it takes &self now
+    let storage = Arc::new(storage);
     let mut handles = Vec::new();
 
     println!("Starting stress test: 1,000 concurrent insertions...");
@@ -28,26 +32,27 @@ async fn test_high_concurrency_stress() {
         let pk_clone = pk.clone();
         let handle = tokio::spawn(async move {
             let mut data = HashMap::new();
-            data.insert("key".to_string(), format!("val_{}", i));
+            data.insert("key".to_string(), format!("val_{i}"));
             let record = Record {
-                id: format!("doc_{}", i),
+                id: format!("doc_{i}"),
                 data,
                 vector: Some(vec![i as f32; 128]),
             };
-            let mut s = storage_clone.lock().await;
-            s.insert_record("stress", &record, &pk_clone).unwrap();
+            
+            // Storage is Arc<WolfDbStorage>
+            storage_clone.insert_record("stress".to_string(), record, pk_clone).await.expect("Insert failed");
         });
         handles.push(handle);
     }
 
     for handle in handles {
-        handle.await.unwrap();
+        handle.await?;
     }
 
     println!("Stress test: verifying results...");
-    let s = storage.lock().await;
-    let counts = s.get_info().unwrap();
-    println!("Final stats: {}", counts);
+    let counts = storage.get_info()?;
+    println!("Final stats: {counts}");
 
-    assert!(counts["vector_records"].as_u64().unwrap() >= 1000);
+    assert!(counts["vector_records"].as_u64().ok_or_else(|| anyhow::anyhow!("Missing count"))? >= 1000);
+    Ok(())
 }

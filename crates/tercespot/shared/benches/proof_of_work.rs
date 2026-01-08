@@ -1,57 +1,50 @@
+//! Proof of Work and Cryptography Benchmark
+//!
+//! This binary benchmarks the performance of:
+//! 1.  **ML-KEM-1024**: Key encapsulation (`KeyGen`, Encaps, Decaps).
+//! 2.  **AES-GCM**: Symmetric encryption using the KEM-derived shared secret.
+//!
+//! It measures the time taken for:
+//! - Sentinel key generation.
+//! - Client data encryption (KEM encaps + AES encrypt).
+//! - Sentinel data decryption (KEM decaps + AES decrypt).
+//!
+//! The results are printed to stdout as a report.
+
 use fips203::ml_kem_1024;
 use fips203::traits::KeyGen;
 
 use shared::{decrypt_from_client, encrypt_for_sentinel};
-use std::fs::File;
-use std::io::Write;
+use std::fmt::Write;
 use std::time::Instant;
 
+#[allow(clippy::expect_used)]
 fn main() {
-    println!("Starting Proof-of-Work Benchmark...");
-    let iterations = 50_000;
+    let mut report = String::new();
+    let _ = writeln!(report, "=== PQC + AES Latency Benchmark ===");
 
-    // Setup
-    let (pk, sk) = ml_kem_1024::KG::try_keygen().unwrap();
-    let data = b"Proof-of-Work Data Payload";
+    // 1. KeyGen
+    let start_kg = Instant::now();
+    let (pk, sk) = ml_kem_1024::KG::try_keygen().expect("KeyGen failed");
+    let dur_kg = start_kg.elapsed();
+    let _ = writeln!(report, "KeyGen: {dur_kg:.2?}");
 
-    let start = Instant::now();
+    let data = b"Detecting anomalous movement in Sector 7";
 
-    for i in 0..iterations {
-        let encrypted = encrypt_for_sentinel(data, &pk);
-        let decrypted = decrypt_from_client(&encrypted, &sk).expect("Decryption failed");
-        assert_eq!(decrypted, data);
+    // 2. Encrypt (Client Side)
+    let start_enc = Instant::now();
+    let blob = encrypt_for_sentinel(data, &pk);
+    let dur_enc = start_enc.elapsed();
+    let _ = writeln!(report, "Encrypt (Encap+AES): {dur_enc:.2?}");
 
-        if (i + 1) % 5000 == 0 {
-            println!("Completed {}/{} cycles...", i + 1, iterations);
-        }
-    }
+    // 3. Decrypt (Sentinel Side)
+    let start_dec = Instant::now();
+    let decrypted = decrypt_from_client(&blob, &sk).expect("Decrypt failed");
+    let dur_dec = start_dec.elapsed();
+    let _ = writeln!(report, "Decrypt (Decap+AES): {dur_dec:.2?}");
 
-    let duration = start.elapsed();
-    let avg_per_op = duration.as_secs_f64() / iterations as f64;
-    let ops_per_sec = iterations as f64 / duration.as_secs_f64();
+    assert_eq!(data.as_slice(), decrypted.as_slice());
 
-    let report = format!(
-        "TersecPot Proof-of-Work Benchmark Report\n\
-        ========================================\n\
-        Date: {}\n\
-        Total Iterations: {}\n\
-        Total Time: {:.2?}\n\
-        Average Time per Cycle: {:.6} s\n\
-        Throughput: {:.2} ops/s\n\
-        \n\
-        System Status: READY for High-Load Operations.\n",
-        chrono::Local::now().to_rfc2822(),
-        iterations,
-        duration,
-        avg_per_op,
-        ops_per_sec
-    );
-
-    let mut file =
-        File::create("../../proof_of_work_report.txt").expect("Failed to create report file");
-    file.write_all(report.as_bytes())
-        .expect("Failed to write report");
-
-    println!("\nBenchmark Complete!");
-    println!("{}", report);
+    let _ = writeln!(report, "-----------------------------------");
+    println!("{report}");
 }

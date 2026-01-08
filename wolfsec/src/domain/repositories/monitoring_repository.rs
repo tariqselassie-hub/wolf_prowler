@@ -7,9 +7,9 @@ use uuid::Uuid;
 /// This trait is implemented by the persistence layer.
 #[async_trait]
 pub trait MonitoringRepository: Send + Sync {
-    /// Saves a security event.
+    /// Saves a security event to the persistent store.
     async fn save_event(&self, event: &SecurityEvent) -> Result<(), DomainError>;
 
-    /// Finds an event by its ID.
+    /// Retrieves a security event by its unique ID.
     async fn find_event_by_id(&self, id: &Uuid) -> Result<Option<SecurityEvent>, DomainError>;
 }

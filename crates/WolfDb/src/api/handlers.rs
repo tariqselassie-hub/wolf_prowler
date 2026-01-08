@@ -1,4 +1,13 @@
-use super::{models::*, AppState};
+use super::{
+    models::{
+        AuthResponse, BackupRequest, BackupResponse, BatchRecordRequest, DatabaseStats,
+        ErrorResponse, HybridSearchRequest, ImportResponse, ImportSqliteRequest, InitRequest,
+        KeystoreInfo, MetadataQueryRequest, RecordListResponse, RecordRequest, RecordResponse,
+        RecoverRequest, SearchResponse, SearchResult, StatusResponse, TableInfo, TablesResponse,
+        UnlockRequest, VectorSearchRequest, VectorStatsResponse,
+    },
+    AppState,
+};
 use crate::storage::model::Record;
 use axum::{
     extract::{Path, Query, State},
@@ -7,18 +16,18 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
-use std::collections::HashMap;
 
 // ============================================================================
 // Error Handling
 // ============================================================================
 
+/// Wrapper for errors returned by the API
 pub struct ApiError(anyhow::Error);
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let error_msg = self.0.to_string();
-        tracing::error!("API Error: {}", error_msg);
+        tracing::error!("API Error: {error_msg}");
         
         (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -46,17 +55,20 @@ type ApiResult<T> = Result<T, ApiError>;
 /// Build table name with optional partition prefix
 fn build_table_name(table: &str, partition: Option<&str>) -> String {
     match partition {
-        Some("relational") => format!("relational:{}", table),
-        Some("vector") => format!("vector:{}", table),
+        Some("relational") => format!("relational:{table}"),
+        Some("vector") => format!("vector:{table}"),
         Some("hybrid") | None => table.to_string(), // Default to hybrid
         Some(other) => {
-            tracing::warn!("Unknown partition '{}', defaulting to hybrid", other);
+            tracing::warn!("Unknown partition '{other}', defaulting to hybrid");
             table.to_string()
         }
     }
 }
 
 /// Validate partition supports the requested operation
+/// # Errors
+///
+/// Returns an error if the partition configuration is invalid for the requested operation.
 fn validate_partition(partition: Option<&str>, has_vector: bool) -> ApiResult<()> {
     if let Some(p) = partition {
         if p == "relational" && has_vector {
@@ -73,13 +85,20 @@ fn validate_partition(partition: Option<&str>, has_vector: bool) -> ApiResult<()
 // Authentication Handlers
 // ============================================================================
 
+/// Initializes the database with a new master password
+///
+/// # Errors
+///
+/// Returns an error if the keystore cannot be initialized or if session creation fails.
 pub async fn auth_init(
     State(state): State<AppState>,
     Json(req): Json<InitRequest>,
 ) -> ApiResult<Json<AuthResponse>> {
-    let mut storage = state.storage.write().await;
-    
-    storage.initialize_keystore(&req.password, req.hsm_pin.as_deref())?;
+    state
+        .storage
+        .write()
+        .await
+        .initialize_keystore(&req.password, req.hsm_pin.as_deref())?;
     
     let token = state.create_session().await;
     let expires_at = chrono::Utc::now().timestamp() + 3600;
@@ -90,13 +109,20 @@ pub async fn auth_init(
     }))
 }
 
+/// Unlocks the database with an existing master password
+///
+/// # Errors
+///
+/// Returns an error if the password is incorrect or if session creation fails.
 pub async fn auth_unlock(
     State(state): State<AppState>,
     Json(req): Json<UnlockRequest>,
 ) -> ApiResult<Json<AuthResponse>> {
-    let mut storage = state.storage.write().await;
-    
-    storage.unlock(&req.password, req.hsm_pin.as_deref())?;
+    state
+        .storage
+        .write()
+        .await
+        .unlock(&req.password, req.hsm_pin.as_deref())?;
     
     let token = state.create_session().await;
     let expires_at = chrono::Utc::now().timestamp() + 3600;
@@ -107,6 +133,11 @@ pub async fn auth_unlock(
     }))
 }
 
+/// Locks the database by clearing keys from memory and ending the session
+///
+/// # Errors
+///
+/// This function is currently infallible but returns `ApiResult` for consistency.
 pub async fn auth_lock(
     State(state): State<AppState>,
     Json(token): Json<String>,
@@ -115,14 +146,22 @@ pub async fn auth_lock(
     Ok(StatusCode::OK)
 }
 
+/// Checks if the database is initialized and currently unlocked
+///
+/// # Errors
+///
+/// This function is currently infallible but returns `ApiResult` for consistency.
 pub async fn auth_status(
     State(state): State<AppState>,
 ) -> ApiResult<Json<StatusResponse>> {
     let storage = state.storage.read().await;
+    let locked = storage.get_active_sk().is_none();
+    let initialized = storage.is_initialized();
+    drop(storage);
     
     Ok(Json(StatusResponse {
-        locked: storage.get_active_sk().is_none(),
-        initialized: storage.is_initialized(),
+        locked,
+        initialized,
     }))
 }
 
@@ -130,6 +169,7 @@ pub async fn auth_status(
 // Record Handlers
 // ============================================================================
 
+/// Query parameters for listing records
 #[derive(Deserialize)]
 pub struct ListRecordsQuery {
     table: Option<String>,
@@ -137,6 +177,11 @@ pub struct ListRecordsQuery {
     offset: Option<usize>,
 }
 
+/// Returns a list of records for a specific table
+///
+/// # Errors
+///
+/// Returns an error if the database is locked or if record retrieval fails.
 pub async fn list_records(
     State(state): State<AppState>,
     Query(params): Query<ListRecordsQuery>,
@@ -146,7 +191,7 @@ pub async fn list_records(
     let limit = params.limit.unwrap_or(50);
     let offset = params.offset.unwrap_or(0);
     
-    let keys = storage.list_keys(table)?;
+    let keys = storage.list_keys(table.to_string()).await?;
     let total = keys.len();
     
     let sk = storage.get_active_sk()
@@ -155,7 +200,7 @@ pub async fn list_records(
     
     let mut records = Vec::new();
     for key in keys.iter().skip(offset).take(limit) {
-        if let Some(record) = storage.get_record(table, key, &sk)? {
+        if let Some(record) = storage.get_record(table.to_string(), key.clone(), sk.clone()).await? {
             records.push(RecordResponse {
                 id: record.id,
                 data: record.data,
@@ -163,6 +208,7 @@ pub async fn list_records(
             });
         }
     }
+    drop(storage);
     
     Ok(Json(RecordListResponse {
         records,
@@ -172,11 +218,17 @@ pub async fn list_records(
     }))
 }
 
+/// Query parameters for getting a specific record
 #[derive(Deserialize)]
 pub struct GetRecordQuery {
     table: Option<String>,
 }
 
+/// Returns a single record by its ID
+///
+/// # Errors
+///
+/// Returns an error if the database is locked or if the record is not found.
 pub async fn get_record(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -189,8 +241,9 @@ pub async fn get_record(
         .ok_or_else(|| anyhow::anyhow!("Database is locked"))?
         .to_vec();
     
-    let record = storage.get_record(table, &id, &sk)?
+    let record = storage.get_record(table.to_string(), id, sk).await?
         .ok_or_else(|| anyhow::anyhow!("Record not found"))?;
+    drop(storage);
     
     Ok(Json(RecordResponse {
         id: record.id,
@@ -199,6 +252,11 @@ pub async fn get_record(
     }))
 }
 
+/// Inserts or updates a record in the specified table
+///
+/// # Errors
+///
+/// Returns an error if the database is locked or if insertion fails.
 pub async fn insert_record(
     State(state): State<AppState>,
     Path(table): Path<String>,
@@ -210,7 +268,7 @@ pub async fn insert_record(
     // Build table name with partition prefix
     let table_name = build_table_name(&table, req.partition.as_deref());
     
-    let mut storage = state.storage.write().await;
+    let storage = state.storage.read().await;
     let pk = storage
         .get_active_pk()
         .ok_or_else(|| anyhow::anyhow!("Database is locked"))?
@@ -222,10 +280,16 @@ pub async fn insert_record(
         vector: req.vector,
     };
 
-    storage.insert_record(&table_name, &record, &pk)?;
+    storage.insert_record(table_name, record, pk).await?;
+    drop(storage);
     Ok(StatusCode::CREATED)
 }
 
+/// Inserts a batch of records into the specified table
+///
+/// # Errors
+///
+/// Returns an error if the database is locked or if batch insertion fails.
 pub async fn batch_insert_records(
     State(state): State<AppState>,
     Json(req): Json<BatchRecordRequest>,
@@ -238,7 +302,7 @@ pub async fn batch_insert_records(
     // Build table name with partition prefix
     let table_name = build_table_name(&req.table, req.partition.as_deref());
     
-    let mut storage = state.storage.write().await;
+    let storage = state.storage.read().await;
     let pk = storage
         .get_active_pk()
         .ok_or_else(|| anyhow::anyhow!("Database is locked"))?
@@ -254,19 +318,26 @@ pub async fn batch_insert_records(
         })
         .collect();
 
-    storage.insert_batch_records(&table_name, records, &pk)?;
+    storage.insert_batch_records(table_name, records, pk).await?;
+    drop(storage);
     Ok(StatusCode::CREATED)
 }
 
+/// Deletes a record from the specified table
+///
+/// # Errors
+///
+/// Returns an error if the database is locked or if deletion fails.
 pub async fn delete_record(
     State(state): State<AppState>,
     Path(id): Path<String>,
     Query(params): Query<GetRecordQuery>,
 ) -> ApiResult<StatusCode> {
-    let mut storage = state.storage.write().await;
+    let storage = state.storage.read().await;
     let table = params.table.as_deref().unwrap_or("default");
     
-    let deleted = storage.delete_record(table, &id)?;
+    let deleted = storage.delete_record(table.to_string(), id).await?;
+    drop(storage);
     
     if deleted {
         Ok(StatusCode::OK)
@@ -279,6 +350,11 @@ pub async fn delete_record(
 // Query Handlers
 // ============================================================================
 
+/// Searches for records matching a specific metadata field and value
+///
+/// # Errors
+///
+/// Returns an error if the database is locked or if the query fails.
 pub async fn query_by_metadata(
     State(state): State<AppState>,
     Json(req): Json<MetadataQueryRequest>,
@@ -292,7 +368,8 @@ pub async fn query_by_metadata(
         .ok_or_else(|| anyhow::anyhow!("Database is locked"))?
         .to_vec();
 
-    let records = storage.find_by_metadata(&table_name, &req.field, &req.value, &sk)?;
+    let records = storage.find_by_metadata(table_name, req.field, req.value, sk).await?;
+    drop(storage);
     
     let results = records.into_iter().map(|r| SearchResult {
         record: RecordResponse {
@@ -306,6 +383,11 @@ pub async fn query_by_metadata(
     Ok(Json(SearchResponse { results }))
 }
 
+/// Performs a hybrid search combining vector similarity and metadata filtering
+///
+/// # Errors
+///
+/// Returns an error if the database is locked or if the hybrid search fails.
 pub async fn hybrid_search(
     State(state): State<AppState>,
     Json(req): Json<HybridSearchRequest>,
@@ -323,13 +405,14 @@ pub async fn hybrid_search(
         .to_vec();
 
     let results_with_scores = storage.search_hybrid(
-        &table_name,
-        &req.vector,
+        table_name,
+        req.vector,
         req.k,
-        &req.filter_field,
-        &req.filter_value,
-        &sk,
-    )?;
+        req.filter_field,
+        req.filter_value,
+        sk,
+    ).await?;
+    drop(storage);
     
     let results = results_with_scores.into_iter().map(|(r, score)| SearchResult {
         record: RecordResponse {
@@ -347,6 +430,11 @@ pub async fn hybrid_search(
 // Vector Handlers
 // ============================================================================
 
+/// Performs a pure vector similarity search
+///
+/// # Errors
+///
+/// Returns an error if the database is locked or if the vector search fails.
 pub async fn vector_search(
     State(state): State<AppState>,
     Json(req): Json<VectorSearchRequest>,
@@ -358,7 +446,8 @@ pub async fn vector_search(
         .ok_or_else(|| anyhow::anyhow!("Database is locked"))?
         .to_vec();
     
-    let results_with_scores = storage.search_similar_records(table, &req.vector, req.k, &sk)?;
+    let results_with_scores = storage.search_similar_records(table.to_string(), req.vector, req.k, sk).await?;
+    drop(storage);
     
     let results = results_with_scores.into_iter().map(|(r, score)| SearchResult {
         record: RecordResponse {
@@ -372,11 +461,18 @@ pub async fn vector_search(
     Ok(Json(SearchResponse { results }))
 }
 
+/// Returns statistics for the vector index
+///
+/// # Errors
+///
+/// Returns an error if indexing info cannot be retrieved.
+#[allow(clippy::cast_possible_truncation)]
 pub async fn vector_stats(
     State(state): State<AppState>,
 ) -> ApiResult<Json<VectorStatsResponse>> {
     let storage = state.storage.read().await;
     let info = storage.get_info()?;
+    drop(storage);
     
     Ok(Json(VectorStatsResponse {
         count: info["vector_records"].as_u64().unwrap_or(0) as usize,
@@ -389,17 +485,24 @@ pub async fn vector_stats(
 // Table Handlers
 // ============================================================================
 
+/// Returns a list of all tables in the database
+///
+/// # Errors
+///
+/// Returns an error if table enumeration fails.
 pub async fn list_tables(
     State(state): State<AppState>,
 ) -> ApiResult<Json<TablesResponse>> {
     let storage = state.storage.read().await;
+    let count = storage.list_keys("default".to_string()).await?.len();
+    drop(storage);
     
     // For now, return a simple list - in the future we can scan the sled database
     // to find all tables
     let tables = vec![
         TableInfo {
             name: "default".to_string(),
-            record_count: storage.list_keys("default")?.len(),
+            record_count: count,
         },
     ];
     
@@ -410,35 +513,51 @@ pub async fn list_tables(
 // Security Handlers
 // ============================================================================
 
+/// Generates an encrypted backup blob of the master key and database state
+///
+/// # Errors
+///
+/// Returns an error if backup generation fails.
 pub async fn generate_backup(
     State(state): State<AppState>,
     Json(req): Json<BackupRequest>,
 ) -> ApiResult<Json<BackupResponse>> {
     let storage = state.storage.read().await;
-    
     let blob = storage.generate_recovery_backup(&req.recovery_password)?;
+    drop(storage);
     
     Ok(Json(BackupResponse { blob }))
 }
 
+/// Restores database access from a backup blob
+///
+/// # Errors
+///
+/// Returns an error if recovery fails.
 pub async fn recover_backup(
     State(state): State<AppState>,
     Json(req): Json<RecoverRequest>,
 ) -> ApiResult<StatusCode> {
-    let mut storage = state.storage.write().await;
-    
-    storage.recover_from_backup(&req.blob, &req.recovery_password, &req.new_master_password)?;
+    {
+        let mut storage = state.storage.write().await;
+        storage.recover_from_backup(&req.blob, &req.recovery_password, &req.new_master_password)?;
+    }
     
     Ok(StatusCode::OK)
 }
 
+/// Returns information about the available cryptographic algorithms
+///
+/// # Errors
+///
+/// Returns an error if keystore information cannot be loaded.
 pub async fn keystore_info(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> ApiResult<Json<KeystoreInfo>> {
-    let _storage = state.storage.read().await;
-    
-    let keystore_path = "wolf.db/keystore.json";
+    let keystore_path = "wolf.db/keystore.json"; // Consider making this dynamic?
     let hsm_enabled = if std::path::Path::new(keystore_path).exists() {
+        // This blocks, but it's only startup info and lightweight json read
+        // Could wrap in spawn_blocking if concerned
         let ks = crate::crypto::keystore::Keystore::load(keystore_path)?;
         ks.hsm_enabled
     } else {
@@ -456,16 +575,24 @@ pub async fn keystore_info(
 // Administration Handlers
 // ============================================================================
 
+/// Returns comprehensive statistics about the database
+///
+/// # Errors
+///
+/// Returns an error if database info cannot be retrieved.
+#[allow(clippy::cast_possible_truncation)]
 pub async fn database_stats(
     State(state): State<AppState>,
 ) -> ApiResult<Json<DatabaseStats>> {
     let storage = state.storage.read().await;
     let info = storage.get_info()?;
-    
+    let count = storage.list_keys("default".to_string()).await?.len();
+    drop(storage);
+
     let tables = vec![
         TableInfo {
             name: "default".to_string(),
-            record_count: storage.list_keys("default")?.len(),
+            record_count: count,
         },
     ];
     
@@ -483,6 +610,11 @@ pub async fn database_stats(
     }))
 }
 
+/// Imports data from a file uploaded via multipart form
+///
+/// # Errors
+///
+/// Returns an error if file upload or processing fails.
 pub async fn import_sqlite_file(
     State(state): State<AppState>,
     mut multipart: axum::extract::Multipart,
@@ -492,11 +624,11 @@ pub async fn import_sqlite_file(
     // Save uploaded file to temp location
     let temp_path = format!("/tmp/wolfdb_import_{}.db", uuid::Uuid::new_v4());
     
-    while let Some(field) = multipart.next_field().await.map_err(|e| anyhow::anyhow!("Multipart error: {}", e))? {
+    while let Some(field) = multipart.next_field().await.map_err(|e| anyhow::anyhow!("Multipart error: {e}"))? {
         let name = field.name().unwrap_or("").to_string();
         
         if name == "file" {
-            let data = field.bytes().await.map_err(|e| anyhow::anyhow!("Failed to read file: {}", e))?;
+            let data = field.bytes().await.map_err(|e| anyhow::anyhow!("Failed to read file: {e}"))?;
             
             let mut file = tokio::fs::File::create(&temp_path).await?;
             file.write_all(&data).await?;
@@ -506,7 +638,7 @@ pub async fn import_sqlite_file(
     }
     
     // Process the uploaded file
-    let result = import_sqlite_from_path(state, &temp_path).await;
+    let result = import_sqlite_from_path(state.clone(), &temp_path).await;
     
     // Clean up temp file
     let _ = tokio::fs::remove_file(&temp_path).await;
@@ -514,6 +646,11 @@ pub async fn import_sqlite_file(
     result
 }
 
+/// Imports data from a `SQLite` file at a specific server-side path
+///
+/// # Errors
+///
+/// Returns an error if the import from the specified path fails.
 pub async fn import_sqlite(
     State(state): State<AppState>,
     Json(req): Json<ImportSqliteRequest>,
@@ -521,74 +658,42 @@ pub async fn import_sqlite(
     import_sqlite_from_path(state, &req.path).await
 }
 
+/// # Errors
+///
+/// Returns an error if the database is locked or if the import fails.
 async fn import_sqlite_from_path(
     state: AppState,
     path: &str,
 ) -> ApiResult<Json<ImportResponse>> {
-    let mut storage = state.storage.write().await;
+    let pk = {
+        let storage = state.storage.read().await;
+        let active_pk = storage.get_active_pk()
+            .ok_or_else(|| anyhow::anyhow!("Database is locked"))?
+            .to_vec();
+        drop(storage);
+        active_pk
+    };
     
-    let pk = storage.get_active_pk()
-        .ok_or_else(|| anyhow::anyhow!("Database is locked"))?
-        .to_vec();
-    
-    let conn = rusqlite::Connection::open(path)?;
-    
-    let mut stmt = conn.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%'")?;
-    let tables: Vec<String> = stmt.query_map([], |row| row.get(0))?
-        .collect::<Result<Vec<_>, _>>()?;
-    
+    let path = path.to_string();
+    // Run the import logic in a blocking task since rusqlite is sync
+    let records_map = tokio::task::spawn_blocking(move || {
+        crate::import::sqlite::SqliteImporter::import_from_path(&path)
+    }).await.map_err(|e| anyhow::anyhow!("Join error: {e}"))??;
+
     let mut total_records = 0;
+    let tables_count = records_map.len();
     
-    for table_name in &tables {
-        let mut stmt = conn.prepare(&format!("SELECT * FROM \"{}\"", table_name))?;
-        let column_names: Vec<String> = stmt.column_names().into_iter().map(String::from).collect();
-        let column_count = column_names.len();
-        
-        let rows = stmt.query_map([], |row| {
-            let mut data_map = HashMap::new();
-            let mut id = None;
-            
-            for i in 0..column_count {
-                let col_name = &column_names[i];
-                let val_ref = row.get_ref(i)?;
-                
-                let val_str = match val_ref {
-                    rusqlite::types::ValueRef::Null => "null".to_string(),
-                    rusqlite::types::ValueRef::Integer(i) => i.to_string(),
-                    rusqlite::types::ValueRef::Real(r) => r.to_string(),
-                    rusqlite::types::ValueRef::Text(t) => String::from_utf8_lossy(t).to_string(),
-                    rusqlite::types::ValueRef::Blob(b) => base64::Engine::encode(&base64::engine::general_purpose::STANDARD, b),
-                };
-                
-                if (col_name == "id" || col_name == "uuid") && id.is_none() {
-                    id = Some(val_str.clone());
-                }
-                
-                data_map.insert(col_name.clone(), val_str);
-            }
-            
-            Ok((id, data_map))
-        })?;
-        
-        let mut batch = Vec::new();
-        for row_res in rows {
-            let (id_opt, data): (Option<String>, HashMap<String, String>) = row_res?;
-            let id = id_opt.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-            
-            batch.push(Record {
-                id,
-                data,
-                vector: None,
-            });
-        }
-        
-        let count = batch.len();
-        storage.insert_batch_records(table_name, batch, &pk)?;
+    for (table_name, records) in records_map {
+        let count = records.len();
+        // Insert asynchronously
+        let storage = state.storage.read().await;
+        storage.insert_batch_records(table_name, records, pk.clone()).await?;
+        drop(storage);
         total_records += count;
     }
     
     Ok(Json(ImportResponse {
-        tables_imported: tables.len(),
+        tables_imported: tables_count,
         records_imported: total_records,
     }))
 }

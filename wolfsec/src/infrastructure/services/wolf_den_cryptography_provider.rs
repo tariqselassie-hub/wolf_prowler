@@ -12,11 +12,17 @@ use rand_chacha::ChaCha20Rng;
 use std::sync::Arc;
 use wolf_den::CryptoEngine;
 
+/// A cryptography provider that leverages the `wolf_den` crate for cryptographic operations.
 pub struct WolfDenCryptographyProvider {
-    engine: Arc<CryptoEngine>,
+    /// The underlying cryptographic engine from `wolf_den`.
+    pub engine: Arc<CryptoEngine>,
 }
 
 impl WolfDenCryptographyProvider {
+    /// Creates a new instance of `WolfDenCryptographyProvider`.
+    ///
+    /// # Arguments
+    /// * `engine` - An `Arc<CryptoEngine>` to be used for cryptographic operations.
     pub fn new(engine: Arc<CryptoEngine>) -> Self {
         Self { engine }
     }

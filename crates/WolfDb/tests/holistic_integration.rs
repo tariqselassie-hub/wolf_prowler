@@ -1,26 +1,30 @@
+//! Holistic integration tests for `WolfDb` covering initialization, ingestion, search, and recovery.
+
 use wolf_db::storage::WolfDbStorage;
 use wolf_db::storage::model::Record;
 use std::collections::HashMap;
 use tempfile::tempdir;
 
+/// Tests the entire user journey from database creation to recovery.
 #[tokio::test]
-async fn test_holistic_user_journey() {
-    let dir = tempdir().expect("Failed to create temp dir");
-    let path = dir.path().to_str().unwrap();
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+async fn test_holistic_user_journey() -> anyhow::Result<()> {
+    let dir = tempdir()?;
+    let path_buf = dir.path().to_owned();
+    let path = path_buf.to_str().ok_or_else(|| anyhow::anyhow!("Invalid path"))?;
     let password = "SuperSecretWolfPassword";
 
     // 1. Initialization
     {
-        let mut storage = WolfDbStorage::open(path).expect("Failed to open storage");
+        let mut storage = WolfDbStorage::open(path)?;
         storage
-            .initialize_keystore(password, None)
-            .expect("Init failed");
+            .initialize_keystore(password, None)?;
     }
 
     // 2. Data Ingestion
     let rec1_id = {
-        let mut storage = WolfDbStorage::open(path).expect("Failed to open storage");
-        storage.unlock(password, None).expect("Unlock failed");
+        let mut storage = WolfDbStorage::open(path)?;
+        storage.unlock(password, None)?;
 
         let mut data = HashMap::new();
         data.insert("name".to_string(), "Alpha Wolf".to_string());
@@ -33,59 +37,58 @@ async fn test_holistic_user_journey() {
         };
         let rid = record.id.clone();
 
-        let pk = storage.get_active_pk().unwrap().to_vec();
+        let pk = storage.get_active_pk().ok_or_else(|| anyhow::anyhow!("No PK"))?.to_vec();
         storage
-            .insert_record("pack", &record, &pk)
-            .expect("Insert failed");
-        storage.save().expect("Save failed");
+            .insert_record("pack".to_string(), record, pk)
+            .await?;
+        storage.save()?;
         rid
     };
 
     // 3. Retrieval and Similarity Search
     {
-        let mut storage = WolfDbStorage::open(path).expect("Failed to open storage");
-        storage.unlock(password, None).expect("Unlock failed");
+        let mut storage = WolfDbStorage::open(path)?;
+        storage.unlock(password, None)?;
 
-        let sk = storage.get_active_sk().unwrap().to_vec();
+        let sk = storage.get_active_sk().ok_or_else(|| anyhow::anyhow!("No SK"))?.to_vec();
         let retrieved = storage
-            .get_record("pack", &rec1_id, &sk)
-            .expect("Get failed")
-            .expect("Record not found");
+            .get_record("pack".to_string(), rec1_id.clone(), sk.clone())
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Record not found"))?;
 
         assert_eq!(retrieved.id, rec1_id);
-        assert_eq!(retrieved.data.get("name").unwrap(), "Alpha Wolf");
+        assert_eq!(retrieved.data.get("name").ok_or_else(|| anyhow::anyhow!("Missing name"))?, "Alpha Wolf");
 
         // Similarity search
         let query_vec = vec![0.9, 0.1, 0.0];
         let results = storage
-            .search_similar_records("pack", &query_vec, 5, &sk)
-            .expect("Search failed");
+            .search_similar_records("pack".to_string(), query_vec, 5, sk)
+            .await?;
 
-        assert!(results.len() >= 1);
+        assert!(!results.is_empty());
         assert_eq!(results[0].0.id, rec1_id);
     }
 
     // 4. Recovery Flow
     {
-        let mut storage = WolfDbStorage::open(path).expect("Failed to open storage");
-        storage.unlock(password, None).expect("Unlock failed");
+        let mut storage = WolfDbStorage::open(path)?;
+        storage.unlock(password, None)?;
 
         let backup_blob = storage
-            .generate_recovery_backup("RecoveryPin123")
-            .expect("Backup failed");
+            .generate_recovery_backup("RecoveryPin123")?;
 
         // Simulate new machine/installation
-        let dir2 = tempdir().expect("Failed to create second temp dir");
-        let path2 = dir2.path().to_str().unwrap();
-        let mut storage2 = WolfDbStorage::open(path2).expect("Failed to open storage 2");
+        let dir2 = tempdir()?;
+        let path_buf2 = dir2.path().to_owned();
+        let path2 = path_buf2.to_str().ok_or_else(|| anyhow::anyhow!("Invalid path 2"))?;
+        let mut storage2 = WolfDbStorage::open(path2)?;
 
         storage2
-            .recover_from_backup(&backup_blob, "RecoveryPin123", "NewMasterPass")
-            .expect("Recovery failed");
+            .recover_from_backup(&backup_blob, "RecoveryPin123", "NewMasterPass")?;
 
         storage2
-            .unlock("NewMasterPass", None)
-            .expect("Unlock failed after recovery");
+            .unlock("NewMasterPass", None)?;
         assert!(storage2.get_active_pk().is_some());
     }
+    Ok(())
 }

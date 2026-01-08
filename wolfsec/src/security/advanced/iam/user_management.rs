@@ -5,13 +5,22 @@ use anyhow::Result;
 use chrono::Utc;
 use uuid::Uuid;
 
+/// Specialized authority for user lifecycle operations and identity registry management
 pub struct UserManagementManager;
 
 impl UserManagementManager {
+    /// Initializes a new `UserManagementManager`.
+    ///
+    /// # Errors
+    /// Returns an error if initialization fails.
     pub fn new(_config: IAMConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Registers a new wolf identity within the system.
+    ///
+    /// # Errors
+    /// Returns an error if user creation fails.
     pub async fn create_user(&self, request: CreateUserRequest) -> Result<User> {
         Ok(User {
             id: Uuid::new_v4(),
@@ -30,6 +39,10 @@ impl UserManagementManager {
         })
     }
 
+    /// Modifies the attributes or status of an existing user identity.
+    ///
+    /// # Errors
+    /// Returns an error if the user is not found or update fails.
     pub async fn update_user(&self, user_id: Uuid, request: UpdateUserRequest) -> Result<User> {
         Ok(User {
             id: user_id,
@@ -50,18 +63,34 @@ impl UserManagementManager {
         })
     }
 
+    /// Formally removes a user identity from the active registry.
+    ///
+    /// # Errors
+    /// Returns an error if deletion fails.
     pub async fn delete_user(&self, _user_id: Uuid) -> Result<()> {
         Ok(())
     }
 
+    /// Retrieves a complete user identity profile from the registry by its identifier.
+    ///
+    /// # Errors
+    /// Returns an error if the lookup fails.
     pub async fn get_user(&self, _user_id: Uuid) -> Result<Option<User>> {
         Ok(None)
     }
 
+    /// Retrieves a user identity profile from the registry using their unique username.
+    ///
+    /// # Errors
+    /// Returns an error if the lookup fails.
     pub async fn get_user_by_username(&self, _username: &str) -> Result<Option<User>> {
         Ok(None)
     }
 
+    /// Returns a collection of user profiles matching the provided filter criteria.
+    ///
+    /// # Errors
+    /// Returns an error if the filtered list cannot be retrieved.
     pub async fn list_users(&self, _filters: UserListFilters) -> Result<Vec<User>> {
         Ok(Vec::new())
     }

@@ -75,132 +75,169 @@ pub use zero_trust::{
     WolfTrustEngine, ZeroTrustPolicy,
 };
 
-/// Security configuration
+/// Master configuration for all advanced security components
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SecurityConfig {
-    /// Zero Trust configuration
+    /// Settings for the Wolf Pack Zero Trust network architecture
     pub zero_trust_config: zero_trust::ZeroTrustConfig,
-    /// SIEM configuration
+    /// Settings for the Security Information and Event Management system
     pub siem_config: SIEMConfig,
-    /// Threat intelligence configuration
+    /// Settings for the global threat intelligence feed integration
     pub threat_intel_config: ThreatIntelligenceConfig,
+    /// Settings for low-level threat detection hooks
     pub threat_detection_config: crate::threat_detection::ThreatDetectionConfig,
-    /// ML security configuration
+    /// Settings for the machine learning security engine
     pub ml_security_config: MLSecurityConfig,
-    /// Anomaly detection configuration
+    /// Settings for the behavioral anomaly detection engine
     pub anomaly_detection_config: AnomalyDetectionConfig,
-    /// Threat hunting configuration
+    /// Settings for proactive threat hunting simulations
     pub threat_hunting_config: ThreatHuntingConfig,
-    /// Predictive analytics configuration
+    /// Settings for future-looking risk prediction models
     pub predictive_analytics_config: PredictiveAnalyticsConfig,
-    /// Compliance configuration
+    /// Settings for automated compliance checking and reporting
     pub compliance_config: ComplianceConfig,
-    /// IAM configuration
+    /// Settings for Identity and Access Management integration
     pub iam_config: IAMConfig,
-    /// Audit trail configuration
+    /// Settings for the immutable security audit trail
     pub audit_trail_config: AuditConfig,
-    /// Risk assessment configuration
+    /// Settings for the continuous risk assessment engine
     pub risk_assessment_config: RiskAssessmentConfig,
-    /// Cloud security configuration
+    /// Settings for multi-cloud security monitoring
     pub cloud_security_config: CloudSecurityConfig,
-    /// DevSecOps configuration
+    /// Settings for securing the development and delivery pipeline
     pub devsecops_config: DevSecOpsConfig,
-    /// Container security configuration
+    /// Settings for securing containerized workloads
     pub container_security_config: ContainerSecurityConfig,
-    /// Infrastructure security configuration
+    /// Settings for low-level hardware and VM security
     pub infrastructure_security_config: InfrastructureSecurityConfig,
-    /// Reporting configuration
+    /// Settings for automated security report generation
     pub reporting_config: reporting::ReportingConfig,
-    /// Audit configuration
+    /// Settings for the high-level audit manager
     pub audit_config: audit::AuditConfig,
-    /// Alerts configuration
+    /// Settings for the security alert and notification system
     pub alerts_config: alerts::AlertsConfig,
-    /// Metrics configuration
+    /// Settings for system-wide security metrics collection
     pub metrics_config: metrics::MetricsConfig,
 }
 
-/// Main security manager - coordinates all security components
+/// Central orchestrator that manages and coordinates all advanced security sub-systems
 pub struct SecurityManager {
-    /// Phase 1 components
-    trust_engine: WolfTrustEngine,
-    policy_engine: WolfPolicyEngine,
-    contextual_auth: ContextualAuthenticator,
-    microsegmentation: MicrosegmentationManager,
-    siem_manager: WolfSIEMManager,
-    siem_processor:
+    /// Real-time trust evaluation engine
+    pub trust_engine: WolfTrustEngine,
+    /// Rule-based policy enforcement engine
+    pub policy_engine: WolfPolicyEngine,
+    /// Multi-factor and contextual identity validator
+    pub contextual_auth: ContextualAuthenticator,
+    /// Network segmentation and isolation manager
+    pub microsegmentation: MicrosegmentationManager,
+    /// High-level SIEM data orchestrator
+    pub siem_manager: WolfSIEMManager,
+    /// Background processor for historical SIEM events
+    pub siem_processor:
         Option<std::sync::Arc<tokio::sync::RwLock<siem::event_processor::SIEMEventProcessor>>>,
 
-    /// Phase 2 components
-    threat_intelligence: ThreatIntelligenceManager,
-    ml_security: MLSecurityEngine,
-    anomaly_detection: AnomalyDetectionEngine,
-    threat_hunting: ThreatHuntingEngine,
-    predictive_analytics: PredictiveAnalyticsEngine,
+    /// Global threat intelligence ingestor and analyzer
+    pub threat_intelligence: ThreatIntelligenceManager,
+    /// AI-powered security analysis engine
+    pub ml_security: MLSecurityEngine,
+    /// Statistical anomaly detection system
+    pub anomaly_detection: AnomalyDetectionEngine,
+    /// Proactive threat discovery engine
+    pub threat_hunting: ThreatHuntingEngine,
+    /// Forward-looking risk forecasting system
+    pub predictive_analytics: PredictiveAnalyticsEngine,
 
-    /// Phase 3 components
-    compliance_framework: ComplianceFrameworkManager,
-    iam_integration: IAMIntegrationManager,
-    audit_trail_system: AuditTrailSystem,
-    risk_assessment: RiskAssessmentManager,
+    /// Framework for SOC2, HIPAA, and custom compliance
+    pub compliance_framework: ComplianceFrameworkManager,
+    /// Federated identity and access management bridge
+    pub iam_integration: IAMIntegrationManager,
+    /// Secure logging and event correlation system
+    pub audit_trail_system: AuditTrailSystem,
+    /// Continuous quantitative risk modeling component
+    pub risk_assessment: RiskAssessmentManager,
 
-    /// Phase 4 components
-    cloud_security: CloudSecurityManager,
-    devsecops: DevSecOpsManager,
-    container_security: ContainerSecurityManager,
-    infrastructure_security: InfrastructureSecurityManager,
+    /// Security manager for multi-cloud deployments
+    pub cloud_security: CloudSecurityManager,
+    /// Integration points for CI/CD security scanning
+    pub devsecops: DevSecOpsManager,
+    /// Runtime security for Docker and K8s environments
+    pub container_security: ContainerSecurityManager,
+    /// Bare-metal and hypervisor security enforcement
+    pub infrastructure_security: InfrastructureSecurityManager,
 
-    /// Supporting components
-    reporting: reporting::SecurityReporter,
-    audit: audit::AuditManager,
-    alerts: alerts::AlertManager,
-    metrics: metrics::SecurityMetrics,
+    /// Automated security report generator
+    pub reporting: reporting::SecurityReporter,
+    /// Oversight manager for internal security audits
+    pub audit: audit::AuditManager,
+    /// Centralized alerting and incident notification system
+    pub alerts: alerts::AlertManager,
+    /// System-wide performance and security telemetry
+    pub metrics: metrics::SecurityMetrics,
 
-    /// Legacy components (Bridged)
+    /// Bridge to the foundational threat detection component
     pub threat_detector: crate::threat_detection::ThreatDetector,
 
-    /// Configuration
-    config: SecurityConfig,
+    /// Active configuration for this manager instance
+    pub config: SecurityConfig,
 
-    /// Event bus for notifications
-    event_bus: broadcast::Sender<SecurityEvent>,
+    /// Internal channel for real-time security event broadcasting
+    pub event_bus: broadcast::Sender<SecurityEvent>,
 
-    /// Security status
-    status: SecurityStatus,
+    /// Last known aggregated security state of the system
+    pub status: SecurityStatus,
 }
 
-/// Security status
+/// Comprehensive snapshot of the system's security posture
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityStatus {
+    /// High-level classification of the current security state
     pub overall_level: SecurityStatusLevel,
+    /// Health and status of individual security modules
     pub component_status: HashMap<String, ComponentStatus>,
+    /// Number of identified threats requiring attention
     pub active_threats: u64,
+    /// Count of high-severity alerts in the recent window
     pub recent_alerts: u64,
+    /// Normalized compliance adherence score (0.0 - 1.0)
     pub compliance_score: f64,
+    /// Quantified risk level across all monitored assets
     pub risk_score: f64,
+    /// Time when this status was last computed
     pub last_update: DateTime<Utc>,
-    /// Additional fields for compatibility
+    /// System time when the status was recorded
     pub timestamp: DateTime<Utc>,
+    /// Overall status classification for backward compatibility
     pub overall_status: SecurityStatusLevel,
+    /// Raw numerical metrics from various components
     pub metrics: HashMap<String, f64>,
+    /// High-level summary of the latest audit results
     pub audit_summary: AuditSummary,
 }
 
-/// Security status levels
+/// Standardized levels representing the severity of the system's security state
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SecurityStatusLevel {
+    /// All systems operational and within normal parameters
     Normal = 0,
+    /// Minor issues or increased activity detected
     Elevated = 1,
+    /// Significant threats or multiple anomalies observed
     High = 2,
+    /// Immediate danger or confirmed breach in progress
     Critical = 3,
 }
 
-/// Component status
+/// Detailed health information for a specific security component
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComponentStatus {
+    /// Current operational level of the component
     pub status: SecurityStatusLevel,
+    /// Time of the most recent health check
     pub last_check: DateTime<Utc>,
+    /// Number of operational errors recorded in the current window
     pub error_count: u64,
+    /// Normalized performance efficiency score (0.0 - 1.0)
     pub performance_score: f64,
 }
 
@@ -215,12 +252,16 @@ impl Default for ComponentStatus {
     }
 }
 
-/// Audit summary
+/// Condensed overview of security audit history
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditSummary {
+    /// Total number of entries in the audit trail
     pub total_entries: u64,
+    /// Number of identified high-severity audit events
     pub critical_events: u64,
+    /// Overall compliance rating inferred from audits
     pub compliance_score: f64,
+    /// Time of the most recently completed full audit
     pub last_audit: DateTime<Utc>,
 }
 
@@ -269,7 +310,8 @@ impl TimeRange {
 }
 
 impl SecurityManager {
-    /// Create new security manager
+    /// Asynchronously creates and configures a new Security Manager and all its sub-systems.
+    /// This is a resource-intensive operation that initializes multiple engines and bridges.
     pub async fn new(
         config: SecurityConfig,
         threat_repo: std::sync::Arc<dyn crate::domain::repositories::ThreatRepository>,
@@ -337,7 +379,8 @@ impl SecurityManager {
         Ok(manager)
     }
 
-    /// Initialize all security components
+    /// Recursively initializes all managed security sub-systems.
+    /// Many components start background tasks or collection loops during this call.
     pub async fn initialize(&mut self) -> Result<()> {
         info!("🚀 Initializing all security components");
 
@@ -371,7 +414,8 @@ impl SecurityManager {
         Ok(())
     }
 
-    /// Process security event with full pipeline
+    /// Injects a security event into the comprehensive analysis pipeline.
+    /// The event will be logged, analyzed for anomalies, and potentially triggered for remediation.
     pub async fn process_security_event(&mut self, event: SecurityEvent) -> Result<()> {
         debug!("📊 Processing security event: {}", event.event_id);
 
@@ -945,7 +989,7 @@ impl SecurityManager {
         Ok(())
     }
 
-    /// Get security metrics
+    /// Returns a comprehensive snapshot of system-wide security metrics.
     pub async fn get_metrics(&self) -> Result<metrics::SecurityMetricsSnapshot> {
         // self.metrics.get_snapshot().await
         Ok(metrics::SecurityMetricsSnapshot {
@@ -956,14 +1000,14 @@ impl SecurityManager {
         })
     }
 
-    /// Get recent alerts
+    /// Returns a list of the most recent security alerts up to the specified limit.
     pub async fn get_recent_alerts(&self, limit: usize) -> Result<Vec<alerts::SecurityAlert>> {
         Ok(self.alerts.get_recent_alerts(limit).await)
     }
 
     // Phase 4 specific methods
 
-    /// Scan cloud resources for security issues
+    /// Scans cloud environment resources for security misconfigurations and vulnerabilities.
     pub async fn scan_cloud_resources(
         &mut self,
         providers: Vec<cloud_security::CloudProvider>,
@@ -972,7 +1016,7 @@ impl SecurityManager {
         self.cloud_security.discover_resources(providers).await
     }
 
-    /// Assess cloud security posture
+    /// Performs a deep security posture assessment for specific cloud resources.
     pub async fn assess_cloud_security(
         &mut self,
         resource_ids: Vec<uuid::Uuid>,
@@ -983,7 +1027,7 @@ impl SecurityManager {
             .await
     }
 
-    /// Scan repository for DevSecOps security issues
+    /// Scans a source code repository for DevSecOps-related security issues.
     pub async fn scan_repository_devsecops(
         &mut self,
         repository_url: &str,
@@ -993,7 +1037,7 @@ impl SecurityManager {
         self.devsecops.scan_repository(repository_url, branch).await
     }
 
-    /// Run hunt simulation
+    /// Runs a simulation of a threat hunt to test detection capabilities.
     pub async fn run_hunt_simulation(
         &mut self,
         simulation: devsecops::HuntSimulation,
@@ -1002,7 +1046,7 @@ impl SecurityManager {
         self.devsecops.run_hunt_simulation(simulation).await
     }
 
-    /// Scan container images for vulnerabilities
+    /// Scans individual container images for known vulnerabilities.
     pub async fn scan_container_images(
         &mut self,
         _image_names: Vec<String>,
@@ -1012,7 +1056,7 @@ impl SecurityManager {
         Ok(vec![])
     }
 
-    /// Protect container runtime
+    /// Monitors and protects a specific container's runtime environment.
     pub async fn protect_container_runtime(
         &mut self,
         container_id: &str,
@@ -1023,7 +1067,7 @@ impl SecurityManager {
             .await
     }
 
-    /// Validate IaC template
+    /// Validates an Infrastructure-as-Code (IaC) template against security best practices.
     pub async fn validate_iac_template(
         &mut self,
         template: infrastructure_security::IaCTemplate,
@@ -1034,7 +1078,7 @@ impl SecurityManager {
             .await
     }
 
-    /// Check infrastructure compliance
+    /// Audits infrastructure resources for compliance with security policies.
     pub async fn check_infrastructure_compliance(
         &mut self,
         resources: Vec<infrastructure_security::InfrastructureResource>,
@@ -1045,7 +1089,7 @@ impl SecurityManager {
             .await
     }
 
-    /// Detect infrastructure drift
+    /// Compares live infrastructure state with desired state to detect configuration drift.
     pub async fn detect_infrastructure_drift(
         &mut self,
         resources: Vec<infrastructure_security::InfrastructureResource>,
@@ -1054,7 +1098,7 @@ impl SecurityManager {
         self.infrastructure_security.detect_drift(resources).await
     }
 
-    /// Generate comprehensive Phase 4 security report
+    /// Generates a comprehensive security report specifically for Phase 4 (Infrastructure/Cloud) components.
     pub async fn generate_phase4_report(
         &self,
         time_range: TimeRange,
@@ -1131,39 +1175,44 @@ impl SecurityManager {
         info!("✅ Phase 4 security report generated: {}", report.id);
         Ok(report)
     }
-    /// Subscribe to security events
+
+    /// Returns a new broadcast receiver for real-time security events.
     pub fn subscribe_events(&self) -> broadcast::Receiver<SecurityEvent> {
         self.event_bus.subscribe()
     }
 }
 
-/// Comprehensive security assessment result
+/// Results of a deep-dive security audit and posture check
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComprehensiveSecurityAssessment {
-    /// Assessment ID
+    /// Unique identifier for the assessment instance
     pub id: Uuid,
-    /// Compliance result
+    /// Detailed findings from the compliance auditor
     pub compliance_result: compliance::ComplianceAssessmentResult,
-    /// Risk assessment result
+    /// Numerical and qualitative risk analysis data
     pub risk_result: risk_assessment::RiskAssessmentResult,
-    /// Vulnerabilities found
+    /// List of specifically identified system vulnerabilities
     pub vulnerabilities: Vec<risk_assessment::VulnerabilityItem>,
-    /// Risk heat map
+    /// Visual-logical map of risk distribution
     pub heat_map: risk_assessment::RiskHeatMap,
-    /// Gap analysis result
+    /// Analysis of missing controls based on compliance goals
     pub gap_analysis: risk_assessment::ComplianceGapAnalysisResult,
-    /// Assessment duration in seconds
+    /// Amount of compute/system time spent on the assessment
     pub assessment_duration_seconds: u64,
-    /// Created timestamp
+    /// Time when the assessment was completed
     pub created_at: DateTime<Utc>,
 }
 
-/// Report status
+/// Enumeration of possible states for an automated report generation task
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReportStatus {
+    /// Task is queued and waiting for resources
     Pending,
+    /// Data collection or calculation is currently underway
     InProgress,
+    /// Report has been successfully generated and is available
     Completed,
+    /// Task encountered an error and could not finish
     Failed,
 }
 
@@ -1212,36 +1261,40 @@ impl Default for SecurityConfig {
     }
 }
 
-/// Phase 4 comprehensive security report
+/// Detailed output from a Phase 4 (Infrastructure and Cloud) security audit
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Phase4SecurityReport {
-    /// Report ID
+    /// Unique identifier for the generated report
     pub id: Uuid,
-    /// Time range
+    /// Temporal window covered by the report data
     pub time_range: TimeRange,
-    /// Report status
+    /// Lifecycle state of the report task
     pub status: ReportStatus,
-    /// Generated at
+    /// Exact system time when the report was finalized
     pub generated_at: DateTime<Utc>,
-    /// Cloud security report
+    /// Security posture findings for cloud assets
     pub cloud_security_report: cloud_security::CloudSecurityReport,
-    /// DevSecOps report
+    /// Security posture findings for development pipelines
     pub devsecops_report: devsecops::DevSecOpsReport,
-    /// Container security report
+    /// Security posture findings for local container workloads
     pub container_security_report: container_security::ContainerSecurityReport,
-    /// Infrastructure security report
+    /// Security posture findings for bare-metal and core networking
     pub infrastructure_security_report: infrastructure_security::InfrastructureSecurityReport,
-    /// Overall Phase 4 security score
+    /// Derived overall security score for Phase 4 components
     pub overall_phase4_score: f64,
-    /// Key findings
+    /// High-impact observations requiring immediate review
     pub key_findings: Vec<String>,
-    /// Recommendations
+    /// Actionable steps to improve the infrastructure security posture
     pub recommendations: Vec<String>,
 }
 
+/// Minimal set of security statistics for legacy dashboard compatibility
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimpleSecurityStats {
+    /// Number of peers flagged as potentially malicious
     pub suspicious_peers: usize,
+    /// Number of threats identified as actively exploited
     pub active_threats: usize,
+    /// Number of peers confirmed as verified/safe
     pub trusted_peers: usize,
 }

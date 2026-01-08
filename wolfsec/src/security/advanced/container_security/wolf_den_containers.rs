@@ -23,15 +23,19 @@ use crate::wolf_pack::territory::TerritoryAccess;
 
 /// Wolf Den Container Manager
 pub struct WolfDenContainerManager {
+    /// Configuration
     config: WolfDenConfig,
+    /// Active containers
     containers: Arc<RwLock<HashMap<String, WolfDenContainer>>>,
     #[cfg(feature = "container_security")]
+    /// Docker client
     docker: Option<Docker>,
     #[cfg(not(feature = "container_security"))]
     docker: Option<()>, // Dummy field when disabled
 }
 
 impl WolfDenContainerManager {
+    /// Create new manager
     pub fn new(config: WolfDenConfig) -> Self {
         #[cfg(feature = "container_security")]
         let docker = match Docker::connect_with_socket_defaults() {
@@ -182,6 +186,7 @@ impl WolfDenContainerManager {
         Err(anyhow!("Container security feature disabled"))
     }
 
+    /// Assign container to a den
     pub async fn assign_container(
         &self,
         container_id: &str,
@@ -201,10 +206,16 @@ impl WolfDenContainerManager {
 /// Wolf Den Container Representation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WolfDenContainer {
+    /// Container ID
     pub id: String,
+    /// Container name
     pub name: String,
+    /// Security rank
     pub security_level: PackRank,
+    /// Creation timestamp
     pub created_at: DateTime<Utc>,
+    /// Container state
     pub state: String,
+    /// Container status
     pub status: String,
 }

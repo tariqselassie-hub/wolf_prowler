@@ -10,6 +10,7 @@ use crate::kdf::{create_kdf, KdfEnum, KdfType};
 use crate::mac::{create_mac, MacEnum, MacType};
 use crate::security::constant_time_eq;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use rand::RngCore;
 
 /// Unified cryptographic engine
 #[derive(Debug)]
@@ -22,7 +23,7 @@ pub struct CryptoEngine {
 }
 
 impl CryptoEngine {
-    /// Create a new CryptoEngine
+    /// Create a new `CryptoEngine`
     pub(crate) fn create(
         hasher: HasherEnum,
         kdf: KdfEnum,
@@ -39,11 +40,14 @@ impl CryptoEngine {
     }
 
     /// Create a new crypto engine with default settings
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if initialization fails.
     pub fn new(security_level: crate::SecurityLevel) -> Result<Self> {
         let hasher = create_hasher(HashFunction::Blake3, security_level)?;
         let kdf = create_kdf(KdfType::Argon2, security_level)?;
         let mut mac_key = vec![0u8; 32];
-        use rand::RngCore;
         rand::thread_rng().fill_bytes(&mut mac_key);
         let mac = create_mac(MacType::Hmac, &mac_key, security_level)?;
 
@@ -57,13 +61,16 @@ impl CryptoEngine {
     }
 
     /// Create a new crypto engine with a specific keypair (for persistence)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if initialization or keypair loading fails.
     pub fn with_keypair(security_level: crate::SecurityLevel, keypair_bytes: &[u8]) -> Result<Self> {
         let hasher = create_hasher(HashFunction::Blake3, security_level)?;
         let kdf = create_kdf(KdfType::Argon2, security_level)?;
         
         // Generate random MAC key
         let mut mac_key = vec![0u8; 32];
-        use rand::RngCore;
         rand::thread_rng().fill_bytes(&mut mac_key);
         let mac = create_mac(MacType::Hmac, &mac_key, security_level)?;
 
@@ -77,64 +84,102 @@ impl CryptoEngine {
     }
 
     /// Get the signing keypair bytes for persistence
+    #[must_use]
     pub fn export_identity(&self) -> [u8; 32] {
         self.signing_keypair.to_bytes()
     }
 
     /// Hash data using the configured hasher
-    pub async fn hash(&self, data: &[u8]) -> Result<Vec<u8>> {
-        self.hasher.digest(data).await
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn hash(&self, data: &[u8]) -> Result<Vec<u8>> {
+        self.hasher.digest(data)
     }
 
     /// Hash data with custom output length
-    pub async fn hash_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
-        self.hasher.digest_with_length(data, output_length).await
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn hash_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
+        self.hasher.digest_with_length(data, output_length)
     }
 
     /// Derive a key using the configured KDF
-    pub async fn derive_key(&self, password: &[u8], salt: &[u8], length: usize) -> Result<Vec<u8>> {
-        self.kdf.derive_key(password, salt, length).await
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation fails.
+    pub fn derive_key(&self, password: &[u8], salt: &[u8], length: usize) -> Result<Vec<u8>> {
+        self.kdf.derive_key(password, salt, length)
     }
 
     /// Compute MAC using the configured MAC algorithm
-    pub async fn compute_mac(&self, data: &[u8]) -> Result<Vec<u8>> {
-        self.mac.compute(data).await
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if MAC computation fails.
+    pub fn compute_mac(&self, data: &[u8]) -> Result<Vec<u8>> {
+        self.mac.compute(data)
     }
 
     /// Compute MAC using the configured MAC algorithm with a specific key
-    pub async fn mac(&self, data: &[u8], key: &[u8]) -> Result<Vec<u8>> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if MAC computation fails.
+    pub fn mac(&self, data: &[u8], key: &[u8]) -> Result<Vec<u8>> {
         let mac_instance = self.mac.new_mac(key)?;
-        mac_instance.compute(data).await
+        mac_instance.compute(data)
     }
 
     /// Verify MAC using the configured MAC algorithm
-    pub async fn verify_mac(&self, data: &[u8], tag: &[u8]) -> Result<bool> {
-        self.mac.verify(data, tag).await
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if verification fails.
+    pub fn verify_mac(&self, data: &[u8], tag: &[u8]) -> Result<bool> {
+        self.mac.verify(data, tag)
     }
 
     /// Hash data and then compute MAC of the hash (hash-then-MAC)
-    pub async fn hash_and_mac(&self, data: &[u8]) -> Result<Vec<u8>> {
-        let hash: Vec<u8> = self.hash(data).await?;
-        self.mac.compute(&hash).await
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing or MAC computation fails.
+    pub fn hash_and_mac(&self, data: &[u8]) -> Result<Vec<u8>> {
+        let hash: Vec<u8> = self.hash(data)?;
+        self.mac.compute(&hash)
     }
 
     /// Derive key and then hash the result (KDF-then-hash)
-    pub async fn derive_and_hash(
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key derivation or hashing fails.
+    pub fn derive_and_hash(
         &self,
         password: &[u8],
         salt: &[u8],
         length: usize,
     ) -> Result<Vec<u8>> {
-        let key: Vec<u8> = self.derive_key(password, salt, length).await?;
-        self.hash(&key).await
+        let key: Vec<u8> = self.derive_key(password, salt, length)?;
+        self.hash(&key)
     }
 
     /// Constant-time comparison of two byte arrays
+    #[must_use]
     pub fn secure_compare(&self, data1: &[u8], data2: &[u8]) -> bool {
         constant_time_eq(data1, data2)
     }
 
     /// Generate a secure random key of specified length
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if random generation fails.
     pub fn generate_key(&self, length: usize) -> Result<Vec<u8>> {
         use rand::RngCore;
         let mut key = vec![0u8; length];
@@ -143,64 +188,89 @@ impl CryptoEngine {
     }
 
     /// Generate a secure random salt
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if random generation fails.
     pub fn generate_salt(&self, length: usize) -> Result<Vec<u8>> {
         self.generate_key(length)
     }
 
     /// Get the security level
-    pub fn security_level(&self) -> crate::SecurityLevel {
+    #[must_use]
+    pub const fn security_level(&self) -> crate::SecurityLevel {
         self.security_level
     }
 
     /// Get hasher name
-    pub fn hasher_name(&self) -> &'static str {
+    #[must_use]
+    pub const fn hasher_name(&self) -> &'static str {
         self.hasher.name()
     }
 
     /// Get KDF name
-    pub fn kdf_name(&self) -> &'static str {
+    #[must_use]
+    pub const fn kdf_name(&self) -> &'static str {
         self.kdf.name()
     }
 
     /// Get MAC name
-    pub fn mac_name(&self) -> &'static str {
+    #[must_use]
+    pub const fn mac_name(&self) -> &'static str {
         self.mac.name()
     }
 
     /// Check if KDF is memory-hard
-    pub fn is_memory_hard_kdf(&self) -> bool {
+    #[must_use]
+    pub const fn is_memory_hard_kdf(&self) -> bool {
         self.kdf.is_memory_hard()
     }
 
     /// Get hasher output length
-    pub fn hash_output_length(&self) -> usize {
+    #[must_use]
+    pub const fn hash_output_length(&self) -> usize {
         self.hasher.output_length()
     }
 
     /// Get MAC output length
-    pub fn mac_output_length(&self) -> usize {
+    #[must_use]
+    pub const fn mac_output_length(&self) -> usize {
         self.mac.mac_length()
     }
 
     /// Get KDF recommended minimum salt length
-    pub fn kdf_min_salt_length(&self) -> usize {
+    #[must_use]
+    pub const fn kdf_min_salt_length(&self) -> usize {
         16 // Default minimum salt length
     }
 
     // Stub implementations for signature methods (to be implemented properly later)
+    /// Generate a challenge
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if random generation fails.
     pub fn generate_challenge(&self) -> Result<Vec<u8>> {
         self.generate_salt(32)
     }
 
+    /// Get the public key
+    #[must_use]
     pub fn get_public_key(&self) -> VerifyingKey {
         self.signing_keypair.public_key()
     }
 
-    pub async fn sign_message(&self, message: &[u8]) -> Signature {
+    /// Sign a message
+    pub fn sign_message(&self, message: &[u8]) -> Signature {
         self.signing_keypair.sign(message)
     }
 
-    pub async fn verify_signature(
+    /// Verify a signature
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the signature is invalid.
+    pub fn verify_signature(
         &self,
         message: &[u8],
         signature: &Signature,
@@ -214,6 +284,7 @@ impl CryptoEngine {
 
 impl Default for CryptoEngine {
     fn default() -> Self {
+        #[allow(clippy::expect_used)]
         Self::new(crate::SecurityLevel::Standard).expect("Failed to create default CryptoEngine")
     }
 }
@@ -222,67 +293,71 @@ impl Default for CryptoEngine {
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn test_crypto_engine_basic_operations() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_crypto_engine_basic_operations() {
         let engine = CryptoEngine::new(crate::SecurityLevel::Standard).unwrap();
         let data = b"Hello, Crypto Engine!";
 
         // Test hashing
-        let hash = engine.hash(data).await.unwrap();
+        let hash = engine.hash(data).unwrap();
         assert_eq!(hash.len(), engine.hash_output_length());
 
         // Test MAC computation
-        let mac = engine.compute_mac(data).await.unwrap();
+        let mac = engine.compute_mac(data).unwrap();
         assert_eq!(mac.len(), engine.mac_output_length());
 
         // Test MAC verification
-        let verified = engine.verify_mac(data, &mac).await.unwrap();
+        let verified = engine.verify_mac(data, &mac).unwrap();
         assert!(verified);
 
         // Test key derivation
         let password = b"secure_password";
         let salt = engine.generate_salt(16).unwrap();
-        let key = engine.derive_key(password, &salt, 32).await.unwrap();
+        let key = engine.derive_key(password, &salt, 32).unwrap();
         assert_eq!(key.len(), 32);
     }
 
-    #[tokio::test]
-    async fn test_signing_and_verification() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_signing_and_verification() {
         let engine = CryptoEngine::new(crate::SecurityLevel::Standard).unwrap();
         let data = b"This message is signed";
 
-        let signature = engine.sign_message(data).await;
+        let signature = engine.sign_message(data);
         let public_key = engine.get_public_key();
 
-        let verification_result = engine.verify_signature(data, &signature, &public_key).await;
+        let verification_result = engine.verify_signature(data, &signature, &public_key);
         assert!(verification_result.is_ok());
     }
 
-    #[tokio::test]
-    async fn test_hash_and_mac() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_hash_and_mac() {
         let engine = CryptoEngine::new(crate::SecurityLevel::Standard).unwrap();
         let data = b"Test data for hash-then-MAC";
 
-        let result = engine.hash_and_mac(data).await.unwrap();
+        let result = engine.hash_and_mac(data).unwrap();
         assert!(!result.is_empty());
 
         // Verify the result is consistent
-        let result2 = engine.hash_and_mac(data).await.unwrap();
+        let result2 = engine.hash_and_mac(data).unwrap();
         assert_eq!(result, result2);
     }
 
-    #[tokio::test]
-    async fn test_derive_and_hash() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_derive_and_hash() {
         let engine = CryptoEngine::new(crate::SecurityLevel::Standard).unwrap();
         let password = b"test_password";
         let salt = engine.generate_salt(16).unwrap();
 
-        let result = engine.derive_and_hash(password, &salt, 32).await.unwrap();
+        let result = engine.derive_and_hash(password, &salt, 32).unwrap();
         assert_eq!(result.len(), engine.hash_output_length());
     }
 
-    #[tokio::test]
-    async fn test_secure_compare() {
+    #[test]
+    fn test_secure_compare() {
         let engine = CryptoEngine::new(crate::SecurityLevel::Standard).unwrap();
         let data1 = b"same data";
         let data2 = b"same data";
@@ -292,8 +367,9 @@ mod tests {
         assert!(!engine.secure_compare(data1, data3));
     }
 
-    #[tokio::test]
-    async fn test_key_generation() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_key_generation() {
         let engine = CryptoEngine::new(crate::SecurityLevel::Standard).unwrap();
 
         let key1 = engine.generate_key(32).unwrap();
@@ -304,8 +380,9 @@ mod tests {
         assert_ne!(key1, key2); // Keys should be different
     }
 
-    #[tokio::test]
-    async fn test_engine_info() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_engine_info() {
         let engine = CryptoEngine::new(crate::SecurityLevel::Maximum).unwrap();
 
         assert_eq!(engine.security_level(), crate::SecurityLevel::Maximum);

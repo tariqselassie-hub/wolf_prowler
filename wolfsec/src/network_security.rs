@@ -10,55 +10,70 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
 
-/// Cryptographic algorithms supported
+/// symmetric encryption algorithms supported for packet and payload protection
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CryptoAlgorithm {
-    AES256GCM,         // AES-256 in GCM mode
-    ChaCha20Poly1305,  // ChaCha20-Poly1305
-    XChaCha20Poly1305, // XChaCha20-Poly1305
+    /// NIST-compliant 256-bit AES in Galois/Counter Mode
+    AES256GCM,
+    /// High-performance stream cipher with Poly1305 MAC
+    ChaCha20Poly1305,
+    /// Extended-nonce variant of ChaCha20 for improved security
+    XChaCha20Poly1305,
 }
 
-/// Hash algorithms
+/// cryptographic hash functions for integrity and fingerprinting
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HashAlgorithm {
+    /// 256-bit Secure Hash Algorithm
     SHA256,
+    /// 384-bit Secure Hash Algorithm
     SHA384,
+    /// 512-bit Secure Hash Algorithm
     SHA512,
+    /// efficient and secure keyed hash function
     Blake3,
 }
 
-/// Key exchange protocols
+/// protocols for establishing authenticated shared secrets
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KeyExchange {
-    X25519, // Diffie-Hellman using Curve25519
-    P256,   // NIST P-256 curve
-    P384,   // NIST P-384 curve
+    /// Elliptic-curve Diffie-Hellman using Curve25519
+    X25519,
+    /// prime-field elliptic curve (NIST P-256)
+    P256,
+    /// prime-field elliptic curve (NIST P-384)
+    P384,
 }
 
-/// Signature algorithms
+/// algorithms for identity verification and non-repudiation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignatureAlgorithm {
-    Ed25519,   // Edwards curve Digital Signature Algorithm
-    EcdsaP256, // ECDSA with P-256
-    EcdsaP384, // ECDSA with P-384
-    RSA2048,   // RSA with 2048-bit keys
-    RSA4096,   // RSA with 4096-bit keys
+    /// high-performance Edwards-curve signature scheme
+    Ed25519,
+    /// Elliptic Curve Digital Signature Algorithm (P-256)
+    EcdsaP256,
+    /// Elliptic Curve Digital Signature Algorithm (P-384)
+    EcdsaP384,
+    /// classic signature scheme with 2048-bit modulus
+    RSA2048,
+    /// classic signature scheme with 4096-bit modulus
+    RSA4096,
 }
 
-/// Security level configuration
+/// complete cryptographic suite definition for a security tier
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityLevel {
-    /// Encryption algorithm
+    /// encryption primitive for payload confidentiality
     pub encryption: CryptoAlgorithm,
-    /// Hash algorithm
+    /// hash primitive for data integrity
     pub hash: HashAlgorithm,
-    /// Key exchange protocol
+    /// protocol for session key derivation
     pub key_exchange: KeyExchange,
-    /// Signature algorithm
+    /// algorithm for identity and message verification
     pub signature: SignatureAlgorithm,
-    /// Key size in bits
+    /// primary symmetric key length in bits
     pub key_size: u16,
-    /// Session timeout in seconds
+    /// duration (seconds) before a session requires re-keying
     pub session_timeout: u64,
 }
 
@@ -105,23 +120,23 @@ pub const LOW_SECURITY: SecurityLevel = SecurityLevel {
     session_timeout: 7200, // 2 hours
 };
 
-/// Cryptographic key pair
+/// container for public and private cryptographic material
 #[derive(Debug, Clone)]
 pub struct KeyPair {
-    /// Public key (bytes)
+    /// opaque public key material (encoded)
     pub public_key: Vec<u8>,
-    /// Private key (bytes, encrypted at rest)
+    /// opaque private key material (should be encrypted at rest)
     pub private_key: Vec<u8>,
-    /// Key algorithm
+    /// specific algorithm this material is compatible with
     pub algorithm: KeyExchange,
-    /// Key creation timestamp
+    /// point in time when the material was generated
     pub created_at: DateTime<Utc>,
-    /// Key expiration
+    /// optional point in time when the material becomes invalid
     pub expires_at: Option<DateTime<Utc>>,
 }
 
 impl KeyPair {
-    /// Generate new key pair
+    /// provision a new key pair for a specified cryptographic algorithm.
     pub fn new(algorithm: KeyExchange) -> Result<Self> {
         let now = Utc::now();
         let expires_at = now + chrono::Duration::days(365); // 1 year expiry
@@ -164,63 +179,63 @@ impl KeyPair {
     }
 }
 
-/// Digital signature
+/// authenticated identity attestation for a discrete payload
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DigitalSignature {
-    /// Signature data
+    /// raw signature material
     pub signature: Vec<u8>,
-    /// Algorithm used
+    /// algorithm used to generate the attestation
     pub algorithm: SignatureAlgorithm,
-    /// Signing timestamp
+    /// point in time of attestation generation
     pub timestamp: DateTime<Utc>,
-    /// Signer's public key fingerprint
+    /// unique fingerprint of the signer's identity key
     pub signer_fingerprint: String,
 }
 
-/// Encrypted message
+/// container for a confidential payload and its security metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncryptedMessage {
-    /// Encrypted payload
+    /// opaque encrypted payload
     pub ciphertext: Vec<u8>,
-    /// Nonce/IV used for encryption
+    /// entropy/initialization vector used for encryption
     pub nonce: Vec<u8>,
-    /// Authentication tag
+    /// message authentication code (MAC) for integrity verification
     pub tag: Vec<u8>,
-    /// Encryption algorithm
+    /// primitive used to secure the payload
     pub algorithm: CryptoAlgorithm,
-    /// Sender's entity ID
+    /// identifier for the originating identity
     pub sender_id: String,
-    /// Recipient's entity ID
+    /// identifier for the target identity
     pub recipient_id: String,
-    /// Message timestamp
+    /// point in time for message ordering and replay protection
     pub timestamp: DateTime<Utc>,
-    /// Message ID for deduplication
+    /// unique identifier for deduplication and tracking
     pub message_id: String,
 }
 
-/// Security session between two entities
+/// established security context between two specific identities
 #[derive(Debug, Clone)]
 pub struct SecuritySession {
-    /// Session ID
+    /// unique identifier for the session context
     pub session_id: String,
-    /// Local entity ID
+    /// identity identifier for the initiating peer
     pub local_id: String,
-    /// Remote entity ID
+    /// identity identifier for the remote peer
     pub remote_id: String,
-    /// Shared secret
+    /// derived shared secret for symmetric protection
     pub shared_secret: Vec<u8>,
-    /// Session creation time
+    /// point in time of session initialization
     pub created_at: DateTime<Utc>,
-    /// Last activity time
+    /// point in time of the most recent interaction
     pub last_activity: DateTime<Utc>,
-    /// Session expiration
+    /// point in time when the session requires re-keying or closure
     pub expires_at: DateTime<Utc>,
-    /// Security level
+    /// cryptographic suite configured for this session
     pub security_level: SecurityLevel,
 }
 
 impl SecuritySession {
-    /// Create new security session
+    /// provision a new security context with a remote peer and common shared secret.
     pub fn new(
         local_id: String,
         remote_id: String,
@@ -253,27 +268,27 @@ impl SecuritySession {
     }
 }
 
-/// Authentication token
+/// transient credential granting specific network permissions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthToken {
-    /// Token value
+    /// opaque token string (usually a secure random identifier)
     pub token: String,
-    /// Entity ID
+    /// identifier for the identity who owns the token
     pub entity_id: String,
-    /// Permissions granted
+    /// list of capability strings granted by the token
     pub permissions: Vec<String>,
-    /// Token scope
+    /// organizational or functional boundary for the token
     pub scope: String,
-    /// Creation time
+    /// point in time of token issuance
     pub created_at: DateTime<Utc>,
-    /// Expiration time
+    /// point in time of token invalidation
     pub expires_at: DateTime<Utc>,
-    /// Whether token is revoked
+    /// true if the token has been explicitly invalidated by the issuer
     pub revoked: bool,
 }
 
 impl AuthToken {
-    /// Create new authentication token
+    /// provision a new transient identity credential with specific capabilities.
     pub fn new(entity_id: String, permissions: Vec<String>, scope: String, ttl_hours: u64) -> Self {
         let now = Utc::now();
         let expires_at = now + chrono::Duration::hours(ttl_hours as i64);
@@ -300,19 +315,19 @@ impl AuthToken {
     }
 }
 
-/// Network Security Manager
+/// orchestrator for cryptographic lifecycle and identity verification
 pub struct SecurityManager {
-    /// Entity ID
+    /// primary identity identifier for the local node
     entity_id: String,
-    /// Key pairs
+    /// registry of owned cryptographic materials
     key_pairs: Arc<RwLock<HashMap<String, KeyPair>>>,
-    /// Active sessions
+    /// active security contexts with remote identities
     sessions: Arc<RwLock<HashMap<String, SecuritySession>>>,
-    /// Known public keys
+    /// registry of verified cryptographic material from remote peers
     public_keys: Arc<RwLock<HashMap<String, Vec<u8>>>>,
-    /// Authentication tokens
+    /// transient identity credentials managed by this instance
     auth_tokens: Arc<RwLock<HashMap<String, AuthToken>>>,
-    /// Default security level
+    /// default security tier for new operations
     security_level: SecurityLevel,
 }
 
@@ -323,7 +338,7 @@ impl SecurityManager {
         sessions.get(session_id).map(|s| s.shared_secret.clone())
     }
 
-    /// Create new security manager
+    /// orchestrates the security lifecycle for the provided identity and default level.
     pub fn new(entity_id: String, security_level: SecurityLevel) -> Self {
         Self {
             entity_id,
@@ -335,7 +350,7 @@ impl SecurityManager {
         }
     }
 
-    /// Initialize security manager with default keys
+    /// bootstraps the manager and generates initial cryptographic materials.
     pub async fn initialize(&self) -> Result<()> {
         info!("🔐 Initializing security manager for {}", self.entity_id);
 

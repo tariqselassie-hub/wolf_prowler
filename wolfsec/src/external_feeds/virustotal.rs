@@ -3,6 +3,7 @@ use super::{ExternalFeedsConfig, ThreatFeedItem};
 use anyhow::Result;
 use reqwest::Client;
 
+/// Queries the VirusTotal API for file hash reports.
 pub async fn lookup_hash(
     hash: &str,
     config: &ExternalFeedsConfig,

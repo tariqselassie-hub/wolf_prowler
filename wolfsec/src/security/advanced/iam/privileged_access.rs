@@ -3,13 +3,22 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
+/// Specialized authority for managing Just-In-Time (JIT) elevated permissions
 pub struct PrivilegedAccessManager;
 
 impl PrivilegedAccessManager {
+    /// Initializes a new `PrivilegedAccessManager`.
+    ///
+    /// # Errors
+    /// Returns an error if initialization fails.
     pub fn new(_config: IAMConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Processes a request for temporary elevated resource permissions.
+    ///
+    /// # Errors
+    /// Returns an error if the request cannot be processed or validated.
     pub async fn request_access(
         &self,
         request: PrivilegedAccessRequest,

@@ -11,11 +11,17 @@ use wolf_db::storage::model::Record;
 
 const TABLE_SECURITY_EVENTS: &str = "security_events";
 
+/// A repository for managing security monitoring events using WolfDb.
 pub struct WolfDbMonitoringRepository {
-    storage: Arc<RwLock<WolfDbStorage>>,
+    /// The thread-safe storage engine.
+    pub storage: Arc<RwLock<WolfDbStorage>>,
 }
 
 impl WolfDbMonitoringRepository {
+    /// Creates a new instance of `WolfDbMonitoringRepository`.
+    ///
+    /// # Arguments
+    /// * `storage` - An `Arc<RwLock<WolfDbStorage>>` providing thread-safe access to the database.
     pub fn new(storage: Arc<RwLock<WolfDbStorage>>) -> Self {
         Self { storage }
     }
@@ -24,7 +30,7 @@ impl WolfDbMonitoringRepository {
 #[async_trait]
 impl MonitoringRepository for WolfDbMonitoringRepository {
     async fn save_event(&self, event: &SecurityEvent) -> Result<(), DomainError> {
-        let mut storage = self.storage.write().await;
+        let storage = self.storage.write().await;
         let pk = storage.get_active_pk().ok_or_else(|| DomainError::Unexpected("Database locked".to_string()))?.to_vec();
         
         let json_str = serde_json::to_string(event)
@@ -40,7 +46,8 @@ impl MonitoringRepository for WolfDbMonitoringRepository {
             vector: None,
         };
         
-        storage.insert_record(TABLE_SECURITY_EVENTS, &record, &pk)
+        storage.insert_record(TABLE_SECURITY_EVENTS.to_string(), record, pk)
+            .await
             .map_err(|e| DomainError::Unexpected(e.to_string()))?;
             
         Ok(())
@@ -50,7 +57,8 @@ impl MonitoringRepository for WolfDbMonitoringRepository {
          let storage = self.storage.read().await;
         let sk = storage.get_active_sk().ok_or_else(|| DomainError::Unexpected("Database locked".to_string()))?;
         
-        if let Some(record) = storage.get_record(TABLE_SECURITY_EVENTS, &id.to_string(), sk)
+        if let Some(record) = storage.get_record(TABLE_SECURITY_EVENTS.to_string(), id.to_string(), sk.to_vec())
+            .await
             .map_err(|e| DomainError::Unexpected(e.to_string()))? {
             
             if let Some(json) = record.data.get("json") {

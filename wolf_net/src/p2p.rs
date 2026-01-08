@@ -8,16 +8,25 @@ use sha2::{Digest, Sha256};
 use std::io;
 use std::time::Duration;
 
+/// Alias for the libp2p PeerId type to avoid naming conflicts.
+pub type Libp2pPeerId = libp2p::PeerId;
+
 /// Message priority for routing
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+/// Priority levels for messages, influencing routing and handling.
 pub enum MessagePriority {
+    /// Low priority messages.
     Low = 0,
+    /// Medium priority messages.
     Medium = 1,
+    /// High priority messages.
     High = 2,
+    /// Critical priority messages requiring immediate attention.
     Critical = 3,
 }
 
 impl MessagePriority {
+    /// Converts the message priority to a gossipsub topic name.
     pub fn to_topic_name(&self) -> String {
         match self {
             MessagePriority::Low => "wolf-prowler-low".to_string(),
@@ -28,12 +37,55 @@ impl MessagePriority {
     }
 }
 
+/// Events produced by the `WolfNetBehavior`.
+#[derive(Debug)]
+pub enum WolfNetBehaviorEvent {
+    /// Event from the gossipsub behaviour.
+    Gossipsub(gossipsub::Event),
+    /// Event from the mDNS behaviour.
+    Mdns(mdns::Event),
+    /// Event from the identify behaviour.
+    Identify(identify::Event),
+    /// Event from the request/response behaviour.
+    RequestResponse(request_response::Event<crate::protocol::WolfRequest, crate::protocol::WolfResponse>),
+}
+
+impl From<gossipsub::Event> for WolfNetBehaviorEvent {
+    fn from(event: gossipsub::Event) -> Self {
+        Self::Gossipsub(event)
+    }
+}
+
+impl From<mdns::Event> for WolfNetBehaviorEvent {
+    fn from(event: mdns::Event) -> Self {
+        Self::Mdns(event)
+    }
+}
+
+impl From<identify::Event> for WolfNetBehaviorEvent {
+    fn from(event: identify::Event) -> Self {
+        Self::Identify(event)
+    }
+}
+
+impl From<request_response::Event<crate::protocol::WolfRequest, crate::protocol::WolfResponse>> for WolfNetBehaviorEvent {
+    fn from(event: request_response::Event<crate::protocol::WolfRequest, crate::protocol::WolfResponse>) -> Self {
+        Self::RequestResponse(event)
+    }
+}
+
 /// The core network behavior for Wolf Prowler
 #[derive(NetworkBehaviour)]
+#[behaviour(out_event = "WolfNetBehaviorEvent")]
+/// Core network behavior for Wolf Prowler, combining gossipsub, mDNS discovery, identify, and request/response.
 pub struct WolfNetBehavior {
+    /// Gossipsub behaviour for pub/sub messaging.
     pub gossipsub: gossipsub::Behaviour,
+    /// mDNS discovery behaviour for local peer discovery.
     pub mdns: mdns::tokio::Behaviour,
+    /// Identify protocol behaviour for peer information exchange.
     pub identify: identify::Behaviour,
+    /// Request/Response behaviour using the Wolf protocol codec.
     pub request_response: request_response::Behaviour<crate::protocol::WolfCodec>,
 }
 
@@ -55,6 +107,7 @@ pub fn optimized_gossipsub_config() -> gossipsub::Config {
 
 /// Protocol definition for Wolf Prowler Request-Response
 #[derive(Debug, Clone)]
+/// Protocol identifier for the Wolf Prowler request/response communication.
 pub struct WolfNetProtocol;
 
 impl AsRef<str> for WolfNetProtocol {
@@ -65,6 +118,7 @@ impl AsRef<str> for WolfNetProtocol {
 
 /// Codec for encoding/decoding network messages
 #[derive(Clone)]
+/// Codec for encoding and decoding Wolf Prowler network messages.
 pub struct WolfNetCodec;
 
 /// Generic request wrapper (legacy, consider using crate::protocol::WolfRequest)

@@ -3,6 +3,7 @@ use super::{ExternalFeedsConfig, ThreatFeedItem};
 use anyhow::Result;
 use reqwest::Client;
 
+/// Searches for CVE data using the configured CVE Search API endpoint.
 pub async fn search_cve(query: &str, config: &ExternalFeedsConfig) -> Result<Vec<ThreatFeedItem>> {
     let base_url = match &config.cve_search_url {
         Some(url) => url.clone(),

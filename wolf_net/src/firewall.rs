@@ -4,12 +4,16 @@ use std::net::IpAddr;
 /// Main Firewall Manager
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InternalFirewall {
+    /// Active firewall rules.
     pub rules: Vec<FirewallRule>,
+    /// Default policy when no rules match.
     pub policy: FirewallPolicy,
+    /// Master switch for the firewall.
     pub enabled: bool,
 }
 
 impl InternalFirewall {
+    /// Creates a new `InternalFirewall` instance with default policy.
     pub fn new() -> Self {
         Self {
             rules: Vec::new(),
@@ -76,22 +80,31 @@ impl Default for InternalFirewall {
 /// Default policy when no specific rule matches
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FirewallPolicy {
-    Default, // Context dependent, usually Allow
+    /// Context‑dependent default (usually Allow).
+    Default,
+    /// Allow all traffic that doesn't match a Deny rule.
     AllowAll,
+    /// Deny all traffic that doesn't match an Allow rule.
     DenyAll,
 }
 
 /// A single firewall rule
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FirewallRule {
+    /// Human‑readable name for the rule.
     pub name: String,
+    /// The target of this rule (Port, IP, PeerID, or Any).
     pub target: RuleTarget,
+    /// The protocol this rule applies to.
     pub protocol: Protocol,
+    /// The action to take on a match.
     pub action: Action,
+    /// The traffic direction this rule applies to.
     pub direction: TrafficDirection,
 }
 
 impl FirewallRule {
+    /// Creates a new `FirewallRule` with the specified parameters.
     pub fn new(
         name: impl Into<String>,
         target: RuleTarget,
@@ -138,34 +151,48 @@ impl FirewallRule {
 /// Specific target for the rule
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RuleTarget {
+    /// Applies to any target.
     Any,
+    /// Applies to a specific network port.
     Port(u16),
+    /// Applies to a specific IP address.
     Ip(IpAddr),
-    PeerId(String), // String representation of PeerId
+    /// Applies to a specific peer identifier.
+    PeerId(String),
 }
 
 /// Action to take on match
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Action {
+    /// Permit the traffic.
     Allow,
+    /// Block the traffic.
     Deny,
 }
 
 /// Network Protocol
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Protocol {
+    /// Any supported protocol.
     Any,
+    /// Transmission Control Protocol.
     TCP,
+    /// User Datagram Protocol.
     UDP,
+    /// Internet Control Message Protocol.
     ICMP,
-    WolfProto, // Our custom app protocol
+    /// Custom Wolf application protocol.
+    WolfProto,
 }
 
 /// Traffic Direction
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TrafficDirection {
+    /// Incoming traffic.
     Inbound,
+    /// Outgoing traffic.
     Outbound,
+    /// Both directions.
     Both,
 }
 

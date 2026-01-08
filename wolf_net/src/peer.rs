@@ -17,6 +17,7 @@ use uuid::Uuid;
 pub struct PeerId(String);
 
 // Type alias for libp2p PeerId to avoid conflicts
+/// Alias for the libp2p `PeerId` type to avoid naming conflicts.
 pub type Libp2pPeerId = libp2p::PeerId;
 
 impl PeerId {
@@ -196,21 +197,37 @@ impl std::fmt::Display for ServiceId {
 /// Service types supported by Wolf Net
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ServiceType {
+    /// Unknown or unspecified service type.
     Unknown,
+    /// Router service.
     Router,
+    /// Server service.
     Server,
+    /// Client service.
     Client,
+    /// MDNS discovery service.
     Discovery,
+    /// Storage service.
     Storage,
+    /// Compute service.
     Compute,
+    /// Monitoring service.
     Monitoring,
+    /// Security service.
     Security,
+    /// Database service.
     Database,
+    /// Message broker service.
     MessageBroker,
+    /// API gateway service.
     ApiGateway,
+    /// Load balancer service.
     LoadBalancer,
+    /// Firewall service.
     Firewall,
+    /// Proxy service.
     Proxy,
+    /// Cache service.
     Cache,
 }
 
@@ -364,16 +381,27 @@ impl std::fmt::Display for SystemId {
 /// System types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SystemType {
+    /// Unknown system type.
     Unknown,
+    /// Development environment.
     Development,
+    /// Production environment.
     Production,
+    /// Testing environment.
     Testing,
+    /// Staging environment.
     Staging,
+    /// Local environment.
     Local,
+    /// Cloud environment.
     Cloud,
+    /// Edge computing environment.
     Edge,
+    /// Hybrid environment.
     Hybrid,
+    /// Distributed environment.
     Distributed,
+    /// Standalone environment.
     Standalone,
 }
 
@@ -630,12 +658,19 @@ impl Default for EntityInfo {
 /// Entity status
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityStatus {
+    /// The status is unknown or not yet determined.
     Unknown,
+    /// The peer is currently online and reachable.
     Online,
+    /// The peer is currently offline.
     Offline,
+    /// The peer is in the process of establishing a connection.
     Connecting,
+    /// The peer is being disconnected.
     Disconnecting,
+    /// An error occurred, with a description.
     Error(String),
+    /// The peer is under maintenance and may not respond.
     Maintenance,
 }
 

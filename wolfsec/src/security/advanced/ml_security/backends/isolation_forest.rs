@@ -3,15 +3,18 @@
 use super::{MLBackend, ModelInfo};
 use anyhow::Result;
 
+/// Isolation Forest backend implementation
 pub struct IsolationForest {
     threshold: f64,
 }
 
 impl IsolationForest {
+    /// Create new Isolation Forest backend
     pub fn new() -> Self {
         IsolationForest { threshold: 0.7 }
     }
 
+    /// Detect anomaly in data
     pub fn detect_anomaly(&self, data: &[f64]) -> (bool, f64) {
         // Simple logic for stub: check if features are outside expected ranges
         // In a real implementation, this would use linfa-clustering or a pre-trained model

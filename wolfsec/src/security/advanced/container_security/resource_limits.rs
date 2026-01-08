@@ -6,15 +6,18 @@ use anyhow::Result;
 use chrono::Utc;
 use uuid::Uuid;
 
+/// Resource limit manager
 pub struct ContainerResourceLimitManager {
     config: ContainerSecurityConfig,
 }
 
 impl ContainerResourceLimitManager {
+    /// Create new resource limit manager
     pub fn new(config: ContainerSecurityConfig) -> Result<Self> {
         Ok(Self { config })
     }
 
+    /// Apply resource limits
     pub async fn apply_limits(
         &self,
         limits: Vec<ContainerResourceLimits>,

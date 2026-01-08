@@ -1,3 +1,4 @@
+/// Module for vector quantization algorithms
 pub mod quantization;
 use hnsw_rs::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -7,13 +8,20 @@ use std::io::{BufReader, BufWriter};
 use std::path::Path;
 use std::sync::RwLock;
 
+/// Configuration for the HNSW vector index
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VectorConfig {
+    /// Maximum number of connections per node
     pub max_nb_connection: usize,
+    /// Size of the dynamic candidate list during construction
     pub ef_construction: usize,
+    /// Maximum connections for nodes at the base layer
     pub level_0_max_nb_connection: usize,
+    /// Number of layers in the skip list
     pub nb_layer: usize,
+    /// Dimensionality of the vectors
     pub dimension: usize,
+    /// Whether to use SQ8 quantization for 75% memory compression
     pub quantized: bool, // SQ8 quantization for 75% compression
 }
 
@@ -35,6 +43,7 @@ enum HnswInstance {
     U8(Hnsw<'static, u8, DistL1>),
 }
 
+/// A high-performance vector similarity index based on HNSW
 pub struct VectorIndex {
     hnsw: HnswInstance,
     state: RwLock<IndexState>,
@@ -54,7 +63,7 @@ struct HybridFilter<'a> {
     deleted_ids: &'a HashSet<usize>,
 }
 
-impl<'a> FilterT for HybridFilter<'a> {
+impl FilterT for HybridFilter<'_> {
     fn hnsw_filter(&self, id: &usize) -> bool {
         if self.deleted_ids.contains(id) {
             return false;
@@ -67,6 +76,8 @@ impl<'a> FilterT for HybridFilter<'a> {
 }
 
 impl VectorIndex {
+    /// Initializes a new `VectorIndex` with the given configuration
+    #[must_use]
     pub fn new(config: VectorConfig) -> Self {
         let hnsw = if config.quantized {
             HnswInstance::U8(Hnsw::new(
@@ -97,7 +108,12 @@ impl VectorIndex {
         }
     }
 
-    pub fn insert(&self, record_id: &str, vector: Vec<f32>) -> Result<(), anyhow::Error> {
+    /// Inserts a single vector into the index
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the vector dimension is invalid or if the lock is poisoned.
+    pub fn insert(&self, record_id: &str, vector: &[f32]) -> Result<(), anyhow::Error> {
         self.validate_dimension(vector.len())?;
 
         let mut state = self
@@ -111,10 +127,10 @@ impl VectorIndex {
 
         let internal_id = state.next_id;
         match &self.hnsw {
-            HnswInstance::F32(h) => h.insert((&vector, internal_id)),
+            HnswInstance::F32(h) => h.insert((vector, internal_id)),
             HnswInstance::U8(h) => {
-                let quantized = quantization::ScalarQuantizer::quantize(&vector);
-                h.insert((&quantized, internal_id))
+                let quantized = quantization::ScalarQuantizer::quantize(vector);
+                h.insert((&quantized, internal_id));
             }
         }
 
@@ -123,10 +139,16 @@ impl VectorIndex {
             .reverse_id_map
             .insert(record_id.to_string(), internal_id);
         state.next_id += 1;
+        drop(state);
 
         Ok(())
     }
 
+    /// Inserts a batch of vectors into the index efficiently
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any vector dimension is invalid or if the lock is poisoned.
     pub fn insert_batch(&self, records: Vec<(String, Vec<f32>)>) -> Result<(), anyhow::Error> {
         for (_, vector) in &records {
             self.validate_dimension(vector.len())?;
@@ -171,10 +193,12 @@ impl VectorIndex {
                 h.parallel_insert(&refs);
             }
         }
+        drop(state);
 
         Ok(())
     }
 
+    /// Marks a record as deleted in the index (soft delete)
     pub fn delete(&self, record_id: &str) -> bool {
         if let Ok(mut state) = self.state.write() {
             if let Some(&internal_id) = state.reverse_id_map.get(record_id) {
@@ -184,17 +208,26 @@ impl VectorIndex {
         false
     }
 
+    /// Searches for the top-k most similar records to the query vector
+    #[must_use]
     pub fn search(&self, vector: &[f32], k: usize) -> Vec<(String, f32)> {
         self.search_with_filter(vector, k, None)
     }
 
+    /// Performs a similarity search with an optional whitelist of permitted internal IDs
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal index state lock is poisoned.
+    #[must_use]
     pub fn search_with_filter(
         &self,
         vector: &[f32],
         k: usize,
         allowed_ids: Option<&HashSet<usize>>,
     ) -> Vec<(String, f32)> {
-        let state = self.state.read().unwrap();
+        #[allow(clippy::expect_used)]
+        let state = self.state.read().expect("Lock poisoned");
 
         let filter = HybridFilter {
             allowed_ids,
@@ -209,39 +242,58 @@ impl VectorIndex {
             }
         };
 
-        results
+        let mapped_results = results
             .into_iter()
             .filter_map(|neighbour| {
                 state
                     .id_map
                     .get(&neighbour.d_id)
-                    .map(|rid| (rid.clone(), neighbour.distance as f32))
+                    .map(|rid| (rid.clone(), neighbour.distance))
             })
-            .collect()
+            .collect();
+        drop(state);
+        mapped_results
     }
 
+    /// Maps a list of record IDs to their internal numerical IDs used by HNSW
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal index state lock is poisoned.
+    #[must_use]
     pub fn get_internal_ids(&self, record_ids: &[String]) -> HashSet<usize> {
-        let state = self.state.read().unwrap();
-        record_ids
+        #[allow(clippy::expect_used)]
+        let state = self.state.read().expect("Lock poisoned");
+        let ids = record_ids
             .iter()
             .filter_map(|rid| state.reverse_id_map.get(rid).copied())
-            .collect()
+            .collect();
+        drop(state);
+        ids
     }
 
+    /// # Errors
+    ///
+    /// Returns an error if the vector dimension doesn't match the index configuration.
     fn validate_dimension(&self, dim: usize) -> Result<(), anyhow::Error> {
         if self.config.dimension == 0 {
             return Ok(());
         }
         if dim != self.config.dimension {
             return Err(anyhow::anyhow!(
-                "Dimension mismatch: expected {}, got {}",
-                self.config.dimension,
-                dim
+                "Dimension mismatch: expected {expected}, got {dim}",
+                expected = self.config.dimension,
+                dim = dim
             ));
         }
         Ok(())
     }
 
+    /// Serializes the index and its metadata to a directory
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if directory creation, file writing, or HNSW dumping fails.
     pub fn save(&self, directory: &str) -> Result<(), anyhow::Error> {
         let dir_path = Path::new(directory);
         if !dir_path.exists() {
@@ -260,24 +312,30 @@ impl VectorIndex {
                 HnswInstance::F32(h) => {
                     let _ = h
                         .file_dump(dir_path, hnsw_basename)
-                        .map_err(|e| anyhow::anyhow!("HNSW dump failed: {}", e))?;
+                        .map_err(|e| anyhow::anyhow!("HNSW dump failed: {e}"))?;
                 }
                 HnswInstance::U8(h) => {
                     let _ = h
                         .file_dump(dir_path, hnsw_basename)
-                        .map_err(|e| anyhow::anyhow!("HNSW dump failed: {}", e))?;
+                        .map_err(|e| anyhow::anyhow!("HNSW dump failed: {e}"))?;
                 }
-            };
+            }
         }
 
         let meta_path = dir_path.join("vector_meta.bin");
         let file = File::create(meta_path)?;
         let writer = BufWriter::new(file);
         bincode::serialize_into(writer, &(&*state, &self.config))?;
+        drop(state);
 
         Ok(())
     }
 
+    /// Loads a `VectorIndex` and its HNSW state from a directory
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the metadata file is missing or corrupted, or if HNSW loading fails.
     pub fn load(directory: &str) -> Result<Self, anyhow::Error> {
         let dir_path = Path::new(directory);
         let hnsw_basename = "hnsw_index";
@@ -288,7 +346,7 @@ impl VectorIndex {
             let reader = BufReader::new(file);
             bincode::deserialize_from(reader)?
         } else {
-            return Err(anyhow::anyhow!("Metadata not found in {}", directory));
+            return Err(anyhow::anyhow!("Metadata not found in {directory}"));
         };
 
         let hnsw_io = Box::new(HnswIo::new(dir_path, hnsw_basename));
@@ -297,12 +355,12 @@ impl VectorIndex {
         let hnsw = if config.quantized {
             let h = hnsw_io_leak
                 .load_hnsw_with_dist(DistL1)
-                .map_err(|e| anyhow::anyhow!("HNSW load failed: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("HNSW load failed: {e}"))?;
             HnswInstance::U8(h)
         } else {
             let h = hnsw_io_leak
                 .load_hnsw_with_dist(DistCosine)
-                .map_err(|e| anyhow::anyhow!("HNSW load failed: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("HNSW load failed: {e}"))?;
             HnswInstance::F32(h)
         };
 
@@ -313,9 +371,18 @@ impl VectorIndex {
         })
     }
 
+    /// Returns statistics about the index (total nodes, active nodes, deleted nodes)
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal index state lock is poisoned.
+    #[must_use]
     pub fn get_stats(&self) -> (usize, usize, usize) {
-        let state = self.state.read().unwrap();
-        (state.next_id, state.id_map.len(), state.deleted_ids.len())
+        #[allow(clippy::expect_used)]
+        let state = self.state.read().expect("Lock poisoned");
+        let current_stats = (state.next_id, state.id_map.len(), state.deleted_ids.len());
+        drop(state);
+        current_stats
     }
 }
 
@@ -324,17 +391,19 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_vector_search() {
         let index = VectorIndex::new(VectorConfig::default());
-        index.insert("a", vec![1.0, 0.0, 0.0]).unwrap();
-        index.insert("b", vec![0.0, 1.0, 0.0]).unwrap();
+        index.insert("a", &[1.0, 0.0, 0.0]).unwrap();
+        index.insert("b", &[0.0, 1.0, 0.0]).unwrap();
 
-        let results = index.search(&vec![1.0, 0.1, 0.0], 1);
+        let results = index.search(&[1.0, 0.1, 0.0], 1);
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].0, "a");
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_quantized_search() {
         let config = VectorConfig {
             quantized: true,
@@ -342,10 +411,10 @@ mod tests {
             ..Default::default()
         };
         let index = VectorIndex::new(config);
-        index.insert("p1", vec![1.0, 0.0, 0.0]).unwrap();
-        index.insert("p2", vec![0.0, 1.0, 0.0]).unwrap();
+        index.insert("p1", &[1.0, 0.0, 0.0]).unwrap();
+        index.insert("p2", &[0.0, 1.0, 0.0]).unwrap();
 
-        let results = index.search(&vec![0.9, 0.1, 0.0], 1);
+        let results = index.search(&[0.9, 0.1, 0.0], 1);
         assert_eq!(results[0].0, "p1");
     }
 }

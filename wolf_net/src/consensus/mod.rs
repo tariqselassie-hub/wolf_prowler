@@ -224,10 +224,15 @@ impl ConsensusEngine {
 /// Node status information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeStatus {
+    /// Unique identifier for the consensus node.
     pub node_id: u64,
+    /// Current role of the node (Follower, Candidate, Leader).
     pub state: String,
+    /// Identifier of the current cluster leader.
     pub leader_id: Option<u64>,
+    /// Current Raft term.
     pub term: u64,
+    /// List of peer node identifiers in the cluster.
     pub peers: Vec<u64>,
 }
 

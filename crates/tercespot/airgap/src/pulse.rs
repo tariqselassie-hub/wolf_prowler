@@ -70,10 +70,10 @@ pub struct PulseManager {
     event_sender: broadcast::Sender<PulseEvent>,
 
     /// Configured data port
-    data_port: Option<String>,
+    _data_port: Option<String>,
 
     /// Configured identity port
-    identity_port: Option<String>,
+    _identity_port: Option<String>,
 
     /// Connected devices
     connected_devices: Arc<tokio::sync::RwLock<HashMap<String, PulseDevice>>>,
@@ -95,8 +95,8 @@ impl PulseManager {
 
         Self {
             event_sender: tx,
-            data_port,
-            identity_port,
+            _data_port: data_port,
+            _identity_port: identity_port,
             connected_devices,
         }
     }
@@ -248,7 +248,7 @@ impl UsbPortController {
     }
 
     /// Get USB port status
-    pub async fn get_port_status(port: &str) -> io::Result<PortStatus> {
+    pub async fn get_port_status(_port: &str) -> io::Result<PortStatus> {
         // In a real implementation, this would read from sysfs
         // For now, return a simulated status
         Ok(PortStatus::PoweredOff)

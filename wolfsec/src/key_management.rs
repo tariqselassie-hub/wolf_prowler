@@ -14,220 +14,330 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
 
-/// Key Manager
+/// Manages cryptographic keys and certificates.
 pub struct KeyManager {
-    /// Key store
+    /// Thread-safe storage for cryptographic keys.
     key_store: Arc<RwLock<KeyStore>>,
-    /// Certificate store
+    /// Thread-safe storage for X.509-like certificates.
     cert_store: Arc<RwLock<CertificateStore>>,
-    /// Configuration
+    /// Configuration for key management operations.
     config: KeyManagementConfig,
-    /// Audit log
+    /// Audit log for certificate-related events.
     audit_log: Arc<RwLock<Vec<CertificateAuditEvent>>>,
 }
 
-/// Key store for managing cryptographic keys
+/// Key store for managing cryptographic keys.
 #[derive(Debug)]
 pub struct KeyStore {
+    /// Map of key IDs to their respective entries.
     keys: HashMap<String, KeyEntry>,
+    /// The ID of the default key used for operations when no specific ID is provided.
     default_key_id: Option<String>,
+    /// Schedule for planned key rotations.
     rotation_schedule: HashMap<String, DateTime<Utc>>,
 }
 
-/// Key entry in the store
+/// A single key entry within the store.
 #[derive(Debug, Clone)]
 pub struct KeyEntry {
+    /// Unique identifier for the key.
     pub key_id: String,
+    /// The raw cryptographic key data.
     pub key_data: Vec<u8>,
+    /// The type of the key (e.g., Symmetric, Asymmetric).
     pub key_type: KeyType,
+    /// The algorithm associated with this key.
     pub algorithm: String,
+    /// Timestamp when the key was created.
     pub created_at: DateTime<Utc>,
+    /// Optional expiration timestamp for the key.
     pub expires_at: Option<DateTime<Utc>>,
+    /// Timestamp when the key was last used.
     pub last_used: DateTime<Utc>,
+    /// Number of times this key has been used.
     pub usage_count: u64,
+    /// Current status of the key.
     pub status: KeyStatus,
+    /// Additional metadata associated with the key.
     pub metadata: HashMap<String, String>,
 }
 
-/// Key types
+/// Categorization of cryptographic keys.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum KeyType {
+    /// Symmetric encryption key.
     Symmetric,
+    /// Private key of an asymmetric pair.
     AsymmetricPrivate,
+    /// Public key of an asymmetric pair.
     AsymmetricPublic,
+    /// Hash-based Message Authentication Code key.
     HMAC,
+    /// Key used for key derivation functions.
     Derivation,
 }
 
-/// Key status
+/// Operational status of a cryptographic key.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum KeyStatus {
+    /// Key is active and available for use.
     Active,
+    /// Key is deprecated and should not be used for new operations.
     Deprecated,
+    /// Key has been revoked and is no longer valid.
     Revoked,
+    /// Key has exceeded its natural lifespan.
     Expired,
+    /// Key is slated for rotation.
     PendingRotation,
 }
 
-/// Certificate store for managing X.509-like certificates
+/// Certificate store for managing X.509-like certificates.
 #[derive(Debug)]
 pub struct CertificateStore {
+    /// Map of certificate IDs to their respective certificate entities.
     certificates: HashMap<String, Certificate>,
+    /// Store of trust settings for various certificates.
     trust_store: HashMap<String, TrustEntry>,
 }
 
-/// Certificate data structure
+/// Attributes and metadata of a certificate.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CertificateData {
+    /// The subject's distinguished name or identifier.
     pub subject: String,
+    /// The encoded public key.
     pub public_key: String,
+    /// The identifier of the certificate issuer.
     pub issuer: String,
+    /// Unique serial number assigned to the certificate.
     pub serial_number: String,
+    /// Timestamp from which the certificate is valid.
     pub not_before: DateTime<Utc>,
+    /// Timestamp after which the certificate is no longer valid.
     pub not_after: DateTime<Utc>,
+    /// The algorithm used to sign this certificate.
     pub signature_algorithm: String,
+    /// Additional X.509 extensions.
     pub extensions: HashMap<String, String>,
 }
 
-/// Certificate with signature
+/// A certificate entity including its signature and PEM representation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Certificate {
+    /// Unique identifier for the certificate.
     pub id: String,
+    /// Inner certificate attributes.
     pub data: CertificateData,
+    /// Digital signature of the certificate data.
     pub signature: String,
-    pub pem: Option<String>, // Added PEM field for export
+    /// Optional PEM-encoded representation of the certificate.
+    pub pem: Option<String>,
+    /// Timestamp when the certificate was created in the system.
     pub created_at: DateTime<Utc>,
+    /// Current status of the certificate.
     pub status: CertStatus,
+    /// trust level assigned to this certificate.
     pub trust_level: TrustLevel,
-    pub revocation_info: Option<RevocationInfo>, // Added revocation tracking
+    /// Optional revocation details if the certificate is revoked.
+    pub revocation_info: Option<RevocationInfo>,
 }
 
-/// Revocation information
+/// Details regarding a certificate's revocation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RevocationInfo {
+    /// Date when the certificate was revoked.
     pub revocation_date: DateTime<Utc>,
+    /// The reason for revocation.
     pub reason: RevocationReason,
-    pub revoked_by: String, // Certificate ID of the revoking authority
+    /// Identity of the entity that performed the revocation.
+    pub revoked_by: String,
 }
 
-/// Certificate status
+/// Operational status of a certificate.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CertStatus {
+    /// Certificate is active and valid.
     Active,
+    /// Certificate has passed its 'not_after' date.
     Expired,
+    /// Certificate has been explicitly revoked.
     Revoked,
+    /// Certificate is temporarily suspended.
     Suspended,
 }
 
-/// Trust levels for certificates
+/// Trust levels assigned to certificates.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TrustLevel {
+    /// The trust level is currently unknown.
     Unknown,
+    /// The certificate is explicitly untrusted.
     Untrusted,
+    /// The certificate has a neutral trust level.
     Neutral,
+    /// The certificate is trusted.
     Trusted,
+    /// The certificate is highly trusted.
     HighlyTrusted,
+    /// The certificate is a root authority.
     Root,
 }
 
-/// Certificate validation result
+/// Result of a certificate validation operation.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ValidationResult {
+    /// The certificate is valid.
     Valid,
+    /// The certificate has expired.
     Expired,
+    /// The certificate is not yet valid.
     NotYetValid,
+    /// The certificate has been revoked.
     Revoked,
+    /// The certificate signature is invalid.
     InvalidSignature,
+    /// The certificate chain is invalid.
     InvalidChain,
+    /// The certificate issuer is not trusted.
     UntrustedIssuer,
+    /// The certificate issuer is unknown.
     UnknownIssuer,
 }
 
-/// Revocation reason
+/// Standard reasons for certificate revocation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum RevocationReason {
+    /// Reason not specified.
     Unspecified,
+    /// Private key was compromised.
     KeyCompromise,
+    /// Certification Authority was compromised.
     CACompromise,
+    /// Affiliation with the issuer has changed.
     AffiliationChanged,
+    /// Certificate has been superseded by a new one.
     Superseded,
+    /// Operation of the certificate subject has ceased.
     CessationOfOperation,
+    /// Certificate is on hold.
     CertificateHold,
+    /// Certificate was removed from Certificate Revocation List.
     RemoveFromCRL,
+    /// Privileges granted by the certificate were withdrawn.
     PrivilegeWithdrawn,
+    /// Authority Attributes were compromised.
     AACompromise,
 }
 
-/// Revocation status
+/// Current revocation status of a certificate.
 #[derive(Debug, Clone, PartialEq)]
 pub enum RevocationStatus {
+    /// Certificate is valid and not revoked.
     Valid,
+    /// Certificate is revoked for the specified reason.
     Revoked(RevocationReason),
+    /// Revocation status could not be determined.
     Unknown,
 }
 
-/// Audit event types for certificates
+/// Types of audit events related to certificate management.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AuditEventType {
+    /// A new certificate was created.
     CertificateCreated,
+    /// A certificate was revoked.
     CertificateRevoked,
+    /// A certificate has expired.
     CertificateExpired,
+    /// A certificate was successfully validated.
     CertificateValidated,
+    /// A certificate was exported.
     CertificateExported,
+    /// A key associated with a certificate was rotated.
     KeyRotated,
+    /// The trust level of a certificate was changed.
     TrustLevelChanged,
 }
 
-/// Certificate audit event
+/// An entry in the certificate audit log.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CertificateAuditEvent {
+    /// The type of audit event.
     pub event_type: AuditEventType,
+    /// The ID of the certificate involved.
     pub certificate_id: String,
+    /// Optional ID of the user who performed the action.
     pub user_id: Option<String>,
+    /// Timestamp when the event occurred.
     pub timestamp: DateTime<Utc>,
+    /// Additional metadata and context as key-value pairs.
     pub details: HashMap<String, String>,
+    /// Optional IP address of the entity performing the action.
     pub ip_address: Option<String>,
 }
 
-/// Expiration alert
+/// Alert generated when a certificate is nearing expiration.
 #[derive(Debug, Clone)]
 pub struct ExpirationAlert {
+    /// The ID of the certificate.
     pub certificate_id: String,
+    /// The subject of the certificate.
     pub subject: String,
+    /// When the certificate will expire.
     pub expires_at: DateTime<Utc>,
+    /// Number of days remaining until expiration.
     pub days_until_expiry: i64,
+    /// The severity of the alert.
     pub severity: AlertSeverity,
 }
 
-/// Alert severity levels
+/// Severity levels for key management alerts.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AlertSeverity {
+    /// Informational alert.
     Info,
+    /// Warning alert, requiring attention.
     Warning,
+    /// Critical alert, requiring immediate action.
     Critical,
 }
 
-/// Trust entry in the trust store
+/// An entry representing a trusted certificate and its trust level.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrustEntry {
+    /// The ID of the trusted certificate.
     pub certificate_id: String,
+    /// The assigned trust level.
     pub trust_level: TrustLevel,
+    /// When this entry was added to the trust store.
     pub added_at: DateTime<Utc>,
+    /// When the trust status was last verified.
     pub last_verified: DateTime<Utc>,
+    /// Number of times this certificate's trust has been verified.
     pub verification_count: u64,
 }
 
-/// Key management configuration
+/// Configuration settings for the Key Management system.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyManagementConfig {
+    /// Default size for newly generated keys (in bits or bytes depending on algorithm).
     pub default_key_size: usize,
+    /// Default algorithm to use for key generation.
     pub default_algorithm: String,
+    /// Interval in days for automatic key rotation.
     pub key_rotation_interval_days: u32,
+    /// Number of days to retain old keys after rotation.
     pub key_retention_days: u32,
+    /// Whether to automatically rotate keys.
     pub auto_rotation: bool,
+    /// Whether to use secure storage for keys.
     pub secure_storage: bool,
-    pub certificate_expiry_alert_days: u32, // Days before expiry to alert
+    /// Number of days before expiration to start generating alerts.
+    pub certificate_expiry_alert_days: u32,
+    /// Whether audit logging is enabled.
     pub enable_audit_logging: bool,
+    /// Maximum number of audit log entries to retain.
     pub max_audit_log_entries: usize,
 }
 
@@ -247,21 +357,31 @@ impl Default for KeyManagementConfig {
     }
 }
 
-/// Key management status
+/// Current operational status of the Key Management system.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyManagementStatus {
+    /// Total number of keys in the store.
     pub total_keys: usize,
+    /// Number of keys currently active.
     pub active_keys: usize,
+    /// Number of keys that have expired.
     pub expired_keys: usize,
+    /// Number of keys that have been revoked.
     pub revoked_keys: usize,
+    /// Total number of certificates in the store.
     pub total_certificates: usize,
+    /// Number of trusted certificates.
     pub trusted_certificates: usize,
+    /// Number of certificates that have expired.
     pub expired_certificates: usize,
+    /// Number of certificates that have been revoked.
     pub revoked_certificates: usize,
+    /// Timestamp of the next scheduled key rotation.
     pub next_rotation: Option<DateTime<Utc>>,
 }
 
 impl KeyStore {
+    /// Creates a new, empty `KeyStore`.
     pub fn new() -> Self {
         Self {
             keys: HashMap::new(),
@@ -270,7 +390,12 @@ impl KeyStore {
         }
     }
 
-    /// Add a key to the store
+    /// Adds a key to the store.
+    ///
+    /// If no default key is currently set, this key will become the default.
+    ///
+    /// # Arguments
+    /// * `key` - The `KeyEntry` to be added.
     pub fn add_key(&mut self, key: KeyEntry) {
         let key_id = key.key_id.clone();
         self.keys.insert(key_id.clone(), key);
@@ -281,19 +406,36 @@ impl KeyStore {
         }
     }
 
-    /// Get a key by ID
+    /// Retrieves a key from the store by its ID.
+    ///
+    /// # Arguments
+    /// * `key_id` - The unique identifier of the key to retrieve.
+    ///
+    /// # Returns
+    /// An `Option` containing a reference to the `KeyEntry` if found, or `None` otherwise.
     pub fn get_key(&self, key_id: &str) -> Option<&KeyEntry> {
         self.keys.get(key_id)
     }
 
-    /// Get the default key
+    /// Retrieves the default key from the store.
+    ///
+    /// # Returns
+    /// An `Option` containing a reference to the default `KeyEntry` if set, or `None` otherwise.
     pub fn get_default_key(&self) -> Option<&KeyEntry> {
         self.default_key_id
             .as_ref()
             .and_then(|id| self.keys.get(id))
     }
 
-    /// Remove a key
+    /// Removes a key from the store by its ID.
+    ///
+    /// If the removed key was the default, the next available key (if any) is set as the default.
+    ///
+    /// # Arguments
+    /// * `key_id` - The unique identifier of the key to remove.
+    ///
+    /// # Returns
+    /// An `Option` containing the removed `KeyEntry` if it existed, or `None` otherwise.
     pub fn remove_key(&mut self, key_id: &str) -> Option<KeyEntry> {
         let key = self.keys.remove(key_id)?;
 
@@ -305,12 +447,15 @@ impl KeyStore {
         Some(key)
     }
 
-    /// List all keys
+    /// Returns a list of all keys currently in the store.
     pub fn list_keys(&self) -> Vec<&KeyEntry> {
         self.keys.values().collect()
     }
 
-    /// Get keys by type
+    /// Filters and returns keys of a specific type.
+    ///
+    /// # Arguments
+    /// * `key_type` - The `KeyType` to filter by.
     pub fn get_keys_by_type(&self, key_type: KeyType) -> Vec<&KeyEntry> {
         self.keys
             .values()
@@ -318,7 +463,7 @@ impl KeyStore {
             .collect()
     }
 
-    /// Get expired keys
+    /// Identifies and returns all keys that have expired or are marked as expired.
     pub fn get_expired_keys(&self) -> Vec<&KeyEntry> {
         let now = Utc::now();
         self.keys
@@ -329,12 +474,19 @@ impl KeyStore {
             .collect()
     }
 
-    /// Schedule key rotation
+    /// Schedules a key for automatic rotation at a specific time.
+    ///
+    /// # Arguments
+    /// * `key_id` - The ID of the key to rotate.
+    /// * `rotation_time` - The `DateTime<Utc>` when the rotation should occur.
     pub fn schedule_rotation(&mut self, key_id: String, rotation_time: DateTime<Utc>) {
         self.rotation_schedule.insert(key_id, rotation_time);
     }
 
-    /// Get keys scheduled for rotation
+    /// Identifies keys whose scheduled rotation time has passed.
+    ///
+    /// # Returns
+    /// A vector of key IDs that are candidates for rotation.
     pub fn get_rotation_candidates(&self) -> Vec<&str> {
         let now = Utc::now();
         self.rotation_schedule
@@ -352,6 +504,7 @@ impl Default for KeyStore {
 }
 
 impl CertificateStore {
+    /// Creates a new, empty `CertificateStore`.
     pub fn new() -> Self {
         Self {
             certificates: HashMap::new(),
@@ -359,24 +512,39 @@ impl CertificateStore {
         }
     }
 
-    /// Add a certificate
+    /// Adds a certificate to the store.
+    ///
+    /// # Arguments
+    /// * `cert` - The `Certificate` object to add.
     pub fn add_certificate(&mut self, cert: Certificate) {
         let cert_id = cert.id.clone();
         self.certificates.insert(cert_id.clone(), cert);
     }
 
-    /// Get a certificate by ID
+    /// Retrieves a certificate from the store by its ID.
+    ///
+    /// # Arguments
+    /// * `cert_id` - The unique identifier of the certificate to retrieve.
     pub fn get_certificate(&self, cert_id: &str) -> Option<&Certificate> {
         self.certificates.get(cert_id)
     }
 
-    /// Add to trust store
+    /// Adds an entry to the trust store.
+    ///
+    /// # Arguments
+    /// * `trust_entry` - The `TrustEntry` to add.
     pub fn add_trust_entry(&mut self, trust_entry: TrustEntry) {
         let cert_id = trust_entry.certificate_id.clone();
         self.trust_store.insert(cert_id, trust_entry);
     }
 
-    /// Get trust level for a certificate
+    /// Retrieves the trust level assigned to a specific certificate.
+    ///
+    /// # Arguments
+    /// * `cert_id` - The ID of the certificate.
+    ///
+    /// # Returns
+    /// The `TrustLevel` associated with the certificate, or `TrustLevel::Unknown` if not found.
     pub fn get_trust_level(&self, cert_id: &str) -> TrustLevel {
         self.trust_store
             .get(cert_id)
@@ -384,12 +552,12 @@ impl CertificateStore {
             .unwrap_or(TrustLevel::Unknown)
     }
 
-    /// List all certificates
+    /// Returns a list of all certificates in the store.
     pub fn list_certificates(&self) -> Vec<&Certificate> {
         self.certificates.values().collect()
     }
 
-    /// Get trusted certificates
+    /// Retrieves all certificates that have a trust level of `Trusted`, `HighlyTrusted`, or `Root`.
     pub fn get_trusted_certificates(&self) -> Vec<&Certificate> {
         self.certificates
             .values()
@@ -402,7 +570,15 @@ impl CertificateStore {
             .collect()
     }
 
-    /// Validate a certificate
+    /// Performs basic validation on a certificate.
+    ///
+    /// This includes checking for expiration and revocation status.
+    ///
+    /// # Arguments
+    /// * `cert` - A reference to the `Certificate` to validate.
+    ///
+    /// # Returns
+    /// A `ValidationResult` indicating the outcome of the validation.
     pub fn validate_certificate(&self, cert: &Certificate) -> ValidationResult {
         let now = Utc::now();
 
@@ -429,7 +605,15 @@ impl CertificateStore {
         ValidationResult::Valid
     }
 
-    /// Validate certificate chain
+    /// Validates a chain of certificates.
+    ///
+    /// This method checks each certificate in the chain for validity and ensures proper issuer/subject relationships.
+    ///
+    /// # Arguments
+    /// * `cert_chain` - A slice of `Certificate` objects representing the chain.
+    ///
+    /// # Errors
+    /// Returns an error if the chain is empty or if any certificate in the chain is found to be invalid.
     pub fn validate_certificate_chain(&self, cert_chain: &[Certificate]) -> Result<()> {
         if cert_chain.is_empty() {
             return Err(anyhow!("Empty certificate chain"));
@@ -471,7 +655,13 @@ impl CertificateStore {
         Ok(())
     }
 
-    /// Check revocation status
+    /// Checks the revocation status of a certificate.
+    ///
+    /// # Arguments
+    /// * `cert` - A reference to the `Certificate` to check.
+    ///
+    /// # Returns
+    /// A `RevocationStatus` indicating whether the certificate is valid or revoked.
     pub fn check_revocation_status(&self, cert: &Certificate) -> RevocationStatus {
         match cert.status {
             CertStatus::Revoked => {
@@ -485,7 +675,15 @@ impl CertificateStore {
         }
     }
 
-    /// Revoke a certificate
+    /// Revokes a certificate.
+    ///
+    /// # Arguments
+    /// * `cert_id` - The ID of the certificate to revoke.
+    /// * `reason` - The `RevocationReason` for the revocation.
+    /// * `revoked_by` - The identifier of the entity performing the revocation.
+    ///
+    /// # Errors
+    /// Returns an error if the certificate cannot be found.
     pub fn revoke_certificate(
         &mut self,
         cert_id: &str,
@@ -505,7 +703,7 @@ impl CertificateStore {
         }
     }
 
-    /// Get expired certificates
+    /// Returns a list of all expired certificates in the store.
     pub fn get_expired_certificates(&self) -> Vec<&Certificate> {
         let now = Utc::now();
         self.certificates
@@ -514,7 +712,10 @@ impl CertificateStore {
             .collect()
     }
 
-    /// Get certificates expiring soon
+    /// Returns a list of certificates that are within the expiration warning threshold.
+    ///
+    /// # Arguments
+    /// * `days` - The number of days before expiration to consider a certificate as "expiring soon".
     pub fn get_certificates_expiring_soon(&self, days: i64) -> Vec<&Certificate> {
         let threshold = Utc::now() + chrono::Duration::days(days);
         self.certificates
@@ -535,7 +736,10 @@ impl Default for CertificateStore {
 }
 
 impl KeyManager {
-    /// Create new key manager
+    /// Creates a new `KeyManager` instance with the specified configuration.
+    ///
+    /// # Arguments
+    /// * `config` - The `KeyManagementConfig` to use.
     pub fn new(config: KeyManagementConfig) -> Self {
         Self {
             key_store: Arc::new(RwLock::new(KeyStore::new())),
@@ -545,7 +749,12 @@ impl KeyManager {
         }
     }
 
-    /// Initialize key manager
+    /// Initializes the `KeyManager`.
+    ///
+    /// This generates a default symmetric key and sets up the internal state.
+    ///
+    /// # Errors
+    /// Returns an error if initialization or default key generation fails.
     pub async fn initialize(&self) -> Result<()> {
         info!("🔑 Initializing Key Manager");
 
@@ -560,7 +769,14 @@ impl KeyManager {
         Ok(())
     }
 
-    /// Generate a symmetric key
+    /// Generates a new symmetric key.
+    ///
+    /// # Arguments
+    /// * `key_id` - The identifier for the new key.
+    /// * `key_size` - The size of the key to generate.
+    ///
+    /// # Returns
+    /// A `Result` containing the generated `KeyEntry`.
     pub fn generate_symmetric_key(&self, key_id: &str, key_size: usize) -> Result<KeyEntry> {
         let mut key_data = vec![0u8; key_size];
         getrandom::getrandom(&mut key_data)
@@ -583,7 +799,14 @@ impl KeyManager {
         Ok(key)
     }
 
-    /// Generate an asymmetric key pair
+    /// Generates a new asymmetric key pair.
+    ///
+    /// # Arguments
+    /// * `key_id` - The base identifier for the key pair.
+    /// * `algorithm` - The algorithm to use (e.g., "RSA-2048", "Ed25519").
+    ///
+    /// # Returns
+    /// A `Result` containing a tuple of (private key, public key) as `KeyEntry` objects.
     pub fn generate_asymmetric_keypair(
         &self,
         key_id: &str,
@@ -638,26 +861,37 @@ impl KeyManager {
         Ok((private_key, public_key))
     }
 
-    /// Store a key
+    /// Stores a key in the `KeyManager`'s internal storage.
+    ///
+    /// # Arguments
+    /// * `key` - The `KeyEntry` to store.
     pub async fn store_key(&self, key: KeyEntry) -> Result<()> {
         let mut key_store = self.key_store.write().await;
         key_store.add_key(key);
         Ok(())
     }
 
-    /// Get a key
+    /// Retrieves a key by its ID.
+    ///
+    /// # Arguments
+    /// * `key_id` - The ID of the key to retrieve.
     pub async fn get_key(&self, key_id: &str) -> Option<KeyEntry> {
         let key_store = self.key_store.read().await;
         key_store.get_key(key_id).cloned()
     }
 
-    /// Get the default key
+    /// Retrieves the default key.
     pub async fn get_default_key(&self) -> Option<KeyEntry> {
         let key_store = self.key_store.read().await;
         key_store.get_default_key().cloned()
     }
 
-    /// Create a self-signed certificate
+    /// Creates a self-signed X.509 certificate.
+    ///
+    /// # Arguments
+    /// * `subject` - The subject name for the certificate.
+    /// * `key_id` - The ID of the key to use for signing.
+    /// * `validity_days` - Number of days the certificate should be valid for.
     pub async fn create_self_signed_certificate(
         &self,
         subject: &str,
@@ -725,7 +959,10 @@ impl KeyManager {
         Ok(certificate)
     }
 
-    /// Export certificate in PEM format
+    /// Exports a certificate in PEM format.
+    ///
+    /// # Arguments
+    /// * `cert_id` - The ID of the certificate to export.
     pub async fn export_certificate_pem(&self, cert_id: &str) -> Result<String> {
         let cert_store = self.cert_store.read().await;
         let cert = cert_store
@@ -737,7 +974,12 @@ impl KeyManager {
             .ok_or_else(|| anyhow!("PEM data not available for certificate: {}", cert_id))
     }
 
-    /// Export certificate in PKCS#12 format
+    /// Exports a certificate and its associated private key in PKCS#12 format.
+    ///
+    /// # Arguments
+    /// * `cert_id` - The ID of the certificate.
+    /// * `key_id` - The ID of the private key.
+    /// * `password` - The password to protect the PKCS#12 file.
     pub async fn export_certificate_pkcs12(
         &self,
         cert_id: &str,
@@ -777,7 +1019,10 @@ impl KeyManager {
         Ok(pkcs12.to_der()?)
     }
 
-    /// Validate a certificate
+    /// Validates a certificate.
+    ///
+    /// # Arguments
+    /// * `cert_id` - The ID of the certificate to validate.
     pub async fn validate_certificate(&self, cert_id: &str) -> Result<ValidationResult> {
         let cert_store = self.cert_store.read().await;
         let cert = cert_store
@@ -804,7 +1049,12 @@ impl KeyManager {
         Ok(result)
     }
 
-    /// Revoke a certificate
+    /// Revokes a certificate.
+    ///
+    /// # Arguments
+    /// * `cert_id` - The ID of the certificate to revoke.
+    /// * `reason` - The `RevocationReason` for revocation.
+    /// * `user_id` - Optional ID of the user performing the revocation.
     pub async fn revoke_certificate(
         &self,
         cert_id: &str,
@@ -835,7 +1085,10 @@ impl KeyManager {
         Ok(())
     }
 
-    /// Check revocation status
+    /// Checks the revocation status of a certificate.
+    ///
+    /// # Arguments
+    /// * `cert_id` - The ID of the certificate to check.
     pub async fn check_revocation_status(&self, cert_id: &str) -> Result<RevocationStatus> {
         let cert_store = self.cert_store.read().await;
         let cert = cert_store
@@ -845,7 +1098,7 @@ impl KeyManager {
         Ok(cert_store.check_revocation_status(cert))
     }
 
-    /// Monitor certificate expirations
+    /// Monitors all certificates and generates alerts for those nearing expiration.
     pub async fn monitor_certificate_expirations(&self) -> Result<Vec<ExpirationAlert>> {
         let cert_store = self.cert_store.read().await;
         let mut alerts = Vec::new();
@@ -891,7 +1144,10 @@ impl KeyManager {
         Ok(alerts)
     }
 
-    /// Log certificate audit event
+    /// Logs a certificate-related audit event.
+    ///
+    /// # Arguments
+    /// * `event` - The `CertificateAuditEvent` to log.
     pub async fn log_certificate_event(&self, event: CertificateAuditEvent) -> Result<()> {
         if !self.config.enable_audit_logging {
             return Ok(());
@@ -910,7 +1166,10 @@ impl KeyManager {
         Ok(())
     }
 
-    /// Get audit log
+    /// Retrieves the certificate audit log.
+    ///
+    /// # Arguments
+    /// * `limit` - Optional limit on the number of events to return.
     pub async fn get_audit_log(&self, limit: Option<usize>) -> Vec<CertificateAuditEvent> {
         let audit_log = self.audit_log.read().await;
         let mut events = audit_log.clone();
@@ -922,14 +1181,20 @@ impl KeyManager {
         events
     }
 
-    /// Store a certificate
+    /// Stores a certificate in the internal store.
+    ///
+    /// # Arguments
+    /// * `cert` - The `Certificate` to store.
     pub async fn store_certificate(&self, cert: Certificate) -> Result<()> {
         let mut cert_store = self.cert_store.write().await;
         cert_store.add_certificate(cert);
         Ok(())
     }
 
-    /// Rotate all keys scheduled for rotation
+    /// Rotates all keys that are scheduled for rotation.
+    ///
+    /// # Returns
+    /// A vector of the newly generated key IDs.
     pub async fn rotate_all_keys(&self) -> Result<Vec<String>> {
         let mut rotated_keys = Vec::new();
         let key_store = self.key_store.read().await;
@@ -961,7 +1226,10 @@ impl KeyManager {
         Ok(rotated_keys)
     }
 
-    /// Clean up expired keys
+    /// Removes all expired keys from the store.
+    ///
+    /// # Returns
+    /// The number of keys removed.
     pub async fn cleanup_expired_keys(&self) -> Result<usize> {
         let mut key_store = self.key_store.write().await;
         let expired_keys: Vec<String> = key_store
@@ -983,7 +1251,7 @@ impl KeyManager {
         Ok(removed)
     }
 
-    /// Get key management status
+    /// Returns the current status of the Key Management system.
     pub async fn get_status(&self) -> KeyManagementStatus {
         let key_store = self.key_store.read().await;
         let cert_store = self.cert_store.read().await;
@@ -1038,7 +1306,7 @@ impl KeyManager {
         Ok(bytes)
     }
 
-    /// Shutdown key manager
+    /// Shuts down the `KeyManager` and securely clears all sensitive data.
     pub async fn shutdown(&self) -> Result<()> {
         info!("🔑 Shutting down Key Manager");
 

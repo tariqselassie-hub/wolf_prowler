@@ -12,45 +12,70 @@ use std::io;
 pub enum WolfMessage {
     /// Handshake message
     Handshake {
+        /// Protocol version
         version: String,
+        /// ID of sender
         peer_id: String,
+        /// Public key of sender
         public_key: Vec<u8>,
+        /// Timestamp of handshake
         timestamp: u64,
     },
     /// Pack coordination message
     PackCoordination {
+        /// Pack ID
         pack_id: String,
+        /// Action required
         action: PackAction,
+        /// Specific data payload
         payload: Vec<u8>,
+        /// Authorization signature
         signature: Vec<u8>,
     },
     /// Security alert
     SecurityAlert {
+        /// Type of alert
         alert_type: String,
+        /// Severity level
         severity: String,
+        /// Description of threat
         description: String,
+        /// Peer reporting the alert
         source_peer: String,
+        /// Timestamp
         timestamp: u64,
     },
     /// Howl communication
     Howl {
+        /// Urgency frequency (fake metric for now)
         frequency: f32,
+        /// Pattern of the howl
         pattern: HowlPattern,
+        /// Encoded message
         message: Option<Vec<u8>>,
+        /// Territory context
         territory: Option<String>,
     },
     /// Territory claim
     TerritoryClaim {
+        /// ID of territory
         territory_id: String,
+        /// Boundary definitions
         boundaries: Vec<String>,
+        /// Claim strength or expiration
         strength: u32,
+        /// Timestamp
         timestamp: u64,
     },
     /// Heartbeat
     Heartbeat {
+        /// Sender ID
         peer_id: String,
+        /// Current status
         status: PeerStatus,
+        /// Performance metrics
         metrics: PeerMetrics,
+        /// Timestamp
         timestamp: u64,
     },
 }
@@ -58,27 +83,39 @@ pub enum WolfMessage {
 /// Pack actions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PackAction {
+    /// Join a pack
     Join {
+        /// ID of pack to join
         pack_id: String,
     },
+    /// Leave a pack
     Leave {
+        /// ID of pack to leave
         pack_id: String,
     },
+    /// General coordination
     Coordinate {
+        /// Operation identifier
         operation: String,
     },
+    /// Raise alert
     Alert {
+        /// Threat level
         threat_level: u8,
     },
+    /// Initiate hunt
     Hunt {
+        /// Target ID
         target_id: String,
     },
     /// Hunter verification phase
     Stalk {
+        /// Target IP
         target_ip: String,
     },
     /// Active neutralization command
     Strike {
+        /// Target IP
         target_ip: String,
     },
 }
@@ -86,29 +123,46 @@ pub enum PackAction {
 /// Howl patterns
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum HowlPattern {
+    /// Alert Howl
     Alert {
+        /// Urgency level
         urgency: u8,
+        /// Whether it's restricted to pack members
         pack_only: bool,
     },
     /// Specific warning about a detected threat (Scent phase)
     Warning {
+        /// Detected IP
         target_ip: String,
+        /// Evidence summary
         evidence: String,
     },
+    /// Coordination Howl
     Coordination {
+        /// Pack ID
         pack_id: String,
+        /// Operation
         operation: String,
     },
+    /// Territory Howl
     Territory {
+        /// Territory ID
         territory_id: String,
+        /// Claim action
         action: String,
     },
+    /// Social Howl
     Social {
+        /// Greeting or message
         greeting: String,
+        /// Pack ID context
         pack_id: Option<String>,
     },
+    /// Hunt Howl
     Hunt {
+        /// Target ID
         target_id: String,
+        /// Strategy plan
         strategy: String,
     },
 }
@@ -116,21 +170,32 @@ pub enum HowlPattern {
 /// Peer status
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PeerStatus {
+    /// Fully active
     Active,
+    /// Idle / Standing by
     Idle,
+    /// Engaged in hunt
     Hunting,
+    /// Defending territory
     Guarding,
+    /// Maintenance / Rebooting
     Resting,
 }
 
 /// Peer metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PeerMetrics {
+    /// CPU usage percentage
     pub cpu_usage: f32,
+    /// Memory usage percentage
     pub memory_usage: f32,
+    /// Average network latency in ms
     pub network_latency: u32,
+    /// Number of active connections
     pub connection_count: u32,
+    /// Total messages sent
     pub messages_sent: u64,
+    /// Total messages received
     pub messages_received: u64,
 }
 
@@ -139,48 +204,73 @@ pub struct PeerMetrics {
 pub enum WolfResponse {
     /// Acknowledgment
     Ack {
+        /// ID of message being acknowledged
         message_id: String,
+        /// Status string
         status: String,
+        /// Timestamp
         timestamp: u64,
     },
     /// Handshake response
     HandshakeResponse {
+        /// Protocol version
         version: String,
+        /// Responder ID
         peer_id: String,
+        /// Responder Public Key
         public_key: Vec<u8>,
+        /// Accepted or rejected
         accepted: bool,
+        /// Rejection reason
         reason: Option<String>,
     },
     /// Pack coordination response
     PackCoordinationResponse {
+        /// Pack ID
         pack_id: String,
+        /// Action being responded to
         action: PackAction,
+        /// Result of action
         result: String,
+        /// Data payload
         payload: Option<Vec<u8>>,
     },
     /// Security alert response
     SecurityAlertResponse {
+        /// Alert ID
         alert_id: String,
+        /// Action taken
         action_taken: String,
+        /// Status
         status: String,
     },
     /// Howl response
     HowlResponse {
+        /// Pattern context
         pattern: HowlPattern,
+        /// Response string
         response: String,
+        /// Whether pack was joined
         pack_joined: bool,
     },
     /// Territory response
     TerritoryResponse {
+        /// Territory ID
         territory_id: String,
+        /// Action context
         action: String,
+        /// Result string
         result: String,
+        /// Conflicting claims
         conflicts: Vec<String>,
     },
     /// Error response
     Error {
+        /// Error code
         code: String,
+        /// Error message
         message: String,
+        /// Additional details
         details: Option<String>,
     },
 }
@@ -302,7 +392,9 @@ pub struct MessageRouter {
 
 /// Trait for message handlers
 pub trait MessageHandler {
+    /// Process the incoming message
     fn handle_message(&self, message: &WolfMessage) -> Result<WolfResponse>;
+    /// Check if this handler can process the message type
     fn can_handle(&self, message: &WolfMessage) -> bool;
 }
 

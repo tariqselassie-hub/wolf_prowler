@@ -12,33 +12,47 @@ use tracing::{debug, info, warn};
 use super::{SecurityAction, SegmentationResult, TrustContext, TrustLevel};
 use libp2p::PeerId; // Use libp2p's PeerId directly
 
-/// Microsegmentation Manager - creates and manages security zones
+/// Orchestrator for isolating network resources into cryptographic territories.
+///
+/// Implements granular access control and logical boundary management using wolf-themed
+/// territory patterns (Alpha, Beta, Gamma, etc.).
 pub struct MicrosegmentationManager {
-    /// Security segments (territories)
+    /// Active security zones indexed by territory identifier
     segments: HashMap<String, SecuritySegment>,
-    /// Segment access rules
+    /// Logical access predicates governing inter-segment traversal
     access_rules: HashMap<String, Vec<AccessRule>>,
-    /// Peer segment memberships
+    /// Mapping of peer identities to their current segment location
     peer_memberships: HashMap<PeerId, Vec<String>>,
-    /// Segment statistics
+    /// Aggregate telemetry for segmentation and isolation events
     statistics: SegmentationStatistics,
-    /// Dynamic segmentation engine
+    /// Backend engine for automated, risk-driven boundary adjustment
     dynamic_engine: DynamicSegmentationEngine,
 }
 
-/// Security segment (wolf territory)
+/// Individual security territory with defined boundaries and access requirements.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecuritySegment {
+    /// Unique identifier for the territory
     pub segment_id: String,
+    /// Human-readable display name
     pub segment_name: String,
+    /// Classification of the territory role (Alpha, Beta, etc.)
     pub segment_type: SegmentType,
+    /// Minimum standard of security enforced within the zone
     pub security_level: SecurityLevel,
+    /// Narrative detailing the zone's scope and contents
     pub description: String,
+    /// When the territory was initially provisioned
     pub created_at: DateTime<Utc>,
+    /// Point in time of the most recent configuration change
     pub updated_at: DateTime<Utc>,
+    /// Current number of identities joined to this zone
     pub peer_count: usize,
+    /// Current number of active data streams within the zone
     pub active_connections: usize,
+    /// Count of telemetry alarms or breaches linked to this zone
     pub recent_incidents: u64,
+    /// True if the zone is currently in a lockdown or isolated state
     pub isolation_enabled: bool,
 }
 
@@ -66,179 +80,266 @@ pub enum SegmentType {
 /// Security levels for segments
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SecurityLevel {
+    /// Maximum security enforcement for core assets
     Critical = 4,
+    /// Strict security enforcement for high-value data
     High = 3,
+    /// Standard security enforcement for normal operations
     Medium = 2,
+    /// Basic security enforcement for non-sensitive data
     Low = 1,
+    /// minimal security enforcement for isolated or public zones
     Minimal = 0,
 }
 
-/// Access rule for segments
+/// specific logic governing data flow between segments
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessRule {
+    /// Unique identifier for the rule definition
     pub rule_id: String,
+    /// The territory where the request originates
     pub source_segment: String,
+    /// The territory targeted for access
     pub destination_segment: String,
+    /// Minimum trust tier required for the rule to match
     pub required_trust_level: TrustLevel,
+    /// Permitted operations (Read, Write, etc.)
     pub allowed_actions: Vec<NetworkAction>,
+    /// Chronological limits on when the rule can be satisfied
     pub time_restrictions: Option<TimeRestriction>,
+    /// Additional contextual predicates required for access
     pub conditions: Vec<AccessCondition>,
+    /// Relative importance of the rule during evaluation
     pub priority: RulePriority,
+    /// True if the rule is active and being enforced
     pub enabled: bool,
 }
 
 /// Network actions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NetworkAction {
+    /// View or retrieve data
     Read,
+    /// Modify or create data
     Write,
+    /// Execute code or processes
     Execute,
+    /// Establish network connections
     Connect,
+    /// Move data between locations
     Transfer,
+    /// Perform administrative actions
     Admin,
 }
 
-/// Time restrictions for access
+/// Chronological constraints for territory access
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimeRestriction {
-    pub allowed_hours: Vec<(u8, u8)>, // (start_hour, end_hour)
+    /// range of hours during which the rule is applicable (0-23)
+    pub allowed_hours: Vec<(u8, u8)>,
+    /// specific days on which the rule is applicable
     pub allowed_days: Vec<chrono::Weekday>,
+    /// String identifier of the timezone to use for evaluation
     pub timezone: String,
 }
 
 /// Access conditions
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AccessCondition {
+    /// Requires a specific minimum trust level
     PeerTrustLevel(TrustLevel),
+    /// Restricted to specific device classes
     DeviceType(String),
+    /// Restricted to specific physical or network locations
     Location(String),
+    /// Requires a minimum behavioral Analysis score
     BehavioralScore(f64),
+    /// Domain-specific custom condition predicate
     CustomCondition(String),
 }
 
 /// Rule priority
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy)]
 pub enum RulePriority {
+    /// Highest precedence, overrides logical conflicts
     Critical = 4,
+    /// High precedence, preferred over standard rules
     High = 3,
+    /// Standard precedence
     Medium = 2,
+    /// Low precedence, used as fallback
     Low = 1,
 }
 
-/// Dynamic segmentation engine
+/// engine for automatically adjusting territory boundaries based on real-time risk telemetry
 pub struct DynamicSegmentationEngine {
-    /// Adaptive segmentation policies
+    /// active rules for modifying zones based on environmental shifts
     adaptive_policies: Vec<AdaptiveSegmentationPolicy>,
-    /// Threat-based segmentation rules
+    /// automated response triggers for detected infrastructure threats
     threat_rules: Vec<ThreatBasedRule>,
-    /// Behavioral segmentation patterns
+    /// historical records of how identities traverse segments
     behavioral_patterns: HashMap<PeerId, BehavioralPattern>,
 }
 
-/// Adaptive segmentation policy
+/// A policy that defines how segmentation should adapt to environmental triggers.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdaptiveSegmentationPolicy {
+    /// Unique identifier for the policy.
     pub policy_id: String,
+    /// Human-readable name of the policy.
     pub name: String,
+    /// Conditions that trigger the policy.
     pub trigger_conditions: Vec<TriggerCondition>,
+    /// Actions to take when the policy is triggered.
     pub segmentation_actions: Vec<SegmentationAction>,
+    /// Minimum time between policy activations.
     pub cooldown_period: std::time::Duration,
+    /// Timestamp of the last time this policy was triggered.
     pub last_triggered: Option<DateTime<Utc>>,
 }
 
 /// Trigger condition for adaptive segmentation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TriggerCondition {
+    /// A known security threat signature matched
     ThreatDetected(String),
+    /// A peer exhibited unexpected or dangerous behavior
     AnomalousBehavior(PeerId),
+    /// An attempt to access high-value assets without sufficient trust
     HighRiskAccess(PeerId),
+    /// Unauthorized traversal across segment boundaries
     SegmentBreach(String),
+    /// Infrastructure strain requiring load shedding or isolation
     SystemLoad(f64),
 }
 
 /// Segmentation action
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SegmentationAction {
+    /// Create a new restricted zone dynamically
     CreateSegment(SegmentTemplate),
+    /// Sever all connections to a compromised zone
     IsolateSegment(String),
+    /// Consolidate two zones into a single territory
     MergeSegments(String, String),
+    /// Reassign an identity to a different security zone
     MovePeer(PeerId, String),
+    /// Adjust the security posture of an existing zone
     UpdateSecurityLevel(String, SecurityLevel),
 }
 
 /// Segment template for dynamic creation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SegmentTemplate {
+    /// The classification role of the new territory
     pub segment_type: SegmentType,
+    /// The enforced security baseline
     pub security_level: SecurityLevel,
+    /// Naming pattern for the generated territory
     pub name_template: String,
+    /// Description template for the dynamic territory
     pub description_template: String,
+    /// Whether the segment should be automatically removed when empty
     pub auto_cleanup: bool,
+    /// Optional limit on the segment's existence
     pub lifetime: Option<std::time::Duration>,
 }
 
-/// Threat-based rule
+/// A rule that defines segmentation responses based on specific threat types and thresholds.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatBasedRule {
+    /// Unique identifier for the threat rule.
     pub rule_id: String,
+    /// The type of threat this rule handles (e.g., "DDoS", "BruteForce").
     pub threat_type: String,
+    /// Actions to perform in response to the threat.
     pub response_actions: Vec<SegmentationAction>,
+    /// The threat level threshold that triggers this rule.
     pub threshold: f64,
+    /// Whether this rule is currently active.
     pub enabled: bool,
 }
 
-/// Behavioral pattern for peer
+/// historical snapshot of an identity's movement across territories
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BehavioralPattern {
+    /// target of the behavioral profile
     pub peer_id: PeerId,
+    /// territories the peer most frequently joins
     pub typical_segments: Vec<String>,
+    /// common traversal paths between territories
     pub access_patterns: Vec<AccessPattern>,
+    /// likelihood that current movement indicates an incident
     pub risk_score: f64,
+    /// when the profile was last updated
     pub last_updated: DateTime<Utc>,
 }
 
-/// Access pattern
+/// Describes a pattern of access between segments.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessPattern {
+    /// The segment identifier from which access originates.
     pub source_segment: String,
+    /// The segment identifier targeted for access.
     pub destination_segment: String,
+    /// Statistical frequency of this specific access path.
     pub frequency: f64,
+    /// Types of network actions typically performed.
     pub typical_actions: Vec<NetworkAction>,
+    /// Temporal patterns associated with this access path.
     pub time_patterns: Vec<TimePattern>,
 }
 
-/// Time pattern
+/// Describes a temporal pattern of activity.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimePattern {
+    /// Range of hours (start, end) where activity is typical.
     pub hour_range: (u8, u8),
+    /// The type of day (weekday, weekend, etc.) for this pattern.
     pub day_type: DayType,
+    /// Statistical frequency of activity within this time window.
     pub frequency: f64,
 }
 
 /// Day type
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DayType {
+    /// Monday through Friday
     Weekday,
+    /// Saturday and Sunday
     Weekend,
+    /// Nationally or regionally recognized holidays
     Holiday,
 }
 
-/// Segmentation statistics
+/// Comprehensive telemetry and statistics for the microsegmentation environment.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SegmentationStatistics {
+    /// Total number of active territories
     pub total_segments: usize,
+    /// Aggregation of territories by their role types
     pub segments_by_type: HashMap<SegmentType, usize>,
+    /// Aggregation of territories by their security levels
     pub segments_by_security_level: HashMap<SecurityLevel, usize>,
+    /// Total number of access rules defined
     pub total_access_rules: usize,
+    /// Number of access rules currently enabled
     pub active_rules: usize,
+    /// Aggregate count of identity transitions between territories
     pub peer_movements: u64,
+    /// Count of automated segmentation adjustments performed
     pub dynamic_segmentations: u64,
+    /// Count of emergency isolation events
     pub isolation_events: u64,
+    /// Mean number of identities per territory
     pub average_segment_size: f64,
 }
 
 impl MicrosegmentationManager {
-    /// Create new microsegmentation manager
+    /// Initializes a new `MicrosegmentationManager` and provisions standard security territories.
+    ///
+    /// # Errors
+    /// Returns an error if initial segment or rule provisioning fails.
     pub fn new() -> Result<Self> {
         info!("🗺️ Initializing Microsegmentation Manager");
 
@@ -492,7 +593,10 @@ impl MicrosegmentationManager {
         Ok(())
     }
 
-    /// Evaluate access for a peer
+    /// Evaluates if a subject is authorized to access specific territories based on their trust context.
+    ///
+    /// # Errors
+    /// Returns an error if the evaluation process fails.
     pub async fn evaluate_access(&mut self, context: &TrustContext) -> Result<SegmentationResult> {
         debug!(
             "🗺️ Evaluating microsegmentation access for: {}",
@@ -677,7 +781,13 @@ impl MicrosegmentationManager {
         }
     }
 
-    /// Isolate a segment
+    /// immediately isolates a territory, severing all external connectivity.
+    ///
+    /// # Arguments
+    /// * `segment_id` - The identifier of the territory to isolate.
+    ///
+    /// # Errors
+    /// Returns an error if isolation fails or the segment is not found.
     pub async fn isolate_segment(&mut self, segment_id: &str) -> Result<()> {
         info!("🚫 Isolating segment: {}", segment_id);
 
@@ -708,7 +818,14 @@ impl MicrosegmentationManager {
         Ok(())
     }
 
-    /// Move peer to different segment
+    /// Transitions a subject from one security zone to another.
+    ///
+    /// # Arguments
+    /// * `peer_id` - The identifier of the subject.
+    /// * `new_segment_id` - The identifier of the target territory.
+    ///
+    /// # Errors
+    /// Returns an error if the transition fails.
     pub async fn move_peer_to_segment(
         &mut self,
         peer_id: &PeerId,
@@ -745,17 +862,17 @@ impl MicrosegmentationManager {
         Ok(())
     }
 
-    /// Get segmentation statistics
+    /// Returns current telemetry and performance statistics.
     pub fn get_statistics(&self) -> &SegmentationStatistics {
         &self.statistics
     }
 
-    /// Get all segments
+    /// Returns all currently defined security territories.
     pub fn get_segments(&self) -> &HashMap<String, SecuritySegment> {
         &self.segments
     }
 
-    /// Get segments for a peer
+    /// Retrieves the list of territories an identity currently belongs to.
     pub fn get_peer_segments(&self, peer_id: &PeerId) -> Vec<String> {
         self.peer_memberships
             .get(peer_id)
@@ -765,7 +882,7 @@ impl MicrosegmentationManager {
 }
 
 impl DynamicSegmentationEngine {
-    /// Create new dynamic segmentation engine
+    /// Creates a new `DynamicSegmentationEngine`.
     pub fn new() -> Self {
         Self {
             adaptive_policies: Vec::new(),

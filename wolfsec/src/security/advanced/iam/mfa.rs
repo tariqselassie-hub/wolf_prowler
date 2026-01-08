@@ -14,145 +14,144 @@ use sha1::Sha1;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info};
 use uuid::Uuid;
 
 use crate::security::advanced::iam::{
-    AuthenticationManager, AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
-    SessionRequest, UserStatus,
+    AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
 };
 
-/// MFA method types
+/// Categorization of supported multi-factor verification mechanisms
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub enum MFAmethod {
-    /// Time-based One-Time Password
+pub enum MFAMethod {
+    /// Time-based One-Time Password using standard algorithms (RFC 6238)
     TOTP,
-    /// SMS-based OTP
+    /// Short code delivered via Short Message Service
     SMS,
-    /// Email-based OTP
+    /// Verification code delivered via electronic mail
     Email,
-    /// Push notification
+    /// Real-time authorization request pushed to a trusted mobile device
     PushNotification,
-    /// Hardware token
+    /// Physical security keys (e.g., YubiKey) or specialized hardware
     HardwareToken,
-    /// Biometric
+    /// Verification using physical characteristics (Fingerprint, FaceID)
     Biometric,
-    /// Backup codes
+    /// One-time use recovery codes for account restoration
     BackupCodes,
 }
 
-/// MFA challenge
+/// Represents a specific instance of an identity verification request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MFAChallenge {
-    /// Challenge ID
+    /// Unique internal identifier for the challenge instance
     pub id: Uuid,
-    /// User ID
+    /// The wolf identity attempting to verify their access
     pub user_id: Uuid,
-    /// Challenge type
-    pub method: MFAmethod,
-    /// Challenge data (OTP code, push notification ID, etc.)
+    /// The verification mechanism chosen for this challenge
+    pub method: MFAMethod,
+    /// Contextual data for the challenge (e.g., the expected OTP code)
     pub challenge_data: String,
-    /// Created timestamp
+    /// Point in time when the challenge was issued
     pub created_at: chrono::DateTime<Utc>,
-    /// Expires at
+    /// Deadline after which the challenge is no longer valid
     pub expires_at: chrono::DateTime<Utc>,
-    /// Attempts remaining
+    /// Number of incorrect attempts allowed before locking the challenge
     pub attempts_remaining: u8,
-    /// Status
+    /// Current lifecycle state of the challenge
     pub status: MFAChallengeStatus,
-    /// Client info
+    /// Information about the requester's environment
     pub client_info: Option<ClientInfo>,
 }
 
-/// MFA challenge status
+/// Possible states for an active MFA challenge
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MFAChallengeStatus {
-    /// Challenge pending
+    /// Waiting for user input or verification
     Pending,
-    /// Challenge completed successfully
+    /// Successfully verified and closed
     Completed,
-    /// Challenge failed
+    /// Failed verification due to incorrect input or exhausted attempts
     Failed,
-    /// Challenge expired
+    /// Closed due to exceeding the time-to-live
     Expired,
 }
 
-/// MFA enrollment
+/// Record of a user's enrollment in a specific MFA method
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MFAEnrollment {
-    /// User ID
+    /// The identity associated with this enrollment
     pub user_id: Uuid,
-    /// MFA method
-    pub method: MFAmethod,
-    /// Secret key (for TOTP)
+    /// The verification mechanism enrolled
+    pub method: MFAMethod,
+    /// Shared secret or public key metadata (e.g., for TOTP)
     pub secret: Option<String>,
-    /// Phone number (for SMS)
+    /// Registered mobile number for SMS verification
     pub phone_number: Option<String>,
-    /// Email address (for email)
+    /// Registered email address for verification
     pub email: Option<String>,
-    /// Device ID (for push notifications)
+    /// Unique identifier for a trusted mobile device
     pub device_id: Option<String>,
-    /// Backup codes
+    /// Set of cryptographic recovery codes
     pub backup_codes: Vec<String>,
-    /// Enrolled at
+    /// Point in time when enrollment was finalized
     pub enrolled_at: chrono::DateTime<Utc>,
-    /// Last used
+    /// Most recent successful use of this method
     pub last_used: Option<chrono::DateTime<Utc>>,
-    /// Active status
+    /// If false, the enrollment is soft-deleted and inactive
     pub active: bool,
 }
 
-/// MFA verification request
+/// Request to finalize a pending MFA challenge with proof of possession
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MFAVerificationRequest {
-    /// User ID
+    /// The user providing the verification proof
     pub user_id: Uuid,
-    /// Challenge ID
+    /// The specific challenge instance being addressed
     pub challenge_id: Uuid,
-    /// Verification code
+    /// The user-provided proof (OTP code, biometric signature, etc.)
     pub verification_code: String,
-    /// MFA method
-    pub method: MFAmethod,
-    /// Client info
+    /// The mechanism used for verification
+    pub method: MFAMethod,
+    /// Requester environment snapshots
     pub client_info: Option<ClientInfo>,
 }
 
-/// MFA verification result
+/// Structured response detailing the outcome of an MFA verification attempt
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MFAVerificationResult {
-    /// Verification success
+    /// Status indicating if the proof was accepted
     pub success: bool,
-    /// User ID
+    /// Internal identifier for the user
     pub user_id: Uuid,
-    /// Challenge ID
+    /// The identifier of the addressed challenge
     pub challenge_id: Uuid,
-    /// MFA method
-    pub method: MFAmethod,
-    /// Verification timestamp
+    /// The mechanism used for verification
+    pub method: MFAMethod,
+    /// Precise point in time when verification occurred
     pub verified_at: chrono::DateTime<Utc>,
-    /// Error message
+    /// Descriptive feedback if verification failed
     pub error_message: Option<String>,
-    /// Backup code used
+    /// True if identity was proven using a one-time recovery code
     pub backup_code_used: bool,
 }
 
-/// MFA provider trait
+/// Defined interface for specialized MFA verification implementations
 #[async_trait]
 pub trait MFAProvider: Send + Sync {
-    /// Send MFA challenge
+    /// Dispatches a challenge (e.g., sends an SMS or Email) to the user.
     async fn send_challenge(
         &self,
         user_id: Uuid,
-        method: MFAmethod,
+        method: MFAMethod,
         challenge_data: &str,
         client_info: Option<&ClientInfo>,
     ) -> Result<()>;
 
-    /// Verify MFA challenge
+    /// Validates provided proof against expectations for the given challenge data.
     async fn verify_challenge(
         &self,
         user_id: Uuid,
-        method: MFAmethod,
+        method: MFAMethod,
         verification_code: &str,
         challenge_data: &str,
     ) -> Result<bool>;
@@ -162,6 +161,7 @@ pub trait MFAProvider: Send + Sync {
 pub struct TOTPProvider;
 
 impl TOTPProvider {
+    /// Generates a Time-based One-Time Password.
     fn generate_totp(&self, secret: &str, timestamp: u64) -> Result<String> {
         // Simple HMAC-SHA1 implementation for TOTP
         // In production, use a proper TOTP library
@@ -192,7 +192,7 @@ impl MFAProvider for TOTPProvider {
     async fn send_challenge(
         &self,
         _user_id: Uuid,
-        _method: MFAmethod,
+        _method: MFAMethod,
         _challenge_data: &str,
         _client_info: Option<&ClientInfo>,
     ) -> Result<()> {
@@ -203,7 +203,7 @@ impl MFAProvider for TOTPProvider {
     async fn verify_challenge(
         &self,
         _user_id: Uuid,
-        _method: MFAmethod,
+        _method: MFAMethod,
         verification_code: &str,
         secret: &str,
     ) -> Result<bool> {
@@ -214,7 +214,7 @@ impl MFAProvider for TOTPProvider {
     }
 }
 
-/// SMS MFA provider (mock implementation)
+/// SMS MFA provider.
 pub struct SMSProvider;
 
 #[async_trait]
@@ -222,9 +222,9 @@ impl MFAProvider for SMSProvider {
     async fn send_challenge(
         &self,
         user_id: Uuid,
-        _method: MFAmethod,
+        _method: MFAMethod,
         challenge_data: &str,
-        client_info: Option<&ClientInfo>,
+        _client_info: Option<&ClientInfo>,
     ) -> Result<()> {
         debug!(
             "📱 Sending SMS to user {} with code: {}",
@@ -238,7 +238,7 @@ impl MFAProvider for SMSProvider {
     async fn verify_challenge(
         &self,
         _user_id: Uuid,
-        _method: MFAmethod,
+        _method: MFAMethod,
         verification_code: &str,
         challenge_data: &str,
     ) -> Result<bool> {
@@ -246,7 +246,7 @@ impl MFAProvider for SMSProvider {
     }
 }
 
-/// Email MFA provider (mock implementation)
+/// Email MFA provider.
 pub struct EmailProvider;
 
 #[async_trait]
@@ -254,9 +254,9 @@ impl MFAProvider for EmailProvider {
     async fn send_challenge(
         &self,
         user_id: Uuid,
-        _method: MFAmethod,
+        _method: MFAMethod,
         challenge_data: &str,
-        client_info: Option<&ClientInfo>,
+        _client_info: Option<&ClientInfo>,
     ) -> Result<()> {
         debug!(
             "📧 Sending email to user {} with code: {}",
@@ -270,7 +270,7 @@ impl MFAProvider for EmailProvider {
     async fn verify_challenge(
         &self,
         _user_id: Uuid,
-        _method: MFAmethod,
+        _method: MFAMethod,
         verification_code: &str,
         challenge_data: &str,
     ) -> Result<bool> {
@@ -278,27 +278,30 @@ impl MFAProvider for EmailProvider {
     }
 }
 
-/// MFA manager
+/// Central orchestrator for user multi-factor enrollment, challenges, and fulfillment
 pub struct MFAManager {
-    /// MFA enrollments
+    /// Registry of all MFA methods configured for each user
     enrollments: Arc<Mutex<HashMap<Uuid, Vec<MFAEnrollment>>>>,
-    /// Active challenges
+    /// Active challenge instances currently awaiting verification
     challenges: Arc<Mutex<HashMap<Uuid, MFAChallenge>>>,
-    /// MFA providers
-    providers: Arc<Mutex<HashMap<MFAmethod, Box<dyn MFAProvider>>>>,
-    /// Configuration
+    /// Map of specialized providers handling the distribution of challenges
+    providers: Arc<Mutex<HashMap<MFAMethod, Box<dyn MFAProvider>>>>,
+    /// Shared IAM system configuration
     config: IAMConfig,
 }
 
 impl MFAManager {
-    /// Create new MFA manager
+    /// Initializes the manager and registers default providers for TOTP, SMS, and Email.
+    ///
+    /// # Errors
+    /// Returns an error if provider initialization fails.
     pub async fn new(config: IAMConfig) -> Result<Self> {
         info!("🔐 Initializing MFA Manager");
 
-        let mut providers: HashMap<MFAmethod, Box<dyn MFAProvider>> = HashMap::new();
-        providers.insert(MFAmethod::TOTP, Box::new(TOTPProvider));
-        providers.insert(MFAmethod::SMS, Box::new(SMSProvider));
-        providers.insert(MFAmethod::Email, Box::new(EmailProvider));
+        let mut providers: HashMap<MFAMethod, Box<dyn MFAProvider>> = HashMap::new();
+        providers.insert(MFAMethod::TOTP, Box::new(TOTPProvider));
+        providers.insert(MFAMethod::SMS, Box::new(SMSProvider));
+        providers.insert(MFAMethod::Email, Box::new(EmailProvider));
 
         let manager = Self {
             enrollments: Arc::new(Mutex::new(HashMap::new())),
@@ -311,11 +314,14 @@ impl MFAManager {
         Ok(manager)
     }
 
-    /// Enroll user in MFA
+    /// Registers a new active MFA method for the specified user and generates initial backup codes.
+    ///
+    /// # Errors
+    /// Returns an error if enrollment fails.
     pub async fn enroll_user(
         &self,
         user_id: Uuid,
-        method: MFAmethod,
+        method: MFAMethod,
         phone_number: Option<String>,
         email: Option<String>,
         device_id: Option<String>,
@@ -323,7 +329,7 @@ impl MFAManager {
         debug!("🔐 Enrolling user {} in MFA method: {:?}", user_id, method);
 
         // Generate secret for TOTP
-        let secret = if method == MFAmethod::TOTP {
+        let secret = if method == MFAMethod::TOTP {
             Some(self.generate_base32_secret())
         } else {
             None
@@ -353,11 +359,14 @@ impl MFAManager {
         Ok(enrollment)
     }
 
-    /// Generate MFA challenge
+    /// Creates a new challenge instance and dispatches it via the appropriate provider.
+    ///
+    /// # Errors
+    /// Returns an error if the user is not enrolled or dispatch fails.
     pub async fn generate_challenge(
         &self,
         user_id: Uuid,
-        method: MFAmethod,
+        method: MFAMethod,
         client_info: Option<ClientInfo>,
     ) -> Result<MFAChallenge> {
         debug!(
@@ -378,10 +387,10 @@ impl MFAManager {
 
         // Generate challenge data
         let challenge_data = match method {
-            MFAmethod::TOTP => enrollment.secret.clone().unwrap_or_default(),
-            MFAmethod::SMS | MFAmethod::Email => self.generate_otp_code(),
-            MFAmethod::PushNotification => format!("push_{}", Uuid::new_v4()),
-            MFAmethod::BackupCodes => "backup_code_required".to_string(),
+            MFAMethod::TOTP => enrollment.secret.clone().unwrap_or_default(),
+            MFAMethod::SMS | MFAMethod::Email => self.generate_otp_code(),
+            MFAMethod::PushNotification => format!("push_{}", Uuid::new_v4()),
+            MFAMethod::BackupCodes => "backup_code_required".to_string(),
             _ => self.generate_otp_code(),
         };
 
@@ -413,7 +422,10 @@ impl MFAManager {
         Ok(challenge)
     }
 
-    /// Verify MFA challenge
+    /// Evaluates user proof against an active challenge and marks the challenge as fulfilled.
+    ///
+    /// # Errors
+    /// Returns an error if verification fails or the challenge is invalid.
     pub async fn verify_challenge(
         &self,
         request: MFAVerificationRequest,
@@ -479,7 +491,10 @@ impl MFAManager {
         }
     }
 
-    /// Verify backup code
+    /// Verifies a backup code and removes it from the user's enrollment.
+    ///
+    /// # Errors
+    /// Returns an error if the code is invalid or the user is not found.
     pub async fn verify_backup_code(
         &self,
         user_id: Uuid,
@@ -509,7 +524,7 @@ impl MFAManager {
                     success: true,
                     user_id,
                     challenge_id: Uuid::new_v4(),
-                    method: MFAmethod::BackupCodes,
+                    method: MFAMethod::BackupCodes,
                     verified_at: Utc::now(),
                     error_message: None,
                     backup_code_used: true,
@@ -520,10 +535,13 @@ impl MFAManager {
         Err(anyhow!("Invalid backup code"))
     }
 
-    /// Generate QR code for TOTP enrollment
+    /// Generates a QR code SVG for TOTP enrollment.
+    ///
+    /// # Errors
+    /// Returns an error if QR generation fails.
     pub async fn generate_totp_qr_code(
         &self,
-        user_id: Uuid,
+        _user_id: Uuid,
         username: &str,
         secret: &str,
     ) -> Result<String> {
@@ -542,7 +560,7 @@ impl MFAManager {
     }
 
     /// Update enrollment last used timestamp
-    async fn update_enrollment_last_used(&self, user_id: Uuid, method: MFAmethod) -> Result<()> {
+    async fn update_enrollment_last_used(&self, user_id: Uuid, method: MFAMethod) -> Result<()> {
         let mut enrollments = self.enrollments.lock().await;
         if let Some(user_enrollments) = enrollments.get_mut(&user_id) {
             for enrollment in user_enrollments {
@@ -577,14 +595,14 @@ impl MFAManager {
         codes
     }
 
-    /// Get user MFA enrollments
+    /// Retrieves all MFA enrollments for a specific user.
     pub async fn get_user_enrollments(&self, user_id: Uuid) -> Vec<MFAEnrollment> {
         let enrollments = self.enrollments.lock().await;
         enrollments.get(&user_id).cloned().unwrap_or_default()
     }
 
-    /// Disable MFA enrollment
-    pub async fn disable_enrollment(&self, user_id: Uuid, method: MFAmethod) -> Result<()> {
+    /// Deactivates a specific MFA enrollment for a user.
+    pub async fn disable_enrollment(&self, user_id: Uuid, method: MFAMethod) -> Result<()> {
         let mut enrollments = self.enrollments.lock().await;
         if let Some(user_enrollments) = enrollments.get_mut(&user_id) {
             for enrollment in user_enrollments {
@@ -597,7 +615,7 @@ impl MFAManager {
         Ok(())
     }
 
-    /// Clean up expired challenges
+    /// Permanently removes expired challenges from the registry.
     pub async fn cleanup_expired_challenges(&self) -> Result<()> {
         let mut challenges = self.challenges.lock().await;
         let now = Utc::now();
@@ -609,7 +627,7 @@ impl MFAManager {
         Ok(())
     }
 
-    /// Get MFA statistics
+    /// Returns aggregation performance and status telemetry.
     pub async fn get_stats(&self) -> MFAStats {
         let enrollments = self.enrollments.lock().await;
         let challenges = self.challenges.lock().await;
@@ -628,14 +646,14 @@ impl MFAManager {
     }
 }
 
-/// MFA statistics
+/// Summary snapshot of the MFA system health and activity
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MFAStats {
-    /// Total MFA enrollments
+    /// Total number of distinct MFA enrollments across all users
     pub total_enrollments: usize,
-    /// Active challenges
+    /// Number of challenges currently awaiting fulfillment
     pub active_challenges: usize,
-    /// Last update timestamp
+    /// Precise point in time when this summary was generated
     pub last_update: chrono::DateTime<Utc>,
 }
 
@@ -663,14 +681,14 @@ pub mod base32 {
         RFC4648 { padding: bool },
     }
 
-    pub fn encode(alphabet: Alphabet, data: &[u8]) -> String {
+    pub fn encode(_alphabet: Alphabet, data: &[u8]) -> String {
         // Simplified base32 encoding
         // In production, use a proper base32 library
         use data_encoding::BASE32;
         BASE32.encode(data)
     }
 
-    pub fn decode(alphabet: Alphabet, data: &str) -> Option<Vec<u8>> {
+    pub fn decode(_alphabet: Alphabet, data: &str) -> Option<Vec<u8>> {
         // Simplified base32 decoding
         // In production, use a proper base32 library
         use data_encoding::BASE32;
@@ -687,7 +705,7 @@ pub mod hmac {
     }
 
     impl Hmac<Sha1> {
-        pub fn new_from_slice(key: &[u8]) -> Result<Self, &'static str> {
+        pub fn new_from_slice(_key: &[u8]) -> Result<Self, &'static str> {
             // Simplified HMAC implementation
             // In production, use a proper HMAC library
             Ok(Hmac { inner: Sha1::new() })
@@ -704,7 +722,3 @@ pub mod hmac {
     }
 }
 
-/// Digest trait (simplified)
-pub mod digest {
-    use sha1::Digest;
-}

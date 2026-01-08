@@ -7,12 +7,16 @@ use chrono::Utc;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// Pattern analyzer
+///
+/// Analyzes behavioral data for patterns and anomalies.
 pub struct PatternAnalyzer {
     config: MLSecurityConfig,
     peer_profiles: HashMap<String, PeerProfile>,
 }
 
 impl PatternAnalyzer {
+    /// Create new pattern analyzer
     pub fn new(config: MLSecurityConfig) -> Result<Self> {
         Ok(Self {
             config,

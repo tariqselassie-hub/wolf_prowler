@@ -1,6 +1,10 @@
+//! Configuration for `WolfDb` benchmarks.
+
 use criterion::{Criterion, PlottingBackend};
 use std::time::Duration;
 
+/// Returns the standard `Criterion` configuration used for `WolfDb` benchmarks.
+#[must_use]
 pub fn wolf_db_bench_config() -> Criterion {
     Criterion::default()
         .sample_size(500)

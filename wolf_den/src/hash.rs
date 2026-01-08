@@ -28,11 +28,11 @@ pub enum HashFunction {
 impl fmt::Display for HashFunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            HashFunction::Blake3 => write!(f, "BLAKE3"),
-            HashFunction::Sha256 => write!(f, "SHA-256"),
-            HashFunction::Sha512 => write!(f, "SHA-512"),
-            HashFunction::Sha3_256 => write!(f, "SHA3-256"),
-            HashFunction::Sha3_512 => write!(f, "SHA3-512"),
+            Self::Blake3 => write!(f, "BLAKE3"),
+            Self::Sha256 => write!(f, "SHA-256"),
+            Self::Sha512 => write!(f, "SHA-512"),
+            Self::Sha3_256 => write!(f, "SHA3-256"),
+            Self::Sha3_512 => write!(f, "SHA3-512"),
         }
     }
 }
@@ -40,6 +40,10 @@ impl fmt::Display for HashFunction {
 /// Trait for common hash algorithm operations
 pub trait HashAlgorithm: Send + Sync + std::fmt::Debug {
     /// Creates a new instance of the hash algorithm.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if initialization fails.
     fn new(security_level: crate::SecurityLevel) -> Result<Self>
     where
         Self: Sized;
@@ -57,141 +61,178 @@ pub trait HashAlgorithm: Send + Sync + std::fmt::Debug {
     /// Returns the security level configured for this hasher.
     fn security_level(&self) -> crate::SecurityLevel;
 
-    /// Returns the HashFunction enum variant corresponding to this hasher.
+    /// Returns the `HashFunction` enum variant corresponding to this hasher.
     fn as_hash_function(&self) -> HashFunction;
 }
 
-/// Hash function enum for type-safe hashing, using enum instead of trait object.
+/// Unified interface for all hash functions
 #[derive(Debug)]
 pub enum HasherEnum {
+    /// BLAKE3 hasher
     Blake3(Blake3Hasher),
+    /// SHA2-256 hasher
     Sha256(Sha256Hasher),
+    /// SHA2-512 hasher
     Sha512(Sha512Hasher),
+    /// SHA3-256 hasher
     Sha3_256(Sha3_256Hasher),
+    /// SHA3-512 hasher
     Sha3_512(Sha3_512Hasher),
 }
 
 impl From<Blake3Hasher> for HasherEnum {
     fn from(hasher: Blake3Hasher) -> Self {
-        HasherEnum::Blake3(hasher)
+        Self::Blake3(hasher)
     }
 }
 
 impl From<Sha256Hasher> for HasherEnum {
     fn from(hasher: Sha256Hasher) -> Self {
-        HasherEnum::Sha256(hasher)
+        Self::Sha256(hasher)
     }
 }
 
 impl From<Sha512Hasher> for HasherEnum {
     fn from(hasher: Sha512Hasher) -> Self {
-        HasherEnum::Sha512(hasher)
+        Self::Sha512(hasher)
     }
 }
 
 impl From<Sha3_256Hasher> for HasherEnum {
     fn from(hasher: Sha3_256Hasher) -> Self {
-        HasherEnum::Sha3_256(hasher)
+        Self::Sha3_256(hasher)
     }
 }
 
 impl From<Sha3_512Hasher> for HasherEnum {
     fn from(hasher: Sha3_512Hasher) -> Self {
-        HasherEnum::Sha3_512(hasher)
+        Self::Sha3_512(hasher)
     }
 }
-
 impl HasherEnum {
     /// Get hash name
-    pub fn name(&self) -> &'static str {
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
         match self {
-            HasherEnum::Blake3(h) => h.name(),
-            HasherEnum::Sha256(h) => h.name(),
-            HasherEnum::Sha512(h) => h.name(),
-            HasherEnum::Sha3_256(h) => h.name(),
-            HasherEnum::Sha3_512(h) => h.name(),
+            Self::Blake3(h) => h.name(),
+            Self::Sha256(h) => h.name(),
+            Self::Sha512(h) => h.name(),
+            Self::Sha3_256(h) => h.name(),
+            Self::Sha3_512(h) => h.name(),
+        }
+    }
+
+    /// Get key length
+    #[must_use]
+    pub const fn key_length(&self) -> usize {
+        match self {
+            Self::Blake3(h) => h.block_size(), // Assuming block_size is used as key_length for general hashers if applicable
+            Self::Sha256(h) => h.block_size(),
+            Self::Sha512(h) => h.block_size(),
+            Self::Sha3_256(h) => h.block_size(),
+            Self::Sha3_512(h) => h.block_size(),
         }
     }
 
     /// Get output length
-    pub fn output_length(&self) -> usize {
+    #[must_use]
+    pub const fn output_length(&self) -> usize {
         match self {
-            HasherEnum::Blake3(h) => h.output_length(),
-            HasherEnum::Sha256(h) => h.output_length(),
-            HasherEnum::Sha512(h) => h.output_length(),
-            HasherEnum::Sha3_256(h) => h.output_length(),
-            HasherEnum::Sha3_512(h) => h.output_length(),
+            Self::Blake3(h) => h.output_length(),
+            Self::Sha256(h) => h.output_length(),
+            Self::Sha512(h) => h.output_length(),
+            Self::Sha3_256(h) => h.output_length(),
+            Self::Sha3_512(h) => h.output_length(),
         }
     }
 
     /// Get block size
-    pub fn block_size(&self) -> usize {
+    #[must_use]
+    pub const fn block_size(&self) -> usize {
         match self {
-            HasherEnum::Blake3(h) => h.block_size(),
-            HasherEnum::Sha256(h) => h.block_size(),
-            HasherEnum::Sha512(h) => h.block_size(),
-            HasherEnum::Sha3_256(h) => h.block_size(),
-            HasherEnum::Sha3_512(h) => h.block_size(),
+            Self::Blake3(h) => h.block_size(),
+            Self::Sha256(h) => h.block_size(),
+            Self::Sha512(h) => h.block_size(),
+            Self::Sha3_256(h) => h.block_size(),
+            Self::Sha3_512(h) => h.block_size(),
         }
     }
 
     /// Get security level
-    pub fn security_level(&self) -> crate::SecurityLevel {
+    #[must_use]
+    pub const fn security_level(&self) -> crate::SecurityLevel {
         match self {
-            HasherEnum::Blake3(h) => h.security_level(),
-            HasherEnum::Sha256(h) => h.security_level(),
-            HasherEnum::Sha512(h) => h.security_level(),
-            HasherEnum::Sha3_256(h) => h.security_level(),
-            HasherEnum::Sha3_512(h) => h.security_level(),
+            Self::Blake3(h) => h.security_level(),
+            Self::Sha256(h) => h.security_level(),
+            Self::Sha512(h) => h.security_level(),
+            Self::Sha3_256(h) => h.security_level(),
+            Self::Sha3_512(h) => h.security_level(),
         }
     }
 
     /// Get hash function type
-    pub fn as_hash_function(&self) -> HashFunction {
+    #[must_use]
+    pub const fn as_hash_function(&self) -> HashFunction {
         match self {
-            HasherEnum::Blake3(h) => h.as_hash_function(),
-            HasherEnum::Sha256(h) => h.as_hash_function(),
-            HasherEnum::Sha512(h) => h.as_hash_function(),
-            HasherEnum::Sha3_256(h) => h.as_hash_function(),
-            HasherEnum::Sha3_512(h) => h.as_hash_function(),
+            Self::Blake3(h) => h.as_hash_function(),
+            Self::Sha256(h) => h.as_hash_function(),
+            Self::Sha512(h) => h.as_hash_function(),
+            Self::Sha3_256(h) => h.as_hash_function(),
+            Self::Sha3_512(h) => h.as_hash_function(),
         }
     }
 
     /// Create a new hasher of the same type
-    pub fn new_hasher(&self) -> Result<HasherEnum> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hasher creation fails.
+    pub fn new_hasher(&self) -> Result<Self> {
         match self {
-            HasherEnum::Blake3(h) => Ok(Blake3Hasher::new(h.security_level())?.into()),
-            HasherEnum::Sha256(h) => Ok(Sha256Hasher::new(h.security_level())?.into()),
-            HasherEnum::Sha512(h) => Ok(Sha512Hasher::new(h.security_level())?.into()),
-            HasherEnum::Sha3_256(h) => Ok(Sha3_256Hasher::new(h.security_level())?.into()),
-            HasherEnum::Sha3_512(h) => Ok(Sha3_512Hasher::new(h.security_level())?.into()),
+            Self::Blake3(h) => Ok(Blake3Hasher::new(h.security_level())?.into()),
+            Self::Sha256(h) => Ok(Sha256Hasher::new(h.security_level())?.into()),
+            Self::Sha512(h) => Ok(Sha512Hasher::new(h.security_level())?.into()),
+            Self::Sha3_256(h) => Ok(Sha3_256Hasher::new(h.security_level())?.into()),
+            Self::Sha3_512(h) => Ok(Sha3_512Hasher::new(h.security_level())?.into()),
         }
     }
 
     /// Compute hash of data
-    pub async fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
         match self {
-            HasherEnum::Blake3(h) => h.digest(data).await,
-            HasherEnum::Sha256(h) => h.digest(data).await,
-            HasherEnum::Sha512(h) => h.digest(data).await,
-            HasherEnum::Sha3_256(h) => h.digest(data).await,
-            HasherEnum::Sha3_512(h) => h.digest(data).await,
+            Self::Blake3(h) => h.digest(data),
+            Self::Sha256(h) => h.digest(data),
+            Self::Sha512(h) => h.digest(data),
+            Self::Sha3_256(h) => h.digest(data),
+            Self::Sha3_512(h) => h.digest(data),
         }
     }
 
     /// Compute hash of data with custom output length (for XOFs)
-    pub async fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
         match self {
-            HasherEnum::Blake3(h) => h.digest_with_length(data, output_length).await,
-            HasherEnum::Sha256(h) => h.digest_with_length(data, output_length).await,
-            HasherEnum::Sha512(h) => h.digest_with_length(data, output_length).await,
-            HasherEnum::Sha3_256(h) => h.digest_with_length(data, output_length).await,
-            HasherEnum::Sha3_512(h) => h.digest_with_length(data, output_length).await,
+            Self::Blake3(h) => h.digest_with_length(data, output_length),
+            Self::Sha256(h) => h.digest_with_length(data, output_length),
+            Self::Sha512(h) => h.digest_with_length(data, output_length),
+            Self::Sha3_256(h) => h.digest_with_length(data, output_length),
+            Self::Sha3_512(h) => h.digest_with_length(data, output_length),
         }
     }
 }
 
 /// Create a hasher instance
+///
+/// # Errors
+///
+/// Returns an error if hasher creation fails.
 pub fn create_hasher(
     hash_function: crate::HashFunction,
     security_level: crate::SecurityLevel,
@@ -213,9 +254,12 @@ pub struct Blake3Hasher {
 }
 
 impl Blake3Hasher {
-    // The methods below are part of the public API of Blake3Hasher,
-    // including async hashing operations.
-    pub async fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
+    /// Compute digest
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
         let mut hasher = blake3::Hasher::new();
         hasher.update(data);
         let hash = hasher.finalize();
@@ -225,7 +269,12 @@ impl Blake3Hasher {
         Ok(hash.as_bytes().to_vec())
     }
 
-    pub async fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
+    /// Compute digest with length
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
         let mut hasher = blake3::Hasher::new();
         hasher.update(data);
         let mut output = vec![0u8; output_length];
@@ -236,8 +285,40 @@ impl Blake3Hasher {
         Ok(output)
     }
 
-    pub async fn hash_count(&self) -> u64 {
+    /// Get hash count
+    #[must_use]
+    pub fn hash_count(&self) -> u64 {
         self.hash_count.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Get hash name
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
+        "BLAKE3"
+    }
+
+    /// Get output length
+    #[must_use]
+    pub const fn output_length(&self) -> usize {
+        32
+    }
+
+    /// Get block size
+    #[must_use]
+    pub const fn block_size(&self) -> usize {
+        64
+    }
+
+    /// Get security level
+    #[must_use]
+    pub const fn security_level(&self) -> crate::SecurityLevel {
+        self.security_level
+    }
+
+    /// Get hash function
+    #[must_use]
+    pub const fn as_hash_function(&self) -> HashFunction {
+        HashFunction::Blake3
     }
 }
 
@@ -273,7 +354,12 @@ pub struct Sha256Hasher {
 }
 
 impl Sha256Hasher {
-    pub async fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
+    /// Compute digest
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(data);
@@ -284,18 +370,55 @@ impl Sha256Hasher {
         Ok(hash.to_vec())
     }
 
-    pub async fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
+    /// Compute digest with length
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
         if output_length != 32 {
             return Err(Error::hash(
                 "SHA-256",
                 "does not support custom output length",
             ));
         }
-        self.digest(data).await
+        self.digest(data)
     }
 
-    pub async fn hash_count(&self) -> u64 {
+    /// Get hash count
+    #[must_use]
+    pub fn hash_count(&self) -> u64 {
         self.hash_count.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Get hash name
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
+        "SHA-256"
+    }
+
+    /// Get output length
+    #[must_use]
+    pub const fn output_length(&self) -> usize {
+        32
+    }
+
+    /// Get block size
+    #[must_use]
+    pub const fn block_size(&self) -> usize {
+        64
+    }
+
+    /// Get security level
+    #[must_use]
+    pub const fn security_level(&self) -> crate::SecurityLevel {
+        self.security_level
+    }
+
+    /// Get hash function
+    #[must_use]
+    pub const fn as_hash_function(&self) -> HashFunction {
+        HashFunction::Sha256
     }
 }
 
@@ -331,7 +454,12 @@ pub struct Sha512Hasher {
 }
 
 impl Sha512Hasher {
-    pub async fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
+    /// Compute digest
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
         use sha2::{Digest, Sha512};
         let mut hasher = Sha512::new();
         hasher.update(data);
@@ -342,18 +470,55 @@ impl Sha512Hasher {
         Ok(hash.to_vec())
     }
 
-    pub async fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
+    /// Compute digest with length
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
         if output_length != 64 {
             return Err(Error::hash(
                 "SHA-512",
                 "does not support custom output length",
             ));
         }
-        self.digest(data).await
+        self.digest(data)
     }
 
-    pub async fn hash_count(&self) -> u64 {
+    /// Get hash count
+    #[must_use]
+    pub fn hash_count(&self) -> u64 {
         self.hash_count.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Get hash name
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
+        "SHA-512"
+    }
+
+    /// Get output length
+    #[must_use]
+    pub const fn output_length(&self) -> usize {
+        64
+    }
+
+    /// Get block size
+    #[must_use]
+    pub const fn block_size(&self) -> usize {
+        128
+    }
+
+    /// Get security level
+    #[must_use]
+    pub const fn security_level(&self) -> crate::SecurityLevel {
+        self.security_level
+    }
+
+    /// Get hash function
+    #[must_use]
+    pub const fn as_hash_function(&self) -> HashFunction {
+        HashFunction::Sha512
     }
 }
 
@@ -389,7 +554,12 @@ pub struct Sha3_256Hasher {
 }
 
 impl Sha3_256Hasher {
-    pub async fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
+    /// Compute digest
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
         use sha3::{Digest, Sha3_256};
         let mut hasher = Sha3_256::new();
         hasher.update(data);
@@ -400,18 +570,55 @@ impl Sha3_256Hasher {
         Ok(hash.to_vec())
     }
 
-    pub async fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
+    /// Compute digest with length
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
         if output_length != 32 {
             return Err(Error::hash(
                 "SHA3-256",
                 "does not support custom output length",
             ));
         }
-        self.digest(data).await
+        self.digest(data)
     }
 
-    pub async fn hash_count(&self) -> u64 {
+    /// Get hash count
+    #[must_use]
+    pub fn hash_count(&self) -> u64 {
         self.hash_count.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Get hash name
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
+        "SHA3-256"
+    }
+
+    /// Get output length
+    #[must_use]
+    pub const fn output_length(&self) -> usize {
+        32
+    }
+
+    /// Get block size
+    #[must_use]
+    pub const fn block_size(&self) -> usize {
+        136
+    }
+
+    /// Get security level
+    #[must_use]
+    pub const fn security_level(&self) -> crate::SecurityLevel {
+        self.security_level
+    }
+
+    /// Get hash function
+    #[must_use]
+    pub const fn as_hash_function(&self) -> HashFunction {
+        HashFunction::Sha3_256
     }
 }
 
@@ -447,7 +654,12 @@ pub struct Sha3_512Hasher {
 }
 
 impl Sha3_512Hasher {
-    pub async fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
+    /// Compute digest
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest(&self, data: &[u8]) -> Result<Vec<u8>> {
         use sha3::{Digest, Sha3_512};
         let mut hasher = Sha3_512::new();
         hasher.update(data);
@@ -458,18 +670,55 @@ impl Sha3_512Hasher {
         Ok(hash.to_vec())
     }
 
-    pub async fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
+    /// Compute digest with length
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if hashing fails.
+    pub fn digest_with_length(&self, data: &[u8], output_length: usize) -> Result<Vec<u8>> {
         if output_length != 64 {
             return Err(Error::hash(
                 "SHA3-512",
                 "does not support custom output length",
             ));
         }
-        self.digest(data).await
+        self.digest(data)
     }
 
-    pub async fn hash_count(&self) -> u64 {
+    /// Get hash count
+    #[must_use]
+    pub fn hash_count(&self) -> u64 {
         self.hash_count.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Get hash name
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
+        "SHA3-512"
+    }
+
+    /// Get output length
+    #[must_use]
+    pub const fn output_length(&self) -> usize {
+        64
+    }
+
+    /// Get block size
+    #[must_use]
+    pub const fn block_size(&self) -> usize {
+        72
+    }
+
+    /// Get security level
+    #[must_use]
+    pub const fn security_level(&self) -> crate::SecurityLevel {
+        self.security_level
+    }
+
+    /// Get hash function
+    #[must_use]
+    pub const fn as_hash_function(&self) -> HashFunction {
+        HashFunction::Sha3_512
     }
 }
 
@@ -501,77 +750,84 @@ impl HashAlgorithm for Sha3_512Hasher {
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn test_blake3_hasher() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_blake3_hasher() {
         let hasher = Blake3Hasher::new(crate::SecurityLevel::Maximum).unwrap();
         let data = b"Hello, BLAKE3!";
 
-        let hash = hasher.digest(data).await.unwrap();
+        let hash = hasher.digest(data).unwrap();
         assert_eq!(hash.len(), 32);
         assert_eq!(hasher.name(), "BLAKE3");
         assert_eq!(hasher.output_length(), 32);
         assert_eq!(hasher.block_size(), 64);
     }
 
-    #[tokio::test]
-    async fn test_blake3_custom_length() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_blake3_custom_length() {
         let hasher = Blake3Hasher::new(crate::SecurityLevel::Maximum).unwrap();
         let data = b"Hello, BLAKE3!";
 
-        let hash = hasher.digest_with_length(data, 64).await.unwrap();
+        let hash = hasher.digest_with_length(data, 64).unwrap();
         assert_eq!(hash.len(), 64);
     }
 
-    #[tokio::test]
-    async fn test_sha256_hasher() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_sha256_hasher() {
         let hasher = Sha256Hasher::new(crate::SecurityLevel::Maximum).unwrap();
         let data = b"Hello, SHA-256!";
 
-        let hash = hasher.digest(data).await.unwrap();
+        let hash = hasher.digest(data).unwrap();
         assert_eq!(hash.len(), 32);
         assert_eq!(hasher.name(), "SHA-256");
         assert_eq!(hasher.output_length(), 32);
         assert_eq!(hasher.block_size(), 64);
     }
 
-    #[tokio::test]
-    async fn test_sha512_hasher() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_sha512_hasher() {
         let hasher = Sha512Hasher::new(crate::SecurityLevel::Maximum).unwrap();
         let data = b"Hello, SHA-512!";
 
-        let hash = hasher.digest(data).await.unwrap();
+        let hash = hasher.digest(data).unwrap();
         assert_eq!(hash.len(), 64);
         assert_eq!(hasher.name(), "SHA-512");
         assert_eq!(hasher.output_length(), 64);
         assert_eq!(hasher.block_size(), 128);
     }
 
-    #[tokio::test]
-    async fn test_sha3_256_hasher() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_sha3_256_hasher() {
         let hasher = Sha3_256Hasher::new(crate::SecurityLevel::Maximum).unwrap();
         let data = b"Hello, SHA3-256!";
 
-        let hash = hasher.digest(data).await.unwrap();
+        let hash = hasher.digest(data).unwrap();
         assert_eq!(hash.len(), 32);
         assert_eq!(hasher.name(), "SHA3-256");
         assert_eq!(hasher.output_length(), 32);
         assert_eq!(hasher.block_size(), 136);
     }
 
-    #[tokio::test]
-    async fn test_sha3_512_hasher() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_sha3_512_hasher() {
         let hasher = Sha3_512Hasher::new(crate::SecurityLevel::Maximum).unwrap();
         let data = b"Hello, SHA3-512!";
 
-        let hash = hasher.digest(data).await.unwrap();
+        let hash = hasher.digest(data).unwrap();
         assert_eq!(hash.len(), 64);
         assert_eq!(hasher.name(), "SHA3-512");
         assert_eq!(hasher.output_length(), 64);
         assert_eq!(hasher.block_size(), 72);
     }
 
-    #[tokio::test]
-    async fn test_create_hasher() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_create_hasher() {
         let hasher = create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum).unwrap();
         assert_eq!(hasher.name(), "BLAKE3");
 
@@ -588,22 +844,24 @@ mod tests {
         assert_eq!(hasher.name(), "SHA3-512");
     }
 
-    #[tokio::test]
-    async fn test_hasher_counts() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_hasher_counts() {
         let hasher = Blake3Hasher::new(crate::SecurityLevel::Maximum).unwrap();
         let data = b"Hello, World!";
 
-        assert_eq!(hasher.hash_count().await, 0);
+        assert_eq!(hasher.hash_count(), 0);
 
-        let _hash = hasher.digest(data).await.unwrap();
-        assert_eq!(hasher.hash_count().await, 1);
+        let _hash = hasher.digest(data).unwrap();
+        assert_eq!(hasher.hash_count(), 1);
 
-        let _hash = hasher.digest(data).await.unwrap();
-        assert_eq!(hasher.hash_count().await, 2);
+        let _hash = hasher.digest(data).unwrap();
+        assert_eq!(hasher.hash_count(), 2);
     }
 
-    #[tokio::test]
-    async fn test_hasher_new_hasher() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_hasher_new_hasher() {
         let hasher = create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum).unwrap();
         let new_hasher = hasher.new_hasher().unwrap();
 
@@ -612,36 +870,39 @@ mod tests {
         assert_eq!(hasher.block_size(), new_hasher.block_size());
     }
 
-    #[tokio::test]
-    async fn test_hash_consistency() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_hash_consistency() {
         let hasher = Blake3Hasher::new(crate::SecurityLevel::Maximum).unwrap();
         let data = b"Hello, World!";
 
-        let hash1 = hasher.digest(data).await.unwrap();
-        let hash2 = hasher.digest(data).await.unwrap();
+        let hash1 = hasher.digest(data).unwrap();
+        let hash2 = hasher.digest(data).unwrap();
 
         assert_eq!(hash1, hash2);
     }
 
-    #[tokio::test]
-    async fn test_different_hashers_different_outputs() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_different_hashers_different_outputs() {
         let data = b"Hello, World!";
 
         let blake3 = Blake3Hasher::new(crate::SecurityLevel::Maximum).unwrap();
         let sha256 = Sha256Hasher::new(crate::SecurityLevel::Maximum).unwrap();
 
-        let blake3_hash = blake3.digest(data).await.unwrap();
-        let sha256_hash = sha256.digest(data).await.unwrap();
+        let blake3_hash = blake3.digest(data).unwrap();
+        let sha256_hash = sha256.digest(data).unwrap();
 
         assert_ne!(blake3_hash, sha256_hash);
     }
 
-    #[tokio::test]
-    async fn test_custom_length_error() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_custom_length_error() {
         let hasher = Sha256Hasher::new(crate::SecurityLevel::Maximum).unwrap();
         let data = b"Hello, World!";
 
-        let result = hasher.digest_with_length(data, 64).await;
+        let result = hasher.digest_with_length(data, 64);
         assert!(result.is_err());
     }
 }

@@ -1,30 +1,43 @@
-#![allow(dead_code)]
-//! Wolf Security - Consolidated Security Module for Wolf Prowler
+//! Wolf Security - Consolidated Security Module for Wolf Prowler.
 //!
-//! This module consolidates all security functionality across the Wolf Prowler project:
-//! - Network security (from wolf_net)
-//! - Cryptographic operations (from wolf_den)
-//! - Threat detection and response (from core)
-//! - Authentication and authorization
-//! - Key management and rotation
-//! - Security monitoring and SIEM
+//! This module serves as the primary security orchestrator, integrating:
+//! - **Network Security**: Based on `wolf_net`, providing firewalling and transport protection.
+//! - **Cryptographic Operations**: Leveraging `wolf_den` for PQC-secured encryption and signing.
+//! - **Identity & Access**: Comprehensive MFA, RBAC, and SSO management.
+//! - **SIEM & Monitoring**: Real-time telemetry, alerting, and SOAR capabilities.
+//! - **Zero Trust**: Adaptive authentication and microsegmentation.
 
+/// Security alerts and notifications.
 pub mod alerts;
+/// High-level application services and business logic.
 pub mod application;
+/// Identity and authentication management.
 pub mod authentication;
+/// Core cryptographic primitives and providers.
 pub mod crypto;
+/// Domain entities and repository traits.
 pub mod domain;
+/// Adapters for external threat intelligence feeds.
 pub mod external_feeds;
+/// Integrations with third-party security systems.
 pub mod integration;
+/// Machine learning models for behavioral analysis.
 pub mod ml;
-// pub mod firewall; // Moved to wolf_net
+/// Concrete implementations of domain repositories and services.
 pub mod infrastructure;
+/// Management of certificates and transient keys.
 pub mod key_management;
+/// SIEM and telemetry collection subsystems.
 pub mod monitoring;
+/// Network-level security and transport protection.
 pub mod network_security;
+/// Peer reputation and behavioral scoring.
 pub mod reputation;
+/// Comprehensive security management and orchestration.
 pub mod security;
+/// Threat detection and analysis engines.
 pub mod threat_detection;
+/// Bridges to the broader Wolf Ecoystem.
 pub mod wolf_ecosystem_integration;
 pub use authentication::{AuthManager, Permission, Role, User};
 pub use wolf_net::wolf_pack;
@@ -65,29 +78,41 @@ use wolf_net::{PeerId, SwarmCommand};
 use crate::security::advanced::container_security::wolf_den_containers::WolfDenContainerManager;
 use crate::wolf_pack::hierarchy::WolfDenConfig;
 
-/// Custom Error Type for Wolf Security
+/// Custom Error Type for Wolf Security.
+/// Broadly classified errors for the Wolf Security ecosystem.
 #[derive(Error, Debug)]
 pub enum WolfSecError {
+    /// Failure during the initial bootstrap of security sub-modules.
     #[error("Initialization Error: {0}")]
     InitializationError(String),
+    /// Invalid or incompatible security configuration provided.
     #[error("Configuration Error: {0}")]
     ConfigurationError(String),
+    /// Failure in a cryptographic primitive or operation.
     #[error("Cryptographic Error: {0}")]
     CryptoError(String),
+    /// Failure to verify an identity challenge or credential.
     #[error("Authentication Error: {0}")]
     AuthenticationError(String),
+    /// Failure to authorize a requested permission or role.
     #[error("Authorization Error: {0}")]
     AuthorizationError(String),
+    /// Failure in key derivation, rotation, or storage.
     #[error("Key Management Error: {0}")]
     KeyManagementError(String),
+    /// Failure in low-level network protection or firewalling.
     #[error("Network Security Error: {0}")]
     NetworkError(String),
+    /// Failure in threat identification or analysis modules.
     #[error("Threat Detection Error: {0}")]
     ThreatDetectionError(String),
+    /// Failure in the SIEM or telemetry collection systems.
     #[error("Monitoring Error: {0}")]
     MonitoringError(String),
+    /// Underlying system I/O failure.
     #[error("I/O Error: {0}")]
     IOError(String),
+    /// Unclassified or internal unexpected failure.
     #[error("Unknown Error: {0}")]
     Unknown(String),
 }
@@ -95,74 +120,97 @@ pub enum WolfSecError {
 /// Main Wolf Security orchestrator
 pub type SecurityEngine = WolfSecurity;
 
+/// Main Wolf Security orchestrator that manages all security components
+/// central orchestrator that manages the lifecycle of all security components
 pub struct WolfSecurity {
-    /// Network security manager
+    /// Manager for low-level network security and firewalling
     pub network_security: SecurityManager,
-    /// Cryptographic engine
+    /// Core cryptographic engine for PQC-secured encryption and signing
     pub crypto: WolfCrypto,
-    /// Threat detection system
+    /// High-level threat detection and behavioral analysis engine
     pub threat_detector: ThreatDetector,
-    /// Authentication manager
+    /// Manager for multi-factor identity and role-based access control
     pub auth_manager: AuthManager,
-    /// Key management system
+    /// Manager for certificates and transient cryptographic keys
     pub key_manager: KeyManager,
-    /// Security monitoring
+    /// SIEM collector for security metrics and real-time alerts
     pub monitor: SecurityMonitor,
-    /// Vulnerability scanner
+    /// Automated vulnerability assessment and scanning tool
     pub vulnerability_scanner: VulnerabilityScanner,
-    /// Advanced SIEM Manager
+    /// Security Information and Event Management orchestrator
     pub siem: WolfSIEMManager,
-    /// Swarm Command Sender for SOAR
+    /// optional channel for initiating proactive measures via the P2P swarm
     pub swarm_sender: Option<mpsc::UnboundedSender<SwarmCommand>>,
-    /// Container Security Manager
+    /// orchestrator for isolated security containers (Wolf Dens)
     pub container_manager: WolfDenContainerManager,
-    /// Persistence storage
+    /// Shared access to the unified PQC-secured persistence storage
     pub storage: std::sync::Arc<tokio::sync::RwLock<wolf_db::storage::WolfDbStorage>>,
-    // Zero Trust Manager
-    // pub zero_trust_manager: security::advanced::zero_trust::ZeroTrustManager,
 }
 
-/// Security Event Severity
+/// Severity levels for security events
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
 )]
 pub enum SecuritySeverity {
+    /// Low impact event, informational
     Low,
+    /// Minor issue needing attention
     Medium,
+    /// Significant security risk
     High,
+    /// Immediate threat or confirmed breach
     Critical,
 }
 
-/// Security Event Type
+/// Classification of security events
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum SecurityEventType {
+    /// Failed login or identity check
     AuthenticationFailure,
+    /// Access control violation
     AuthorizationFailure,
+    /// Pattern suggesting malicious intent
     SuspiciousActivity,
+    /// cryptographic key likely leaked
     KeyCompromise,
+    /// Unauthorized network access
     NetworkIntrusion,
+    /// Deviation from security guidelines
     PolicyViolation,
+    /// Unauthorized data extraction
     DataBreach,
+    /// Virus or malicious software found
     MalwareDetected,
+    /// Network service interruption attack
     DenialOfService,
+    /// Scanning or probing activity
     Reconnaissance,
-    // Add others as needed
+    /// Other unclassified events
     Other(String),
 }
 
-/// Security Event
+/// A discrete security incident or system audit log
+/// a discrete security incident or system audit record
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SecurityEvent {
+    /// unique identifier for the event
     pub id: String,
+    /// point in time when the event occurred
     pub timestamp: chrono::DateTime<chrono::Utc>,
+    /// classification of the security activity
     pub event_type: SecurityEventType,
+    /// criticality and urgency of the individual event
     pub severity: SecuritySeverity,
+    /// human-readable narrative explaining the incident context
     pub description: String,
+    /// optional identifier of a peer associated with the activity
     pub peer_id: Option<String>,
+    /// supplemental metadata providing technical or system context
     pub metadata: std::collections::HashMap<String, String>,
 }
 
 impl SecurityEvent {
+    /// Create a new security event with default metadata
     pub fn new(
         event_type: SecurityEventType,
         severity: SecuritySeverity,
@@ -179,11 +227,13 @@ impl SecurityEvent {
         }
     }
 
+    /// Associate a peer with the event
     pub fn with_peer(mut self, peer_id: String) -> Self {
         self.peer_id = Some(peer_id);
         self
     }
 
+    /// Add metadata to the event
     pub fn with_metadata(mut self, key: String, value: String) -> Self {
         self.metadata.insert(key, value);
         self
@@ -195,6 +245,7 @@ impl WolfSecurity {
     /// Create a new Wolf Security instance (Async)
     /// Use create() instead. This method is deprecated/removed.
 
+    /// Asynchronously creates and configures a new WolfSecurity instance using the provided parameters.
     pub async fn create(config: WolfSecurityConfig) -> anyhow::Result<Self> {
         let db_path = config
             .db_path
@@ -254,6 +305,7 @@ impl WolfSecurity {
     }
 
     /// Initialize all security components
+    /// bootstraps all security sub-modules and prepares the engine for operation.
     pub async fn initialize(&mut self) -> anyhow::Result<()> {
         tracing::info!("🛡️ Initializing Wolf Security");
 
@@ -295,11 +347,13 @@ impl WolfSecurity {
     // }
 
     /// Set the Swarm Command Sender for SOAR integration
+    /// Set the Swarm Command Sender for SOAR integration
     pub fn with_swarm_sender(&mut self, sender: mpsc::UnboundedSender<SwarmCommand>) {
         self.swarm_sender = Some(sender);
     }
 
     /// Get comprehensive security status
+    /// Retrieves the aggregate status and telemetry for all active security modules.
     pub async fn get_status(&self) -> WolfSecurityStatus {
         WolfSecurityStatus {
             network_security: self.network_security.get_stats().await,
@@ -312,6 +366,7 @@ impl WolfSecurity {
     }
 
     /// Process a security event
+    /// routes a security signal to detection, monitoring, and automated response modules.
     pub async fn process_security_event(&mut self, event: SecurityEvent) -> anyhow::Result<()> {
         // Route event to appropriate handlers
         self.threat_detector.handle_event(event.clone()).await?;
@@ -435,6 +490,7 @@ impl WolfSecurity {
     }
 
     /// Shutdown all security components
+    /// gracefully shuts down all security components and clears sensitive memory.
     pub async fn shutdown(&mut self) -> anyhow::Result<()> {
         tracing::info!("🛡️ Shutting down Wolf Security");
 

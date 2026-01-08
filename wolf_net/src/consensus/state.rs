@@ -121,58 +121,86 @@ impl Default for SharedState {
 /// Threat entry in distributed database
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatEntry {
+    /// Unique identifier for the threat.
     pub id: String,
+    /// IP address associated with the threat.
     pub ip: IpAddr,
+    /// Severity level of the threat.
     pub severity: ThreatSeverity,
-    pub detected_by: Vec<u64>,  // Node IDs
+    /// List of node IDs that detected this threat.
+    pub detected_by: Vec<u64>,
+    /// Timestamp when the threat was first seen.
     pub first_seen: DateTime<Utc>,
+    /// Timestamp when the threat was last seen.
     pub last_seen: DateTime<Utc>,
+    /// Whether the threat has been blocked by the firewall.
     pub blocked: bool,
 }
 
 /// Threat severity levels
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ThreatSeverity {
+    /// Low severity threat.
     Low,
+    /// Medium severity threat.
     Medium,
+    /// High severity threat.
     High,
+    /// Critical severity threat.
     Critical,
 }
 
 /// Firewall rule
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FirewallRule {
+    /// Action to take on matching traffic.
     pub action: FirewallAction,
+    /// Optional source IP to match.
     pub source_ip: Option<IpAddr>,
+    /// Optional destination IP to match.
     pub destination_ip: Option<IpAddr>,
+    /// Optional destination port to match.
     pub port: Option<u16>,
+    /// Rationale for the firewall rule.
     pub reason: String,
 }
 
 /// Firewall action
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum FirewallAction {
+    /// Permit the traffic.
     Allow,
+    /// Block the traffic.
     Block,
+    /// Allow the traffic but record the event.
     Log,
 }
 
 /// Trust score for a peer
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrustScore {
+    /// Numerical trust score value.
     pub score: f64,
+    /// Timestamp when the score was last updated.
     pub last_updated: DateTime<Utc>,
-    pub updated_by: u64,  // Node ID
+    /// ID of the node that last updated this score.
+    pub updated_by: u64,
 }
 
 /// Device information for territory mapping
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceInfo {
+    /// IP address of the discovered device.
     pub ip: IpAddr,
+    /// Optional hostname of the device.
     pub hostname: Option<String>,
+    /// Optional MAC address of the device.
     pub mac_address: Option<String>,
+    /// Classified type of the device.
     pub device_type: String,
+    /// Timestamp when the device was first discovered.
     pub first_seen: DateTime<Utc>,
+    /// Timestamp when the device was last seen online.
     pub last_seen: DateTime<Utc>,
 }
 

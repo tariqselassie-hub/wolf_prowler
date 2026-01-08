@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "Wolf Prowler - Advanced P2P Security Network"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["p2p", "security", "rust", "cybersecurity", "network"]
+categories = ["cryptography", "network-programming"]
 
 # Main application binary
 [[bin]]
@@ -280,6 +283,38 @@ members = [
     "crates/tercespot/airgap",
     "crates/tercespot/privacy",
 ]
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "deny"
+
+[workspace.lints.clippy]
+# Groups
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+
+# Specific Security/Correctness Lints
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+undocumented_unsafe_blocks = "warn"
+infinite_loop = "warn"
+
+# Type Strictness
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_sign_loss = "deny"
+cast_precision_loss = "deny"
+float_cmp = "deny"
+
+# Complexity
+cognitive_complexity = "deny"
+too_many_lines = "deny"
 
 [profile.release]
 lto = true

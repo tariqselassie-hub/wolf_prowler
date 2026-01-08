@@ -3,13 +3,16 @@ use crate::security::advanced::cloud_security::{
 };
 use anyhow::Result;
 
+/// Cloud configuration manager
 pub struct CloudConfigManager;
 
 impl CloudConfigManager {
+    /// Create new config manager
     pub fn new(_config: CloudSecurityConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Scan cloud configurations
     pub async fn scan_configurations(
         &self,
         _provider: CloudProvider,

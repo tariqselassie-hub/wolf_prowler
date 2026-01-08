@@ -10,35 +10,52 @@ use tracing::{debug, error, info, warn};
 /// Security event severity
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SecuritySeverity {
+    /// Low severity - informational or minor policy deviation.
     Low,
+    /// Medium severity - requires monitoring.
     Medium,
+    /// High severity - potential threat detected.
     High,
+    /// Critical severity - immediate response required.
     Critical,
 }
 
 /// Security event type
 #[derive(Debug, Clone)]
 pub enum SecurityEventType {
+    /// Authentication related event.
     Authentication,
+    /// Authorization related event.
     Authorization,
+    /// Encryption/Decryption related event.
     Encryption,
+    /// General network security event.
     Network,
+    /// Violation of defined security policies.
     PolicyViolation,
+    /// Other custom security event.
     Other(String),
 }
 
 /// Security event
 #[derive(Debug, Clone)]
 pub struct SecurityEvent {
+    /// Unique identifier for the event.
     pub id: String,
+    /// Timestamp when the event occurred.
     pub timestamp: chrono::DateTime<chrono::Utc>,
+    /// The type of security event.
     pub event_type: SecurityEventType,
+    /// Severity level of the event.
     pub severity: SecuritySeverity,
+    /// Detailed description of the event.
     pub description: String,
+    /// Optional identifier of the peer involved.
     pub peer_id: Option<String>,
 }
 
 impl SecurityEvent {
+    /// Creates a new `SecurityEvent` with the specified type, severity, and description.
     pub fn new(
         event_type: SecurityEventType,
         severity: SecuritySeverity,
@@ -54,6 +71,7 @@ impl SecurityEvent {
         }
     }
 
+    /// Associates a peer identifier with the security event.
     pub fn with_peer(mut self, peer_id: String) -> Self {
         self.peer_id = Some(peer_id);
         self
@@ -63,44 +81,87 @@ impl SecurityEvent {
 /// Network events that can occur in Wolf Prowler
 #[derive(Debug, Clone)]
 pub enum NetworkEvent {
-    /// Peer connected
-    PeerConnected { peer_id: PeerId, address: String },
-    /// Peer disconnected
-    PeerDisconnected { peer_id: PeerId, reason: String },
-    /// Message received
-    MessageReceived { from: PeerId, message: Message },
-    /// Message sent
-    MessageSent { to: PeerId, message_id: String },
-    /// Peer discovered
-    PeerDiscovered { peer_info: PeerInfo },
-    /// Peer expired
-    PeerExpired { peer_id: PeerId },
-    /// Connection error
-    ConnectionError { peer_id: PeerId, error: String },
-    /// Swarm event
+    /// A new peer has connected to the node.
+    PeerConnected { 
+        /// ID of the connected peer.
+        peer_id: PeerId, 
+        /// Network address of the peer.
+        address: String 
+    },
+    /// A peer has disconnected from the node.
+    PeerDisconnected { 
+        /// ID of the disconnected peer.
+        peer_id: PeerId, 
+        /// Reason for disconnection.
+        reason: String 
+    },
+    /// A message has been received from a peer.
+    MessageReceived { 
+        /// ID of the sender.
+        from: PeerId, 
+        /// The message content.
+        message: Message 
+    },
+    /// A message has been successfully sent to a peer.
+    MessageSent { 
+        /// ID of the recipient.
+        to: PeerId, 
+        /// Identification of the sent message.
+        message_id: String 
+    },
+    /// A new peer has been discovered.
+    PeerDiscovered { 
+        /// Information about the discovered peer.
+        peer_info: PeerInfo 
+    },
+    /// A previously known peer has expired (e.g., from DHT).
+    PeerExpired { 
+        /// ID of the expired peer.
+        peer_id: PeerId 
+    },
+    /// An error occurred during connection.
+    ConnectionError { 
+        /// ID of the peer involved.
+        peer_id: PeerId, 
+        /// Error description.
+        error: String 
+    },
+    /// Low-level swarm event.
     SwarmEvent {
+        /// The type of swarm event.
         event_type: SwarmEventType,
+        /// Additional details about the event.
         details: HashMap<String, String>,
     },
-    /// Custom event
+    /// Application-specific custom event.
     Custom {
+        /// The type of custom event.
         event_type: String,
+        /// Associated event data.
         data: HashMap<String, String>,
     },
-    /// Security event
+    /// A security-related event.
     Security(SecurityEvent),
 }
 
 /// Swarm event types
 #[derive(Debug, Clone)]
 pub enum SwarmEventType {
+    /// Node started listening on a new address.
     ListeningStarted,
+    /// Node stopped listening on an address.
     ListeningStopped,
+    /// An incoming connection was established.
     IncomingConnection,
+    /// An outgoing connection was established.
     OutgoingConnection,
+    /// Kademlia bootstrap process started.
     BootstrapStarted,
+    /// Kademlia bootstrap process completed.
     BootstrapCompleted,
+    /// Peer discovery process started.
     DiscoveryStarted,
+    /// Peer discovery process completed.
     DiscoveryCompleted,
 }
 
@@ -120,14 +181,18 @@ pub type EventCallback = Box<dyn Fn(&NetworkEvent) -> anyhow::Result<()> + Send 
 /// Event handler statistics
 #[derive(Debug, Clone, Default)]
 pub struct EventHandlerStats {
+    /// Total number of events successfully processed.
     pub events_processed: u64,
+    /// Total number of events that failed during processing.
     pub events_failed: u64,
+    /// Number of registered event callbacks.
     pub callbacks_registered: usize,
+    /// Total number of events currently in the queue.
     pub events_queued: u64,
 }
 
 impl EventHandler {
-    /// Create new event handler
+    /// Creates a new `EventHandler` instance.
     pub fn new() -> Self {
         let (event_queue, _) = tokio::sync::mpsc::unbounded_channel();
 
@@ -138,7 +203,7 @@ impl EventHandler {
         }
     }
 
-    /// Register a callback for an event type
+    /// Registers a callback function for a specific event type.
     pub fn register_callback(&mut self, event_type: &str, callback: EventCallback) {
         self.callbacks
             .entry(event_type.to_string())
@@ -149,7 +214,7 @@ impl EventHandler {
         debug!("Registered callback for event type: {}", event_type);
     }
 
-    /// Emit an event
+    /// Emits a network event to the processing queue.
     pub fn emit(&mut self, event: NetworkEvent) -> anyhow::Result<()> {
         let event_type = self.get_event_type(&event);
 
@@ -161,7 +226,7 @@ impl EventHandler {
         Ok(())
     }
 
-    /// Process an event synchronously
+    /// Processes a network event immediately by executing all registered callbacks.
     pub fn process_event(&mut self, event: &NetworkEvent) -> anyhow::Result<()> {
         let event_type = self.get_event_type(event);
 
@@ -180,19 +245,19 @@ impl EventHandler {
         Ok(())
     }
 
-    /// Start the event handler
+    /// Starts the event handler loop.
     pub async fn start(&mut self) -> anyhow::Result<()> {
         info!("📡 Event handler started");
         Ok(())
     }
 
-    /// Stop the event handler
+    /// Gracefully stops the event handler.
     pub async fn stop(&mut self) -> anyhow::Result<()> {
         info!("📡 Event handler stopped");
         Ok(())
     }
 
-    /// Get event statistics
+    /// Returns the current statistics of the event handler.
     pub fn stats(&self) -> &EventHandlerStats {
         &self.stats
     }
@@ -215,32 +280,32 @@ impl EventHandler {
         }
     }
 
-    /// Create a peer connected event
+    /// Helper to create a `PeerConnected` network event.
     pub fn peer_connected(peer_id: PeerId, address: String) -> NetworkEvent {
         NetworkEvent::PeerConnected { peer_id, address }
     }
 
-    /// Create a peer disconnected event
+    /// Helper to create a `PeerDisconnected` network event.
     pub fn peer_disconnected(peer_id: PeerId, reason: String) -> NetworkEvent {
         NetworkEvent::PeerDisconnected { peer_id, reason }
     }
 
-    /// Create a message received event
+    /// Helper to create a `MessageReceived` network event.
     pub fn message_received(from: PeerId, message: Message) -> NetworkEvent {
         NetworkEvent::MessageReceived { from, message }
     }
 
-    /// Create a message sent event
+    /// Helper to create a `MessageSent` network event.
     pub fn message_sent(to: PeerId, message_id: String) -> NetworkEvent {
         NetworkEvent::MessageSent { to, message_id }
     }
 
-    /// Create a peer discovered event
+    /// Helper to create a `PeerDiscovered` network event.
     pub fn peer_discovered(peer_info: PeerInfo) -> NetworkEvent {
         NetworkEvent::PeerDiscovered { peer_info }
     }
 
-    /// Create a connection error event
+    /// Helper to create a `ConnectionError` network event.
     pub fn connection_error(peer_id: PeerId, error: String) -> NetworkEvent {
         NetworkEvent::ConnectionError { peer_id, error }
     }
@@ -258,12 +323,12 @@ pub struct EventLogger {
 }
 
 impl EventLogger {
-    /// Create new event logger
+    /// Creates a new `EventLogger` with the specified log level.
     pub fn new(log_level: tracing::Level) -> Self {
         Self { log_level }
     }
 
-    /// Create callback for event logging
+    /// Creates a callback for logging events to the system log.
     pub fn create_callback(&self) -> EventCallback {
         let log_level = self.log_level;
         Box::new(move |event: &NetworkEvent| -> anyhow::Result<()> {

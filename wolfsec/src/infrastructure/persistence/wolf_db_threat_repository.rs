@@ -11,11 +11,17 @@ use wolf_db::storage::model::Record;
 
 const TABLE_THREATS: &str = "threats";
 
+/// A repository for managing threat intelligence data using WolfDb.
 pub struct WolfDbThreatRepository {
-    storage: Arc<RwLock<WolfDbStorage>>,
+    /// The thread-safe storage engine.
+    pub storage: Arc<RwLock<WolfDbStorage>>,
 }
 
 impl WolfDbThreatRepository {
+    /// Creates a new instance of `WolfDbThreatRepository`.
+    ///
+    /// # Arguments
+    /// * `storage` - An `Arc<RwLock<WolfDbStorage>>` providing thread-safe access to the database.
     pub fn new(storage: Arc<RwLock<WolfDbStorage>>) -> Self {
         Self { storage }
     }
@@ -24,7 +30,7 @@ impl WolfDbThreatRepository {
 #[async_trait]
 impl ThreatRepository for WolfDbThreatRepository {
     async fn save(&self, threat: &Threat) -> Result<(), DomainError> {
-        let mut storage = self.storage.write().await;
+        let storage = self.storage.write().await;
         let pk = storage.get_active_pk().ok_or_else(|| DomainError::Unexpected("Database locked".to_string()))?.to_vec();
         
         let json_str = serde_json::to_string(threat)
@@ -41,7 +47,8 @@ impl ThreatRepository for WolfDbThreatRepository {
             vector: None,
         };
         
-        storage.insert_record(TABLE_THREATS, &record, &pk)
+        storage.insert_record(TABLE_THREATS.to_string(), record, pk)
+            .await
             .map_err(|e| DomainError::Unexpected(e.to_string()))?;
             
         Ok(())
@@ -51,7 +58,8 @@ impl ThreatRepository for WolfDbThreatRepository {
          let storage = self.storage.read().await;
         let sk = storage.get_active_sk().ok_or_else(|| DomainError::Unexpected("Database locked".to_string()))?;
         
-        if let Some(record) = storage.get_record(TABLE_THREATS, &id.to_string(), sk)
+        if let Some(record) = storage.get_record(TABLE_THREATS.to_string(), id.to_string(), sk.to_vec())
+            .await
             .map_err(|e| DomainError::Unexpected(e.to_string()))? {
             
             if let Some(json) = record.data.get("json") {

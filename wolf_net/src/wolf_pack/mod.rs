@@ -5,25 +5,36 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+/// Coordinator actor logic
 pub mod coordinator;
+/// Election and consensus logic
 pub mod election;
+/// WolfPack error definitions
 pub mod error;
+/// Local messaging/howl logic
 pub mod howl;
+/// Messaging protocols
 pub mod messaging;
+/// State definitions
 pub mod state;
+/// State machine logic
 pub mod state_machine;
 
 pub use state::WolfRole;
 
+/// Alias for WolfRole indicating rank
 pub type WolfRank = WolfRole;
 
 pub use election::ElectionManager;
 
+/// Hierarchy internal defs
 pub mod hierarchy {
     use serde::{Deserialize, Serialize};
 
+    /// Rules for communication flow
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct WolfCommunicationRules {
+        /// Whether different packs can talk
         pub allow_inter_pack_comms: bool,
     }
 
@@ -35,28 +46,40 @@ pub mod hierarchy {
         }
     }
 
+    /// Configuration for the Den
     #[derive(Debug, Clone, Serialize, Deserialize, Default)]
     pub struct WolfDenConfig {
+        /// Name of the pack
         pub pack_name: String,
     }
 
+    /// Alias for Pack Rank
     pub type PackRank = super::WolfRank;
 }
 
+/// Territory management
 pub mod territory {
     use super::hierarchy::PackRank;
     use crate::peer::PeerId;
     use chrono::{DateTime, Utc};
     use serde::{Deserialize, Serialize};
 
+    /// Access log for a specific territory
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct TerritoryAccess {
+        /// Peer accessing the territory
         pub peer_id: PeerId,
+        /// Name of the territory
         pub territory_name: String,
+        /// Access timestamp
         pub timestamp: DateTime<Utc>,
+        /// Whether access was granted
         pub access_granted: bool,
+        /// Reason for decision
         pub reason: String,
+        /// Duration of access
         pub duration_seconds: Option<u64>,
+        /// Rank of the accessor
         pub pack_rank: PackRank,
     }
 }
@@ -64,12 +87,16 @@ pub mod territory {
 /// Represents a single member of the pack (a node).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PackMember {
+    /// Peer ID of the member
     pub peer_id: PeerId,
+    /// Rank in the pack
     pub rank: WolfRole,
+    /// Calculated trust score
     pub trust_score: f64,
 }
 
 impl PackMember {
+    /// Create a new pack member
     pub fn new(peer_id: PeerId, rank: WolfRole) -> Self {
         Self {
             peer_id,
@@ -96,6 +123,7 @@ pub struct WolfPack {
 }
 
 impl WolfPack {
+    /// Creates a new WolfPack instance
     pub fn new(pack_name: String, discovery_config: DiscoveryConfig) -> anyhow::Result<Self> {
         let (service, _) = DiscoveryService::new(discovery_config)?;
         let discovery = Arc::new(Mutex::new(service));
@@ -108,6 +136,7 @@ impl WolfPack {
         })
     }
 
+    /// Enables the election manager for this node
     pub fn enable_elections(&mut self, local_peer_id: PeerId, prestige: u32) {
         self.election_manager = Some(ElectionManager::new(local_peer_id, prestige));
     }

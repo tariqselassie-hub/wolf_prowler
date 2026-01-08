@@ -6,15 +6,25 @@ use anyhow::Result;
 use chrono::Utc;
 use uuid::Uuid;
 
+/// Manages access control logic and evaluates authorization requests across the ecosystem
 pub struct AuthorizationManager {
+    /// Global configuration for the IAM system
     config: IAMConfig,
 }
 
 impl AuthorizationManager {
+    /// Creates a new instance of the `AuthorizationManager` with the given configuration.
+    ///
+    /// # Errors
+    /// Returns an error if initialization fails.
     pub fn new(config: IAMConfig) -> Result<Self> {
         Ok(Self { config })
     }
 
+    /// Evaluates an authorization request to determine if an action should be permitted.
+    ///
+    /// # Errors
+    /// Returns an error if the authorization check fails or the request is invalid.
     pub async fn authorize(&self, request: AuthorizationRequest) -> Result<AuthorizationDecision> {
         // Placeholder implementation that would normally look up user roles and check against policies
         // For now, default deny unless implemented
@@ -30,14 +40,14 @@ impl AuthorizationManager {
         })
     }
 
-    /// Get effective permissions based on Wolf Pack Rank
-    ///
-    /// Maps the PackRank to a set of permissions:
-    /// - Omega: Read-only access to base resources
-    /// - Delta: Read/Write access to projects
-    /// - Gamma: Advanced infrastructure access
-    /// - Beta: Security Admin and User Management
-    /// - Alpha: Full Super Admin access
+    /// Derives a set of effective permissions for a wolf based on their rank within the pack hierarchy.
+    /// 
+    /// This follows a cascading permission model:
+    /// - **Omega**: Read-only access to base non-sensitive resources.
+    /// - **Scout**: Read/Write access to standard project and job resources.
+    /// - **Hunter**: Control over infrastructure resources and pipelines.
+    /// - **Beta**: Full administrative control over security, users, and audit logs.
+    /// - **Alpha**: Absolute "Super Admin" power over the entire system.
     pub fn get_effective_permissions(&self, rank: PackRank) -> Vec<Permission> {
         let mut permissions = Vec::new();
 

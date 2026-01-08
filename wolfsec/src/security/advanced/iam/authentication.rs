@@ -9,89 +9,102 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-/// API Key entity
+/// Represents a cryptographically generated credential for machine-to-machine authentication
 #[derive(Debug, Clone)]
 pub struct ApiKey {
-    /// API Key ID
+    /// Unique internal identifier for the API key metadata
     pub id: Uuid,
-    /// User ID associated with the key
+    /// The wolf identity that owns and is represented by this key
     pub user_id: Uuid,
-    /// API Key value (hashed in production)
+    /// The actual secret key value (should be salted and hashed in persistent storage)
     pub key: String,
-    /// Key name/description
+    /// User-defined label for identifying the key's purpose
     pub name: String,
-    /// Creation timestamp
+    /// Point in time when the key was issued
     pub created_at: chrono::DateTime<Utc>,
-    /// Expiration timestamp
+    /// Optional expiration time after which the key is no longer valid
     pub expires_at: Option<chrono::DateTime<Utc>>,
-    /// Key status
+    /// Current operational state of the key
     pub status: ApiKeyStatus,
-    /// Permissions associated with the key
+    /// List of explicit permission strings granted to this specific key
     pub permissions: Vec<String>,
 }
 
-/// API Key status
+/// Possible operational states for an API key
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApiKeyStatus {
+    /// Key is valid and authorized for use
     Active,
+    /// Key has been manually invalidated by a user or admin
     Revoked,
+    /// Key has passed its natural expiration date
     Expired,
+    /// Key is temporarily disabled due to suspicious activity
     Suspended,
 }
 
-/// API Key validation result
+/// The structured outcome of a secret key verification process
 #[derive(Debug, Clone)]
 pub struct ApiKeyValidationResult {
-    /// Validation success
+    /// True if the key is found, active, and not expired
     pub valid: bool,
-    /// User ID associated with the key
+    /// The identity owner of the key, if successfully identified
     pub user_id: Option<Uuid>,
-    /// Key ID
+    /// The internal identifier of the validated key
     pub key_id: Option<Uuid>,
-    /// Key permissions
+    /// The set of permissions that this key is authorized to exercise
     pub permissions: Vec<String>,
-    /// Error message if validation failed
+    /// Contextual explanation if the validation failed
     pub error_message: Option<String>,
 }
 
-/// Authentication manager with state
+/// Manages the lifecycle and verification of user and machine credentials
 #[derive(Debug, Clone)]
 pub struct AuthenticationManager {
-    /// Configuration
+    /// Shared IAM configuration settings
     config: IAMConfig,
-    /// API Keys storage (in production, this would be a database)
+    /// Thread-safe localized cache of active API keys
     api_keys: Arc<Mutex<HashMap<String, ApiKey>>>,
-    /// Active sessions storage
+    /// Thread-safe registry of active user sessions
     sessions: Arc<Mutex<HashMap<Uuid, Session>>>,
-    /// User credentials storage (in production, this would be a database)
+    /// Thread-safe registry of user identity credentials
     user_credentials: Arc<Mutex<HashMap<String, UserCredential>>>,
 }
 
-/// User credential entity
+/// User identity credentials stored internally for authentication
 #[derive(Debug, Clone)]
 struct UserCredential {
-    /// User ID
+    /// Unique internal identifier for the user
     user_id: Uuid,
-    /// Username
+    /// Unique login name for the user
     username: String,
-    /// Password hash (in production, this would be properly hashed)
+    /// Deterministic salt and hash of the user's password
     password_hash: String,
-    /// Account status
+    /// Current operational state of the user account
     status: UserStatus,
-    /// MFA enabled
+    /// Flag indicating if multi-factor authentication is required for this user
     mfa_enabled: bool,
 }
 
-/// User status
+/// Possible operational states for a user account
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum UserStatus {
+    /// Account is active and authorized to authenticate
     Active,
+    /// Account has been disabled and cannot authenticate
     Inactive,
+    /// Account is temporarily locked due to failed login attempts
     Locked,
+    /// Account is suspended due to security violations
     Suspended,
 }
 
+
 impl AuthenticationManager {
+    /// Creates a new instance of the `AuthenticationManager` with initialized registries.
+    ///
+    /// # Errors
+    /// Returns an error if registry initialization or test data population fails.
     pub async fn new(config: IAMConfig) -> Result<Self> {
         let manager = Self {
             config,
@@ -106,7 +119,10 @@ impl AuthenticationManager {
         Ok(manager)
     }
 
-    /// Initialize test data for development
+    /// Populates the manager with sample credentials and keys for development.
+    ///
+    /// # Errors
+    /// Returns an error if test data creation fails.
     async fn initialize_test_data(&self) -> Result<()> {
         // Add test user
         let test_user_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000")?;
@@ -146,6 +162,10 @@ impl AuthenticationManager {
         Ok(())
     }
 
+    /// Verifies user credentials and returns a detailed authentication outcome.
+    ///
+    /// # Errors
+    /// Returns an error if the authentication process encounters a system failure.
     pub async fn authenticate(
         &self,
         request: AuthenticationRequest,
@@ -210,6 +230,10 @@ impl AuthenticationManager {
         })
     }
 
+    /// Generates a new, cryptographically secure session for an authenticated user.
+    ///
+    /// # Errors
+    /// Returns an error if session creation or storage fails.
     pub async fn create_session(&self, user_id: Uuid, request: SessionRequest) -> Result<Session> {
         let now = Utc::now();
         let expires_at = now + Duration::minutes(self.config.session_timeout_minutes as i64);
@@ -249,6 +273,10 @@ impl AuthenticationManager {
         Ok(session)
     }
 
+    /// Validates an active session against expiration and security policies.
+    ///
+    /// # Errors
+    /// Returns an error if the validation process encounters a system failure.
     pub async fn validate_session(&self, session_id: Uuid) -> Result<SessionValidationResult> {
         let sessions = self.sessions.lock().await;
 
@@ -303,6 +331,10 @@ impl AuthenticationManager {
         }
     }
 
+    /// Explicitly terminates and removes an active authenticated session.
+    ///
+    /// # Errors
+    /// Returns an error if session termination fails.
     pub async fn terminate_session(&self, session_id: Uuid) -> Result<()> {
         let mut sessions = self.sessions.lock().await;
         if let Some(session) = sessions.get_mut(&session_id) {
@@ -312,7 +344,10 @@ impl AuthenticationManager {
         Ok(())
     }
 
-    /// Validate API key
+    /// Validates an API key's presence, status, and expiration.
+    ///
+    /// # Errors
+    /// Returns an error if the key lookup or validation process fails.
     pub async fn validate_api_key(&self, api_key: &str) -> Result<ApiKeyValidationResult> {
         let api_keys = self.api_keys.lock().await;
 
@@ -361,7 +396,10 @@ impl AuthenticationManager {
         }
     }
 
-    /// Create a new API key
+    /// Generates and registers a new cryptographically strong API key for a user.
+    ///
+    /// # Errors
+    /// Returns an error if key generation or storage fails.
     pub async fn create_api_key(
         &self,
         user_id: Uuid,
@@ -386,7 +424,10 @@ impl AuthenticationManager {
         Ok(api_key)
     }
 
-    /// Revoke an API key
+    /// Revokes an API key, preventing any future authorization using its secret.
+    ///
+    /// # Errors
+    /// Returns an error if the key is not found or revocation fails.
     pub async fn revoke_api_key(&self, api_key: &str) -> Result<()> {
         let mut api_keys = self.api_keys.lock().await;
         if let Some(key_data) = api_keys.get_mut(api_key) {
@@ -397,13 +438,19 @@ impl AuthenticationManager {
         }
     }
 
-    /// Get session by ID
+    /// Retrieves a session's current state based on its unique identifier.
+    ///
+    /// # Errors
+    /// Returns an error if session retrieval fails.
     pub async fn get_session(&self, session_id: Uuid) -> Result<Option<Session>> {
         let sessions = self.sessions.lock().await;
         Ok(sessions.get(&session_id).cloned())
     }
 
-    /// Update session activity
+    /// Refreshes the last activity timestamp for a session to prevent idle timeout.
+    ///
+    /// # Errors
+    /// Returns an error if the session update fails.
     pub async fn update_session_activity(&self, session_id: Uuid) -> Result<()> {
         let mut sessions = self.sessions.lock().await;
         if let Some(session) = sessions.get_mut(&session_id) {

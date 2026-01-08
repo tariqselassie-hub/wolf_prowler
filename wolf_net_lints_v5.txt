@@ -1,0 +1,2 @@
+    Checking wolf_net v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_net)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.75s

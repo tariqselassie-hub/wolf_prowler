@@ -16,84 +16,121 @@ use super::{
 };
 use libp2p::PeerId;
 
-/// Wolf Policy Engine - enforces security policies with pack governance
+/// Governance and enforcement engine for Zero Trust security policies.
+///
+/// Responsible for registering, evaluating, and tracking policy enforcement across the pack.
 pub struct WolfPolicyEngine {
-    /// Active policies
+    /// Active policy registry indexed by unique identifier
     policies: HashMap<String, ZeroTrustPolicy>,
-    /// Policy templates for quick creation
+    /// Pre-defined policy blueprints for rapid deployment
     policy_templates: HashMap<String, ZeroTrustPolicy>,
-    /// Policy evaluation cache
+    /// Temporary storage for evaluation results to optimize performance
     evaluation_cache: HashMap<String, CachedEvaluation>,
-    /// Policy violation tracking
+    /// Chronological record of policy breaches per peer identity
     violations: HashMap<PeerId, Vec<PolicyViolation>>,
-    /// Policy statistics
+    /// Aggregate telemetry regarding policy enforcement performance
     statistics: PolicyStatistics,
 }
 
-/// Cached policy evaluation result
+/// entry for a previously finalized policy assessment
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CachedEvaluation {
+    /// The outcome of the policy check
     pub result: PolicyEvaluationResult,
+    /// When the assessment was recorded
     pub timestamp: DateTime<Utc>,
+    /// When this entry should be invalidated
     pub expires_at: DateTime<Utc>,
 }
 
-/// Policy violation record
+/// Record of a failed policy requirement or unauthorized attempt.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyViolation {
+    /// Unique identifier for the specific breach event
     pub violation_id: String,
+    /// Identifier of the policy that was breached
     pub policy_id: String,
+    /// Identity of the peer responsible for the breach
     pub peer_id: PeerId,
+    /// Classification of the failure (Trust, Context, etc.)
     pub violation_type: ViolationType,
+    /// Criticality of the breach event
     pub severity: ViolationSeverity,
+    /// Narrative detailing the failure circumstances
     pub description: String,
+    /// Point in time when the failure was detected
     pub detected_at: DateTime<Utc>,
+    /// True if remediation actions have finalized the event
     pub resolved: bool,
+    /// Notes regarding the investigation or remediation
     pub resolution_notes: Option<String>,
 }
 
-/// Violation types
+/// Types of policy violations.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ViolationType {
+    /// The subject's trust level was below the required threshold.
     TrustLevelInsufficient,
+    /// A specific contextual requirement (e.g., location, time) was not met.
     ContextualRequirementFailed,
+    /// An adaptive control mechanism (e.g., rate limiting) was triggered.
     AdaptiveControlTriggered,
+    /// The policy used for evaluation has expired.
     PolicyExpired,
+    /// An attempt was made to access a resource without proper authorization.
     UnauthorizedAccess,
+    /// Behavior was detected that deviates significantly from established baselines.
     SuspiciousBehavior,
 }
 
-/// Violation severity
+/// Severity levels for policy violations.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ViolationSeverity {
+    /// Minor violation with low security impact.
     Low,
+    /// Moderate violation that should be investigated.
     Medium,
+    /// Significant violation requiring prompt response.
     High,
+    /// Severe violation requiring immediate intervention.
     Critical,
 }
 
-/// Policy statistics
+/// Comprehensive telemetry for the policy enforcement subsystem.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyStatistics {
+    /// Global count of policy assessment events
     pub total_evaluations: u64,
+    /// Global count of recorded breaches
     pub policy_violations: u64,
+    /// Count of assessment events that resulted in positive enforcement
     pub policies_enforced: u64,
+    /// Mean latency for policy assessment operations in milliseconds
     pub average_evaluation_time_ms: f64,
+    /// Ranking of policy IDs by violation frequency
     pub most_violated_policies: Vec<String>,
+    /// Temporal trends of violation occurrences across time buckets
     pub violation_trends: ViolationTrends,
 }
 
-/// Violation trends
+/// Statistical trends of policy violations over different time buckets.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ViolationTrends {
+    /// Number of violations in the last hour.
     pub last_hour: u64,
+    /// Number of violations in the last 24 hours.
     pub last_day: u64,
+    /// Number of violations in the last 7 days.
     pub last_week: u64,
+    /// Number of violations in the last 30 days.
     pub last_month: u64,
 }
 
 impl WolfPolicyEngine {
-    /// Create new Wolf Policy Engine
+    /// Initializes a new `WolfPolicyEngine` and loads default policy templates.
+    ///
+    /// # Errors
+    /// Returns an error if template loading fails.
     pub fn new() -> Result<Self> {
         info!("🐺 Initializing Wolf Policy Engine");
 
@@ -112,7 +149,12 @@ impl WolfPolicyEngine {
         Ok(engine)
     }
 
-    /// Load default policy templates
+    /// Loads default policy templates into the engine.
+    ///
+    /// These templates provide a baseline for security governance (Alpha, Beta, Standard, Guest).
+    ///
+    /// # Errors
+    /// Returns an error if a template definition is invalid.
     fn load_default_templates(&mut self) -> Result<()> {
         debug!("📋 Loading default policy templates");
 
@@ -265,7 +307,13 @@ impl WolfPolicyEngine {
         Ok(())
     }
 
-    /// Add a new policy
+    /// Adds a new policy to the active registry.
+    ///
+    /// # Arguments
+    /// * `policy` - The `ZeroTrustPolicy` to add.
+    ///
+    /// # Errors
+    /// Returns an error if the policy identifier already exists or if the policy is invalid.
     pub fn add_policy(&mut self, policy: ZeroTrustPolicy) -> Result<()> {
         info!("📋 Adding policy: {}", policy.name);
 
@@ -278,7 +326,12 @@ impl WolfPolicyEngine {
         Ok(())
     }
 
-    /// Evaluate policies for a context
+    /// Evaluates all applicable policies for a given trust context and level.
+    ///
+    /// Coordinates policy matching, violation detection, and adaptive control triggering.
+    ///
+    /// # Errors
+    /// Returns an error if the evaluation process fails to complete.
     pub async fn evaluate_policies(
         &mut self,
         context: &TrustContext,
@@ -428,7 +481,14 @@ impl WolfPolicyEngine {
         Ok(result)
     }
 
-    /// Find applicable policies for context
+    /// Finds all policies that are applicable to the given context and trust level.
+    ///
+    /// # Arguments
+    /// * `context` - The `TrustContext` to check against.
+    /// * `trust_level` - The subject's `TrustLevel`.
+    ///
+    /// # Returns
+    /// A vector of references to applicable `ZeroTrustPolicy` objects.
     fn find_applicable_policies(
         &self,
         context: &TrustContext,
@@ -457,7 +517,14 @@ impl WolfPolicyEngine {
         applicable
     }
 
-    /// Evaluate contextual requirement
+    /// Evaluates a specific contextual requirement.
+    ///
+    /// # Arguments
+    /// * `context` - The `TrustContext` providing current environment data.
+    /// * `requirement` - The `ContextualRequirement` to evaluate.
+    ///
+    /// # Returns
+    /// `true` if the requirement is met, `false` otherwise.
     fn evaluate_contextual_requirement(
         &self,
         context: &TrustContext,
@@ -499,7 +566,12 @@ impl WolfPolicyEngine {
         }
     }
 
-    /// Compare values based on operator
+    /// Compares an actual value against an expected value using a specified operator.
+    ///
+    /// # Arguments
+    /// * `actual` - The actual value found in the context.
+    /// * `expected` - The expected value defined in the policy.
+    /// * `operator` - The operator to use for comparison.
     fn compare_values(
         &self,
         actual: &dyn std::fmt::Display,
@@ -584,7 +656,11 @@ impl WolfPolicyEngine {
         }
     }
 
-    /// Check if adaptive control should be triggered
+    /// Checks if an adaptive control should be triggered based on the context.
+    ///
+    /// # Arguments
+    /// * `context` - The current `TrustContext`.
+    /// * `control` - The `AdaptiveControl` to evaluate.
     fn should_trigger_adaptive_control(
         &self,
         context: &TrustContext,
@@ -604,7 +680,11 @@ impl WolfPolicyEngine {
         false
     }
 
-    /// Evaluate trigger condition
+    /// Evaluates a trigger condition for adaptive controls.
+    ///
+    /// # Arguments
+    /// * `context` - The current `TrustContext`.
+    /// * `condition` - The `TriggerCondition` to evaluate.
     fn evaluate_trigger_condition(
         &self,
         context: &TrustContext,
@@ -653,7 +733,11 @@ impl WolfPolicyEngine {
         }
     }
 
-    /// Calculate violation severity
+    /// Calculates the severity of a policy violation based on the trust difference.
+    ///
+    /// # Arguments
+    /// * `actual` - The subject's current `TrustLevel`.
+    /// * `required` - The `TrustLevel` required by the policy.
     fn calculate_violation_severity(
         &self,
         actual: &TrustLevel,
@@ -668,12 +752,15 @@ impl WolfPolicyEngine {
         }
     }
 
-    /// Get statistics
+    /// Returns aggregation metrics for policy enforcement.
     pub fn get_statistics(&self) -> &PolicyStatistics {
         &self.statistics
     }
 
-    /// Get violations for a peer
+    /// Retrieves all recorded violations for a specific peer.
+    ///
+    /// # Arguments
+    /// * `peer_id` - The `PeerId` to retrieve violations for.
     pub fn get_violations(&self, peer_id: &PeerId) -> Vec<&PolicyViolation> {
         self.violations
             .get(peer_id)
@@ -681,13 +768,13 @@ impl WolfPolicyEngine {
             .unwrap_or_default()
     }
 
-    /// Clear evaluation cache
+    /// Clears the evaluation cache.
     pub fn clear_cache(&mut self) {
         self.evaluation_cache.clear();
         debug!("🗑️ Policy evaluation cache cleared");
     }
 
-    /// Get active policies
+    /// Retrieves a reference to the active policy registry.
     pub fn get_policies(&self) -> &HashMap<String, ZeroTrustPolicy> {
         &self.policies
     }

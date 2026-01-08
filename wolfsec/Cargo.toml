@@ -134,3 +134,5 @@ path = "examples/basic_usage.rs"
 name = "wolfsec-python"
 path = "src/python_cli.rs"
 required-features = ["python-cli"]
+[lints]
+workspace = true

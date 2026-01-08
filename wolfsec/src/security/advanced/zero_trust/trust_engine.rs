@@ -15,139 +15,178 @@ use super::{
 };
 use libp2p::PeerId; // Use libp2p's PeerId directly
 
-/// Wolf Trust Engine - evaluates trust based on behavioral patterns
+/// Behavioral trust evaluation engine that applies wolf pack patterns to peer interactions
 pub struct WolfTrustEngine {
-    /// Current trust levels for all peers
+    /// Mapping of peer identities to their current trust tier
     trust_levels: HashMap<PeerId, TrustLevel>,
-    /// Historical trust data
+    /// Historical interaction logs used for trend analysis and trust decay
     trust_history: HashMap<PeerId, Vec<TrustSnapshot>>,
-    /// Behavioral analysis engine
+    /// Active engine for analyzing real-time behavioral anomalies
     behavior_analyzer: WolfBehaviorAnalyzer,
-    /// Trust decay configuration
+    /// Settings for how trust diminishes over time without interaction
     decay_config: TrustDecayConfig,
-    /// Risk factors configuration
+    /// weighted factors influencing the risk probability
     risk_factors: RiskFactors,
 }
 
-/// Trust snapshot for historical tracking
+/// Point-in-time record of a trust evaluation event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrustSnapshot {
+    /// When the evaluation occurred
     pub timestamp: DateTime<Utc>,
+    /// The trust tier assigned at this moment
     pub trust_level: TrustLevel,
+    /// Statistical certainty of the evaluation
     pub confidence_score: f64,
+    /// Calculated probability of threat at this moment
     pub risk_score: f64,
+    /// Key contextual signals that influenced the result
     pub context_factors: Vec<String>,
+    /// Narrative justifying the evaluation outcome
     pub evaluation_reason: String,
 }
 
-/// Behavioral analysis engine
+/// Specialized analyzer for detecting deviations from expected peer behavior
 pub struct WolfBehaviorAnalyzer {
-    /// Normal behavioral patterns
+    /// Baselined behavioral patterns for known peers
     normal_patterns: HashMap<PeerId, BehavioralPattern>,
-    /// Anomaly detection thresholds
+    /// Sensitivity limits for various behavioral dimensions
     anomaly_thresholds: AnomalyThresholds,
-    /// Learning rate for pattern adaptation
+    /// Speed at which the analyzer adapts to legitimate behavioral changes
     learning_rate: f64,
 }
 
-/// Behavioral pattern for a peer
+/// baseline Behavioral profile for a specific peer
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BehavioralPattern {
+    /// The peer identity this pattern describes
     pub peer_id: PeerId,
+    /// Average number of requests or interactions per time unit
     pub access_frequency: f64,
+    /// Historical network segments or geographic origins
     pub typical_locations: Vec<String>,
+    /// Historical hardware identifiers used by this peer
     pub typical_devices: Vec<String>,
+    /// Chronological windows where most interactions occur
     pub typical_time_windows: Vec<TimeWindow>,
+    /// Signatures of typical network communication (metadata)
     pub communication_patterns: CommunicationPattern,
+    /// Typical infrastructure consumption metrics
     pub resource_usage: ResourceUsagePattern,
+    /// When the pattern was last recalculated
     pub last_updated: DateTime<Utc>,
 }
 
-/// Time window for typical access patterns
+/// specific Chronological window for expected behavior
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimeWindow {
+    /// Beginning of the window (0-23)
     pub start_hour: u8,
+    /// End of the window (0-23)
     pub end_hour: u8,
+    /// Categorization of the day (Weekday, Weekend, etc.)
     pub day_type: DayType,
+    /// Mathematical confidence that this window is typical
     pub confidence: f64,
 }
 
-/// Day type classification
+/// Categorization of days for behavioral analysis.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DayType {
+    /// A standard working day (Monday through Friday).
     Weekday,
+    /// A weekend day (Saturday or Sunday).
     Weekend,
+    /// A recognized holiday.
     Holiday,
 }
 
-/// Communication patterns
+/// Network communication signature and frequency analysis for a peer
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommunicationPattern {
+    /// Baseline rolling average of message volume per unit of time
     pub average_message_frequency: f64,
+    /// Statistical distribution of typical payload sizes
     pub typical_message_sizes: Vec<f64>,
+    /// Most frequently utilized network protocols by this peer
     pub preferred_protocols: Vec<String>,
+    /// Identities of peers frequently interacted with
     pub communication_partners: Vec<PeerId>,
 }
 
-/// Resource usage patterns
+/// Infrastructure consumption profile and resource demand for a peer
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResourceUsagePattern {
+    /// Normalized average of CPU cycles consumed
     pub cpu_usage_average: f64,
+    /// Normalized average of memory allocation
     pub memory_usage_average: f64,
+    /// Normalized average of network bandwidth utilization
     pub network_usage_average: f64,
+    /// Signature of common storage access patterns (path depth, frequency)
     pub storage_access_patterns: Vec<String>,
 }
 
-/// Anomaly detection thresholds
+/// Configuration for anomaly detection sensitivity
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnomalyThresholds {
+    /// Limit for deviation from expected locations
     pub location_deviation_threshold: f64,
+    /// Limit for deviation from expected time windows
     pub time_deviation_threshold: f64,
+    /// Limit for general behavioral pattern deviation
     pub behavior_deviation_threshold: f64,
+    /// Limit for abnormal resource consumption spikes
     pub resource_usage_threshold: f64,
+    /// Limit for abnormal communication frequency or volume
     pub communication_deviation_threshold: f64,
 }
 
-/// Trust decay configuration
+/// Configuration rules for trust temporal decay and interaction bonuses
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrustDecayConfig {
-    /// Decay rate per hour of inactivity
+    /// Percentage reduction in trust per hour of inactivity (0.0 to 1.0)
     pub hourly_decay_rate: f64,
-    /// Minimum trust level before reset
+    /// The floor for trust decay before requiring manual re-verification
     pub minimum_trust_level: TrustLevel,
-    /// Boost factor for positive interactions
+    /// Trust tier adjustment added after a verified positive interaction
     pub positive_interaction_boost: f64,
-    /// Penalty factor for negative interactions
+    /// Trust tier adjustment subtracted after a verified negative interaction
     pub negative_interaction_penalty: f64,
 }
 
-/// Risk factors configuration
+/// Aggregated risk parameters used in probability calculations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskFactors {
-    /// Location-based risk factors
+    /// Probability adjustments based on geographic and network location
     pub location_risks: HashMap<String, f64>,
-    /// Device-based risk factors
+    /// Probability adjustments based on hardware and software profile
     pub device_risks: HashMap<String, f64>,
-    /// Time-based risk factors
+    /// Probability adjustments based on temporal constraints
     pub time_risks: HashMap<String, f64>,
-    /// Behavioral risk factors
+    /// Probability adjustments based on behavioral deviations
     pub behavioral_risks: HashMap<String, f64>,
-    /// Environmental risk factors
+    /// Probability adjustments based on global threat telemetry
     pub environmental_risks: HashMap<String, f64>,
 }
 
-/// Behavioral score calculation
+/// Comprehensive outcome of a behavioral analysis event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BehavioralScore {
+    /// The final normalized behavioral score (0-1.0)
     pub overall_score: f64,
+    /// Score representing how well current actions match established patterns
     pub consistency_score: f64,
+    /// Score representing how easily current behavior could be forecasted
     pub predictability_score: f64,
+    /// Probability that the current behavior indicates a threat
     pub risk_score: f64,
+    /// Statistical certainty of the analysis
     pub confidence: f64,
 }
 
 impl WolfTrustEngine {
-    /// Create new Wolf Trust Engine
+    /// Initializes a new WolfTrustEngine with default decay and risk settings.
     pub fn new() -> Result<Self> {
         info!("🐺 Initializing Wolf Trust Engine");
 
@@ -162,13 +201,38 @@ impl WolfTrustEngine {
         Ok(engine)
     }
 
-    /// Initialize the trust engine
+    /// Initializes all internal components of the trust engine.
+    ///
+    /// # Errors
+    /// Returns an error if sub-component initialization fails.
     pub async fn initialize(&mut self) -> Result<()> {
         info!("🐺 Trust Engine initialized");
         Ok(())
     }
 
-    /// Evaluate base trust level for a peer
+    /// Triggers a re-evaluation of all tracked peers to apply trust decay.
+    ///
+    /// # Errors
+    /// Returns an error if the re-evaluation process fails for any peer.
+    pub async fn periodic_reevaluation(&mut self) -> Result<()> {
+        // Placeholder for periodic re-evaluation logic
+        // This would iterate through all peers and apply decay,
+        // or trigger a full re-evaluation based on current context.
+        info!("🐺 Performing periodic re-evaluation of all peers.");
+        // Example: Apply decay to all peers
+        let peer_ids: Vec<PeerId> = self.trust_levels.keys().cloned().collect();
+        for peer_id in peer_ids {
+            let current_trust = self.trust_levels.get(&peer_id).cloned().unwrap_or(TrustLevel::Unknown);
+            let decayed_trust = self.apply_trust_decay(&peer_id, current_trust);
+            self.trust_levels.insert(peer_id, decayed_trust);
+        }
+        Ok(())
+    }
+
+    /// Calculates the baseline trust evaluation for a peer using the provided context.
+    ///
+    /// # Errors
+    /// Returns an error if behavioral analysis or risk calculation fails.
     pub async fn evaluate_base_trust(
         &self,
         context: &TrustContext,
@@ -241,7 +305,25 @@ impl WolfTrustEngine {
         Ok(result)
     }
 
-    /// Update trust level based on interaction
+    /// Calculates the trust level for a specific peer based on their history and current context.
+    ///
+    /// # Errors
+    /// Returns an error if the peer's trust cannot be calculated.
+    pub fn calculate_peer_trust(
+        &self,
+        peer_id: &PeerId,
+        _context: &TrustContext,
+    ) -> Result<TrustLevel> {
+        // In a real async application, you'd await evaluate_base_trust.
+        // For this synchronous method, we'll simulate or block if necessary.
+        // For now, we'll just return the current trust level if available.
+        Ok(self.trust_levels.get(peer_id).cloned().unwrap_or(TrustLevel::Unknown))
+    }
+
+    /// Updates a peer's trust tier and behavioral history based on a recent event.
+    ///
+    /// # Errors
+    /// Returns an error if behavioral analysis or history update fails.
     pub async fn update_trust_from_interaction(
         &mut self,
         peer_id: &PeerId,
@@ -295,7 +377,39 @@ impl WolfTrustEngine {
         Ok(())
     }
 
-    /// Get trust history for a peer
+    /// Informs the engine of a security action taken (e.g., lockdown) for a peer.
+    ///
+    /// # Errors
+    /// Returns an error if recording the action fails.
+    pub async fn record_security_action(
+        &mut self,
+        peer_id: &PeerId,
+        action: &SecurityAction,
+    ) -> Result<()> {
+        debug!("🚨 Recording security action {:?} for peer: {}", action, peer_id.to_string());
+        // This method would typically update the peer's trust level or history
+        // based on the security action taken. For example, a BlockAccess action
+        // might immediately set trust to Untrusted or Suspicious.
+        match action {
+            SecurityAction::BlockAccess => {
+                self.trust_levels.insert(peer_id.clone(), TrustLevel::Suspicious);
+                // Also record a snapshot for this significant event
+                let snapshot = TrustSnapshot {
+                    timestamp: Utc::now(),
+                    trust_level: TrustLevel::Suspicious,
+                    confidence_score: 1.0,
+                    risk_score: 1.0,
+                    context_factors: vec![format!("SecurityAction: {:?}", action)],
+                    evaluation_reason: format!("Security action {:?} taken", action),
+                };
+                self.trust_history.entry(peer_id.clone()).or_insert_with(Vec::new).push(snapshot);
+            },
+            _ => { /* Other actions might have different impacts */ }
+        }
+        Ok(())
+    }
+
+    /// Retrieves the ordered set of trust snapshots recorded for a peer.
     pub fn get_trust_history(&self, peer_id: &PeerId) -> Vec<&TrustSnapshot> {
         self.trust_history
             .get(peer_id)
@@ -332,6 +446,20 @@ impl WolfTrustEngine {
         }
 
         current_trust
+    }
+
+    /// Applies a penalty to the trust level.
+    ///
+    /// # Arguments
+    /// * `current` - The current `TrustLevel`.
+    /// * `penalty` - The amount of penalty to apply (e.g., 0.1 for 10% reduction).
+    ///
+    /// # Returns
+    /// The new `TrustLevel` after applying the penalty.
+    pub fn penalty_level(current: &TrustLevel, penalty: f64) -> TrustLevel {
+        let current_value = *current as u8 as f64;
+        let new_value = (current_value - (current_value * penalty)).max(0.0);
+        TrustLevel::from(new_value.round() as u8)
     }
 
     /// Calculate contextual risk factors
@@ -383,6 +511,21 @@ impl WolfTrustEngine {
         risks
     }
 
+    /// Calculates the overall risk score based on contextual factors.
+    ///
+    /// # Arguments
+    /// * `factors` - A slice of `ContextualFactor` to consider for risk calculation.
+    ///
+    /// # Returns
+    /// A `f64` representing the aggregated risk score (0.0 to 1.0).
+    pub fn calculate_contextual_risk(&self, factors: &[ContextualFactor]) -> f64 {
+        if factors.is_empty() {
+            return 0.0;
+        }
+        let total_risk: f64 = factors.iter().map(|f| f.impact_on_trust).sum();
+        total_risk / factors.len() as f64
+    }
+
     /// Calculate final trust level
     fn calculate_final_trust(
         &self,
@@ -415,7 +558,7 @@ impl WolfTrustEngine {
         let clamped_level = final_level.clamp(0, 6) as u8;
 
         debug!("🎯 Trust calculation for {}: base={}, behavioral={}, risk={}, historical={}, final={:?}",
-               context.peer_id.to_string(), base_level, behavioral_adjustment, risk_adjustment, historical_adjustment, 
+               context.peer_id.to_string(), base_level, behavioral_adjustment, risk_adjustment, historical_adjustment,
                TrustLevel::from(clamped_level));
 
         TrustLevel::from(clamped_level)
@@ -493,6 +636,34 @@ impl WolfTrustEngine {
         (behavioral_risk * 0.4 + contextual_risk * 0.6).min(1.0)
     }
 
+    /// Records a point-in-time snapshot of a peer's trust level.
+    /// This is useful for auditing and historical analysis.
+    ///
+    /// # Arguments
+    /// * `peer_id` - The `PeerId` of the peer.
+    /// * `trust_level` - The `TrustLevel` at the time of the snapshot.
+    /// * `confidence` - The confidence score of the evaluation.
+    /// * `risk` - The risk score associated with the evaluation.
+    /// * `reason` - A string explaining the reason for this snapshot.
+    pub fn record_snapshot(
+        &mut self,
+        peer_id: PeerId,
+        trust_level: TrustLevel,
+        confidence: f64,
+        risk: f64,
+        reason: String,
+    ) {
+        let snapshot = TrustSnapshot {
+            timestamp: Utc::now(),
+            trust_level,
+            confidence_score: confidence,
+            risk_score: risk,
+            context_factors: vec![], // Can be populated if needed
+            evaluation_reason: reason,
+        };
+        self.trust_history.entry(peer_id).or_insert_with(Vec::new).push(snapshot);
+    }
+
     /// Generate security recommendations
     fn generate_recommendations(
         &self,
@@ -564,6 +735,62 @@ impl WolfTrustEngine {
         TrustLevel::from(new_level as u8)
     }
 
+    /// Maps a raw trust score (0-1.0) to a discrete `TrustLevel`.
+    ///
+    /// # Arguments
+    /// * `score` - The raw trust score.
+    ///
+    /// # Returns
+    /// The corresponding `TrustLevel`.
+    pub fn score_to_level(&self, score: f64) -> TrustLevel {
+        match score {
+            s if s >= 0.9 => TrustLevel::AlphaTrusted,
+            s if s >= 0.7 => TrustLevel::HighlyTrusted,
+            s if s >= 0.5 => TrustLevel::Trusted,
+            s if s >= 0.3 => TrustLevel::PartiallyTrusted,
+            s if s >= 0.1 => TrustLevel::Untrusted,
+            _ => TrustLevel::Suspicious, // Scores below 0.1 or negative
+        }
+    }
+
+    /// Calculates trust decay for a peer based on elapsed time since last interaction.
+    ///
+    /// # Arguments
+    /// * `current_level` - The peer's current `TrustLevel`.
+    /// * `last_activity` - The `DateTime<Utc>` of the peer's last recorded activity.
+    ///
+    /// # Returns
+    /// A `f64` representing the total decay amount that should be applied.
+    pub fn calculate_decay(&self, _current_level: &TrustLevel, last_activity: DateTime<Utc>) -> f64 {
+        let hours_since_last = (Utc::now() - last_activity).num_hours() as f64;
+        if hours_since_last > 0.0 {
+            hours_since_last * self.decay_config.hourly_decay_rate
+        } else {
+            0.0
+        }
+    }
+
+    /// Adjusts trust scores based on environmental or collective signals.
+    ///
+    /// # Errors
+    /// Returns an error if the adjustment process encounters an issue.
+    pub fn apply_collective_signals(&mut self, signals: &HashMap<String, f64>) -> Result<()> {
+        info!("Applying collective signals: {:?}", signals);
+        // This method would iterate through all peers or specific peers
+        // and adjust their trust levels based on the provided signals.
+        // For example, a high "global_threat_level" signal might reduce
+        // the trust of all peers by a small margin.
+        if let Some(global_threat_level) = signals.get("global_threat_level") {
+            let penalty_factor = *global_threat_level * 0.05; // Example: 5% penalty per unit of threat
+            for (peer_id, trust_level) in self.trust_levels.iter_mut() {
+                let new_level = Self::penalty_level(trust_level, penalty_factor);
+                *trust_level = new_level;
+                debug!("Adjusted trust for {} due to global threat: {:?}", peer_id.to_string(), new_level);
+            }
+        }
+        Ok(())
+    }
+
     /// Calculate interaction risk
     fn calculate_interaction_risk(&self, interaction: &Interaction) -> f64 {
         match interaction.interaction_type {
@@ -575,35 +802,47 @@ impl WolfTrustEngine {
     }
 }
 
-/// Interaction type for trust updates
+/// Detailed data about a single interaction event between peers.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Interaction {
+    /// The classification of the interaction (Successful, Failed, etc.).
     pub interaction_type: InteractionType,
+    /// Timestamp when the interaction took place.
     pub timestamp: DateTime<Utc>,
+    /// Narrative or metadata providing further context.
     pub context: String,
+    /// The severity of the interaction from a security perspective.
     pub severity: InteractionSeverity,
 }
 
-/// Types of interactions
+/// binary classification of a network or system interaction
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum InteractionType {
+    /// Interaction reached its intended logical conclusion without error
     Successful,
+    /// Interaction was terminated or failed due to system or protocol error
     Failed,
+    /// Interaction characteristics deviate from established normal patterns
     Suspicious,
+    /// Interaction is confirmed to be part of a malicious activity chain
     Malicious,
 }
 
-/// Interaction severity
+/// impact of an interaction on the security posture
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum InteractionSeverity {
+    /// Minimal impact, part of normal operational noise
     Low,
+    /// Noteworthy interaction requiring logging but no immediate action
     Medium,
+    /// High-risk interaction that may suggest an active threat
     High,
+    /// confirmed breach or severe threat requiring immediate orchestration response
     Critical,
 }
 
 impl WolfBehaviorAnalyzer {
-    /// Create new behavior analyzer
+    /// Initializes a new behavior analyzer with empty patterns.
     pub fn new() -> Self {
         Self {
             normal_patterns: HashMap::new(),
@@ -612,7 +851,10 @@ impl WolfBehaviorAnalyzer {
         }
     }
 
-    /// Analyze behavior for a peer
+    /// Compares the current context against baselined patterns to derive a behavioral score.
+    ///
+    /// # Errors
+    /// Returns an error if the deviation calculation fails.
     pub async fn analyze_behavior(&self, context: &TrustContext) -> Result<BehavioralScore> {
         debug!("🧠 Analyzing behavior for peer: {}", context.peer_id.to_string());
 
@@ -637,7 +879,10 @@ impl WolfBehaviorAnalyzer {
         })
     }
 
-    /// Update behavioral patterns
+    /// Integrates new interaction metadata into a peer's behavioral baseline.
+    ///
+    /// # Errors
+    /// Returns an error if the pattern update fails.
     pub async fn update_patterns(
         &mut self,
         peer_id: &PeerId,
@@ -649,8 +894,15 @@ impl WolfBehaviorAnalyzer {
         Ok(())
     }
 
-    /// Calculate pattern deviations
-    fn calculate_pattern_deviations(
+    /// Calculates deviations from established behavioral patterns.
+    ///
+    /// # Arguments
+    /// * `context` - The current `TrustContext`.
+    /// * `pattern` - The `BehavioralPattern` to compare against.
+    ///
+    /// # Returns
+    /// A tuple of `(consistency_score, predictability_score)`.
+    pub fn calculate_pattern_deviations(
         &self,
         context: &TrustContext,
         pattern: &BehavioralPattern,
@@ -766,18 +1018,23 @@ impl From<u8> for TrustLevel {
     }
 }
 
-/// Trust Analytics Data
+/// snapshot Summary of global trust metrics across the ecosystem
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrustAnalytics {
+    /// rolling Average trust score for all tracked peers
     pub average_trust_score: f64,
+    /// Total number of unique identities in the trust registry
     pub total_peers_tracked: usize,
+    /// Count of peers currently assigned to Untrusted or Suspicious tiers
     pub untrusted_peers_count: usize,
+    /// Count of peers currently assigned to Trusted or higher tiers
     pub highly_trusted_peers_count: usize,
+    /// Frequency mapping of peers across all trust tiers
     pub trust_distribution: HashMap<String, usize>,
 }
 
 impl WolfTrustEngine {
-    /// Get real-time trust analytics
+    /// Calculates and returns an aggregate snapshot of the trust registry.
     pub fn get_analytics(&self) -> TrustAnalytics {
         let total = self.trust_levels.len();
         let mut distribution = HashMap::new();

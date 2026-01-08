@@ -61,14 +61,14 @@ impl Default for AlertConfig {
     }
 }
 
-/// Escalation thresholds
+/// Thresholds governing the automated escalation of alert priority.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EscalationThresholds {
-    /// Critical alerts per hour to trigger escalation
+    /// Critical alerts per hour to trigger escalation.
     pub critical_per_hour: u64,
-    /// High alerts per hour to trigger escalation
+    /// High alerts per hour to trigger escalation.
     pub high_per_hour: u64,
-    /// Total alerts per hour to trigger escalation
+    /// Total alerts per hour to trigger escalation.
     pub total_per_hour: u64,
 }
 
@@ -93,47 +93,66 @@ pub enum NotificationChannel {
     Discord(DiscordConfig),
 }
 
-/// Email configuration
+/// Technical parameters for traditional email relay.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailConfig {
+    /// Hostname or IP of the SMTP server.
     pub smtp_server: String,
+    /// Port number (typically 587 or 465).
     pub smtp_port: u16,
+    /// Credentials for SMTP authentication.
     pub username: String,
+    /// Password or app-specific token.
     pub password: String,
+    /// Evaluated `From` address for the generated email.
     pub from_address: String,
+    /// List of primary recipients.
     pub to_addresses: Vec<String>,
 }
 
-/// Webhook configuration
+/// Parameters for outgoing HTTP webhook notifications.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebhookConfig {
+    /// Absolute URL of the receiving endpoint.
     pub url: String,
+    /// HTTP verb to use (typically POST).
     pub method: String,
+    /// Optional dictionary of HTTP headers.
     pub headers: HashMap<String, String>,
+    /// Maximum time to wait for a server response.
     pub timeout_secs: u64,
 }
 
-/// Slack configuration
+/// Parameters for Slack platform integration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SlackConfig {
+    /// Inbound webhook URL for the targeted workspace.
     pub webhook_url: String,
+    /// Slack channel name or ID (e.g., "#security-alerts").
     pub channel: String,
+    /// Display name for the posting bot.
     pub username: String,
 }
 
-/// Discord configuration
+/// Parameters for Discord platform integration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscordConfig {
+    /// Webhook URL for the targeted Discord channel.
     pub webhook_url: String,
+    /// Display name for the posting bot.
     pub username: String,
 }
 
-/// Alert filter
+/// Criteria for including or omitting alerts from notifications.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlertFilter {
+    /// Whether this filter should include or exclude matches.
     pub filter_type: FilterType,
+    /// Optional severity level to match.
     pub severity: Option<AlertSeverity>,
+    /// Optional glob or substring pattern for the alert source.
     pub source_pattern: Option<String>,
+    /// Optional glob or substring pattern for the alert message.
     pub message_pattern: Option<String>,
 }
 
@@ -202,22 +221,36 @@ impl AlertStatus {
     }
 }
 
-/// Security alert
+/// A formalized security alert record including lifecycle metadata.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityAlert {
+    /// Unique identifier for the alert.
     pub id: String,
+    /// Precision point in time when the alert was generated.
     pub timestamp: DateTime<Utc>,
+    /// Relative priority of the alert.
     pub severity: AlertSeverity,
+    /// Current state in the alert lifecycle.
     pub status: AlertStatus,
+    /// human-readable short title.
     pub title: String,
+    /// Comprehensive narrative of the security event.
     pub message: String,
+    /// Identifier of the component that emitted the alert.
     pub source: String,
+    /// Functional categorization of the alert.
     pub category: AlertCategory,
+    /// Technical key-value pairs for advanced analysis.
     pub metadata: HashMap<String, String>,
+    /// How many times this alert has been escalated (0-255).
     pub escalation_level: u8,
+    /// Identity of the operator who acknowledged the alert.
     pub acknowledged_by: Option<String>,
+    /// Point in time when acknowledgment occurred.
     pub acknowledged_at: Option<DateTime<Utc>>,
+    /// Identity of the operator who resolved the alert.
     pub resolved_by: Option<String>,
+    /// Point in time when resolution occurred.
     pub resolved_at: Option<DateTime<Utc>>,
 }
 
@@ -247,28 +280,43 @@ impl AlertCategory {
     }
 }
 
-/// Alert statistics
+/// Consolidated telemetry and performance data for the alerting system.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlertStatistics {
+    /// Total alerts ever recorded.
     pub total_alerts: usize,
+    /// Number of alerts currently in the `Active` state.
     pub active_alerts: usize,
+    /// Number of currently active `Critical` severity alerts.
     pub critical_alerts: usize,
+    /// Number of currently active `High` severity alerts.
     pub high_alerts: usize,
+    /// Number of currently active `Medium` severity alerts.
     pub medium_alerts: usize,
+    /// Number of currently active `Low` severity alerts.
     pub low_alerts: usize,
+    /// Distribution of alerts across categories.
     pub alerts_by_category: HashMap<String, usize>,
+    /// Distribution of alerts across reporting sources.
     pub alerts_by_source: HashMap<String, usize>,
+    /// Mean time (in minutes) between alert creation and resolution.
     pub average_resolution_time_minutes: f64,
+    /// Percentage of alerts that required automated or manual escalation.
     pub escalation_rate: f64,
 }
 
-/// Alert escalation
+/// A record of an automated or manual alert priority increase.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlertEscalation {
+    /// Identifier of the alert being escalated.
     pub alert_id: String,
+    /// The specific level the alert was increased to.
     pub escalation_level: u8,
+    /// Point in time when escalation occurred.
     pub escalated_at: DateTime<Utc>,
+    /// Technical or logical reason for the escalation.
     pub reason: String,
+    /// List of channels notified as a result of this escalation.
     pub notified_channels: Vec<String>,
 }
 

@@ -13,56 +13,77 @@ use tracing::{debug, info, warn};
 use super::{AuthResult, SecurityAction, TrustContext, TrustLevel};
 use libp2p::PeerId; // Use libp2p's PeerId directly
 
-/// Contextual Authenticator - multi-factor authentication with behavioral analysis
+/// Orchestrator for environment-aware, multi-factor identity verification.
+///
+/// Coordinates multiple verification signals and applies risk-based adaptive policies
+/// to satisfy Zero Trust identity requirements.
 pub struct ContextualAuthenticator {
-    /// Authentication methods
+    /// Registry of cryptographic and behavioral verification modules
     auth_methods: HashMap<String, Box<dyn AuthenticationMethod>>,
-    /// Risk-based authentication policies
+    /// Adaptive logic for transitioning verification requirements based on risk
     risk_policies: Vec<RiskBasedPolicy>,
-    /// Session management
+    /// Manager for temporal identity state and trust persistence
     session_manager: SessionManager,
-    /// Authentication statistics
+    /// Aggregate telemetry for authentication events and method success
     statistics: AuthStatistics,
 }
 
-/// Authentication method trait
+/// Abstract definition for a specific verification signal (Knowledge, Possession, etc.).
 #[async_trait::async_trait]
 pub trait AuthenticationMethod: Send + Sync {
-    /// Authenticate with the given context
+    /// Performs the verification logic using the provided trust context.
+    ///
+    /// # Errors
+    /// Returns an error if the verification process fails.
     async fn authenticate(&self, context: &TrustContext) -> Result<AuthMethodResult>;
-    /// Get method name
+    /// Returns the human-readable identifier for the method.
     fn method_name(&self) -> &str;
-    /// Get method confidence
+    /// Returns the statistical weight/confidence of this method's signal.
     fn method_confidence(&self) -> f64;
 }
 
-/// Authentication method result
+/// outcome of a single verification signal assessment
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthMethodResult {
+    /// True if the signal was successfully verified
     pub success: bool,
+    /// statistical certainty of the specific verification event
     pub confidence: f64,
+    /// calculated probability of identity spoofing for this event
     pub risk_score: f64,
+    /// supplemental signals or identifiers captured during verification
     pub additional_factors: Vec<String>,
+    /// unstructured metadata providing technical details of the event
     pub metadata: HashMap<String, serde_json::Value>,
 }
 
-/// Risk-based authentication policy
+/// defined policy for adjusting authentication requirements based on real-time risk
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskBasedPolicy {
+    /// unique identifier for the policy definition
     pub policy_id: String,
+    /// human-readable display name
     pub name: String,
+    /// initial risk probability required to trigger this policy
     pub risk_threshold: f64,
+    /// set of methods that MUST be successfully verified
     pub required_methods: Vec<String>,
+    /// dynamic signals that adjust the required verification strength
     pub adaptive_factors: Vec<AdaptiveAuthFactor>,
+    /// alternate methods to try if core verification fails
     pub fallback_methods: Vec<String>,
 }
 
-/// Adaptive authentication factor
+/// signal that dynamically influences the required strength of an identity challenge
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdaptiveAuthFactor {
+    /// classification of the signal (Location, Behavioral, etc.)
     pub factor_type: AuthFactorType,
+    /// relative importance of this signal in the policy decision
     pub weight: f64,
+    /// minimum value required for the signal to contribute positively to trust
     pub threshold: f64,
+    /// true if the signal is actively being monitored
     pub enabled: bool,
 }
 
@@ -83,49 +104,74 @@ pub enum AuthFactorType {
     Temporal,
 }
 
-/// Session manager for contextual authentication
+/// Manager for temporal identity state and trust persistence across multiple events
 pub struct SessionManager {
+    /// Active sessions indexed by unique session identifier
     sessions: HashMap<String, AuthSession>,
+    /// amount of time a session remains valid without activity
     session_timeout: std::time::Duration,
+    /// Limit of concurrent active sessions permitted per identity
     max_sessions_per_peer: usize,
 }
 
-/// Authentication session
+/// temporal record of a successfully established identity trust state
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthSession {
+    /// unique identifier for the session
     pub session_id: String,
+    /// peer identity owner of the session
     pub peer_id: PeerId,
+    /// when the session was created
     pub created_at: DateTime<Utc>,
+    /// point in time of the most recent interaction
     pub last_activity: DateTime<Utc>,
+    /// the trust tier assigned to the peer for this session
     pub trust_level: TrustLevel,
+    /// list of verification methods satisfied during session establishment
     pub auth_methods_used: Vec<String>,
+    /// risk probability calculated at session establishment
     pub risk_score: f64,
+    /// true if the session is active and not expired or revoked
     pub active: bool,
 }
 
-/// Authentication statistics
+/// Aggregate telemetry and success rates for authentication events.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthStatistics {
+    /// Total number of authentication attempts processed.
     pub total_attempts: u64,
+    /// Number of successful authentication events.
     pub successful_authentications: u64,
+    /// Number of failed authentication events.
     pub failed_authentications: u64,
+    /// Number of times adaptive authentication challenges were triggered.
     pub adaptive_auth_triggers: u64,
+    /// Mean time taken to complete an authentication event.
     pub average_auth_time_ms: f64,
+    /// Success rates for each individual authentication method.
     pub method_success_rates: HashMap<String, f64>,
+    /// Distribution of authentication events across risk tiers.
     pub risk_distribution: RiskDistribution,
 }
 
-/// Risk distribution
+/// Distribution of authentication attempts across risk levels.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskDistribution {
+    /// Count of low-risk attempts.
     pub low_risk: u64,
+    /// Count of medium-risk attempts.
     pub medium_risk: u64,
+    /// Count of high-risk attempts.
     pub high_risk: u64,
+    /// Count of critical-risk attempts.
     pub critical_risk: u64,
 }
 
 impl ContextualAuthenticator {
-    /// Create new contextual authenticator
+    /// Initializes a new `ContextualAuthenticator` and registers core verification methods.
+    ///
+    /// # Errors
+    /// Returns an error if method registration or policy loading fails.
     pub fn new() -> Result<Self> {
         info!("🔐 Initializing Contextual Authenticator");
 
@@ -286,7 +332,12 @@ impl ContextualAuthenticator {
         Ok(())
     }
 
-    /// Authenticate with contextual factors
+    /// Selects the most appropriate risk policy for a given risk score and performs authentication.
+    ///
+    /// Coordinates multi-factor verification, adaptive factors, and fallback mechanisms.
+    ///
+    /// # Errors
+    /// Returns an error if the authentication process fails or session creation fails.
     pub async fn authenticate(&mut self, context: &TrustContext) -> Result<AuthResult> {
         debug!(
             "🔐 Performing contextual authentication for: {}",
@@ -340,13 +391,10 @@ impl ContextualAuthenticator {
                 overall_risk += 0.1;
             }
         }
-
         // Check adaptive factors
-        let mut adaptive_score = 0.0;
         for factor in &policy.adaptive_factors {
             if factor.enabled {
                 let factor_score = self.evaluate_adaptive_factor(context, factor);
-                adaptive_score += factor_score * factor.weight;
 
                 if factor_score < factor.threshold {
                     debug!("⚠️ Adaptive factor triggered: {:?}", factor.factor_type);
@@ -444,8 +492,8 @@ impl ContextualAuthenticator {
         Ok(result)
     }
 
-    /// Calculate initial risk score
-    fn calculate_initial_risk(&self, context: &TrustContext) -> f64 {
+    /// Calculates the initial risk score based on the current context.
+    pub fn calculate_initial_risk(&self, context: &TrustContext) -> f64 {
         let mut risk = 0.0;
 
         // Location risk
@@ -481,8 +529,8 @@ impl ContextualAuthenticator {
         clamp(risk, 0.0, 1.0)
     }
 
-    /// Select risk policy based on risk score
-    fn select_risk_policy(&self, risk_score: f64) -> &RiskBasedPolicy {
+    /// Selects the most appropriate risk policy for a given risk score.
+    pub fn select_risk_policy(&self, risk_score: f64) -> &RiskBasedPolicy {
         for policy in &self.risk_policies {
             if risk_score <= policy.risk_threshold {
                 return policy;
@@ -493,8 +541,8 @@ impl ContextualAuthenticator {
         &self.risk_policies[self.risk_policies.len() - 1]
     }
 
-    /// Evaluate adaptive factor
-    fn evaluate_adaptive_factor(&self, context: &TrustContext, factor: &AdaptiveAuthFactor) -> f64 {
+    /// Evaluates an adaptive authentication factor.
+    pub fn evaluate_adaptive_factor(&self, context: &TrustContext, factor: &AdaptiveAuthFactor) -> f64 {
         match factor.factor_type {
             AuthFactorType::Behavioral => context.behavioral_score,
             AuthFactorType::Location => {
@@ -530,7 +578,7 @@ impl ContextualAuthenticator {
         }
     }
 
-    /// Update authentication statistics
+    /// Updates the internal authentication statistics.
     fn update_statistics(
         &mut self,
         methods_used: &[String],
@@ -576,19 +624,19 @@ impl ContextualAuthenticator {
         }
     }
 
-    /// Get authentication statistics
+    /// Returns aggregation performance and success telemetry.
     pub fn get_statistics(&self) -> &AuthStatistics {
         &self.statistics
     }
 
-    /// Get active sessions for a peer
+    /// Retrieves all active sessions for a specific peer.
     pub fn get_active_sessions(&self, peer_id: &PeerId) -> Vec<&AuthSession> {
         self.session_manager.get_sessions_for_peer(peer_id)
     }
 }
 
 impl SessionManager {
-    /// Create new session manager
+    /// Creates a new `SessionManager`.
     pub fn new() -> Self {
         Self {
             sessions: HashMap::new(),
@@ -597,7 +645,10 @@ impl SessionManager {
         }
     }
 
-    /// Create or update session
+    /// Coordinates the establishment or refresh of an identity session.
+    ///
+    /// # Errors
+    /// Returns an error if session creation fails or exceeds limits.
     pub async fn create_or_update_session(
         &mut self,
         peer_id: PeerId,
@@ -645,7 +696,7 @@ impl SessionManager {
         Ok(session_id)
     }
 
-    /// Get sessions for a peer
+    /// Retrieves all active sessions for a specific peer.
     pub fn get_sessions_for_peer(&self, peer_id: &PeerId) -> Vec<&AuthSession> {
         self.sessions
             .values()
@@ -653,7 +704,7 @@ impl SessionManager {
             .collect()
     }
 
-    /// Clean up expired sessions
+    /// Identifies and deactivates expired sessions.
     pub async fn cleanup_expired_sessions(&mut self) {
         let now = Utc::now();
         let expired_sessions: Vec<String> = self
@@ -683,6 +734,7 @@ struct DeviceAuthMethod;
 struct TemporalAuthMethod;
 
 impl PasswordAuthMethod {
+    /// Creates a new `PasswordAuthMethod`.
     fn new() -> Self {
         Self
     }
@@ -709,6 +761,7 @@ impl AuthenticationMethod for PasswordAuthMethod {
 }
 
 impl CertificateAuthMethod {
+    /// Creates a new `CertificateAuthMethod`.
     fn new() -> Self {
         Self
     }
@@ -736,6 +789,7 @@ impl AuthenticationMethod for CertificateAuthMethod {
 }
 
 impl BehavioralAuthMethod {
+    /// Creates a new `BehavioralAuthMethod`.
     fn new() -> Self {
         Self
     }
@@ -763,6 +817,7 @@ impl AuthenticationMethod for BehavioralAuthMethod {
 }
 
 impl LocationAuthMethod {
+    /// Creates a new `LocationAuthMethod`.
     fn new() -> Self {
         Self
     }
@@ -798,6 +853,7 @@ impl AuthenticationMethod for LocationAuthMethod {
 }
 
 impl DeviceAuthMethod {
+    /// Creates a new `DeviceAuthMethod`.
     fn new() -> Self {
         Self
     }
@@ -828,6 +884,7 @@ impl AuthenticationMethod for DeviceAuthMethod {
 }
 
 impl TemporalAuthMethod {
+    /// Creates a new `TemporalAuthMethod`.
     fn new() -> Self {
         Self
     }

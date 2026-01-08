@@ -34,3 +34,5 @@ uuid = { version = "1.0", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 shellexpand = "3.1"
 tempfile = "3.8"
+[lints]
+workspace = true

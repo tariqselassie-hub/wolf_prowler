@@ -1,17 +1,21 @@
 use anyhow::{Context, Result};
 use fips204::ml_dsa_44; // Using the re-export from shared if possible, or direct dep
-use fips204::traits::{KeyGen, SerDes, Signer};
+use fips204::traits::{SerDes, Signer};
 use std::fs;
 use std::path::Path;
 use tersec_shared::{
-    encrypt_for_sentinel, load_kem_public_key, package_payload, postbox_path, CommandMetadata, Role,
+    encrypt_for_sentinel, load_kem_public_key, package_payload, postbox_path, Role,
 };
 use tracing::{info, instrument};
 
+/// A client for interacting with the TersecPot security system.
 pub struct TersecClient {
-    postbox_dir: String,
-    kem_pk: fips203::ml_kem_1024::EncapsKey,
-    signing_key: fips204::ml_dsa_44::PrivateKey,
+    /// Directory used for command relay.
+    pub postbox_dir: String,
+    /// Public KEM key for encryption.
+    pub kem_pk: fips203::ml_kem_1024::EncapsKey,
+    /// Private ML-DSA key for signing.
+    pub signing_key: fips204::ml_dsa_44::PrivateKey,
 }
 
 impl TersecClient {

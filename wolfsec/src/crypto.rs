@@ -11,10 +11,11 @@ use tokio::sync::RwLock;
 use tracing::info;
 use wolf_den::{CryptoEngine, SecurityLevel};
 
-/// Secure bytes container
+/// Secure bytes container that zeroizes its content on drop.
 #[derive(Debug, Clone)]
 pub struct SecureBytes {
-    data: Vec<u8>,
+    /// The raw sensitive byte data.
+    pub data: Vec<u8>,
 }
 
 impl SecureBytes {
@@ -98,14 +99,20 @@ pub struct WolfCrypto {
     created_at: DateTime<Utc>,
 }
 
-/// Cryptographic key
+/// Represents a cryptographic key with associated metadata.
 #[derive(Debug, Clone)]
 pub struct CryptoKey {
+    /// Unique identifier for the key.
     pub key_id: String,
+    /// The protected key material.
     pub key_data: SecureBytes,
+    /// The name of the algorithm this key is for.
     pub algorithm: String,
+    /// Point in time when the key was generated.
     pub created_at: DateTime<Utc>,
+    /// Optional point in time when the key becomes invalid.
     pub expires_at: Option<DateTime<Utc>>,
+    /// Number of times this key has been used for operations.
     pub usage_count: u64,
 }
 
@@ -129,13 +136,18 @@ impl CryptoKey {
     }
 }
 
-/// Crypto configuration
+/// Configuration for the cryptographic engine.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CryptoConfig {
+    /// Default algorithm for new keys (e.g., "AES-256-GCM").
     pub default_algorithm: String,
+    /// Default size in bits for generated keys.
     pub key_size: usize,
+    /// Whether to explicitly wipe memory after use.
     pub secure_erase: bool,
+    /// Whether to leverage CPU-specific crypto instructions.
     pub hardware_acceleration: bool,
+    /// Required protection level from the underlying engine.
     pub security_level: SecurityLevel,
 }
 
@@ -151,15 +163,22 @@ impl Default for CryptoConfig {
     }
 }
 
-/// Crypto status
+/// Real-time snapshot of the cryptographic subsystem state.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CryptoStatus {
+    /// Total number of keys managed by the engine.
     pub total_keys: usize,
+    /// Number of keys currently available for use.
     pub active_keys: usize,
+    /// Number of keys that have passed their expiration date.
     pub expired_keys: usize,
+    /// The algorithm currently used by default.
     pub default_algorithm: String,
+    /// Whether hardware acceleration is currently active.
     pub hardware_acceleration: bool,
+    /// When the engine was started.
     pub created_at: DateTime<Utc>,
+    /// The active security policy level.
     pub security_level: SecurityLevel,
 }
 

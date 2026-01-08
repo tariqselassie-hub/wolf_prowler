@@ -46,3 +46,5 @@ wolf_db = { path = "../crates/WolfDb" }
 tracing = "0.1.44" 
 js-sys = "0.3.83"
 web-sys = { version = "0.3.83", features = ["Window", "Document"] }
+[lints]
+workspace = true

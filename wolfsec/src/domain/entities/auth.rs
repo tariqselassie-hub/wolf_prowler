@@ -18,24 +18,35 @@ impl Permission {
     }
 }
 
-/// Represents a role that groups multiple permissions.
+/// Represents a role that groups multiple permissions for simplified management.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Role {
+    /// Unique identifier for the role.
     pub id: Uuid,
+    /// Human-readable name of the role (e.g., "admin", "operator").
     pub name: String,
+    /// Set of specific functional permissions granted to this role.
     pub permissions: HashSet<Permission>,
 }
 
-/// Represents a user in the system.
-/// Note: The password field should store a secure hash, not plaintext.
-/// The hashing itself is an infrastructure concern.
+/// Represents a user identity within the security system.
+///
+/// Note: The `password_hash` field should contain a cryptographically secure hash,
+/// never plaintext. Password hashing is handled at the infrastructure layer.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
+    /// Unique identifier for the user.
     pub id: Uuid,
+    /// Unique login name for the user.
     pub username: String,
+    /// Securely hashed representation of the user's password.
     pub password_hash: String,
-    pub roles: HashSet<String>, // Set of role names
+    /// Set of role names assigned to the user, controlling system access.
+    pub roles: HashSet<String>,
+    /// Whether the user is currently permitted to log in.
     pub is_active: bool,
+    /// Point in time when the user account was created.
     pub created_at: DateTime<Utc>,
+    /// Last time the user account details were modified.
     pub updated_at: DateTime<Utc>,
 }

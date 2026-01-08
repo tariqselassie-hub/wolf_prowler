@@ -5,12 +5,16 @@ use crate::security::advanced::ml_security::{
 };
 use anyhow::Result;
 
+/// Training pipeline for ML models
+///
+/// Handles model training, calibration, and validation.
 pub struct TrainingPipeline {
     config: MLSecurityConfig,
     extractor: FeatureExtractor,
 }
 
 impl TrainingPipeline {
+    /// Create new training pipeline
     pub fn new(config: MLSecurityConfig) -> Result<Self> {
         Ok(Self {
             config,
@@ -18,6 +22,7 @@ impl TrainingPipeline {
         })
     }
 
+    /// Train model with provided data
     pub async fn train_model(
         &self,
         _model: &MLModel,

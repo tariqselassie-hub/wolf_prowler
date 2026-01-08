@@ -9260,16 +9260,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pqc_dilithium"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "580a6801ec2155f89317b08e5aab68dee8f541db974e0c72b7e43aa65c1f4a4a"
-dependencies = [
- "rand 0.8.5",
- "rand_core 0.6.4",
-]
-
-[[package]]
 name = "pqc_kyber"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -14006,7 +13996,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "axum",
- "base64 0.21.7",
+ "base64 0.22.1",
  "bincode",
  "chrono",
  "clap",
@@ -14015,13 +14005,13 @@ dependencies = [
  "criterion",
  "cryptoki",
  "dialoguer",
+ "fips204",
  "futures-util",
  "hnsw_rs",
  "jsonwebtoken",
  "lettre 0.11.19",
  "mime",
  "nalgebra",
- "pqc_dilithium",
  "pqc_kyber",
  "rand 0.8.5",
  "rayon",
@@ -14030,10 +14020,11 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
- "serde_urlencoded",
+ "serde_qs 0.12.0",
  "shlex",
  "sled",
  "tempfile",
+ "thiserror 1.0.69",
  "tokio",
  "tokio-tungstenite 0.21.0",
  "tower 0.5.2",

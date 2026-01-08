@@ -6,13 +6,16 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
+/// NIST Compliance Manager
 pub struct NISTComplianceManager;
 
 impl NISTComplianceManager {
+    /// Create new NIST manager
     pub fn new(_config: ComplianceConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Run NIST assessment
     pub async fn run_assessment(
         &self,
         assessment_type: AssessmentType,

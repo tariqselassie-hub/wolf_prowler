@@ -1,5 +1,4 @@
 use super::error::Result;
-// use super::error::WolfPackError;
 use super::howl::{HowlMessage, HowlPayload, HowlPriority};
 use crate::peer::PeerId;
 use rand::Rng;
@@ -11,34 +10,49 @@ const BASE_ELECTION_TIMEOUT_MS: u64 = 5000;
 const ELECTION_TIMEOUT_VARIANCE_MS: u64 = 3000;
 const HEARTBEAT_INTERVAL_MS: u64 = 2000;
 
+/// Current state of the node in the Raft consensus lifecycle
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ElectionState {
+    /// Followers passively listen to the Leader
     Follower,
+    /// Candidates campaign for leadership
     Candidate,
+    /// Leaders send heartbeats and manage the pack
     Leader,
 }
 
+/// Manages the consensus and leader election logic (Raft-lite)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ElectionManager {
+    /// Local peer ID
     pub local_peer_id: PeerId,
+    /// Current election term
     pub current_term: u64,
+    /// ID of the peer voted for in the current term
     pub voted_for: Option<PeerId>,
+    /// Current role in election
     pub state: ElectionState,
 
     // Volatile state
+    /// Known leader
     pub leader_id: Option<PeerId>,
+    /// Last heard from leader
     #[serde(skip, default = "std::time::Instant::now")]
     last_heartbeat: Instant,
+    /// Randomized timeout deadline
     #[serde(skip, default = "ElectionManager::randomized_timeout")]
     election_timeout: Duration,
+    /// Votes received in current term (if Candidate)
     #[serde(skip)]
     votes_received: HashSet<PeerId>,
 
     // For weighting votes
+    /// Local prestige score
     pub local_prestige: u32,
 }
 
 impl ElectionManager {
+    /// Create a new ElectionManager
     pub fn new(local_peer_id: PeerId, local_prestige: u32) -> Self {
         Self {
             local_peer_id,
@@ -53,6 +67,7 @@ impl ElectionManager {
         }
     }
 
+    /// Updates the local node's prestige (impacting vote weight/eligibility)
     pub fn update_prestige(&mut self, prestige: u32) {
         self.local_prestige = prestige;
     }
@@ -79,6 +94,7 @@ impl ElectionManager {
         None
     }
 
+    /// Process an incoming Howl message related to elections
     pub fn handle_howl(&mut self, msg: &HowlMessage) -> Result<Option<HowlMessage>> {
         match &msg.payload {
             HowlPayload::ElectionRequest {
@@ -163,7 +179,9 @@ impl ElectionManager {
         // Prestige check: Only vote for candidates with >= prestige to ensure best leader
         // Relaxed condition: If I am follower, I respect higher prestige.
         // If equal prestige, tie break can be anything.
+        // let prestige_sufficient = candidate_prestige >= self.local_prestige;
         let prestige_sufficient = candidate_prestige >= self.local_prestige;
+
 
         if can_vote && prestige_sufficient {
             self.voted_for = Some(candidate_id.clone());

@@ -6,23 +6,31 @@ use tokio::sync::RwLock;
 /// Configuration for the Hub connection
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HubConfig {
+    /// URL of the central Hub service.
     pub hub_url: String,
+    /// API key used for authentication with the Hub.
     pub api_key: String,
+    /// Identifier for this agent instance.
     pub agent_id: String,
+    /// Run in headless mode (no interactive UI).
     pub headless: bool,
 }
 
 /// Request payload for authentication
 #[derive(Debug, Serialize)]
 struct AuthRequest {
+    /// Agent identifier for the auth request.
     agent_id: String,
+    /// API key for the auth request.
     api_key: String,
 }
 
 /// Response payload for authentication
 #[derive(Debug, Deserialize)]
 struct AuthResponse {
+    /// JWT token returned by the Hub.
     token: String,
+    /// Expiration time in seconds.
     expires_in: u64,
 }
 
@@ -35,6 +43,10 @@ pub struct HubOrchestration {
 }
 
 impl HubOrchestration {
+    /// Creates a new `HubOrchestration` instance.
+    ///
+    /// * `config` – Configuration for connecting to the Hub.
+    /// * `auth_token` – Shared token storage used by other components.
     pub fn new(config: HubConfig, auth_token: Arc<RwLock<Option<String>>>) -> Self {
         Self {
             config,
@@ -43,7 +55,9 @@ impl HubOrchestration {
         }
     }
 
-    /// Authenticates with the Hub to retrieve a JWT token
+    /// Authenticates with the Hub to retrieve a JWT token.
+    ///
+    /// Returns the expiration time of the token in seconds.
     pub async fn authenticate(&self) -> Result<u64> {
         let url = format!("{}/api/v1/agent/auth", self.config.hub_url);
 
@@ -78,7 +92,9 @@ impl HubOrchestration {
         }
     }
 
-    /// Runs the main orchestration loop, handling periodic re-authentication
+    /// Runs the main orchestration loop, handling periodic re‑authentication.
+    ///
+    /// This method will loop indefinitely, refreshing the authentication token before it expires.
     pub async fn run(&self) -> Result<()> {
         loop {
             match self.authenticate().await {

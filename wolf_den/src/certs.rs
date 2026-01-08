@@ -5,8 +5,9 @@ use crate::error::Result;
 /// # Arguments
 /// * `subject_alt_names` - A list of subject alternative names (e.g., "localhost", "127.0.0.1").
 ///
-/// # Returns
-/// A tuple containing (cert_pem, key_pem).
+/// # Errors
+///
+/// Returns an error if certificate generation fails.
 pub fn generate_self_signed_cert(subject_alt_names: Vec<String>) -> Result<(String, String)> {
     // Generate a simple self-signed certificate using rcgen's helper
     // This is robust across versions and suffices for our dev dashboard

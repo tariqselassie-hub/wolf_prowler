@@ -8,57 +8,87 @@ use uuid::Uuid;
 /// Priority level of a Howl message
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum HowlPriority {
+    /// Informational message
     Info = 0,
+    /// Warning message
     Warning = 1,
-    Alert = 2, // Highest priority (e.g. KillOrder)
+    /// Critical alert (Highest priority)
+    Alert = 2, 
 }
 
 /// The payload content of a Howl message
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum HowlPayload {
     /// A Scout reporting a threat
-    WarningHowl { target_ip: String, evidence: String },
+    WarningHowl { 
+        /// Detected target IP
+        target_ip: String, 
+        /// Evidence string
+        evidence: String 
+    },
     /// An Alpha or Beta requesting a hunt
     HuntRequest {
+        /// Unique hunt ID
         hunt_id: String,
+        /// Target IP
         target_ip: String,
         /// Minimum role required to join
         min_role: crate::wolf_pack::state::WolfRole,
     },
     /// A Hunter reporting their findings
     HuntReport {
+        /// Hunt ID being reported on
         hunt_id: String,
+        /// Peer ID of hunter
         hunter: PeerId,
+        /// Whether threat was confirmed
         confirmed: bool,
     },
     /// An Alpha commanding a node neutralization
     KillOrder {
+        /// Target IP to neutralize
         target_ip: String,
+        /// Justification for kill order
         reason: String,
         /// ID of the hunt that lead to this order
         hunt_id: String,
     },
     /// Updates about territory ownership or status
     TerritoryUpdate {
+        /// CIDR range of territory
         region_cidr: String,
+        /// Owner Peer ID
         owner: PeerId,
+        /// Status of territory
         status: String,
     },
     /// A Candidate requesting votes to become Alpha
     ElectionRequest {
+        /// Election term
         term: u64,
+        /// Candidate Peer ID
         candidate_id: PeerId,
+        /// Last log index (Raft)
         last_log_index: u64,
+        /// Candidate prestige
         prestige: u32,
     },
     /// A node casting a vote
     ElectionVote {
+        /// Election term
         term: u64,
+        /// Voter Peer ID
         voter_id: PeerId,
+        /// Vote granted
         granted: bool,
     },
     /// Periodic heartbeat from the Alpha to maintain authority
-    AlphaHeartbeat { term: u64, leader_id: PeerId },
+    AlphaHeartbeat { 
+        /// Current term
+        term: u64, 
+        /// Leader Peer ID
+        leader_id: PeerId 
+    },
 }
 
 /// The envelope for all P2P gossip messages in the Wolf Pack
@@ -79,6 +109,7 @@ pub struct HowlMessage {
 }
 
 impl HowlMessage {
+    /// Create a new HowlMessage
     pub fn new(sender: PeerId, priority: HowlPriority, payload: HowlPayload) -> Self {
         Self {
             id: Uuid::new_v4(),

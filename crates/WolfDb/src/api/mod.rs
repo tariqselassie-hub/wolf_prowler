@@ -3,23 +3,32 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;
 
+/// API request handlers
 pub mod handlers;
+/// API request and response models
 pub mod models;
 
 /// Shared application state
 #[derive(Clone)]
 pub struct AppState {
+    /// Underlying storage engine
     pub storage: Arc<RwLock<WolfDbStorage>>,
+    /// Active user sessions
     pub sessions: Arc<RwLock<HashMap<String, SessionData>>>,
 }
 
+/// Data associated with an active session
 #[derive(Clone)]
 pub struct SessionData {
+    /// Unique session token
     pub token: String,
+    /// Unix timestamp when the session expires
     pub expires_at: i64,
 }
 
 impl AppState {
+    /// Creates a new `AppState` with the given storage engine
+    #[must_use]
     pub fn new(storage: WolfDbStorage) -> Self {
         Self {
             storage: Arc::new(RwLock::new(storage)),
@@ -53,12 +62,10 @@ impl AppState {
     /// Validate a session token
     pub async fn validate_session(&self, token: &str) -> bool {
         let sessions = self.sessions.read().await;
-        if let Some(session) = sessions.get(token) {
+        sessions.get(token).is_some_and(|session| {
             let now = chrono::Utc::now().timestamp();
             session.expires_at > now
-        } else {
-            false
-        }
+        })
     }
 
     /// Remove a session
@@ -76,6 +83,7 @@ use tower_http::cors::{CorsLayer, Any};
 use tower::ServiceBuilder;
 use axum::extract::DefaultBodyLimit;
 
+/// Creates the Axum router with all API routes configured
 pub fn create_router(state: AppState) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(Any)

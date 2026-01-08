@@ -74,13 +74,21 @@ pub struct CloudSecurityConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
 pub enum CloudProvider {
     #[default]
+    /// Amazon Web Services
     AWS,
+    /// Microsoft Azure
     Azure,
+    /// Google Cloud Platform
     GCP,
+    /// Oracle Cloud
     OracleCloud,
+    /// IBM Cloud
     IBMCloud,
+    /// Alibaba Cloud
     AlibabaCloud,
+    /// Private Cloud environment
     PrivateCloud(String),
+    /// Hybrid Cloud environment
     Hybrid,
 }
 
@@ -244,30 +252,50 @@ pub struct CloudResource {
 /// Cloud resource types
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum CloudResourceType {
+    /// Virtual machine instance
     VirtualMachine,
+    /// Container instance
     Container,
+    /// Serverless function
     ServerlessFunction,
+    /// Storage bucket
     StorageBucket,
+    /// Database instance
     Database,
+    /// Virtual network
     Network,
+    /// Load balancer
     LoadBalancer,
+    /// Firewall rule/appliance
     Firewall,
+    /// VPN gateway
     VPN,
+    /// DNS zone/record
     DNS,
+    /// API Gateway
     APIGateway,
+    /// Message queue
     MessageQueue,
+    /// Kubernetes cluster
     KubernetesCluster,
+    /// Custom resource type
     Custom(String),
 }
 
 /// Cloud resource status
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum CloudResourceStatus {
+    /// Resource is running
     Running,
+    /// Resource is stopped
     Stopped,
+    /// Resource is pending
     Pending,
+    /// Resource is terminating
     Terminating,
+    /// Resource is in error state
     Error,
+    /// Resource status unknown
     Unknown,
 }
 
@@ -293,10 +321,15 @@ pub struct SecurityPosture {
 /// Security levels
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SecurityLevel {
+    /// Critical security risk
     Critical = 0,
+    /// High security risk
     High = 1,
+    /// Medium security risk
     Medium = 2,
+    /// Low security risk
     Low = 3,
+    /// Secure state
     Secure = 4,
 }
 
@@ -327,9 +360,13 @@ pub struct FrameworkCompliance {
 /// Compliance status levels
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ComplianceStatusLevel {
+    /// Fully compliant
     Compliant,
+    /// Non-compliant
     NonCompliant,
+    /// Partially compliant
     PartiallyCompliant,
+    /// Not applicable
     NotApplicable,
 }
 
@@ -353,9 +390,13 @@ pub struct ComplianceViolation {
 /// Violation severity
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ViolationSeverity {
+    /// Low severity
     Low = 0,
+    /// Medium severity
     Medium = 1,
+    /// High severity
     High = 2,
+    /// Critical severity
     Critical = 3,
 }
 
@@ -379,19 +420,28 @@ pub struct SecurityControl {
 /// Security control types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SecurityControlType {
+    /// Preventive control
     Preventive,
+    /// Detective control
     Detective,
+    /// Corrective control
     Corrective,
+    /// Compensating control
     Compensating,
+    /// Deterrent control
     Deterrent,
 }
 
 /// Security control status
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SecurityControlStatus {
+    /// Control is active
     Active,
+    /// Control is inactive
     Inactive,
+    /// Control has failed
     Failed,
+    /// Status unknown
     Unknown,
 }
 
@@ -425,34 +475,53 @@ pub struct CloudSecurityIncident {
 /// Incident severity
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum IncidentSeverity {
+    /// Low severity
     Low = 0,
+    /// Medium severity
     Medium = 1,
+    /// High severity
     High = 2,
+    /// Critical severity
     Critical = 3,
 }
 
 /// Cloud incident types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CloudIncidentType {
+    /// Data breach
     DataBreach,
+    /// Unauthorized access
     UnauthorizedAccess,
+    /// Configuration error
     ConfigurationError,
+    /// Malware detected
     Malware,
+    /// DDoS attack
     DDoS,
+    /// Insider threat
     InsiderThreat,
+    /// Service disruption
     ServiceDisruption,
+    /// Compliance violation
     ComplianceViolation,
+    /// Custom incident type
     Custom(String),
 }
 
 /// Incident status
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum IncidentStatus {
+    /// New incident
     New,
+    /// Investigating incident
     Investigating,
+    /// Incident contained
     Contained,
+    /// Incident resolved
     Resolved,
+    /// Incident closed
     Closed,
+    /// False positive
     FalsePositive,
 }
 
@@ -474,21 +543,32 @@ pub struct ResponseAction {
 /// Response action types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ResponseActionType {
+    /// Isolate cloud resource
     IsolateResource,
+    /// Block network access
     BlockAccess,
+    /// Revoke user credentials
     RevokeCredentials,
+    /// Update configuration
     UpdateConfiguration,
+    /// Enable additional controls
     EnableAdditionalControls,
+    /// Notify security team
     NotifyTeam,
+    /// Custom action
     Custom(String),
 }
 
 /// Action results
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ActionResult {
+    /// Action succeeded
     Success,
+    /// Action failed
     Failed,
+    /// Partial success
     Partial,
+    /// Not applicable
     NotApplicable,
 }
 
@@ -522,14 +602,22 @@ pub struct CloudTerritory {
 /// Territory types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TerritoryType {
-    AlphaTerritory,  // Most critical resources
-    BetaTerritory,   // High importance resources
-    GammaTerritory,  // Medium importance resources
-    DeltaTerritory,  // Standard resources
-    OmegaTerritory,  // Development/testing resources
-    HuntingGrounds,  // External-facing resources
-    DenTerritory,    // Internal resources
-    PatrolTerritory, // Monitoring resources
+    /// Alpha territory (Critical resources)
+    AlphaTerritory,
+    /// Beta territory (High importance)
+    BetaTerritory,
+    /// Gamma territory (Medium importance)
+    GammaTerritory,
+    /// Delta territory (Standard resources)
+    DeltaTerritory,
+    /// Omega territory (Dev/Test)
+    OmegaTerritory,
+    /// Hunting grounds (External facing)
+    HuntingGrounds,
+    /// Den territory (Internal)
+    DenTerritory,
+    /// Patrol territory (Monitoring)
+    PatrolTerritory,
 }
 
 /// Wolf pack assignment
@@ -550,14 +638,22 @@ pub struct WolfPackAssignment {
 /// Wolf pack roles
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WolfPackRole {
-    AlphaPack,    // Lead security team
-    BetaPack,     // High-priority security
-    GammaPack,    // Standard security
-    DeltaPack,    // Monitoring team
-    OmegaPack,    // Support team
-    ScoutPack,    // Reconnaissance team
-    HunterPack,   // Threat hunting team
-    GuardianPack, // Protection team
+    /// Alpha pack (Lead security)
+    AlphaPack,
+    /// Beta pack (High priority)
+    BetaPack,
+    /// Gamma pack (Standard)
+    GammaPack,
+    /// Delta pack (Monitoring)
+    DeltaPack,
+    /// Omega pack (Support)
+    OmegaPack,
+    /// Scout pack (Recon)
+    ScoutPack,
+    /// Hunter pack (Threat hunting)
+    HunterPack,
+    /// Guardian pack (Protection)
+    GuardianPack,
 }
 
 /// Patrol schedule
@@ -576,11 +672,17 @@ pub struct PatrolSchedule {
 /// Patrol frequency
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PatrolFrequency {
+    /// Continuous patrol
     Continuous,
+    /// Hourly patrol
     Hourly,
+    /// Daily patrol
     Daily,
+    /// Weekly patrol
     Weekly,
+    /// Monthly patrol
     Monthly,
+    /// Custom frequency
     Custom(String),
 }
 
@@ -621,21 +723,32 @@ pub struct HealthIssue {
 /// Health issue types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum HealthIssueType {
+    /// Security vulnerability
     SecurityVulnerability,
+    /// Configuration error
     ConfigurationError,
+    /// Performance issue
     PerformanceIssue,
+    /// Compliance violation
     ComplianceViolation,
+    /// Resource exhaustion
     ResourceExhaustion,
+    /// Network issue
     NetworkIssue,
+    /// Custom issue
     Custom(String),
 }
 
 /// Issue severity
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum IssueSeverity {
+    /// Low severity
     Low = 0,
+    /// Medium severity
     Medium = 1,
+    /// High severity
     High = 2,
+    /// Critical severity
     Critical = 3,
 }
 
@@ -950,20 +1063,30 @@ pub struct IncidentResponse {
 /// Response status
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ResponseStatus {
+    /// Response in progress
     InProgress,
+    /// Incident contained
     Contained,
+    /// Incident resolved
     Resolved,
+    /// Incident escalated
     Escalated,
 }
 
 /// Cloud report types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CloudReportType {
+    /// Security posture report
     SecurityPosture,
+    /// Compliance report
     Compliance,
+    /// Incident summary report
     IncidentSummary,
+    /// Resource inventory report
     ResourceInventory,
+    /// Threat landscape report
     ThreatLandscape,
+    /// Custom report
     Custom(String),
 }
 

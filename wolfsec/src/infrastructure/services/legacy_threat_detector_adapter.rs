@@ -10,10 +10,15 @@ use tokio::sync::Mutex;
 /// An adapter that wraps the legacy `ThreatDetector` to conform to the new `ThreatDetectionService` trait.
 /// This acts as a bridge between the new architecture and the old implementation, forming an "anti-corruption layer".
 pub struct LegacyThreatDetectorAdapter {
-    legacy_detector: Arc<Mutex<LegacyThreatDetectorImpl>>,
+    /// The legacy threat detector being adapted.
+    pub legacy_detector: Arc<Mutex<LegacyThreatDetectorImpl>>,
 }
 
 impl LegacyThreatDetectorAdapter {
+    /// Creates a new instance of `LegacyThreatDetectorAdapter`.
+    ///
+    /// # Arguments
+    /// * `legacy_detector` - An `Arc<Mutex<LegacyThreatDetectorImpl>>` to be wrapped.
     pub fn new(legacy_detector: Arc<Mutex<LegacyThreatDetectorImpl>>) -> Self {
         Self { legacy_detector }
     }

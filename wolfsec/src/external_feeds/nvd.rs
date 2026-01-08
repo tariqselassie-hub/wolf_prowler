@@ -4,6 +4,7 @@ use anyhow::Result;
 use reqwest::Client;
 use serde_json::Value;
 
+/// Fetches detailed CVE information from the National Vulnerability Database (NVD).
 pub async fn fetch_nvd(
     cve_id: &str,
     config: &ExternalFeedsConfig,

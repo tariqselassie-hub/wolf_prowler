@@ -3,9 +3,12 @@ use super::ThreatFeedItem;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+/// Simple in-memory cache for threat feed items to reduce API load.
 pub struct FeedCache {
-    ttl: Duration,
-    store: HashMap<String, (ThreatFeedItem, Instant)>,
+    /// Time-to-live for cached items.
+    pub ttl: Duration,
+    /// Internal storage mapping keys to their cached items and insertion time.
+    pub store: HashMap<String, (ThreatFeedItem, Instant)>,
 }
 
 impl FeedCache {

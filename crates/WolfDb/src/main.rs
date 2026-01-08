@@ -1,8 +1,14 @@
+//! `WolfDb` - Hybrid PQC Database Command Line Interface and Web Server.
+//!
+//! This binary provides both an interactive REPL for database management
+//! and a REST API server for remote interactions.
+
 use anyhow::Result;
 use wolf_db::engine::QueryEngine;
 use wolf_db::storage::WolfDbStorage;
 use clap::Parser;
 
+/// Command-line arguments for `WolfDb`
 #[derive(Parser)]
 #[command(name = "wolfdb")]
 #[command(about = "WolfDb - Hybrid PQC Database with CLI and Web Interface")]
@@ -11,7 +17,7 @@ struct Cli {
     #[arg(long, default_value = "cli")]
     mode: String,
 
-    /// Path to the WolfDb database directory
+    /// Path to the `WolfDb` database directory
     #[arg(long, default_value = "wolf.db")]
     db: String,
 

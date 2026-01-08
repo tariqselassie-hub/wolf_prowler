@@ -13,142 +13,141 @@ use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use crate::security::advanced::iam::{
-    AuthenticationManager, AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
-    SessionRequest, UserStatus,
+    AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig, SessionRequest,
 };
 
-/// Session entity
+/// Represents an active, authenticated logical connection between a user identity and the system.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Session {
-    /// Session ID
+    /// Unique internal identifier for the session instance.
     pub id: Uuid,
-    /// User ID
+    /// The user identity associated with this session.
     pub user_id: Uuid,
-    /// Created timestamp
+    /// Point in time when the session was initially established.
     pub created_at: chrono::DateTime<Utc>,
-    /// Last activity timestamp
+    /// Point in time of the most recent user activity or validation.
     pub last_activity: chrono::DateTime<Utc>,
-    /// Expires at timestamp
+    /// Deadline after which the session automatically becomes invalid.
     pub expires_at: chrono::DateTime<Utc>,
-    /// Client information
+    /// Environment and device context of the requester.
     pub client_info: ClientInfo,
-    /// Session status
+    /// Current lifecycle state of the session.
     pub status: SessionStatus,
-    /// Session type
+    /// Classification of the session purpose.
     pub session_type: SessionType,
-    /// Security context
+    /// Metadata tracking security-relevant events and risk during the session.
     pub security_context: SecurityContext,
-    /// JWT token (if applicable)
+    /// Optional JWT token string if the session is backed by a bearer token.
     pub jwt_token: Option<String>,
-    /// Refresh token (if applicable)
+    /// Optional refresh token for extending the session lifecycle.
     pub refresh_token: Option<String>,
 }
 
-/// Session status
+/// Possible lifecycle states for a session.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SessionStatus {
-    /// Active session
+    /// Session is valid and accepting requests.
     Active,
-    /// Expired session
+    /// Session has naturally reached its expiration deadline.
     Expired,
-    /// Terminated session
+    /// Session was explicitly closed by the user or an administrator.
     Terminated,
-    /// Suspended session
+    /// Session is temporarily inactive but not yet destroyed.
     Suspended,
-    /// Locked session (security violation)
+    /// Session is restricted due to a detected security anomaly or violation.
     Locked,
 }
 
-/// Session type
+/// Categorization of sessions based on their authentication origin and scope.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SessionType {
-    /// Regular user session
+    /// Standard interactive user session via primary credentials.
     Regular,
-    /// Admin session
+    /// High-privileged administrative session for system management.
     Admin,
-    /// API session
+    /// Non-interactive session for programmatic service-to-service calls.
     API,
-    /// SSO session
+    /// Session established via an external Single Sign-On provider.
     SSO,
-    /// MFA session
+    /// Stepped-up session requiring active multi-factor verification.
     MFA,
 }
 
-/// Security context
+/// Contextual security metadata maintained throughout the session lifecycle.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityContext {
-    /// IP address changes detected
+    /// History of IP address changes observed during the session.
     pub ip_changes: Vec<String>,
-    /// User agent changes detected
+    /// History of browser or client metadata changes observed.
     pub user_agent_changes: Vec<String>,
-    /// Location changes detected
+    /// Significant geographic or network location transitions.
     pub location_changes: Vec<String>,
-    /// Security violations
+    /// Log of specific policy violations or anomalies detected.
     pub security_violations: Vec<SecurityViolation>,
-    /// Risk score (0-100)
+    /// Dynamically calculated risk level (0-100).
     pub risk_score: u8,
-    /// MFA verified
+    /// True if the session has successfully fulfilled an MFA challenge.
     pub mfa_verified: bool,
-    /// Session locked
+    /// Administrative lock flag based on accumulated risk or violations.
     pub locked: bool,
-    /// Last security check
+    /// Point in time of the most recent automated security posture evaluation.
     pub last_security_check: chrono::DateTime<Utc>,
 }
 
-/// Security violation
+/// Detailed record of a detected security-relevant anomaly or policy breach.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityViolation {
-    /// Violation type
+    /// Categorization of the event (e.g., SessionHijacking).
     pub violation_type: SecurityViolationType,
-    /// Violation description
+    /// Narrative detailing the specific trigger or observation.
     pub description: String,
-    /// Timestamp
+    /// Point in time when the violation was recorded.
     pub timestamp: chrono::DateTime<Utc>,
-    /// Severity
+    /// Severity classification for risk calculation.
     pub severity: SecuritySeverity,
 }
 
-/// Security violation types
+/// Security violation types categorized by nature.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SecurityViolationType {
-    /// IP address change
+    /// IP address has changed significantly.
     IPAddressChange,
-    /// User agent change
+    /// User agent header has changed mid-session.
     UserAgentChange,
-    /// Location change
+    /// Geographic location has changed unexpectedly.
     LocationChange,
-    /// Suspicious activity
+    /// Activity patterns suggesting non-human or malicious use.
     SuspiciousActivity,
-    /// Multiple failed attempts
+    /// Threshold of failed actions exceeded.
     MultipleFailedAttempts,
-    /// Session hijacking attempt
+    /// Indicators that the session has been taken over.
     SessionHijackingAttempt,
-    /// Privilege escalation attempt
+    /// Attempts to access unauthorized resources.
     PrivilegeEscalationAttempt,
 }
 
-/// Security severity levels
+/// Severity tiers for prioritizing response to security violations.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SecuritySeverity {
-    /// Low severity
+    /// Informational or low-impact anomalies.
     Low,
-    /// Medium severity
+    /// Notable changes in behavior requiring monitoring.
     Medium,
-    /// High severity
+    /// Indicators of potential unauthorized access.
     High,
-    /// Critical severity
+    /// Immediate threats requiring session termination.
     Critical,
 }
 
-/// Session manager
+/// Central authority for creating, tracking, and securing authenticated user sessions
 pub struct SessionManager {
-    /// Active sessions
+    /// Thread-safe localized registry of all active sessions
     sessions: Arc<Mutex<HashMap<Uuid, Session>>>,
-    /// User session mapping
+    /// Map of user IDs to their associated active session identifiers
     user_sessions: Arc<Mutex<HashMap<Uuid, Vec<Uuid>>>>,
-    /// Configuration
+    /// Global IAM system configuration
     config: IAMConfig,
-    /// Session cleanup interval
+    /// Frequency at which expired or anomalous sessions are pruned
     cleanup_interval: Duration,
 }
 
@@ -163,57 +162,60 @@ impl Clone for SessionManager {
     }
 }
 
-/// Session validation result
+/// Comprehensive outcome of a session integrity and validity evaluation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionValidationResult {
-    /// Validation success
+    /// True if the session exists, is active, and conforms to security policies.
     pub valid: bool,
-    /// Session ID
+    /// The unique identifier of the validated session.
     pub session_id: Option<Uuid>,
-    /// User ID
+    /// The identity associated with the session.
     pub user_id: Option<Uuid>,
-    /// Expires at
+    /// The current calculated expiration deadline.
     pub expires_at: Option<chrono::DateTime<Utc>>,
-    /// Security context
+    /// Current snapshot of risk and violation metadata.
     pub security_context: Option<SecurityContext>,
-    /// Error message
+    /// Descriptive error if the session failed validation.
     pub error_message: Option<String>,
-    /// Risk score
+    /// Current session risk score (0-100).
     pub risk_score: Option<u8>,
 }
 
-/// Session update request
+/// Parameters for modifying and verifying the state of an active session.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionUpdateRequest {
-    /// Session ID
+    /// Identifier of the session to transition.
     pub session_id: Uuid,
-    /// New client info
+    /// Updated environment and browser context.
     pub client_info: Option<ClientInfo>,
-    /// Activity type
-    pub activity_type: SessionActivityType,
-    /// Additional context
+    /// The specific nature of the interaction.
+     pub activity_type: SessionActivityType,
+    /// Optional payload of domain-specific session metadata.
     pub context: Option<HashMap<String, String>>,
 }
 
-/// Session activity types
+/// Categorization of user-initiated or system-driven interactions for security auditing.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SessionActivityType {
-    /// API request
+    /// Interaction via the programmatic API layer.
     APIRequest,
-    /// Dashboard access
+    /// Interaction with the visual management interface.
     DashboardAccess,
-    /// Authentication
+    /// Explicit credential verification or identity assertion.
     Authentication,
-    /// Authorization
+    /// Policy evaluation for specific resource access.
     Authorization,
-    /// Logout
+    /// Explicit session termination request.
     Logout,
-    /// Security check
+    /// Internal automated verification of session integrity.
     SecurityCheck,
 }
 
 impl SessionManager {
-    /// Create new session manager
+    /// Initializes a new `SessionManager` and launches the background cleanup task.
+    ///
+    /// # Errors
+    /// Returns an error if initialization fails.
     pub async fn new(config: IAMConfig) -> Result<Self> {
         info!("🔐 Initializing Session Manager");
 
@@ -231,7 +233,10 @@ impl SessionManager {
         Ok(manager)
     }
 
-    /// Create new session
+    /// Establishes a new authenticated session for a user and enforces concurrency limits.
+    ///
+    /// # Errors
+    /// Returns an error if session creation or limit enforcement fails.
     pub async fn create_session(&self, user_id: Uuid, request: SessionRequest) -> Result<Session> {
         debug!("🔐 Creating session for user: {}", user_id);
 
@@ -282,7 +287,10 @@ impl SessionManager {
         Ok(session)
     }
 
-    /// Validate session
+    /// Performs a comprehensive evaluation of session state, including expiration and risk assessment.
+    ///
+    /// # Errors
+    /// Returns an error if validation logic fails.
     pub async fn validate_session(&self, session_id: Uuid) -> Result<SessionValidationResult> {
         debug!("🔍 Validating session: {}", session_id);
 
@@ -376,7 +384,10 @@ impl SessionManager {
         }
     }
 
-    /// Update session activity
+    /// Updates session metadata and assesses risk based on the provided activity details.
+    ///
+    /// # Errors
+    /// Returns an error if the session is not found or security checks fail.
     pub async fn update_session_activity(
         &self,
         session_id: Uuid,
@@ -406,7 +417,10 @@ impl SessionManager {
         Ok(session.clone())
     }
 
-    /// Terminate session
+    /// Formally marks a session as inactive and prunes it from the active registry.
+    ///
+    /// # Errors
+    /// Returns an error if termination fails.
     pub async fn terminate_session(&self, session_id: Uuid) -> Result<()> {
         debug!("🔐 Terminating session: {}", session_id);
 
@@ -430,7 +444,10 @@ impl SessionManager {
         Ok(())
     }
 
-    /// Terminate all sessions for user
+    /// Revokes every active session associated with a specific user identity.
+    ///
+    /// # Errors
+    /// Returns an error if termination fails.
     pub async fn terminate_user_sessions(&self, user_id: Uuid) -> Result<()> {
         debug!("🔐 Terminating all sessions for user: {}", user_id);
 
@@ -451,7 +468,7 @@ impl SessionManager {
         Ok(())
     }
 
-    /// Get user sessions
+    /// Retrieves all active and inactive sessions associated with a specific user identity.
     pub async fn get_user_sessions(&self, user_id: Uuid) -> Vec<Session> {
         let user_sessions = self.user_sessions.lock().await;
         let session_ids = user_sessions.get(&user_id).cloned().unwrap_or_default();
@@ -661,8 +678,11 @@ impl SessionManager {
         }
     }
 
-    /// Clean up expired sessions
-    async fn cleanup_expired_sessions(&self) -> Result<()> {
+    /// Scans the session registry and removes expired or terminated entries.
+    ///
+    /// # Errors
+    /// Returns an error if cleanup fails.
+    pub async fn cleanup_expired_sessions(&self) -> Result<()> {
         let now = Utc::now();
         let mut sessions = self.sessions.lock().await;
         let mut user_sessions = self.user_sessions.lock().await;
@@ -691,7 +711,7 @@ impl SessionManager {
         Ok(())
     }
 
-    /// Get session statistics
+    /// Aggregates current session telemetry for system health and load monitoring.
     pub async fn get_stats(&self) -> SessionStats {
         let sessions = self.sessions.lock().await;
         let user_sessions = self.user_sessions.lock().await;
@@ -719,7 +739,10 @@ impl SessionManager {
         }
     }
 
-    /// Extend session timeout
+    /// Adjusts the expiration timestamp for an active session.
+    ///
+    /// # Errors
+    /// Returns an error if the session is not found.
     pub async fn extend_session(&self, session_id: Uuid, minutes: i64) -> Result<()> {
         debug!(
             "🔐 Extending session: {} by {} minutes",
@@ -738,27 +761,27 @@ impl SessionManager {
         Ok(())
     }
 
-    /// Get session by ID
+    /// Retrieves a complete session snapshot from the active registry.
     pub async fn get_session(&self, session_id: Uuid) -> Option<Session> {
         let sessions = self.sessions.lock().await;
         sessions.get(&session_id).cloned()
     }
 }
 
-/// Session statistics
+/// Summary metrics for the global state of user sessions.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionStats {
-    /// Total sessions
+    /// Aggregate count of all tracked sessions.
     pub total_sessions: usize,
-    /// Active sessions
+    /// Number of sessions currently in the Active state.
     pub active_sessions: usize,
-    /// Expired sessions
+    /// Number of sessions that have reached their expiration deadline.
     pub expired_sessions: usize,
-    /// Terminated sessions
+    /// Number of sessions that were explicitly closed.
     pub terminated_sessions: usize,
-    /// Total users with sessions
+    /// Aggregate count of distinct user identities.
     pub total_users: usize,
-    /// Last update timestamp
+    /// Point in time when this summary was generated.
     pub last_update: chrono::DateTime<Utc>,
 }
 

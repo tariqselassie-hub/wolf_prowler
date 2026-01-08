@@ -6,13 +6,16 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
+/// SOC2 Compliance Manager
 pub struct SOC2ComplianceManager;
 
 impl SOC2ComplianceManager {
+    /// Create new SOC2 manager
     pub fn new(_config: ComplianceConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Run SOC2 assessment
     pub async fn run_assessment(
         &self,
         assessment_type: AssessmentType,
@@ -68,6 +71,7 @@ impl SOC2ComplianceManager {
         })
     }
 
+    /// Remediate finding
     pub async fn remediate_finding(
         &self,
         _finding_id: Uuid,
@@ -76,6 +80,7 @@ impl SOC2ComplianceManager {
         Ok(())
     }
 
+    /// Collect evidence
     pub async fn collect_evidence(&self, _request: &EvidenceRequest) -> Result<Vec<EvidenceItem>> {
         Ok(Vec::new())
     }

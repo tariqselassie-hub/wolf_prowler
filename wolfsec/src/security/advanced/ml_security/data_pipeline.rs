@@ -71,10 +71,12 @@ pub struct FeatureExtractor {
 }
 
 impl FeatureExtractor {
+    /// Create new feature extractor
     pub fn new(config: FeatureConfig) -> Self {
         FeatureExtractor { config }
     }
 
+    /// Extract features from security event data
     pub fn extract(&self, event: &SecurityEventData) -> SecurityFeatureVector {
         // Real-world extraction logic would parse the JSON 'data' field
         let mut fv = SecurityFeatureVector {
@@ -117,6 +119,7 @@ impl FeatureExtractor {
         fv
     }
 
+    /// Extract behavioral features from multiple events
     pub fn extract_behavioral_features(
         &self,
         events: &[SecurityEventData],
@@ -169,6 +172,7 @@ impl FeatureExtractor {
     }
 
     /// Extract features from a HashMap (used by InferenceEngine)
+    /// Extract features from a HashMap (used by InferenceEngine)
     pub fn extract_from_map(
         &self,
         map: &HashMap<String, serde_json::Value>,
@@ -213,6 +217,7 @@ pub struct SecurityEventData {
     pub data: serde_json::Value,
 }
 
+/// Data pipeline utilities
 pub struct DataPipeline;
 
 impl DataPipeline {

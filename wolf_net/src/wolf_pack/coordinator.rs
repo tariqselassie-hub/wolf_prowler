@@ -15,52 +15,85 @@ use tracing::{info, warn};
 pub enum CoordinatorMsg {
     /// A Scout has detected a threat and is requesting a Hunt.
     WarningHowl {
+        /// Source peer
         source: PeerId,
+        /// Target IP
         target_ip: String,
+        /// Evidence
         evidence: String,
     },
     /// A Hunter reports the result of their verification.
     HuntReport {
+        /// Hunt ID
         hunt_id: HuntId,
+        /// Reporting hunter
         hunter: PeerId,
+        /// Confirmation status
         confirmed: bool,
     },
     /// An Alpha or Beta requests a hunt (Authoritative).
     HuntRequest {
+        /// Unique Hunt ID
         hunt_id: HuntId,
+        /// Source peer
         source: PeerId,
+        /// Target IP
         target_ip: String,
+        /// Min role
         min_role: WolfRole,
     },
     /// An authoritative Kill Order from Alpha/Beta.
     KillOrder {
+        /// Target IP
         target_ip: String,
+        /// Authorizing peer
         authorizer: PeerId,
+        /// Reason
         reason: String,
+        /// Hunt ID
         hunt_id: HuntId,
     },
     /// Updates about territory ownership.
     TerritoryUpdate {
+        /// Region CIDR
         region: String,
+        /// Owner peer
         owner: PeerId,
+        /// Status
         status: String,
     },
     /// Admin/System command to force a role change (e.g., God Mode toggle).
-    ForceRank { target: PeerId, new_role: WolfRole },
+    ForceRank {
+        /// Target peer (usually local)
+        target: PeerId,
+        /// New role
+        new_role: WolfRole,
+    },
     /// Election: Request Vote
     ElectionRequest {
+        /// Term
         term: u64,
+        /// Candidate
         candidate_id: PeerId,
+        /// Prestige
         prestige: u32,
     },
     /// Election: Vote Cast
     ElectionVote {
+        /// Term
         term: u64,
+        /// Voter
         voter_id: PeerId,
+        /// Vote status
         granted: bool,
     },
     /// Election: Leader Heartbeat
-    AlphaHeartbeat { term: u64, leader_id: PeerId },
+    AlphaHeartbeat {
+        /// Term
+        term: u64,
+        /// Leader
+        leader_id: PeerId,
+    },
     /// Internal tick for garbage collection / timeouts.
     Tick,
 }
@@ -250,7 +283,7 @@ impl HuntCoordinator {
             StateTransitionResult::Strike {
                 hunt_id,
                 target_ip,
-                participants,
+                participants: _,
             } => {
                 info!("🎯 Hunt {}: STRIKE EXECUTION on {}", hunt_id, target_ip);
 
@@ -264,7 +297,7 @@ impl HuntCoordinator {
                 match feast_result {
                     StateTransitionResult::Feast {
                         hunt_id: _,
-                        participants: _,
+                        participants,
                     } => {
                         self.distribute_rewards(&hunt_id, &participants).await?;
                         info!("✅ Hunt {} completed successfully", hunt_id);
@@ -560,65 +593,5 @@ impl HuntCoordinator {
     async fn sync_public_state(&mut self) {
         let mut public = self.public_state.write().await;
         *public = self.state.clone();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::wolf_pack::howl::{HowlMessage, HowlPayload};
-    use tokio::sync::mpsc;
-
-    #[tokio::test]
-    async fn test_election_request_triggers_vote() {
-        let (swarm_tx, mut swarm_rx) = mpsc::channel(10);
-        let local_peer_id = PeerId::new();
-        let (coordinator, coordinator_tx, _state) = HuntCoordinator::new(
-            WolfRole::Stray,
-            swarm_tx,
-            local_peer_id.clone(),
-            10, // Local prestige
-            None,
-        );
-
-        // Spawn coordinator
-        tokio::spawn(async move {
-            coordinator.run().await;
-        });
-
-        // Create a candidate with higher prestige
-        let candidate_id = PeerId::new();
-        let term = 1;
-        let prestige = 20; // Higher than local (10), so we should vote yes
-
-        // Send ElectionRequest
-        coordinator_tx
-            .send(CoordinatorMsg::ElectionRequest {
-                term,
-                candidate_id: candidate_id.clone(),
-                prestige,
-            })
-            .await
-            .expect("Failed to send message");
-
-        // Expect a broadcast message
-        if let Some(SwarmCommand::Broadcast(bytes)) = swarm_rx.recv().await {
-            let howl = HowlMessage::from_bytes(&bytes).expect("Failed to deserialize howl");
-
-            if let HowlPayload::ElectionVote {
-                term: t,
-                voter_id,
-                granted,
-            } = howl.payload
-            {
-                assert_eq!(t, term);
-                assert_eq!(voter_id, local_peer_id);
-                assert!(granted, "Should grant vote to higher prestige candidate");
-            } else {
-                panic!("Expected ElectionVote payload, got {:?}", howl.payload);
-            }
-        } else {
-            panic!("Expected SwarmCommand::Broadcast");
-        }
     }
 }

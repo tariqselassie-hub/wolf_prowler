@@ -6,13 +6,16 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
+/// PCI DSS Compliance Manager
 pub struct PCIDSSComplianceManager;
 
 impl PCIDSSComplianceManager {
+    /// Create new PCI DSS manager
     pub fn new(_config: ComplianceConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Run PCI DSS assessment
     pub async fn run_assessment(
         &self,
         assessment_type: AssessmentType,

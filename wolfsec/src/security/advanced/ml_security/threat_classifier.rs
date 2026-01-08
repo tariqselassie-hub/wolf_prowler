@@ -18,6 +18,7 @@ pub struct ThreatClassifier {
 }
 
 impl ThreatClassifier {
+    /// Create new Threat Classifier wrapper
     pub fn new(model_path: &str) -> Result<Self> {
         Ok(Self {
             backend: OnnxBackend::new(model_path)?,

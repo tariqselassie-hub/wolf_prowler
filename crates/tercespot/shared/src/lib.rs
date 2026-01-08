@@ -1,3 +1,8 @@
+//! Shared types and constants for `TersecPot` Blind Command-Bus
+//!
+//! This crate provides common data structures, constants, and utility functions
+//! used across the `TersecPot` ecosystem, including the `AirGap` bridge and `WolfDb`.
+
 use fips204::ml_dsa_44; // ML-DSA-44 is the chosen parameter set via fips204
 use fips204::traits::SerDes;
 use std::env;
@@ -5,19 +10,33 @@ use std::fs;
 use std::path::Path;
 
 // ML-DSA-44 Constants
+
+/// Size of the ML-DSA-44 signature in bytes
 pub const SIG_SIZE: usize = 2420;
+/// Size of the sequence number in bytes
 pub const SEQ_SIZE: usize = 8;
+/// Size of the timestamp in bytes
 pub const TS_SIZE: usize = 8;
+/// Size of the ML-DSA-44 public key in bytes
 pub const PK_SIZE: usize = 1312;
+/// Size of the ML-DSA-44 secret key in bytes
 pub const SK_SIZE: usize = 2560;
+/// Total size of the command header
 pub const HEADER_SIZE: usize = SIG_SIZE + SEQ_SIZE + TS_SIZE;
 
 // ML-KEM-1024 Constants
+
+/// Size of the ML-KEM-1024 public key
 pub const KEM_PK_SIZE: usize = 1568;
+/// Size of the ML-KEM-1024 secret key
 pub const KEM_SK_SIZE: usize = 3168;
+/// Size of the ML-KEM-1024 ciphertext
 pub const KEM_CT_SIZE: usize = 1568;
+/// Size of the AES-GCM nonce
 pub const NONCE_SIZE: usize = 12;
+/// Size of the AES-GCM authentication tag
 pub const TAG_SIZE: usize = 16;
+/// Total overhead for encrypted messages
 pub const CRYPTO_OVERHEAD: usize = KEM_CT_SIZE + NONCE_SIZE + TAG_SIZE;
 
 use aes_gcm::{
@@ -27,23 +46,43 @@ use aes_gcm::{
 use fips203::ml_kem_1024;
 use fips203::traits::{Decaps, Encaps, SerDes as KemSerDes};
 
+/// Defines the role of a user or system entity
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Role {
+    /// Development Operations
     DevOps,
+    /// Compliance and Audit Manager
     ComplianceManager,
+    /// System Security Officer
     SecurityOfficer,
     // Add more roles as needed
 }
 
+/// Returns the configured path for the postbox directory
+///
+/// # Panics
+///
+/// Panics if the `TERSEC_POSTBOX` environment variable is not valid UTF-8.
+#[must_use]
 pub fn postbox_path() -> String {
     env::var("TERSEC_POSTBOX").unwrap_or_else(|_| "/tmp/postbox".to_string())
 }
 
+/// Returns the configured path for the access log
+///
+/// # Panics
+///
+/// Panics if the `TERSEC_LOG` environment variable is not valid UTF-8.
+#[must_use]
 pub fn log_path() -> String {
     env::var("TERSEC_LOG").unwrap_or_else(|_| "/var/log/nginx/access.log".to_string())
 }
 
 /// Loads the public key from the standard location
+///
+/// # Errors
+///
+/// Returns an error if the public key file cannot be read, or if its contents are invalid or too short.
 pub fn load_public_key<P: AsRef<Path>>(path: P) -> std::io::Result<ml_dsa_44::PublicKey> {
     let bytes = fs::read(path)?;
     // Ensure sufficient bytes
@@ -69,6 +108,11 @@ pub fn load_public_key<P: AsRef<Path>>(path: P) -> std::io::Result<ml_dsa_44::Pu
     })
 }
 
+/// Loads a KEM public key from a file
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be opened, read, or if the content is not a valid KEM public key.
 pub fn load_kem_public_key(path: &str) -> std::io::Result<ml_kem_1024::EncapsKey> {
     use std::fs::File;
     use std::io::Read;
@@ -83,7 +127,13 @@ pub fn load_kem_public_key(path: &str) -> std::io::Result<ml_kem_1024::EncapsKey
 }
 
 /// Encrypts data for the Sentinel.
-/// Returns: KEM_CT || Nonce || AES_CT
+///
+/// Returns: `KEM_CT` || Nonce || `AES_CT`
+///
+/// # Panics
+///
+/// Panics if encapsulation or encryption fails.
+#[allow(clippy::expect_used)]
 pub fn encrypt_for_sentinel(data: &[u8], sentinel_pk: &ml_kem_1024::EncapsKey) -> Vec<u8> {
     // 1. Encapsulate -> Shared Secret
     let (ss, ct) = sentinel_pk.try_encaps().expect("Encapsulation failed");
@@ -114,7 +164,9 @@ pub fn encrypt_for_sentinel(data: &[u8], sentinel_pk: &ml_kem_1024::EncapsKey) -
 }
 
 /// Decrypts data from Client
-/// Input: KEM_CT || Nonce || AES_CT
+///
+/// Input: `KEM_CT` || Nonce || `AES_CT`
+#[must_use]
 pub fn decrypt_from_client(blob: &[u8], sentinel_sk: &ml_kem_1024::DecapsKey) -> Option<Vec<u8>> {
     if blob.len() < KEM_CT_SIZE + NONCE_SIZE + TAG_SIZE {
         return None;
@@ -149,77 +201,126 @@ use nom::{
 };
 use serde::{Deserialize, Serialize};
 
+/// Metadata extracted from a command
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CommandMetadata {
+    /// The required role for the command
     pub role: String,
+    /// The operation being performed
     pub operation: String,
+    /// The resource being targeted
     pub resource: String,
+    /// Additional parameters
     pub parameters: std::collections::HashMap<String, String>,
 }
 
+/// Defines a valid time window for operations
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TimeWindow {
+    /// Start time in HH:MM format
     pub start_time: String, // HH:MM (24-hour format)
+    /// End time in HH:MM format
     pub end_time: String,   // HH:MM
+    /// List of allowed days (e.g., Monday, Tuesday)
     pub days: Vec<String>,  // Monday, Tuesday, etc.
 }
 
+/// Defines a security policy
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Policy {
+    /// Name of the policy
     pub name: String,
+    /// Allowed roles
     pub roles: Vec<String>,
+    /// Allowed operations
     pub operations: Vec<String>,
+    /// Allowed resources
     pub resources: Vec<String>,
+    /// Authentication threshold (number of signatures)
     pub threshold: usize,
+    /// Additional conditions
     pub conditions: Vec<PolicyCondition>,
+    /// Optional time windows
     pub time_windows: Option<Vec<TimeWindow>>, // Added field for time windows
+    /// Optional approval logic expression
     pub approval_expression: Option<String>,   // e.g., "Role:DevOps AND Role:ComplianceManager"
 }
 
+/// Defines geographic restrictions
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GeoFence {
+    /// List of allowed regions
     pub allowed_regions: Vec<String>, // e.g., ["US-East", "EU-West"]
 }
 
+/// Metadata about a hardware pulse signal
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PulseMetadata {
+    /// Timestamp of the pulse
     pub timestamp: u64,
+    /// Location source
     pub location: String, // "US-East", "Local", "WebLog"
+    /// verification method
     pub method: String,   // "USB", "WEB", "TCP"
 }
 
+/// Conditions that must be met for a policy
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PolicyCondition {
+    /// Requires specific role approval
     RequireApproval(String), // Role name
+    /// Rate limiting
     MaxFrequency(u32),       // Max operations per hour
+    /// IP address whitelist
     IpWhitelist(Vec<String>),
+    /// Time restrictions
     TimeBound(TimeWindow),
+    /// Geographic restrictions
     GeoBound(GeoFence),
 }
 
+/// Global policy configuration
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PolicyConfig {
+    /// List of active policies
     pub policies: Vec<Policy>,
+    /// Mappings from Public Key to Roles
     pub role_mappings: std::collections::HashMap<String, Vec<String>>, // Public key hex -> roles
 }
 
+/// Represents a signature from a specific role
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PartialSignature {
+    /// Role of the signer
     pub signer_role: Role,
+    /// Signature bytes
     pub signature: Vec<u8>, // ML-DSA-44 signature bytes
+    /// Timestamp of signing
     pub timestamp: u64,
 }
 
+/// Represents a command gathering signatures
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PartialCommand {
+    /// The command string
     pub command: String,
+    /// Sequence number
     pub seq: u64,
+    /// Timestamp
     pub ts: u64,
+    /// Encrypted payload
     pub encrypted_payload: Vec<u8>,
+    /// Collected signatures
     pub signatures: Vec<Option<PartialSignature>>,
+    /// Number of required signers
     pub required_signers: usize,
 }
 
+/// Creates a new partial command structure
+///
+/// # Errors
+///
+/// Returns an error if the system time cannot be retrieved.
 pub fn create_partial_command(
     command: String,
     encrypted_payload: Vec<u8>,
@@ -241,12 +342,16 @@ pub fn create_partial_command(
     })
 }
 
+/// Checks if a partial command has enough signatures
+#[must_use]
 pub fn is_partial_complete(partial: &PartialCommand) -> bool {
-    partial.signatures.iter().all(|s| s.is_some())
+    partial.signatures.iter().all(Option::is_some)
 }
 
 /// Packages signatures and payload into the wire format
 /// Format: Count(u8) || Sig1 (2420) || Sig2 (2420) ... || Body
+#[must_use]
+#[allow(clippy::cast_possible_truncation)]
 pub fn package_payload(signatures: &[[u8; 2420]], body: &[u8]) -> Vec<u8> {
     let count = signatures.len() as u8;
     let sig_size = 2420;
@@ -260,55 +365,60 @@ pub fn package_payload(signatures: &[[u8; 2420]], body: &[u8]) -> Vec<u8> {
     data
 }
 
+/// Extracts metadata from a command string
+#[must_use]
 pub fn parse_command_metadata(cmd: &str) -> Option<CommandMetadata> {
     // Parse JSON metadata from command (e.g., embedded as comment or prefix)
     // Format: #TERSEC_META:{"role":"admin","operation":"restart","resource":"service"}
-    if let Some(start) = cmd.find("#TERSEC_META:") {
-        let json_start = start + "#TERSEC_META:".len();
+    let start = cmd.find("#TERSEC_META:")?;
+    let json_start = start + "#TERSEC_META:".len();
 
-        // Find the end of the JSON object by looking for the closing brace
-        let mut brace_count = 0;
-        let mut json_end = json_start;
-        let mut found_json = false;
+    // Find the end of the JSON object by looking for the closing brace
+    let mut brace_count = 0;
+    let mut json_end = json_start;
+    let mut found_json = false;
 
-        for (i, ch) in cmd[json_start..].chars().enumerate() {
-            if ch == '{' {
-                brace_count += 1;
-            } else if ch == '}' {
-                brace_count -= 1;
-                if brace_count == 0 {
-                    json_end = json_start + i + 1;
-                    found_json = true;
-                    break;
-                }
+    for (i, ch) in cmd[json_start..].chars().enumerate() {
+        if ch == '{' {
+            brace_count += 1;
+        } else if ch == '}' {
+            brace_count -= 1;
+            if brace_count == 0 {
+                json_end = json_start + i + 1;
+                found_json = true;
+                break;
             }
         }
+    }
 
-        if found_json {
-            let json_str = &cmd[json_start..json_end];
-            // Try to parse the JSON, but handle errors gracefully
-            match serde_json::from_str::<CommandMetadata>(json_str) {
-                Ok(metadata) => Some(metadata),
-                Err(_) => None, // Return None for malformed JSON
-            }
-        } else {
-            None
-        }
+    if found_json {
+        let json_str = &cmd[json_start..json_end];
+        // Try to parse the JSON, but handle errors gracefully
+        serde_json::from_str::<CommandMetadata>(json_str).ok()
     } else {
         None
     }
 }
 
+/// Loads policy configuration from a TOML file
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be read or if the TOML is invalid.
 pub fn load_policy_config<P: AsRef<Path>>(path: P) -> std::io::Result<PolicyConfig> {
     let content = fs::read_to_string(path)?;
     toml::from_str(&content).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
 }
 
+/// Expression for role-based logic
 #[derive(Debug, Clone)]
 pub enum Expr {
+    /// A single role
     Role(Role),
-    And(Box<Expr>, Box<Expr>),
-    Or(Box<Expr>, Box<Expr>),
+    /// Logical AND
+    And(Box<Self>, Box<Self>),
+    /// Logical OR
+    Or(Box<Self>, Box<Self>),
 }
 
 fn parse_role(input: &str) -> IResult<&str, Role> {
@@ -338,7 +448,7 @@ fn parse_expr(input: &str) -> IResult<&str, Expr> {
 
     let (input, left) = nom::branch::alt((
         parenthesized,
-        nom::combinator::map(parse_role, |role| Expr::Role(role)),
+        nom::combinator::map(parse_role, Expr::Role),
     ))(input)?;
 
     let (input, rest) = nom::combinator::opt(tuple((
@@ -361,7 +471,12 @@ fn parse_expr(input: &str) -> IResult<&str, Expr> {
     }
 }
 
-pub fn evaluate_expression(expr: &Expr, roles: &std::collections::HashSet<Role>) -> bool {
+/// Evaluates a logic expression against a set of roles
+#[must_use]
+pub fn evaluate_expression<S: ::std::hash::BuildHasher>(
+    expr: &Expr,
+    roles: &std::collections::HashSet<Role, S>,
+) -> bool {
     match expr {
         Expr::Role(r) => roles.contains(r),
         Expr::And(left, right) => {
@@ -373,9 +488,14 @@ pub fn evaluate_expression(expr: &Expr, roles: &std::collections::HashSet<Role>)
     }
 }
 
-pub fn parse_and_evaluate(
+/// Parses and evaluates a policy expression string
+///
+/// # Errors
+///
+/// Returns an error if the expression fails to parse or if there is unparsed content remaining.
+pub fn parse_and_evaluate<S: ::std::hash::BuildHasher>(
     expression: &str,
-    roles: &std::collections::HashSet<Role>,
+    roles: &std::collections::HashSet<Role, S>,
 ) -> Result<bool, String> {
     match parse_expr(expression) {
         Ok((remaining, expr)) => {
@@ -397,6 +517,7 @@ mod tests {
     use std::io::Write;
 
     #[test]
+    #[allow(clippy::unwrap_used, clippy::expect_used)]
     fn test_load_public_key() {
         // Generate a random PQC key
         let (pk, _sk) = ml_dsa_44::KG::try_keygen().unwrap();
@@ -412,6 +533,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_parse_command_metadata() {
         let cmd = "#TERSEC_META:{\"role\":\"admin\",\"operation\":\"restart\",\"resource\":\"apache\",\"parameters\":{}}\nsystemctl restart apache2";
         let meta = parse_command_metadata(cmd).unwrap();
@@ -421,6 +543,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_policy_config() {
         let config = PolicyConfig {
             policies: vec![Policy {
@@ -442,6 +565,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_parse_and_evaluate_expression() {
         use std::collections::HashSet;
         let mut roles = HashSet::new();

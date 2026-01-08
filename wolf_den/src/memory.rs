@@ -22,22 +22,26 @@ pub struct SecureBytes {
 }
 
 impl SecureBytes {
-    /// Create a new SecureBytes container with specified protection level
-    pub fn new(data: Vec<u8>, protection: MemoryProtection) -> Self {
+    /// Create a new `SecureBytes` container with specified protection level
+    #[must_use]
+    pub const fn new(data: Vec<u8>, protection: MemoryProtection) -> Self {
         Self { data, protection }
     }
 
     /// Get a reference to the underlying data as a slice
+    #[must_use]
     pub fn as_slice(&self) -> &[u8] {
         &self.data
     }
 
     /// Get the length of the data in bytes
+    #[must_use]
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
     /// Check if the data is empty
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }

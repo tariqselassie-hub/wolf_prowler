@@ -1,4 +1,6 @@
-// /home/t4riq/Desktop/Rust/wolf_prowler/wolfsec/src/domain/entities/mod.rs
+//! Core domain entities for Wolf Security.
+//! These represent the fundamental data models and business rules.
+
 pub mod alert;
 pub mod auth;
 pub mod crypto;

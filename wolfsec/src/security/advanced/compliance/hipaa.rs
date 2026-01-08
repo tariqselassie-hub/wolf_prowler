@@ -6,13 +6,16 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
+/// HIPAA Compliance Manager
 pub struct HIPAAComplianceManager;
 
 impl HIPAAComplianceManager {
+    /// Create new HIPAA manager
     pub fn new(_config: ComplianceConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Run HIPAA assessment
     pub async fn run_assessment(
         &self,
         assessment_type: AssessmentType,

@@ -9,8 +9,11 @@ use tracing::{debug, error, info};
 /// Represents a security or network event to be reported to the SaaS Hub.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TelemetryEvent {
+    /// Type of the telemetry event (e.g., "error", "metric")
     pub event_type: String,
+    /// JSON payload containing event-specific data
     pub payload: serde_json::Value,
+    /// Unix timestamp (milliseconds) when the event was generated
     pub timestamp: i64,
 }
 
@@ -33,6 +36,20 @@ pub struct ReportingService {
 }
 
 impl ReportingService {
+    /// Creates a new `ReportingService` instance.
+    ///
+    /// # Arguments
+    /// * `hub_url` - Base URL of the SaaS hub API.
+    /// * `org_id` - Organization identifier for multi‑tenant routing.
+    /// * `event_queue` - Receiver channel for incoming telemetry events.
+    /// * `auth_token` - Shared token storage for authentication.
+    /// Creates a new `ReportingService` instance.
+    ///
+    /// # Arguments
+    /// * `hub_url` - Base URL of the SaaS hub API.
+    /// * `org_id` - Organization identifier for multi‑tenant routing.
+    /// * `event_queue` - Receiver channel for incoming telemetry events.
+    /// * `auth_token` - Shared token storage for authentication.
     pub fn new(
         hub_url: String,
         org_id: String,
@@ -50,6 +67,7 @@ impl ReportingService {
         }
     }
 
+    /// Runs the reporting service event loop, batching telemetry events and sending them to the hub.
     pub async fn run(&mut self) {
         info!("📊 ReportingService started (Hub: {})", self.hub_url);
         let mut batch = Vec::new();

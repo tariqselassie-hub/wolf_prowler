@@ -29,7 +29,7 @@ pub use authorization::AuthorizationManager;
 /// Re-export main components
 pub use identity_providers::IdentityProviderManager;
 pub use jwt_auth::{JWTAuthenticationManager, JWTAuthenticationRequest, JWTValidationResult};
-pub use mfa::{MFAEnrollment, MFAManager, MFAVerificationResult, MFAmethod};
+pub use mfa::{MFAEnrollment, MFAManager, MFAVerificationResult, MFAMethod};
 pub use pqc::{PQCAlgorithm, PQCKeyPair, PQCManager, PQCVerificationResult};
 pub use privileged_access::PrivilegedAccessManager;
 pub use rbac::{AccessDecision, RBACManager, RBACQuery, WolfRoleType};
@@ -41,337 +41,359 @@ pub use sso::{
 };
 pub use user_management::UserManagementManager;
 
-/// Main IAM integration manager
+/// Orchestrates all Identity and Access Management (IAM) operations across the Wolf Prowler ecosystem
 pub struct IAMIntegrationManager {
-    /// Identity provider manager
-    identity_providers: IdentityProviderManager,
-    /// Authentication manager
-    authentication: AuthenticationManager,
-    /// Authorization manager
-    authorization: AuthorizationManager,
-    /// User management manager
-    user_management: UserManagementManager,
-    /// Privileged access manager
-    privileged_access: PrivilegedAccessManager,
-    /// Single sign-on manager
-    single_sign_on: SingleSignOnManager,
-    /// Configuration
-    config: IAMConfig,
-    /// Statistics
-    statistics: IAMStats,
+    /// Manager for federated and local identity providers (SAML, OAuth, etc.)
+    pub identity_providers: IdentityProviderManager,
+    /// Core engine for verifying user and service identities
+    pub authentication: AuthenticationManager,
+    /// Engine for enforcing pack hierarchy and role-based access controls
+    pub authorization: AuthorizationManager,
+    /// Service for managing wolf identity lifecycle and profile data
+    pub user_management: UserManagementManager,
+    /// Specialized manager for elevated/emergency access requests
+    pub privileged_access: PrivilegedAccessManager,
+    /// Manager for unified cross-domain authentication
+    pub single_sign_on: SingleSignOnManager,
+    /// Active IAM configuration settings
+    pub config: IAMConfig,
+    /// Aggregated real-time metrics for IAM operations
+    pub statistics: IAMStats,
 }
 
-/// IAM configuration
+/// Global configuration for the Identity and Access Management system
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IAMConfig {
-    /// Enabled identity providers
+    /// List of identity providers allowed for authentication
     pub enabled_identity_providers: Vec<IdentityProviderType>,
-    /// Session timeout in minutes
+    /// Duration of a valid session before re-authentication is required (in minutes)
     pub session_timeout_minutes: u32,
-    /// MFA requirements
+    /// Rigorous multi-factor authentication requirements and grace periods
     pub mfa_requirements: MFARequirements,
-    /// Password policy
+    /// Complexity, history, and expiration rules for passwords
     pub password_policy: PasswordPolicy,
-    /// Access control settings
+    /// High-level engine settings for RBAC, ABAC, and JIT access
     pub access_control: AccessControlConfig,
-    /// Audit settings
+    /// Granular settings for what events are recorded in the security audit trail
     pub audit_settings: AuditSettings,
 }
 
-/// Identity provider types
+/// Supported external and internal identity provider protocols
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum IdentityProviderType {
+    /// Security Assertion Markup Language (XML-based)
     SAML,
+    /// Open Authorization 2.0
     OAuth2,
+    /// OpenID Connect identity layer on top of OAuth 2.0
     OpenIDConnect,
+    /// Lightweight Directory Access Protocol
     LDAP,
+    /// Microsoft Active Directory (On-premise)
     ActiveDirectory,
+    /// Microsoft Azure Active Directory (Cloud-native)
     AzureAD,
+    /// Okta Identity Cloud
     Okta,
+    /// Auth0 Identity Management
     Auth0,
+    /// Integration with a proprietary or legacy identity provider
     Custom(String),
 }
 
-/// MFA requirements
+/// Defines the triggers and methods for Multi-Factor Authentication
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MFARequirements {
-    /// MFA enabled
+    /// Global toggle for MFA enforcement
     pub enabled: bool,
-    /// Required for admin access
+    /// If true, all admin-level roles must use MFA
     pub required_for_admin: bool,
-    /// Required for privileged operations
+    /// If true, sensitive "privileged" operations always trigger an MFA challenge
     pub required_for_privileged: bool,
-    /// Grace period in hours
+    /// Time window allowed to enroll in MFA after account creation
     pub grace_period_hours: u32,
-    /// Allowed MFA methods
+    /// Whitelist of cryptographically signed or verified authentication methods
     pub allowed_methods: Vec<MFAMethod>,
 }
 
-/// MFA methods
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum MFAMethod {
-    TOTP,
-    SMS,
-    Email,
-    PushNotification,
-    HardwareToken,
-    Biometric,
-    BackupCodes,
-}
-
-/// Password policy
+/// Security constraints for local user passwords
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PasswordPolicy {
-    /// Minimum length
+    /// Minimum character count
     pub min_length: u32,
-    /// Maximum length
+    /// Maximum character count to prevent DoS via hashing
     pub max_length: u32,
-    /// Require uppercase
+    /// Requires at least one [A-Z] character
     pub require_uppercase: bool,
-    /// Require lowercase
+    /// Requires at least one [a-z] character
     pub require_lowercase: bool,
-    /// Require numbers
+    /// Requires at least one [0-9] character
     pub require_numbers: bool,
-    /// Require special characters
+    /// Requires at least one non-alphanumeric character
     pub require_special_chars: bool,
-    /// Password history
+    /// Number of previous passwords that cannot be reused
     pub password_history: u32,
-    /// Expiration days
+    /// Number of days before a user is forced to rotate their password
     pub expiration_days: u32,
-    /// Lockout threshold
+    /// Failed attempts allowed before account lock
     pub lockout_threshold: u32,
-    /// Lockout duration in minutes
+    /// Duration of an automated account lock (in minutes)
     pub lockout_duration_minutes: u32,
 }
 
-/// Access control configuration
+/// Settings for access control engines and methodologies
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessControlConfig {
-    /// Default access level
+    /// Initial trust level assigned to new or unclassified entities
     pub default_access_level: AccessLevel,
-    /// Role-based access control enabled
+    /// Toggle for pack hierarchy enforcement
     pub rbac_enabled: bool,
-    /// Attribute-based access control enabled
+    /// Toggle for contextual/attribute-based enforcement
     pub abac_enabled: bool,
-    /// Just-in-time access enabled
+    /// Toggle for ephemeral, request-based access
     pub jit_enabled: bool,
-    /// Access review frequency in days
+    /// Number of days between mandatory access review cycles
     pub access_review_frequency_days: u32,
 }
 
-/// Audit settings
+/// Defines which IAM-related operations are captured in the security audit trail
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditSettings {
-    /// Audit logging enabled
+    /// Master toggle for IAM audit logging
     pub enabled: bool,
-    /// Log authentication events
+    /// Record all login and logout attempts
     pub log_authentication: bool,
-    /// Log authorization events
+    /// Record all access decisions (allow/deny)
     pub log_authorization: bool,
-    /// Log user management events
+    /// Record all profile and account changes
     pub log_user_management: bool,
-    /// Log privileged access events
+    /// Record all elevated privilege grants and usages
     pub log_privileged_access: bool,
-    /// Retention period in days
+    /// Number of days to retain audit logs before rotation/deletion
     pub retention_days: u32,
 }
 
-/// IAM statistics
+/// Statistical overview of the IAM system's health and activity.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IAMStats {
-    /// Total users
+    /// Aggregate count of all registered wolf identities.
     pub total_users: u64,
-    /// Active users
+    /// Number of wolves with active, non-suspended profiles.
     pub active_users: u64,
-    /// Authentication events
+    /// Total number of identity verification attempts.
     pub authentication_events: u64,
-    /// Failed authentications
+    /// Number of failed verification attempts.
     pub failed_authentications: u64,
-    /// Authorization decisions
+    /// Total number of access requests evaluated.
     pub authorization_decisions: u64,
-    /// Denied access attempts
+    /// Number of access requests that were denied.
     pub denied_access_attempts: u64,
-    /// Privileged access requests
+    /// Number of times elevated privileges were requested.
     pub privileged_access_requests: u64,
-    /// MFA challenges
+    /// Total number of MFA verification steps triggered.
     pub mfa_challenges: u64,
-    /// Last update timestamp
+    /// Exact time when these statistics were last recalculated.
     pub last_update: DateTime<Utc>,
 }
 
-/// User entity
+/// Represents a single wolf identity within the pack.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
-    /// User ID
+    /// Unique internal identifier for the user.
     pub id: Uuid,
-    /// Username
+    /// Human-readable unique identifier for the user.
     pub username: String,
-    /// Email
+    /// Primary contact and notification address.
     pub email: String,
-    /// Full name
+    /// Legal or preferred full name of the user.
     pub full_name: String,
-    /// User status
+    /// Current lifecycle state of the user account.
     pub status: UserStatus,
-    /// User roles
+    /// List of assigned roles determining baseline access.
     pub roles: Vec<String>,
-    /// Groups
+    /// Logical groupings for bulk policy application.
     pub groups: Vec<String>,
-    /// Attributes
+    /// Extensible key-value pairs for additional identity data.
     pub attributes: HashMap<String, serde_json::Value>,
-    /// Created timestamp
+    /// Time when the user profile was first instantiated.
     pub created_at: DateTime<Utc>,
-    /// Last login
+    /// Last recorded time of successful identity verification.
     pub last_login: Option<DateTime<Utc>>,
-    /// Password last changed
+    /// Last time the user's password was successfully updated.
     pub password_last_changed: Option<DateTime<Utc>>,
-    /// MFA enrolled
+    /// Flag indicating if Multi-Factor Authentication is set up.
     pub mfa_enrolled: bool,
-    /// MFA methods
+    /// List of specifically configured MFA methods for this user.
     pub mfa_methods: Vec<MFAMethod>,
 }
 
-/// User status
+/// Possible states for a wolf identity.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum UserStatus {
+    /// Account is fully operational.
     #[default]
     Active,
+    /// Account is temporarily disabled by an administrator.
     Inactive,
+    /// Account is suspended due to security concerns.
     Suspended,
+    /// Account is locked due to consecutive failed logins.
     Locked,
+    /// Account is awaiting initial verification or approval.
     Pending,
+    /// Account has been permanently retired.
     Deactivated,
 }
 
-/// Role entity
+/// Defines a set of permissions and a relative rank within the pack hierarchy
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Role {
-    /// Role ID
+    /// Unique internal identifier for the role
     pub id: Uuid,
-    /// Role name
+    /// Human-readable name for the role (e.g., "Alpha", "Sentinel")
     pub name: String,
-    /// Role description
+    /// Detailed explanation of the role's purpose and scope
     pub description: String,
-    /// Role permissions
+    /// List of explicit permissions granted to this role
     pub permissions: Vec<Permission>,
-    /// Role hierarchy level
+    /// Numerical rank (lower is usually more privileged)
     pub hierarchy_level: u32,
-    /// Wolf-themed role type
+    /// High-level classification of the role type
     pub role_type: WolfRoleType,
-    /// Created timestamp
+    /// Time when the role was first defined
     pub created_at: DateTime<Utc>,
-    /// Last updated
+    /// Time of the most recent modification to this role
     pub updated_at: DateTime<Utc>,
 }
 
-/// Permission entity
+/// Standardized definition of an allowable or prohibited action on a resource.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Permission {
-    /// Permission ID
+    /// Unique identifier for this specific permission entry.
     pub id: Uuid,
-    /// Permission name
+    /// Human-readable label for the permission.
     pub name: String,
-    /// Resource
+    /// The target object or system component.
     pub resource: String,
-    /// Action
+    /// The operation being performed.
     pub action: String,
-    /// Effect
+    /// Whether the action is explicitly permitted or forbidden.
     pub effect: Effect,
-    /// Conditions
+    /// Logical constraints that must be met for this permission to apply.
     pub conditions: Vec<Condition>,
 }
 
-/// Effect
+/// Final outcome of an access control evaluation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Effect {
+    /// Access is explicitly granted.
     Allow,
+    /// Access is explicitly prohibited.
     Deny,
 }
 
-/// Condition
+/// A dynamic rule that evaluates environmental context or attributes
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Condition {
-    /// Condition type
+    /// The category or key of the data to evaluate (e.g., "time_of_day", "ip_range")
     pub condition_type: String,
-    /// Condition operator
+    /// The logic to apply (e.g., "Between", "Equals", "Matches")
     pub operator: String,
-    /// Condition value
+    /// The literal or pattern to compare against the context
     pub value: serde_json::Value,
 }
 
-/// Access levels
+/// Primitive tiers of system access.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AccessLevel {
+    /// No permissions granted.
     NoAccess = 0,
+    /// View-only access.
     Read = 1,
+    /// Modification and creation rights.
     Write = 2,
+    /// Administrative control over a scope.
     Admin = 3,
+    /// Absolute control over the entire IAM system.
     SuperAdmin = 4,
 }
 
-/// Authentication result
+/// Detailed output from a single identity verification event.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthenticationResult {
-    /// Authentication ID
+    /// Unique identifier for the audit of this attempt.
     pub id: Uuid,
-    /// User ID
+    /// The wolf identity associated with the attempt.
     pub user_id: Uuid,
-    /// Authentication method
+    /// The specific protocol or method used for verification.
     pub method: AuthenticationMethod,
-    /// Success status
+    /// True if the identity was successfully proven.
     pub success: bool,
-    /// Timestamp
+    /// Exact system time of the attempt.
     pub timestamp: DateTime<Utc>,
-    /// IP address
+    /// Network origin of the request.
     pub ip_address: String,
-    /// User agent
+    /// Software identifier of the requesting client.
     pub user_agent: String,
-    /// MFA required
+    /// Indicates if a secondary factor is still required.
     pub mfa_required: bool,
-    /// MFA completed
+    /// Indicates if the secondary factor was already provided.
     pub mfa_completed: bool,
-    /// Session ID
+    /// Identifier for the resulting session, if successful.
     pub session_id: Option<Uuid>,
-    /// Error message
+    /// Human-readable explanation of why verification failed.
     pub error_message: Option<String>,
 }
 
-/// Authentication methods
+/// Methods used to prove identity.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuthenticationMethod {
+    /// Verified via local or remote password.
     Password,
+    /// Verified via external Single Sign-On provider.
     SSO,
+    /// Verified via multi-factor authentication.
     MFA,
+    /// Verified via X.509 certificate.
     Certificate,
+    /// Verified via physical characteristics.
     Biometric,
+    /// Verified via pre-shared secret key.
     APIKey,
+    /// Verified via JSON Web Token.
     JWT,
+    /// Verified via role-based credentials.
     RBAC,
+    /// Verified via an existing valid session.
     Session,
 }
 
-/// Authorization decision
+/// Formal output from an access control policy evaluation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthorizationDecision {
-    /// Decision ID
+    /// Unique identifier for the audit of this decision.
     pub id: Uuid,
-    /// User ID
+    /// Subject of the access request.
     pub user_id: Uuid,
-    /// Resource
+    /// Target of the access request.
     pub resource: String,
-    /// Action
+    /// Requested operation.
     pub action: String,
-    /// Decision
+    /// Final verdict (Allow/Deny).
     pub decision: Effect,
-    /// Timestamp
+    /// Exact system time of the evaluation.
     pub timestamp: DateTime<Utc>,
-    /// Reason
+    /// Narrative or justification for the decision.
     pub reason: String,
-    /// Applied policies
+    /// Identifiers of the policies that influenced this result.
     pub applied_policies: Vec<String>,
 }
 
 impl IAMIntegrationManager {
-    /// Create new IAM integration manager
+    /// Initializes a new `IAMIntegrationManager` with all constituent security services.
+    ///
+    /// # Errors
+    /// Returns an error if any of the underlying managers fail to initialize.
     pub async fn new(config: IAMConfig) -> Result<Self> {
         info!("🔐 Initializing IAM Integration Manager");
 
@@ -390,7 +412,10 @@ impl IAMIntegrationManager {
         Ok(manager)
     }
 
-    /// Authenticate user
+    /// Asynchronously verifies a user's identity based on provided credentials.
+    ///
+    /// # Errors
+    /// Returns an error if the primary or secondary authentication provider fails.
     pub async fn authenticate_user(
         &mut self,
         auth_request: AuthenticationRequest,
@@ -414,7 +439,10 @@ impl IAMIntegrationManager {
         Ok(result)
     }
 
-    /// Authorize access
+    /// Evaluates if a subject is authorized to perform an action on a resource.
+    ///
+    /// # Errors
+    /// Returns an error if the authorization engine encounters a systemic failure.
     pub async fn authorize_access(
         &mut self,
         authz_request: AuthorizationRequest,
@@ -441,7 +469,10 @@ impl IAMIntegrationManager {
         Ok(decision)
     }
 
-    /// Create user
+    /// Registers a new user within the system and assigns baseline roles.
+    ///
+    /// # Errors
+    /// Returns an error if the user profile creation or storage fails.
     pub async fn create_user(&mut self, user_request: CreateUserRequest) -> Result<User> {
         info!("👤 Creating user: {}", user_request.username);
 
@@ -463,7 +494,10 @@ impl IAMIntegrationManager {
         Ok(user)
     }
 
-    /// Update user
+    /// Updates an existing user's attributes, roles, or operational status.
+    ///
+    /// # Errors
+    /// Returns an error if the user profile cannot be found or modification fails.
     pub async fn update_user(
         &mut self,
         user_id: Uuid,
@@ -486,7 +520,10 @@ impl IAMIntegrationManager {
         Ok(user)
     }
 
-    /// Delete user
+    /// Removes a user and all associated security metadata from the IAM system.
+    ///
+    /// # Errors
+    /// Returns an error if user deletion or audit logging fails.
     pub async fn delete_user(&mut self, user_id: Uuid) -> Result<()> {
         info!("🗑️ Deleting user: {}", user_id);
 
@@ -506,7 +543,10 @@ impl IAMIntegrationManager {
         Ok(())
     }
 
-    /// Request privileged access
+    /// Evaluates and potentially grants elevated permissions for sensitive operations.
+    ///
+    /// # Errors
+    /// Returns an error if the request is malformed or the privileged engine fails.
     pub async fn request_privileged_access(
         &mut self,
         request: PrivilegedAccessRequest,
@@ -528,7 +568,10 @@ impl IAMIntegrationManager {
         Ok(grant)
     }
 
-    /// Create session
+    /// Instantiates a new authenticated session for a verified user.
+    ///
+    /// # Errors
+    /// Returns an error if session creation or secure storage fails.
     pub async fn create_session(
         &mut self,
         user_id: Uuid,
@@ -545,7 +588,10 @@ impl IAMIntegrationManager {
         Ok(session)
     }
 
-    /// Validate session
+    /// Determines if a session identifier is currently active and secure.
+    ///
+    /// # Errors
+    /// Returns an error if the validation logic encounters a systemic issue.
     pub async fn validate_session(&mut self, session_id: Uuid) -> Result<SessionValidationResult> {
         debug!("🔍 Validating session: {}", session_id);
 
@@ -555,7 +601,10 @@ impl IAMIntegrationManager {
         Ok(result)
     }
 
-    /// Terminate session
+    /// Explicitly revokes a session, invalidating any future requests using its ID.
+    ///
+    /// # Errors
+    /// Returns an error if session termination or revocation fails.
     pub async fn terminate_session(&mut self, session_id: Uuid) -> Result<()> {
         info!("🔐 Terminating session: {}", session_id);
 
@@ -565,48 +614,69 @@ impl IAMIntegrationManager {
         Ok(())
     }
 
-    /// Get user by ID
+    /// Retrieves a single user profile via its unique internal UUID.
+    ///
+    /// # Errors
+    /// Returns an error if profile retrieval or database access fails.
     pub async fn get_user(&self, user_id: Uuid) -> Result<Option<User>> {
         self.user_management.get_user(user_id).await
     }
 
-    /// Get user by username
+    /// Retrieves a single user profile via its human-readable pack identifier.
+    ///
+    /// # Errors
+    /// Returns an error if profile retrieval or database access fails.
     pub async fn get_user_by_username(&self, username: &str) -> Result<Option<User>> {
         self.user_management.get_user_by_username(username).await
     }
 
-    /// List users
+    /// Fetches a list of wolf identities filtered by roles, status, or groups.
+    ///
+    /// # Errors
+    /// Returns an error if filtered retrieval or database access fails.
     pub async fn list_users(&self, filters: UserListFilters) -> Result<Vec<User>> {
         self.user_management.list_users(filters).await
     }
 
-    /// Get IAM statistics
+    /// Returns a reference to the active IAM statistics.
     pub fn get_statistics(&self) -> &IAMStats {
         &self.statistics
     }
 
-    /// Log authentication event
+    /// Records a successful or failed authentication event in the persistent audit log.
+    ///
+    /// # Errors
+    /// Returns an error if audit log persistence fails.
     async fn log_authentication_event(&self, _result: &AuthenticationResult) -> Result<()> {
         debug!("📝 Logging authentication event");
         // In a real implementation, this would log to audit system
         Ok(())
     }
 
-    /// Log authorization event
+    /// Records an access control decision and its justification in the persistent audit log.
+    ///
+    /// # Errors
+    /// Returns an error if audit log persistence fails.
     async fn log_authorization_event(&self, _decision: &AuthorizationDecision) -> Result<()> {
         debug!("📝 Logging authorization event");
         // In a real implementation, this would log to audit system
         Ok(())
     }
 
-    /// Log user management event
+    /// Records lifecycle events (creation, update, deletion) for wolf identities.
+    ///
+    /// # Errors
+    /// Returns an error if audit log persistence fails.
     async fn log_user_management_event(&self, event_type: &str, _user: &User) -> Result<()> {
         debug!("📝 Logging user management event: {}", event_type);
         // In a real implementation, this would log to audit system
         Ok(())
     }
 
-    /// Log privileged access event
+    /// Records requests and grants for elevated system privileges.
+    ///
+    /// # Errors
+    /// Returns an error if audit log persistence fails.
     async fn log_privileged_access_event(
         &self,
         event_type: &str,
@@ -618,107 +688,161 @@ impl IAMIntegrationManager {
     }
 }
 
-/// Authentication request
+/// request for identity verification.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthenticationRequest {
+    /// Human-readable unique identifier for the subject.
     pub username: String,
+    /// Cryptographic secret or passphrase.
     pub password: Option<String>,
+    /// Secondary verification token (OTP, etc.).
     pub mfa_token: Option<String>,
+    /// Optional external provider to use for verification.
     pub identity_provider: Option<IdentityProviderType>,
+    /// Metadata about the client making the request.
     pub client_info: ClientInfo,
 }
 
-/// Authorization request
+/// request for access authorization.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthorizationRequest {
+    /// Identifier of the subject requesting access.
     pub user_id: Uuid,
+    /// Target resource of the request.
     pub resource: String,
+    /// Operation requested (read, write, etc.).
     pub action: String,
+    /// Additional context used for evaluation (IP, time, etc.).
     pub context: HashMap<String, serde_json::Value>,
 }
 
-/// Create user request
+/// request to establish a new wolf identity.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateUserRequest {
+    /// Human-readable unique identifier.
     pub username: String,
+    /// Primary contact address.
     pub email: String,
+    /// Full biological or preferred name.
     pub full_name: String,
+    /// Initial cryptographic password.
     pub password: String,
+    /// Identifiers of roles to assign.
     pub roles: Vec<String>,
+    /// Identifier of groups to join.
     pub groups: Vec<String>,
+    /// Supplemental identity attributes.
     pub attributes: HashMap<String, serde_json::Value>,
 }
 
 /// Update user request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateUserRequest {
+    /// New email address.
     pub email: Option<String>,
+    /// New full name.
     pub full_name: Option<String>,
+    /// New account status.
     pub status: Option<UserStatus>,
+    /// New set of role identifiers.
     pub roles: Option<Vec<String>>,
+    /// New set of group identifiers.
     pub groups: Option<Vec<String>>,
+    /// Updated attributes map.
     pub attributes: Option<HashMap<String, serde_json::Value>>,
 }
 
 /// Privileged access request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrivilegedAccessRequest {
+    /// The user requesting elevated privileges.
     pub user_id: Uuid,
+    /// The specific resource or scope requested.
     pub resource: String,
+    /// The type of privilege requested.
     pub access_type: PrivilegedAccessType,
+    /// Requested duration in minutes.
     pub duration_minutes: u32,
+    /// Business reason for the request.
     pub justification: String,
+    /// Optional identifier of the approver.
     pub approver_id: Option<Uuid>,
 }
 
-/// Privileged access types
+/// Types of elevated access.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PrivilegedAccessType {
+    /// Full administrative privileges.
     Admin,
+    /// Unrestricted system-wide privileges.
     SuperAdmin,
+    /// Emergency "break-glass" access.
     Emergency,
+    /// Time-bound access for a specific task.
     Temporary,
 }
 
 /// Privileged access grant
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrivilegedAccessGrant {
+    /// Unique identifier for the grant.
     pub id: Uuid,
+    /// User granted the privileges.
     pub user_id: Uuid,
+    /// Resource or scope granted.
     pub resource: String,
+    /// Type of privilege granted.
     pub access_type: PrivilegedAccessType,
+    /// Timestamp when access was granted.
     pub granted_at: DateTime<Utc>,
+    /// Timestamp when access expires.
     pub expires_at: DateTime<Utc>,
+    /// User identifier of the grantor.
     pub granted_by: Uuid,
+    /// Recorded justification.
     pub justification: String,
 }
 
 /// Session request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionRequest {
+    /// Client IP address.
     pub ip_address: String,
+    /// Client user agent string.
     pub user_agent: String,
+    /// Whether to persist the session across browser restarts.
     pub remember_me: bool,
 }
 
 /// User list filters
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserListFilters {
+    /// Filter by user status.
     pub status: Option<UserStatus>,
+    /// Filter by assigned roles.
     pub roles: Option<Vec<String>>,
+    /// Filter by group membership.
     pub groups: Option<Vec<String>>,
+    /// Filter by creation date.
     pub created_after: Option<DateTime<Utc>>,
+    /// Filter by creation date.
     pub created_before: Option<DateTime<Utc>>,
+    /// Maximum number of users to return.
     pub limit: Option<usize>,
+    /// Number of users to skip for pagination.
     pub offset: Option<usize>,
 }
 
-/// Client information
+/// Metadata about a client application or device.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientInfo {
+    /// Network address of the client.
     pub ip_address: String,
+    /// Software identifier of the client.
     pub user_agent: String,
+    /// Unique hardware or platform identifier.
     pub device_id: Option<String>,
+    /// Estimated geographic location of the client.
     pub location: Option<String>,
 }
 

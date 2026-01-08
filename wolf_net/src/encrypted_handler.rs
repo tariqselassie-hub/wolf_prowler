@@ -18,7 +18,10 @@ use x25519_dalek::PublicKey;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EncryptedProtocolMessage {
     /// Plaintext key exchange (not encrypted)
-    KeyExchange { public_key: Vec<u8> },
+    KeyExchange { 
+        /// The public key for X25519 key exchange.
+        public_key: Vec<u8> 
+    },
     /// Encrypted request
     EncryptedRequest(EncryptedMessage),
     /// Encrypted response

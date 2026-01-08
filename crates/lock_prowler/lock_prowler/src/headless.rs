@@ -222,7 +222,7 @@ impl HeadlessWolfProwler {
         table: &str,
     ) -> Result<Vec<wolf_db::storage::model::Record>> {
         let store = self.store.lock().await;
-        store.list_table_records(table)
+        store.list_table_records(table).await
     }
 
     pub async fn add_database_record(
@@ -232,12 +232,12 @@ impl HeadlessWolfProwler {
         data: std::collections::HashMap<String, String>,
     ) -> Result<()> {
         let mut store = self.store.lock().await;
-        store.generic_insert(table, id, data)
+        store.generic_insert(table, id, data).await
     }
 
     pub async fn delete_database_record(&self, table: &str, id: &str) -> Result<()> {
         let mut store = self.store.lock().await;
-        store.delete_record(table, id)
+        store.delete_record(table, id).await
     }
 
     pub async fn get_network_stats(&self) -> NetworkStats {
@@ -306,7 +306,7 @@ impl HeadlessWolfProwler {
         {
             let mut store = self.store.lock().await;
             self.hunter
-                .save_scan_results(&mut store, &results)
+                .save_scan_results(&mut store, &results).await
                 .context("Failed to save scan results to database")?;
         }
 
@@ -372,7 +372,7 @@ impl HeadlessWolfProwler {
                 // Save results to database
                 {
                     let mut store_guard = store.lock().await;
-                    if let Err(e) = hunter.save_scan_results(&mut store_guard, &results) {
+                    if let Err(e) = hunter.save_scan_results(&mut store_guard, &results).await {
                         let _ =
                             log_tx.send(format!("[Headless] Failed to save scan results: {}", e));
                     }
@@ -400,7 +400,7 @@ impl HeadlessWolfProwler {
     ) -> Result<()> {
         let mut store_guard = store.lock().await;
         let mut vault =
-            Vault::load_from_db(&mut store_guard).context("Failed to load vault for import")?;
+            Vault::load_from_db(&mut store_guard).await.context("Failed to load vault for import")?;
 
         let mut imported_count = 0;
         let master_key = generate_master_key();
@@ -435,7 +435,7 @@ impl HeadlessWolfProwler {
 
         if imported_count > 0 {
             vault
-                .save_to_db(&mut store_guard)
+                .save_to_db(&mut store_guard).await
                 .context("Failed to save vault after import")?;
             println!("[Headless] Imported {} secrets to vault", imported_count);
         }
@@ -465,7 +465,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test_db");
 
-        let store = WolfStore::new(db_path.to_str().unwrap()).unwrap();
+        let store = WolfStore::new(db_path.to_str().unwrap()).await.unwrap();
         let config = HeadlessConfig::default();
         let prowler = HeadlessWolfProwler::new(config, store);
 

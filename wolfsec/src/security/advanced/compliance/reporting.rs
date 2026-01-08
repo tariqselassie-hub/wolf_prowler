@@ -7,13 +7,16 @@ use chrono::{Duration, Utc};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// Compliance report generator
 pub struct ComplianceReporter;
 
 impl ComplianceReporter {
+    /// Create new reporter
     pub fn new(_config: ComplianceConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Generate compliance report
     pub async fn generate_report(
         &self,
         framework: ComplianceFramework,

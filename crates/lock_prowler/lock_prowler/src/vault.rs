@@ -116,7 +116,7 @@ impl Vault {
     }
 
     /// Saves vault entries to WolfDb.
-    pub fn save_to_db(&self, store: &mut super::storage::WolfStore) -> Result<()> {
+    pub async fn save_to_db(&self, store: &mut super::storage::WolfStore) -> Result<()> {
         println!("[Vault] Saving {} entries to database", self.entries.len());
 
         for entry in &self.entries {
@@ -126,7 +126,7 @@ impl Vault {
                 &entry.description,
                 &hex::encode(&entry.ciphertext),
                 &hex::encode(&entry.nonce),
-            )?;
+            ).await?;
             println!("[Vault] Saved entry: {}", entry.id);
         }
 
@@ -135,15 +135,15 @@ impl Vault {
     }
 
     /// Loads vault entries from WolfDb.
-    pub fn load_from_db(store: &mut super::storage::WolfStore) -> Result<Self> {
+    pub async fn load_from_db(store: &mut super::storage::WolfStore) -> Result<Self> {
         println!("[Vault] Loading entries from database");
 
-        let entry_ids = store.list_vault_entries()?;
+        let entry_ids = store.list_vault_entries().await?;
         
         let mut vault = Self::new();
         
         for entry_id in entry_ids {
-            if let Some(metadata) = store.find_vault_entry(&entry_id)? {
+            if let Some(metadata) = store.find_vault_entry(&entry_id).await? {
                 let ciphertext_hex = metadata.get("ciphertext_hex")
                     .context("Missing ciphertext")?;
                 let nonce_hex = metadata.get("nonce_hex")

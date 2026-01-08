@@ -1,0 +1,48 @@
+    Checking wolf_net v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_net)
+error: `enum` definition cannot be nested inside `enum`
+   --> wolf_net/src/event.rs:150:5
+    |
+150 | pub enum SwarmEventType {
+    |     ^^^^
+    |
+help: consider creating a new `enum` definition instead of nesting
+    |
+150 - pub enum SwarmEventType {
+151 -     /// Node started listening on a new address.
+152 -     ListeningStarted,
+153 -     /// Node stopped listening on an address.
+154 -     ListeningStopped,
+155 -     /// An incoming connection was established.
+156 -     IncomingConnection,
+157 -     /// An outgoing connection was established.
+158 -     OutgoingConnection,
+159 -     /// Kademlia bootstrap process started.
+160 -     BootstrapStarted,
+161 -     /// Kademlia bootstrap process completed.
+162 -     BootstrapCompleted,
+163 -     /// Peer discovery process started.
+164 -     DiscoveryStarted,
+165 -     /// Peer discovery process completed.
+166 -     DiscoveryCompleted,
+167 - }
+150 + pub 
+    |
+
+error[E0277]: `FirewallUpdateRequest` doesn't implement `std::fmt::Debug`
+   --> wolf_net/src/api.rs:121:20
+    |
+103 | #[derive(Debug)]
+    |          ----- in this derive macro expansion
+...
+121 |     UpdateFirewall(FirewallUpdateRequest),
+    |                    ^^^^^^^^^^^^^^^^^^^^^ the trait `std::fmt::Debug` is not implemented for `FirewallUpdateRequest`
+    |
+    = note: add `#[derive(Debug)]` to `FirewallUpdateRequest` or manually `impl std::fmt::Debug for FirewallUpdateRequest`
+help: consider annotating `FirewallUpdateRequest` with `#[derive(Debug)]`
+    |
+ 87 + #[derive(Debug)]
+ 88 | pub struct FirewallUpdateRequest {
+    |
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `wolf_net` (lib) due to 2 previous errors

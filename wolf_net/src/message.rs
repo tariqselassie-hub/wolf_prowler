@@ -22,18 +22,28 @@ impl From<&MessageType> for MessageTypeKey {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MessageType {
     /// Simple chat message
-    Chat { content: String },
+    Chat { 
+        /// The content of the chat message
+        content: String 
+    },
     /// Data transfer
     Data {
+        /// The raw data being transferred
         data: Vec<u8>,
+        /// The format of the data (e.g., "json", "xml")
         format: String,
+        /// Optional checksum for data integrity
         checksum: Option<String>,
+        /// Whether the data is already encrypted
         encrypted: bool,
     },
     /// Control command
     Control {
+        /// The command name
         command: String,
+        /// Parameters for the command
         parameters: std::collections::HashMap<String, String>,
+        /// Whether this command requires authentication
         requires_auth: bool,
     },
     /// Peer discovery
@@ -42,34 +52,48 @@ pub enum MessageType {
     Heartbeat,
     /// Authentication challenge
     AuthChallenge {
+        /// The challenge bytes
         challenge: Vec<u8>,
+        /// The algorithm to use for the response
         algorithm: String,
     },
     /// Authentication response
     AuthResponse {
+        /// The response to the challenge
         response: Vec<u8>,
+        /// Digital signature of the response
         signature: String,
     },
     /// Key exchange
     KeyExchange {
+        /// The public key being shared
         public_key: String,
+        /// The type of key (e.g., "ED25519")
         key_type: String,
+        /// Timestamp of the key exchange
         timestamp: DateTime<Utc>,
     },
     /// Reputation feedback
     Reputation {
+        /// The reputation score
         score: f64,
+        /// Feedback comment
         feedback: String,
+        /// The peer this reputation refers to
         target_peer: PeerId,
     },
     /// Network metrics
     Metrics {
+        /// The node reporting the metrics
         node_id: PeerId,
+        /// Map of metric names to values
         metrics: std::collections::HashMap<String, f64>,
     },
     /// Network information
     NetworkInfo {
+        /// List of known peers in the network
         known_peers: Vec<PeerId>,
+        /// Current estimated size of the network
         network_size: usize,
     },
 }
@@ -77,9 +101,13 @@ pub enum MessageType {
 /// Message priority levels
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MessagePriority {
+    /// Low priority - may be delayed
     Low = 0,
+    /// Normal priority - standard delivery
     Normal = 1,
+    /// High priority - prioritized delivery
     High = 2,
+    /// Critical priority - immediate attention required
     Critical = 3,
 }
 

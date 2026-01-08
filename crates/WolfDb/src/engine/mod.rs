@@ -2,12 +2,11 @@ use crate::storage::WolfDbStorage;
 use crate::storage::model::Record;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use colored::*;
+use colored::Colorize;
 use comfy_table::Table;
 use rustyline::DefaultEditor;
 use rustyline::error::ReadlineError;
 use std::collections::HashMap;
-use base64::Engine as _;
 
 #[derive(Parser)]
 #[command(name = "wolfdb")]
@@ -55,24 +54,34 @@ enum Commands {
         /// The base64 encoded recovery blob
         blob: String,
     },
-    /// Import data from a SQLite database file
+    /// Import data from a `SQLite` database file
     ImportSqlite {
-        /// Path to the SQLite file
+        /// Path to the `SQLite` file
         path: String,
     },
     /// Exit the REPL
     Exit,
 }
 
+/// Core query engine for the `WolfDb` REPL
 pub struct QueryEngine {
     storage: WolfDbStorage,
 }
 
 impl QueryEngine {
-    pub fn new(storage: WolfDbStorage) -> Self {
+    /// Creates a new `QueryEngine` instance
+    #[must_use]
+    pub const fn new(storage: WolfDbStorage) -> Self {
         Self { storage }
     }
 
+    /// Starts the interactive REPL session
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the REPL session cannot be initialized, historical commands cannot be loaded,
+    /// or if database operations fail.
+    #[allow(clippy::too_many_lines)]
     pub async fn run_repl(&mut self) -> Result<()> {
         println!(
             "{}",
@@ -81,8 +90,8 @@ impl QueryEngine {
         println!(
             "{}",
             "      WOLFDB HYBRID PQC DATABASE       "
-                .bright_white()
-                .bold()
+            .bright_white()
+            .bold()
         );
         println!(
             "{}",
@@ -95,7 +104,34 @@ impl QueryEngine {
         let _ = rl.load_history(history_path);
 
         // Security check
-        if !self.storage.is_initialized() {
+        if self.storage.is_initialized() {
+            let password = dialoguer::Password::new()
+                .with_prompt("Master Password")
+                .interact()?;
+
+            // Check if HSM is enabled before asking for PIN
+            let keystore_path = "wolf.db/keystore.json"; // Assuming default path
+            let mut hsm_pin = None;
+            let pin_str;
+
+            if std::path::Path::new(keystore_path).exists() {
+                let ks = crate::crypto::keystore::Keystore::load(keystore_path)?;
+                if ks.hsm_enabled {
+                    pin_str = dialoguer::Password::new()
+                        .with_prompt("HSM Security PIN")
+                        .interact()?;
+                    hsm_pin = Some(pin_str.as_str());
+                }
+            }
+
+            self.storage
+                .unlock(&password, hsm_pin)
+                .context("Failed to unlock database. Invalid password?")?;
+            println!(
+                "{}",
+                "✔ Database unlocked. PQC session active.".bright_green()
+            );
+        } else {
             println!(
                 "{}",
                 "Welcome! Please set a master password for your PQC database.".bright_blue()
@@ -123,7 +159,7 @@ impl QueryEngine {
             println!(
                 "{}",
                 "✔ Keystore initialized with PQ-KEM (Kyber768) and PQ-DSA (Dilithium)."
-                    .bright_green()
+                .bright_green()
             );
 
             // Phase 3: Email Backup
@@ -149,33 +185,6 @@ impl QueryEngine {
                 crate::backup::email::EmailBackup::send_recovery_key(&email, &blob, None).await?;
                 println!("{}", "✔ Secure recovery backup completed.".bright_green());
             }
-        } else {
-            let password = dialoguer::Password::new()
-                .with_prompt("Master Password")
-                .interact()?;
-
-            // Check if HSM is enabled before asking for PIN
-            let keystore_path = format!("wolf.db/keystore.json"); // Assuming default path
-            let mut hsm_pin = None;
-            let pin_str;
-
-            if std::path::Path::new(&keystore_path).exists() {
-                let ks = crate::crypto::keystore::Keystore::load(&keystore_path)?;
-                if ks.hsm_enabled {
-                    pin_str = dialoguer::Password::new()
-                        .with_prompt("HSM Security PIN")
-                        .interact()?;
-                    hsm_pin = Some(pin_str.as_str());
-                }
-            }
-
-            self.storage
-                .unlock(&password, hsm_pin)
-                .context("Failed to unlock database. Invalid password?")?;
-            println!(
-                "{}",
-                "✔ Database unlocked. PQC session active.".bright_green()
-            );
         }
 
         loop {
@@ -195,17 +204,17 @@ impl QueryEngine {
                     }
 
                     // Prepend a dummy program name for clap to parse correctly
-                    let args = format!("wolfdb {}", line);
+                    let args = format!("wolfdb {line}");
                     let parts = shlex::split(&args).context("Failed to parse command input")?;
 
                     match Cli::try_parse_from(parts) {
                         Ok(cli) => {
-                            if let Err(e) = self.execute(cli.command) {
-                                println!("{} {}", "Error:".bright_red().bold(), e);
+                            if let Err(e) = self.execute(cli.command).await {
+                                println!("{} {e}", "Error:".bright_red().bold());
                             }
                         }
                         Err(e) => {
-                            println!("{}", e);
+                            println!("{e}");
                         }
                     }
                 }
@@ -223,7 +232,7 @@ impl QueryEngine {
                     break;
                 }
                 Err(err) => {
-                    println!("{} {:?}", "Error:".bright_red(), err);
+                    println!("{} {err:?}", "Error:".bright_red());
                     break;
                 }
             }
@@ -234,7 +243,13 @@ impl QueryEngine {
         Ok(())
     }
 
-    fn execute(&mut self, cmd: Commands) -> Result<()> {
+    /// Executes specified command
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the command fails.
+    #[allow(clippy::too_many_lines)]
+    async fn execute(&mut self, cmd: Commands) -> Result<()> {
         match cmd {
             Commands::Status => {
                 let status = if self.storage.get_active_sk().is_some() {
@@ -242,7 +257,7 @@ impl QueryEngine {
                 } else {
                     "LOCKED".bright_red()
                 };
-                println!("Security Status: {}", status);
+                println!("Security Status: {status}");
                 println!(
                     "Key Type: {}",
                     "ML-KEM (Kyber768) + ML-DSA (Dilithium)".bright_white()
@@ -257,22 +272,22 @@ impl QueryEngine {
                             table.add_row(vec![k, &v.to_string()]);
                         }
                     }
-                    println!("{}", table);
+                    println!("{table}");
                 }
             }
             Commands::List { limit } => {
-                let keys = self.storage.list_keys("default")?; // Assuming 'default' table for now
+                let keys = self.storage.list_keys("default".to_string()).await?; // Assuming 'default' table for now
                 if keys.is_empty() {
                      println!("{}", "No records found.".bright_yellow());
                 } else {
-                    println!("\n{}", format!("--- LISTING RECORDS (Limit: {}) ---", limit).bright_blue().bold());
+                    println!("\n{}", format!("--- LISTING RECORDS (Limit: {limit}) ---").bright_blue().bold());
                     let mut table = Table::new();
                     table.set_header(vec!["#", "Record ID"]);
                     
                     for (i, key) in keys.iter().take(limit).enumerate() {
                         table.add_row(vec![(i + 1).to_string(), key.clone()]);
                     }
-                    println!("{}", table);
+                    println!("{table}");
                     
                     if keys.len() > limit {
                         println!("{}", format!("... and {} more records.", keys.len() - limit).dimmed());
@@ -300,7 +315,7 @@ impl QueryEngine {
                     data: data_map,
                     vector: vector_data,
                 };
-                self.storage.insert_record("default", &record, &pk)?;
+                self.storage.insert_record("default".to_string(), record, pk).await?;
                 println!(
                     "{} Record '{}' encrypted and persisted.",
                     "✔".bright_green(),
@@ -313,10 +328,10 @@ impl QueryEngine {
                     .get_active_sk()
                     .context("No KEM secret key active. Unlock required.")?
                     .to_vec();
-                if let Some(record) = self.storage.get_record("default", &id, &sk)? {
-                    self.print_record(&record);
+                if let Some(record) = self.storage.get_record("default".to_string(), id.clone(), sk).await? {
+                    Self::print_record(&record);
                 } else {
-                    println!("{} Record '{}' not found.", "✘".bright_yellow(), id);
+                    println!("{} Record '{id}' not found.", "✘".bright_yellow());
                 }
             }
             Commands::Search { vector, k } => {
@@ -330,12 +345,12 @@ impl QueryEngine {
 
                 let results = self
                     .storage
-                    .search_similar_records("default", &query_vec, k, &sk)?;
+                    .search_similar_records("default".to_string(), query_vec, k, sk).await?;
 
                 if results.is_empty() {
                     println!("{}", "No similar records found.".bright_yellow());
                 } else {
-                    self.print_results(results);
+                    Self::print_results(results);
                 }
             }
     Commands::Recover { blob } => {
@@ -356,77 +371,26 @@ impl QueryEngine {
                 );
             }
             Commands::ImportSqlite { path } => {
-                println!("{}", format!("Importing from SQLite: {}", path).bright_blue());
-                
-                let conn = rusqlite::Connection::open(&path)
-                    .context("Failed to open SQLite database")?;
-
-                // Get list of tables
-                let mut stmt = conn.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%'")?;
-                let tables: Vec<String> = stmt.query_map([], |row| row.get(0))?
-                    .collect::<Result<Vec<_>, _>>()?;
+                println!("{}", format!("Importing from SQLite: {path}").bright_blue());
 
                 let pk = self.storage.get_active_pk()
                     .context("No KEM public key active. Unlock required.")?
                     .to_vec();
 
+                let records_map = crate::import::sqlite::SqliteImporter::import_from_path(&path)?;
                 let mut total_records = 0;
 
-                for table_name in tables {
+                for (table_name, records) in records_map {
                     println!("  Processing table: {}", table_name.bright_white());
-                    
-                    let mut stmt = conn.prepare(&format!("SELECT * FROM \"{}\"", table_name))?;
-                    let column_names: Vec<String> = stmt.column_names().into_iter().map(String::from).collect();
-                    let column_count = column_names.len();
-
-                    let rows = stmt.query_map([], |row| {
-                        let mut data_map = HashMap::new();
-                        let mut id = None;
-
-                        for i in 0..column_count {
-                            let col_name = &column_names[i];
-                            let val_ref = row.get_ref(i)?;
-                            
-                            let val_str = match val_ref {
-                                rusqlite::types::ValueRef::Null => "null".to_string(),
-                                rusqlite::types::ValueRef::Integer(i) => i.to_string(),
-                                rusqlite::types::ValueRef::Real(r) => r.to_string(),
-                                rusqlite::types::ValueRef::Text(t) => String::from_utf8_lossy(t).to_string(),
-                                rusqlite::types::ValueRef::Blob(b) => base64::engine::general_purpose::STANDARD.encode(b),
-                            };
-
-                            if (col_name == "id" || col_name == "uuid") && id.is_none() {
-                                id = Some(val_str.clone());
-                            }
-                            
-                            data_map.insert(col_name.clone(), val_str);
-                        }
-
-                        Ok((id, data_map))
-                    })?;
-
-                    let mut batch = Vec::new();
-                    for row_res in rows {
-                        let (id_opt, data): (Option<String>, HashMap<String, String>) = row_res?;
-                        let id = id_opt.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-                        
-                        batch.push(Record {
-                            id,
-                            data,
-                            vector: None, // No vector data in generic import
-                        });
-                    }
-
-                    let count = batch.len();
-                    self.storage.insert_batch_records(&table_name, batch, &pk)?;
-                    println!("    -> Imported {} records", count);
+                    let count = records.len();
+                    self.storage.insert_batch_records(table_name, records, pk.clone()).await?;
+                    println!("    -> Imported {count} records");
                     total_records += count;
                 }
 
                 println!(
-                    "{} Import complete. Total records: {}",
-                    "✔".bright_green(),
-                    total_records
+                    "{} Import complete. Total records: {total_records}",
+                    "✔".bright_green()
                 );
             }
             Commands::Exit => {
@@ -437,7 +401,7 @@ impl QueryEngine {
     }
 
     fn save(&self) -> Result<()> {
-        self.storage.save()?;
+        self.storage.save().map_err(|e| anyhow::anyhow!(e))?;
         println!(
             "{}",
             "✔ Database persistence complete.".bright_green().dimmed()
@@ -445,7 +409,7 @@ impl QueryEngine {
         Ok(())
     }
 
-    fn print_record(&self, record: &Record) {
+    fn print_record(record: &Record) {
         let mut table = Table::new();
         table.set_header(vec!["Field", "Value"]);
         table.add_row(vec!["ID", &record.id]);
@@ -454,13 +418,13 @@ impl QueryEngine {
         table.add_row(vec!["Relational Data", &meta_str]);
 
         if let Some(v) = &record.vector {
-            table.add_row(vec!["Vector Data", &format!("{:?}", v)]);
+            table.add_row(vec!["Vector Data", &format!("{v:?}")]);
         }
 
-        println!("\n{}", table);
+        println!("\n{table}");
     }
 
-    fn print_results(&self, results: Vec<(Record, f32)>) {
+    fn print_results(results: Vec<(Record, f32)>) {
         let mut table = Table::new();
         table.set_header(vec!["Rank", "Distance", "Record ID", "Metadata"]);
 
@@ -468,12 +432,12 @@ impl QueryEngine {
             let meta_str = serde_json::to_string(&rec.data).unwrap_or_default();
             table.add_row(vec![
                 (i + 1).to_string(),
-                format!("{:.4}", dist),
+                format!("{dist:.4}"),
                 rec.id,
                 meta_str,
             ]);
         }
 
-        println!("\n{}", table);
+        println!("\n{table}");
     }
 }

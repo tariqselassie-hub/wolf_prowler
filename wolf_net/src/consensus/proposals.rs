@@ -10,34 +10,45 @@ use crate::PeerId;
 /// Proposal types that can be submitted to the cluster
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Proposal {
-    /// Add or update a threat in the distributed database
+    /// Add or update a threat in the distributed database.
     AddThreat {
+        /// The threat entry details.
         threat: ThreatEntry,
+        /// ID of the node proposing the threat.
         proposer: u64,
     },
     
-    /// Add a firewall rule to be synchronized across all nodes
+    /// Add a firewall rule to be synchronized across all nodes.
     AddFirewallRule {
+        /// The firewall rule details.
         rule: FirewallRule,
+        /// ID of the node proposing the rule.
         proposer: u64,
     },
     
-    /// Update peer trust score
+    /// Update peer trust score.
     UpdateTrustScore {
+        /// ID of the peer whose score is being updated.
         peer_id: PeerId,
+        /// The new trust score.
         score: f64,
+        /// ID of the node proposing the update.
         proposer: u64,
     },
     
-    /// Add discovered device to territory map
+    /// Add discovered device to territory map.
     AddDevice {
+        /// Discovered device information.
         device: DeviceInfo,
+        /// ID of the node proposing the addition.
         proposer: u64,
     },
     
-    /// Remove threat (e.g., false positive)
+    /// Remove a threat from the distributed database.
     RemoveThreat {
+        /// Unique identifier of the threat to remove.
         threat_id: String,
+        /// ID of the node proposing the removal.
         proposer: u64,
     },
 }

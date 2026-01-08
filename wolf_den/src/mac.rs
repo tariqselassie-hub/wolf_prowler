@@ -9,9 +9,7 @@
 use crate::error::{Error, Result};
 use crate::hash::HasherEnum;
 use crate::memory::SecureBytes;
-use chacha20poly1305::aead::KeyInit;
-use poly1305::Poly1305;
-use universal_hash::{generic_array::GenericArray, UniversalHash};
+use poly1305::universal_hash::{KeyInit, UniversalHash};
 
 /// Message Authentication Code enum for type-safe MAC operations
 #[derive(Debug)]
@@ -24,63 +22,78 @@ pub enum MacEnum {
 
 impl MacEnum {
     /// Compute MAC of data
-    pub async fn compute(&self, data: &[u8]) -> Result<Vec<u8>> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if MAC computation fails.
+    pub fn compute(&self, data: &[u8]) -> Result<Vec<u8>> {
         match self {
-            MacEnum::Hmac(mac) => mac.compute(data).await,
-            MacEnum::Poly1305(mac) => mac.compute(data).await,
+            Self::Hmac(mac) => mac.compute(data),
+            Self::Poly1305(mac) => mac.compute(data),
         }
     }
 
     /// Verify MAC of data
-    pub async fn verify(&self, data: &[u8], tag: &[u8]) -> Result<bool> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if verification fails.
+    pub fn verify(&self, data: &[u8], tag: &[u8]) -> Result<bool> {
         match self {
-            MacEnum::Hmac(mac) => mac.verify(data, tag).await,
-            MacEnum::Poly1305(mac) => mac.verify(data, tag).await,
+            Self::Hmac(mac) => mac.verify(data, tag),
+            Self::Poly1305(mac) => mac.verify(data, tag),
         }
     }
 
     /// Get MAC name
-    pub fn name(&self) -> &'static str {
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
         match self {
-            MacEnum::Hmac(mac) => mac.name(),
-            MacEnum::Poly1305(mac) => mac.name(),
+            Self::Hmac(mac) => mac.name(),
+            Self::Poly1305(mac) => mac.name(),
         }
     }
 
     /// Get MAC length
-    pub fn mac_length(&self) -> usize {
+    #[must_use]
+    pub const fn mac_length(&self) -> usize {
         match self {
-            MacEnum::Hmac(mac) => mac.mac_length(),
-            MacEnum::Poly1305(mac) => mac.mac_length(),
+            Self::Hmac(mac) => mac.mac_length(),
+            Self::Poly1305(mac) => mac.mac_length(),
         }
     }
 
     /// Get key length
-    pub fn key_length(&self) -> usize {
+    #[must_use]
+    pub const fn key_length(&self) -> usize {
         match self {
-            MacEnum::Hmac(mac) => mac.key_length(),
-            MacEnum::Poly1305(mac) => mac.key_length(),
+            Self::Hmac(mac) => mac.key_length(),
+            Self::Poly1305(mac) => mac.key_length(),
         }
     }
 
     /// Get MAC count
-    pub async fn mac_count(&self) -> u64 {
+    pub fn mac_count(&self) -> u64 {
         match self {
-            MacEnum::Hmac(mac) => mac.mac_count().await,
-            MacEnum::Poly1305(mac) => mac.mac_count().await,
+            Self::Hmac(mac) => mac.mac_count(),
+            Self::Poly1305(mac) => mac.mac_count(),
         }
     }
 
     /// Create new MAC instance
-    pub fn new_mac(&self, key: &[u8]) -> Result<MacEnum> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if MAC creation fails.
+    pub fn new_mac(&self, key: &[u8]) -> Result<Self> {
         // The new_hasher method on HasherEnum now correctly creates a new instance of the same type.
         // For other MAC types, we assume their `new` methods handle key cloning/copying.
         match self {
-            MacEnum::Hmac(mac) => Ok(MacEnum::Hmac(HmacMac::new(
+            Self::Hmac(mac) => Ok(Self::Hmac(HmacMac::new(
                 mac.hasher.new_hasher()?,
                 key.to_vec(),
             )?)),
-            MacEnum::Poly1305(_mac) => Ok(MacEnum::Poly1305(Poly1305Mac::new(key.to_vec())?)),
+            Self::Poly1305(_mac) => Ok(Self::Poly1305(Poly1305Mac::new(key.to_vec())?)),
         }
     }
 }
@@ -94,7 +107,12 @@ pub struct HmacMac {
 }
 
 impl HmacMac {
-    pub fn new(hasher: HasherEnum, key: Vec<u8>) -> Result<Self> {
+    /// Create a new `HmacMac` instance
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if initialization fails.
+    pub const fn new(hasher: HasherEnum, key: Vec<u8>) -> Result<Self> {
         Ok(Self {
             hasher,
             key: SecureBytes::new(key, crate::memory::MemoryProtection::Strict),
@@ -103,13 +121,17 @@ impl HmacMac {
     }
 
     /// Compute MAC of data
-    pub async fn compute(&self, data: &[u8]) -> Result<Vec<u8>> {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if HMAC computation fails.
+    pub fn compute(&self, data: &[u8]) -> Result<Vec<u8>> {
         let block_size = self.hasher.block_size();
         let mut key = self.key.as_slice().to_vec();
 
         // If key is longer than block size, hash it
         if key.len() > block_size {
-            key = self.hasher.digest(&key).await?;
+            key = self.hasher.digest(&key)?;
         }
 
         // If key is shorter than block size, pad with zeros
@@ -129,12 +151,12 @@ impl HmacMac {
         // Compute inner hash
         let mut inner_data = ipad;
         inner_data.extend_from_slice(data);
-        let inner_hash: Vec<u8> = self.hasher.digest(&inner_data).await?;
+        let inner_hash: Vec<u8> = self.hasher.digest(&inner_data)?;
 
         // Compute outer hash
         let mut outer_data = opad;
         outer_data.extend_from_slice(&inner_hash);
-        let outer_hash: Vec<u8> = self.hasher.digest(&outer_data).await?;
+        let outer_hash: Vec<u8> = self.hasher.digest(&outer_data)?;
 
         self.mac_count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -142,24 +164,35 @@ impl HmacMac {
     }
 
     /// Verify MAC of data
-    pub async fn verify(&self, data: &[u8], tag: &[u8]) -> Result<bool> {
-        let computed_tag = self.compute(data).await?;
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if verification fails.
+    pub fn verify(&self, data: &[u8], tag: &[u8]) -> Result<bool> {
+        let computed_tag = self.compute(data)?;
         Ok(crate::security::constant_time_eq(&computed_tag, tag))
     }
 
-    pub fn name(&self) -> &'static str {
+    /// Get MAC name
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
         "HMAC"
     }
 
-    pub fn mac_length(&self) -> usize {
+    /// Get MAC length
+    #[must_use]
+    pub const fn mac_length(&self) -> usize {
         self.hasher.output_length()
     }
 
-    pub fn key_length(&self) -> usize {
+    /// Get key length
+    #[must_use]
+    pub const fn key_length(&self) -> usize {
         self.hasher.block_size()
     }
 
-    pub async fn mac_count(&self) -> u64 {
+    /// Get MAC count
+    pub fn mac_count(&self) -> u64 {
         self.mac_count.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
@@ -172,6 +205,11 @@ pub struct Poly1305Mac {
 }
 
 impl Poly1305Mac {
+    /// Create a new `Poly1305Mac` instance
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key length is invalid.
     pub fn new(key: Vec<u8>) -> Result<Self> {
         if key.len() != 32 {
             return Err(Error::mac("Poly1305", "requires 32-byte key"));
@@ -184,27 +222,27 @@ impl Poly1305Mac {
     }
 
     /// Compute MAC of data
-    pub async fn compute(&self, data: &[u8]) -> Result<Vec<u8>> {
-        use poly1305::Key;
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if Poly1305 computation fails.
+    pub fn compute(&self, data: &[u8]) -> Result<Vec<u8>> {
+        use poly1305::Poly1305;
+        use poly1305::universal_hash::generic_array::GenericArray;
 
-        let key = Key::from_slice(self.key.as_slice());
+        const BLOCK_SIZE: usize = 16;
+        let key = GenericArray::from_slice(self.key.as_slice());
         let mut mac = Poly1305::new(key);
 
-        // UniversalHash update expects blocks, but we can use the poly1305 API directly
-        // Let's use a block-based approach
-        const BLOCK_SIZE: usize = 16;
         for chunk in data.chunks(BLOCK_SIZE) {
             if chunk.len() == BLOCK_SIZE {
-                // Full block - can use UniversalHash::update directly
                 let block = GenericArray::from_slice(chunk);
-                mac.update(&[*block]);
+                mac.update(std::slice::from_ref(block));
             } else {
-                // Last partial block - pad it
                 let mut block_data = [0u8; BLOCK_SIZE];
                 block_data[..chunk.len()].copy_from_slice(chunk);
                 let block = GenericArray::from_slice(&block_data);
-                mac.update(&[*block]);
-                break;
+                mac.update(std::slice::from_ref(block));
             }
         }
 
@@ -212,28 +250,39 @@ impl Poly1305Mac {
 
         self.mac_count
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        Ok(tag.as_slice().to_vec())
+        Ok(tag.to_vec())
     }
 
     /// Verify MAC of data
-    pub async fn verify(&self, data: &[u8], tag: &[u8]) -> Result<bool> {
-        let computed_tag = self.compute(data).await?;
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if verification fails.
+    pub fn verify(&self, data: &[u8], tag: &[u8]) -> Result<bool> {
+        let computed_tag = self.compute(data)?;
         Ok(crate::security::constant_time_eq(&computed_tag, tag))
     }
 
-    pub fn name(&self) -> &'static str {
+    /// Get MAC name
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
         "Poly1305"
     }
 
-    pub fn mac_length(&self) -> usize {
+    /// Get MAC length
+    #[must_use]
+    pub const fn mac_length(&self) -> usize {
         16
     }
 
-    pub fn key_length(&self) -> usize {
+    /// Get key length
+    #[must_use]
+    pub const fn key_length(&self) -> usize {
         32
     }
 
-    pub async fn mac_count(&self) -> u64 {
+    /// Get MAC count
+    pub fn mac_count(&self) -> u64 {
         self.mac_count.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
@@ -241,6 +290,10 @@ impl Poly1305Mac {
 
 
 /// Create a MAC instance
+///
+/// # Errors
+///
+/// Returns an error if MAC creation fails.
 pub fn create_mac(
     mac_type: MacType,
     key: &[u8],
@@ -270,6 +323,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_hmac_mac() {
         let hasher =
             crate::hash::create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum)
@@ -278,8 +332,8 @@ mod tests {
         let data = b"Hello, HMAC!";
 
         let mac = HmacMac::new(hasher, key.to_vec()).unwrap();
-        let tag = mac.compute(data).await.unwrap();
-        let verified = mac.verify(data, &tag).await.unwrap();
+        let tag = mac.compute(data).unwrap();
+        let verified = mac.verify(data, &tag).unwrap();
 
         assert!(verified);
         assert_eq!(mac.name(), "HMAC");
@@ -288,13 +342,14 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_poly1305_mac() {
         let key = vec![0u8; 32];
         let data = b"Hello, Poly1305!";
 
         let mac = Poly1305Mac::new(key).unwrap();
-        let tag = mac.compute(data).await.unwrap();
-        let verified = mac.verify(data, &tag).await.unwrap();
+        let tag = mac.compute(data).unwrap();
+        let verified = mac.verify(data, &tag).unwrap();
 
         assert!(verified);
         assert_eq!(mac.name(), "Poly1305");
@@ -302,8 +357,9 @@ mod tests {
         assert_eq!(mac.key_length(), 32);
     }
 
-    #[tokio::test]
-    async fn test_create_mac() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_create_mac() {
         let key = b"secret_key";
 
         let mac = create_mac(MacType::Hmac, key, crate::SecurityLevel::Maximum).unwrap();
@@ -314,8 +370,9 @@ mod tests {
         assert_eq!(mac.name(), "Poly1305");
     }
 
-    #[tokio::test]
-    async fn test_mac_consistency() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_mac_consistency() {
         let hasher =
             crate::hash::create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum)
                 .unwrap();
@@ -324,14 +381,15 @@ mod tests {
 
         let mac = HmacMac::new(hasher, key.to_vec()).unwrap();
 
-        let tag1 = mac.compute(data).await.unwrap();
-        let tag2 = mac.compute(data).await.unwrap();
+        let tag1 = mac.compute(data).unwrap();
+        let tag2 = mac.compute(data).unwrap();
 
         assert_eq!(tag1, tag2);
     }
 
-    #[tokio::test]
-    async fn test_mac_different_data() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_mac_different_data() {
         let hasher =
             crate::hash::create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum)
                 .unwrap();
@@ -341,14 +399,15 @@ mod tests {
 
         let mac = HmacMac::new(hasher, key.to_vec()).unwrap();
 
-        let tag1 = mac.compute(data1).await.unwrap();
-        let tag2 = mac.compute(data2).await.unwrap();
+        let tag1 = mac.compute(data1).unwrap();
+        let tag2 = mac.compute(data2).unwrap();
 
         assert_ne!(tag1, tag2);
     }
 
-    #[tokio::test]
-    async fn test_mac_different_keys() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_mac_different_keys() {
         let hasher =
             crate::hash::create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum)
                 .unwrap();
@@ -359,14 +418,15 @@ mod tests {
         let mac1 = HmacMac::new(hasher.new_hasher().unwrap(), key1.to_vec()).unwrap();
         let mac2 = HmacMac::new(hasher.new_hasher().unwrap(), key2.to_vec()).unwrap();
 
-        let tag1 = mac1.compute(data).await.unwrap();
-        let tag2 = mac2.compute(data).await.unwrap();
+        let tag1 = mac1.compute(data).unwrap();
+        let tag2 = mac2.compute(data).unwrap();
 
         assert_ne!(tag1, tag2);
     }
 
-    #[tokio::test]
-    async fn test_mac_verification_failure() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_mac_verification_failure() {
         let hasher =
             crate::hash::create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum)
                 .unwrap();
@@ -376,14 +436,15 @@ mod tests {
 
         let mac = HmacMac::new(hasher, key.to_vec()).unwrap();
 
-        let tag = mac.compute(data1).await.unwrap();
-        let verified = mac.verify(data2, &tag).await.unwrap();
+        let tag = mac.compute(data1).unwrap();
+        let verified = mac.verify(data2, &tag).unwrap();
 
         assert!(!verified);
     }
 
-    #[tokio::test]
-    async fn test_mac_count() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_mac_count() {
         let hasher =
             crate::hash::create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum)
                 .unwrap();
@@ -392,17 +453,18 @@ mod tests {
 
         let mac = HmacMac::new(hasher, key.to_vec()).unwrap();
 
-        assert_eq!(mac.mac_count().await, 0);
+        assert_eq!(mac.mac_count(), 0);
 
-        let _tag = mac.compute(data).await.unwrap();
-        assert_eq!(mac.mac_count().await, 1);
+        let _tag = mac.compute(data).unwrap();
+        assert_eq!(mac.mac_count(), 1);
 
-        let _tag = mac.compute(data).await.unwrap();
-        assert_eq!(mac.mac_count().await, 2);
+        let _tag = mac.compute(data).unwrap();
+        assert_eq!(mac.mac_count(), 2);
     }
 
-    #[tokio::test]
-    async fn test_mac_new_mac() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_mac_new_mac() {
         let hasher =
             crate::hash::create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum)
                 .unwrap();
@@ -418,8 +480,9 @@ mod tests {
         assert_eq!(mac1.key_length(), mac2.key_length());
     }
 
-    #[tokio::test]
-    async fn test_poly1305_invalid_key_length() {
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_poly1305_invalid_key_length() {
         let key = vec![0u8; 16]; // Wrong length
         let result = Poly1305Mac::new(key);
         assert!(result.is_err());
@@ -433,6 +496,7 @@ mod tests {
 
 
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_mac_constant_time_verification() {
         let hasher =
             crate::hash::create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum)
@@ -441,18 +505,19 @@ mod tests {
         let data = b"Hello, World!";
 
         let mac = HmacMac::new(hasher, key.to_vec()).unwrap();
-        let correct_tag = mac.compute(data).await.unwrap();
+        let correct_tag = mac.compute(data).unwrap();
         let wrong_tag = vec![0u8; correct_tag.len()];
 
         // Both should return false, but timing should be similar
-        let verified_correct = mac.verify(data, &correct_tag).await.unwrap();
-        let verified_wrong = mac.verify(data, &wrong_tag).await.unwrap();
+        let verified_correct = mac.verify(data, &correct_tag).unwrap();
+        let verified_wrong = mac.verify(data, &wrong_tag).unwrap();
 
         assert!(verified_correct);
         assert!(!verified_wrong);
     }
 
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_mac_with_different_hashers() {
         let key = b"secret_key";
         let data = b"Hello, World!";
@@ -467,8 +532,8 @@ mod tests {
         let blake3_mac = HmacMac::new(blake3_hasher, key.to_vec()).unwrap();
         let sha256_mac = HmacMac::new(sha256_hasher, key.to_vec()).unwrap();
 
-        let blake3_tag = blake3_mac.compute(data).await.unwrap();
-        let sha256_tag = sha256_mac.compute(data).await.unwrap();
+        let blake3_tag = blake3_mac.compute(data).unwrap();
+        let sha256_tag = sha256_mac.compute(data).unwrap();
 
         assert_eq!(blake3_mac.name(), "HMAC");
         assert_eq!(sha256_mac.name(), "HMAC");

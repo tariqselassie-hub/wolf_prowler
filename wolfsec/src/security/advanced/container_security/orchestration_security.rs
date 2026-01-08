@@ -4,15 +4,18 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// Orchestration security manager
 pub struct OrchestrationSecurityManager {
     config: ContainerSecurityConfig,
 }
 
 impl OrchestrationSecurityManager {
+    /// Create new orchestration security manager
     pub fn new(config: ContainerSecurityConfig) -> Result<Self> {
         Ok(Self { config })
     }
 
+    /// Check orchestration security
     pub async fn check_security(&self) -> Result<OrchestrationSecurityReport> {
         let mut issues = Vec::new();
         let settings = &self.config.orchestration_security_settings;
@@ -68,26 +71,41 @@ impl OrchestrationSecurityManager {
     }
 }
 
+/// Orchestration report
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrchestrationSecurityReport {
+    /// Check ID
     pub check_id: Uuid,
+    /// Timestamp
     pub timestamp: chrono::DateTime<Utc>,
+    /// Orchestration score
     pub orchestration_score: f64,
+    /// Issues found
     pub issues: Vec<OrchestrationIssue>,
 }
 
+/// Orchestration issue
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrchestrationIssue {
+    /// Issue ID
     pub id: Uuid,
+    /// Severity
     pub severity: IssueSeverity,
+    /// Description
     pub description: String,
+    /// Affected component
     pub component: String,
 }
 
+/// Issue severity
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum IssueSeverity {
+    /// Low severity
     Low,
+    /// Medium severity
     Medium,
+    /// High severity
     High,
+    /// Critical severity
     Critical,
 }

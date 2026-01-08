@@ -6,13 +6,16 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
+/// Planner for risk mitigation strategies
 pub struct RiskMitigationPlanner;
 
 impl RiskMitigationPlanner {
+    /// Create new mitigation planner
     pub fn new(_config: MitigationConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Create mitigation plan for risks
     pub fn create_plan(
         &self,
         target_risks: &[RiskItem],
@@ -37,6 +40,7 @@ impl RiskMitigationPlanner {
         })
     }
 
+    /// Create automated mitigation plan
     pub async fn create_mitigation_plan(&self, risks: &[RiskItem]) -> Result<MitigationPlan> {
         self.create_plan(risks, "Auto-generated Plan")
     }

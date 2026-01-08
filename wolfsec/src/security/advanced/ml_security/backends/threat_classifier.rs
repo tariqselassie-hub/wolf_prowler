@@ -3,12 +3,14 @@
 use super::{MLBackend, ModelInfo};
 use anyhow::Result;
 
+/// Threat classifier backend implementation
 pub struct ThreatClassifier {
     // Labels for the classifier output
     pub labels: Vec<String>,
 }
 
 impl ThreatClassifier {
+    /// Create new Threat Classifier backend
     pub fn new() -> Self {
         ThreatClassifier {
             labels: vec![
@@ -22,6 +24,7 @@ impl ThreatClassifier {
         }
     }
 
+    /// Classify threat from data
     pub fn classify_threat(&self, data: &[f64]) -> (String, f64) {
         // Logic for stub: map features to threat classes
         // In a real implementation, this would use a Random Forest or Neural Network

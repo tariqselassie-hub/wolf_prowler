@@ -5,150 +5,152 @@
 
 use anyhow::{anyhow, Result};
 use chrono::{Duration, Utc};
-use ed25519_dalek::{Signer, SigningKey, Verifier};
+use ed25519_dalek::SigningKey;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info};
 use uuid::Uuid;
 
 use crate::security::advanced::iam::{
-    AuthenticationManager, AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
-    SessionRequest, UserStatus,
+    AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
 };
 
-/// JWT claims structure
+/// Standardized JWT claims specifically tailored for the Wolf Prowler ecosystem
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JWTCustomClaims {
-    /// Subject (user ID)
+    /// Subject (Principal identifier, usually a serialized [Uuid])
     pub sub: String,
-    /// Issuer
+    /// Issuer (The authority that generated the token)
     pub iss: String,
-    /// Audience
+    /// Audience (Service identifiers expected to consume this token)
     pub aud: Vec<String>,
-    /// Issued at
+    /// Issued at (Seconds since Unix epoch)
     pub iat: i64,
-    /// Expiration time
+    /// Expiration time (Seconds since Unix epoch)
     pub exp: i64,
-    /// Not before
+    /// Not valid before (Optional seconds since Unix epoch)
     pub nbf: Option<i64>,
-    /// JWT ID
+    /// Unique identifier for this specific token instance
     pub jti: String,
-    /// User roles
+    /// High-level roles assigned to the subject
     pub roles: Vec<String>,
-    /// User permissions
+    /// Detailed fine-grained permissions for the subject
     pub permissions: Vec<String>,
-    /// Client information
+    /// Environmental and device information of the requester at issuance
     pub client_info: Option<ClientInfo>,
-    /// Session ID
+    /// Associated session identifier, if applicable
     pub session_id: Option<String>,
-    /// MFA status
+    /// True if identity was confirmed with a secondary factor
     pub mfa_verified: bool,
-    /// Token type
+    /// Classification of the token according to [TokenType]
     pub token_type: TokenType,
 }
 
-/// Token types
+/// Categorization of tokens based on their intended use case
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum TokenType {
-    /// Access token for API access
+    /// Proof of identity for calling protected APIs
     Access,
-    /// Refresh token for token renewal
+    /// Long-lived token used to obtain a new Access token
     Refresh,
-    /// ID token for user information
+    /// OpenID Connect compliant identity information container
     ID,
-    /// Session token for session management
+    /// Proof of an active, server-side tracked session
     Session,
 }
 
-/// JWT authentication manager
+/// Specialized manager for handling the signing, verification, and revocation of JSON Web Tokens
 pub struct JWTAuthenticationManager {
-    /// Ed25519 keypair for signing
+    /// Ed25519 signing key used to cryptographically prove token authenticity
     keypair: Arc<SigningKey>,
-    /// Decoding key for verification
+    /// Compiled public key and validation logic for incoming tokens
     decoding_key: DecodingKey,
-    /// Configuration
+    /// Shared global IAM configuration
     config: IAMConfig,
-    /// Active tokens (for revocation)
+    /// Internal registry of unexpired tokens for revocation purposes
     active_tokens: Arc<Mutex<HashMap<String, TokenMetadata>>>,
-    /// Token blacklist (revoked tokens)
+    /// Persistent list of token IDs that have been explicitly invalidated
     token_blacklist: Arc<Mutex<HashMap<String, chrono::DateTime<Utc>>>>,
 }
 
-/// Token metadata
+/// Non-cryptographic record for tracking issued tokens
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenMetadata {
-    /// Token ID
+    /// The unique JWT ID (jti)
     pub jti: String,
-    /// User ID
+    /// Internal identifier for the owner
     pub user_id: String,
-    /// Issued at
+    /// Time when the token was successfully signed
     pub issued_at: chrono::DateTime<Utc>,
-    /// Expires at
+    /// Time when the token will become naturally invalid
     pub expires_at: chrono::DateTime<Utc>,
-    /// Token type
+    /// Intended usage of the token
     pub token_type: TokenType,
-    /// Client info
+    /// Contextual information captured at issuance
     pub client_info: Option<ClientInfo>,
 }
 
-/// JWT authentication request
+/// Input parameters required to mint a new JWT
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JWTAuthenticationRequest {
-    /// User ID
+    /// Unique internal identifier for the subject
     pub user_id: Uuid,
-    /// Username
+    /// Human-readable identity for the subject
     pub username: String,
-    /// User roles
+    /// Active roles to be embedded in the token claims
     pub roles: Vec<String>,
-    /// User permissions
+    /// Explicit permissions to be embedded in the token claims
     pub permissions: Vec<String>,
-    /// Client info
+    /// Information about the client application requesting issuance
     pub client_info: ClientInfo,
-    /// Token type to generate
+    /// The specific tier or usage of token to generate
     pub token_type: TokenType,
-    /// Remember me (longer expiration)
+    /// If true, applies extended expiration policies
     pub remember_me: bool,
-    /// MFA verified
+    /// Indicates if identity was proven via primary and secondary factor
     pub mfa_verified: bool,
 }
 
-/// JWT authentication result
+/// Output returned after a successful JWT generation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JWTAuthenticationResult {
-    /// JWT token
+    /// The signed, Base64Url-encoded JWT string
     pub token: String,
-    /// Token type
+    /// The classification of the issued token
     pub token_type: TokenType,
-    /// Expires at
+    /// The absolute expiration time calculated for this token
     pub expires_at: chrono::DateTime<Utc>,
-    /// Token ID
+    /// The unique JWT ID for auditing and revocation
     pub jti: String,
-    /// User ID
+    /// The internal identifier of the authenticated owner
     pub user_id: Uuid,
-    /// Success status
+    /// Status indicating if issuance completed without error
     pub success: bool,
-    /// Error message
+    /// Descriptive text if generation or signing failed
     pub error_message: Option<String>,
 }
 
-/// JWT validation result
+/// Detailed feedback from the token parsing and signature verification engine
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JWTValidationResult {
-    /// Validation success
+    /// Status indicating if the token is authenticated and not expired or blacklisted
     pub valid: bool,
-    /// Claims
+    /// Fully parsed claims from a cryptographically verified token
     pub claims: Option<JWTCustomClaims>,
-    /// Error message
+    /// Explanation if the token fails validity or trust checks
     pub error_message: Option<String>,
-    /// Token ID
+    /// The unique identifier of the token, even if partially invalid
     pub jti: Option<String>,
 }
 
 impl JWTAuthenticationManager {
-    /// Create new JWT authentication manager
+    /// Initializes the manager, generating a new ephemeral Ed25519 keypair for token signing.
+    ///
+    /// # Errors
+    /// Returns an error if keypair generation or decoding key creation fails.
     pub async fn new(config: IAMConfig) -> Result<Self> {
         info!("🔐 Initializing JWT Authentication Manager");
 
@@ -177,7 +179,10 @@ impl JWTAuthenticationManager {
         Ok(manager)
     }
 
-    /// Generate JWT token
+    /// Mints a new JWT with encapsulated identity and permission claims.
+    ///
+    /// # Errors
+    /// Returns an error if encoding fails or internal cleanup fails.
     pub async fn generate_token(
         &self,
         request: JWTAuthenticationRequest,
@@ -240,7 +245,10 @@ impl JWTAuthenticationManager {
         })
     }
 
-    /// Validate JWT token
+    /// Parses a token string, verifies its cryptographic signature, and checks its validity status.
+    ///
+    /// # Errors
+    /// Returns an error if the token is malformed or decoding fails.
     pub async fn validate_token(&self, token: &str) -> Result<JWTValidationResult> {
         debug!("🔍 Validating JWT token");
 
@@ -307,7 +315,10 @@ impl JWTAuthenticationManager {
         })
     }
 
-    /// Revoke JWT token
+    /// Explicitly invalidates a token by adding its ID to the blacklist.
+    ///
+    /// # Errors
+    /// Returns an error if token extraction fails.
     pub async fn revoke_token(&self, token: &str) -> Result<()> {
         debug!("🔐 Revoking JWT token");
 
@@ -326,7 +337,10 @@ impl JWTAuthenticationManager {
         Ok(())
     }
 
-    /// Revoke all tokens for a user
+    /// Mass revokes all outstanding tokens associated with a specific user identity.
+    ///
+    /// # Errors
+    /// Returns an error if the mass revocation fails.
     pub async fn revoke_all_user_tokens(&self, user_id: Uuid) -> Result<()> {
         debug!("🔐 Revoking all tokens for user: {}", user_id);
 
@@ -348,7 +362,10 @@ impl JWTAuthenticationManager {
         Ok(())
     }
 
-    /// Refresh JWT token
+    /// Consumes a valid Refresh token to issue a new, short-lived Access token.
+    ///
+    /// # Errors
+    /// Returns an error if the refresh token is invalid or issuance fails.
     pub async fn refresh_token(&self, refresh_token: &str) -> Result<JWTAuthenticationResult> {
         debug!("🔐 Refreshing JWT token");
 
@@ -412,7 +429,7 @@ impl JWTAuthenticationManager {
     }
 
     /// Verify token signature using Ed25519
-    async fn verify_signature(&self, token: &str, claims: &JWTCustomClaims) -> Result<bool> {
+    async fn verify_signature(&self, _token: &str, _claims: &JWTCustomClaims) -> Result<bool> {
         // Extract signature from token (this is a simplified implementation)
         // In practice, you'd need to parse the JWT structure properly
         let signature_valid = true; // The decode() function already verifies the signature
@@ -430,19 +447,22 @@ impl JWTAuthenticationManager {
         Ok(())
     }
 
-    /// Get active token count
+    /// Returns the current count of issued tokens that have not yet expired naturally.
     pub async fn get_active_token_count(&self) -> usize {
         let active_tokens = self.active_tokens.lock().await;
         active_tokens.len()
     }
 
-    /// Get blacklisted token count
+    /// Returns the current count of token IDs present in the revocation blacklist.
     pub async fn get_blacklisted_token_count(&self) -> usize {
         let blacklist = self.token_blacklist.lock().await;
         blacklist.len()
     }
 
-    /// Clean up old blacklisted tokens
+    /// Cleans up historical entries from the blacklist that are past the defined retention period.
+    ///
+    /// # Errors
+    /// Returns an error if cleanup fails.
     pub async fn cleanup_blacklist(&self) -> Result<()> {
         let mut blacklist = self.token_blacklist.lock().await;
         let now = Utc::now();

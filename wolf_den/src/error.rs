@@ -10,20 +10,35 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Error codes for programmatic error handling
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ErrorCode {
+    /// Cryptographic operation failed
     CryptoOperationFailed = 1000,
+    /// Invalid key format
     InvalidKeyFormat = 1001,
+    /// Key generation failed
     KeyGenerationFailed = 1002,
+    /// Encryption failed
     EncryptionFailed = 1003,
+    /// Decryption failed
     DecryptionFailed = 1004,
+    /// Signature verification failed
     SignatureVerificationFailed = 1005,
+    /// Hash operation failed
     HashOperationFailed = 1100,
+    /// MAC operation failed
     MacOperationFailed = 1200,
+    /// Key derivation failed
     KeyDerivationFailed = 1300,
+    /// Random generation failed
     RandomGenerationFailed = 1400,
+    /// Configuration error
     ConfigurationError = 1500,
+    /// I/O error
     IoError = 1600,
+    /// Protocol error
     ProtocolError = 1700,
+    /// Internal error
     InternalError = 9000,
+    /// Feature not implemented
     NotImplemented = 9001,
 }
 
@@ -39,9 +54,13 @@ pub enum Error {
     /// Cryptographic operation failed
     #[error("[{code}] {operation}: {message}")]
     Crypto {
+        /// Error code
         code: ErrorCode,
+        /// Detail message
         message: String,
+        /// Operation that failed
         operation: String,
+        /// Source error
         #[source]
         source: Option<Box<dyn StdError + Send + Sync>>,
     },
@@ -49,9 +68,13 @@ pub enum Error {
     /// Hash operation failed
     #[error("[{code}] Hash ({algorithm}) failed: {message}")]
     Hash {
+        /// Error code
         code: ErrorCode,
+        /// Detail message
         message: String,
+        /// Algorithm name
         algorithm: String,
+        /// Source error
         #[source]
         source: Option<Box<dyn StdError + Send + Sync>>,
     },
@@ -59,9 +82,13 @@ pub enum Error {
     /// MAC operation failed
     #[error("[{code}] MAC ({algorithm}) failed: {message}")]
     Mac {
+        /// Error code
         code: ErrorCode,
+        /// Detail message
         message: String,
+        /// Algorithm name
         algorithm: String,
+        /// Source error
         #[source]
         source: Option<Box<dyn StdError + Send + Sync>>,
     },
@@ -69,9 +96,13 @@ pub enum Error {
     /// Key derivation failed
     #[error("[{code}] KDF ({function}) failed: {message}")]
     KeyDerivation {
+        /// Error code
         code: ErrorCode,
+        /// Detail message
         message: String,
+        /// Reference to KDF function
         function: String,
+        /// Source error
         #[source]
         source: Option<Box<dyn StdError + Send + Sync>>,
     },
@@ -79,9 +110,13 @@ pub enum Error {
     /// Random number generation failed
     #[error("[{code}] Random ({random_source}) failed: {message}")]
     Random {
+        /// Error code
         code: ErrorCode,
+        /// Detail message
         message: String,
+        /// Source of randomness
         random_source: String,
+        /// Source error
         #[source]
         source: Option<Box<dyn StdError + Send + Sync>>,
     },
@@ -89,9 +124,13 @@ pub enum Error {
     /// Configuration error
     #[error("[{code}] Configuration ({parameter}) error: {message}")]
     Configuration {
+        /// Error code
         code: ErrorCode,
+        /// Detail message
         message: String,
+        /// Parameter that was misconfigured
         parameter: String,
+        /// Source error
         #[source]
         source: Option<Box<dyn StdError + Send + Sync>>,
     },
@@ -99,9 +138,13 @@ pub enum Error {
     /// System error
     #[error("[{code}] System ({operation}) error: {message}")]
     System {
+        /// Error code
         code: ErrorCode,
+        /// Detail message
         message: String,
+        /// System operation that failed
         operation: String,
+        /// Source error
         #[source]
         source: Option<Box<dyn StdError + Send + Sync>>,
     },
@@ -109,9 +152,13 @@ pub enum Error {
     /// Protocol error
     #[error("[{code}] Protocol ({protocol}) error: {message}")]
     Protocol {
+        /// Error code
         code: ErrorCode,
+        /// Detail message
         message: String,
+        /// Protocol name
         protocol: String,
+        /// Source error
         #[source]
         source: Option<Box<dyn StdError + Send + Sync>>,
     },
@@ -119,8 +166,11 @@ pub enum Error {
     /// Signature verification failed
     #[error("[{code}] Signature verification failed: {message}")]
     SignatureVerification {
+        /// Error code
         code: ErrorCode,
+        /// Detail message
         message: String,
+        /// Source error
         #[source]
         source: Option<Box<dyn StdError + Send + Sync>>,
     },
@@ -128,8 +178,11 @@ pub enum Error {
     /// Internal error
     #[error("[{code}] Internal error: {message}")]
     Internal {
+        /// Error code
         code: ErrorCode,
+        /// Error message
         message: String,
+        /// Source error
         #[source]
         source: Option<Box<dyn StdError + Send + Sync>>,
     },
@@ -137,22 +190,24 @@ pub enum Error {
 
 impl Error {
     /// Get the error code
-    pub fn code(&self) -> ErrorCode {
+    #[must_use]
+    pub const fn code(&self) -> ErrorCode {
         match self {
-            Error::Crypto { code, .. } => *code,
-            Error::Hash { code, .. } => *code,
-            Error::Mac { code, .. } => *code,
-            Error::KeyDerivation { code, .. } => *code,
-            Error::Random { code, .. } => *code,
-            Error::Configuration { code, .. } => *code,
-            Error::System { code, .. } => *code,
-            Error::Protocol { code, .. } => *code,
-            Error::SignatureVerification { code, .. } => *code,
-            Error::Internal { code, .. } => *code,
+            Self::Crypto { code, .. }
+            | Self::Hash { code, .. }
+            | Self::Mac { code, .. }
+            | Self::KeyDerivation { code, .. }
+            | Self::Random { code, .. }
+            | Self::Configuration { code, .. }
+            | Self::System { code, .. }
+            | Self::Protocol { code, .. }
+            | Self::SignatureVerification { code, .. }
+            | Self::Internal { code, .. } => *code,
         }
     }
 
     /// Create a new cryptographic error
+    #[must_use]
     pub fn crypto(operation: impl Into<String>, message: impl Into<String>) -> Self {
         Self::Crypto {
             code: ErrorCode::CryptoOperationFailed,
@@ -163,6 +218,7 @@ impl Error {
     }
 
     /// Create a new key generation error
+    #[must_use]
     pub fn key_generation(message: impl Into<String>) -> Self {
         Self::Crypto {
             code: ErrorCode::KeyGenerationFailed,
@@ -173,6 +229,7 @@ impl Error {
     }
 
     /// Create a new encryption error
+    #[must_use]
     pub fn encryption(operation: impl Into<String>, message: impl Into<String>) -> Self {
         Self::Crypto {
             code: ErrorCode::EncryptionFailed,
@@ -183,6 +240,7 @@ impl Error {
     }
 
     /// Create a new decryption error
+    #[must_use]
     pub fn decryption(operation: impl Into<String>, message: impl Into<String>) -> Self {
         Self::Crypto {
             code: ErrorCode::DecryptionFailed,
@@ -193,6 +251,7 @@ impl Error {
     }
 
     /// Create a new signature verification error
+    #[must_use]
     pub fn signature_verification(message: impl Into<String>) -> Self {
         Self::SignatureVerification {
             code: ErrorCode::SignatureVerificationFailed,
@@ -202,6 +261,7 @@ impl Error {
     }
 
     /// Create a new hash error
+    #[must_use]
     pub fn hash(algorithm: impl Into<String>, message: impl Into<String>) -> Self {
         Self::Hash {
             code: ErrorCode::HashOperationFailed,
@@ -212,6 +272,7 @@ impl Error {
     }
 
     /// Create a new MAC error
+    #[must_use]
     pub fn mac(algorithm: impl Into<String>, message: impl Into<String>) -> Self {
         Self::Mac {
             code: ErrorCode::MacOperationFailed,
@@ -222,6 +283,7 @@ impl Error {
     }
 
     /// Create a new key derivation error
+    #[must_use]
     pub fn key_derivation(function: impl Into<String>, message: impl Into<String>) -> Self {
         Self::KeyDerivation {
             code: ErrorCode::KeyDerivationFailed,
@@ -232,6 +294,7 @@ impl Error {
     }
 
     /// Create a new random generation error
+    #[must_use]
     pub fn random(source: impl Into<String>, message: impl Into<String>) -> Self {
         Self::Random {
             code: ErrorCode::RandomGenerationFailed,
@@ -242,6 +305,7 @@ impl Error {
     }
 
     /// Create a new configuration error
+    #[must_use]
     pub fn configuration(parameter: impl Into<String>, message: impl Into<String>) -> Self {
         Self::Configuration {
             code: ErrorCode::ConfigurationError,
@@ -252,6 +316,7 @@ impl Error {
     }
 
     /// Create a new system error
+    #[must_use]
     pub fn system(operation: impl Into<String>, message: impl Into<String>) -> Self {
         Self::System {
             code: ErrorCode::IoError,
@@ -262,6 +327,7 @@ impl Error {
     }
 
     /// Create a new internal error
+    #[must_use]
     pub fn internal(message: impl Into<String>) -> Self {
         Self::Internal {
             code: ErrorCode::InternalError,
@@ -271,6 +337,7 @@ impl Error {
     }
 
     /// Create a new not implemented error
+    #[must_use]
     pub fn not_implemented(feature: impl Into<String>) -> Self {
         Self::Internal {
             code: ErrorCode::NotImplemented,
@@ -280,45 +347,38 @@ impl Error {
     }
 
     /// Add context to an existing error
+    #[must_use]
     pub fn with_context(mut self, context: impl Into<String>) -> Self {
+        let ctx = context.into();
         match &mut self {
-            Error::Crypto { message, .. } => *message = format!("{}: {}", context.into(), *message),
-            Error::Hash { message, .. } => *message = format!("{}: {}", context.into(), *message),
-            Error::Mac { message, .. } => *message = format!("{}: {}", context.into(), *message),
-            Error::KeyDerivation { message, .. } => {
-                *message = format!("{}: {}", context.into(), *message)
-            }
-            Error::Random { message, .. } => *message = format!("{}: {}", context.into(), *message),
-            Error::Configuration { message, .. } => {
-                *message = format!("{}: {}", context.into(), *message)
-            }
-            Error::System { message, .. } => *message = format!("{}: {}", context.into(), *message),
-            Error::Protocol { message, .. } => {
-                *message = format!("{}: {}", context.into(), *message)
-            }
-            Error::SignatureVerification { message, .. } => {
-                *message = format!("{}: {}", context.into(), *message)
-            }
-            Error::Internal { message, .. } => {
-                *message = format!("{}: {}", context.into(), *message)
-            }
+            Self::Crypto { message, .. }
+            | Self::Hash { message, .. }
+            | Self::Mac { message, .. }
+            | Self::KeyDerivation { message, .. }
+            | Self::Random { message, .. }
+            | Self::Configuration { message, .. }
+            | Self::System { message, .. }
+            | Self::Protocol { message, .. }
+            | Self::SignatureVerification { message, .. }
+            | Self::Internal { message, .. } => *message = format!("{ctx}: {message}"),
         }
         self
     }
 
     /// Add source error to this error
+    #[must_use]
     pub fn with_source(mut self, source: Box<dyn StdError + Send + Sync>) -> Self {
         match &mut self {
-            Error::Crypto { source: src, .. } => *src = Some(source),
-            Error::Hash { source: src, .. } => *src = Some(source),
-            Error::Mac { source: src, .. } => *src = Some(source),
-            Error::KeyDerivation { source: src, .. } => *src = Some(source),
-            Error::Random { source: src, .. } => *src = Some(source),
-            Error::Configuration { source: src, .. } => *src = Some(source),
-            Error::System { source: src, .. } => *src = Some(source),
-            Error::Protocol { source: src, .. } => *src = Some(source),
-            Error::SignatureVerification { source: src, .. } => *src = Some(source),
-            Error::Internal { source: src, .. } => *src = Some(source),
+            Self::Crypto { source: src, .. }
+            | Self::Hash { source: src, .. }
+            | Self::Mac { source: src, .. }
+            | Self::KeyDerivation { source: src, .. }
+            | Self::Random { source: src, .. }
+            | Self::Configuration { source: src, .. }
+            | Self::System { source: src, .. }
+            | Self::Protocol { source: src, .. }
+            | Self::SignatureVerification { source: src, .. }
+            | Self::Internal { source: src, .. } => *src = Some(source),
         }
         self
     }
@@ -361,18 +421,21 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_error_codes() {
         let error = Error::crypto("test", "operation failed");
         assert_eq!(error.code(), ErrorCode::CryptoOperationFailed);
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_error_creation() {
         let hash_error = Error::hash("SHA256", "failed");
         assert!(matches!(hash_error, Error::Hash { .. }));
     }
 
     #[test]
+    #[allow(clippy::unwrap_used)]
     fn test_error_context() {
         let error = Error::hash("SHA256", "failed").with_context("during file verification");
 

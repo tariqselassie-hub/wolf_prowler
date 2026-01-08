@@ -6,13 +6,16 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
+/// GDPR Compliance Manager
 pub struct GDPRComplianceManager;
 
 impl GDPRComplianceManager {
+    /// Create new GDPR manager
     pub fn new(_config: ComplianceConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Run GDPR assessment
     pub async fn run_assessment(
         &self,
         assessment_type: AssessmentType,

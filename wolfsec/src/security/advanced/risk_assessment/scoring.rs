@@ -6,13 +6,16 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
+/// Engine for calculating risk scores
 pub struct RiskScoringEngine;
 
 impl RiskScoringEngine {
+    /// Create new scoring engine
     pub fn new(_config: RiskAssessmentConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Run full risk assessment
     pub fn run_assessment(
         &self,
         assessment_type_str: &str,
@@ -55,10 +58,12 @@ impl RiskScoringEngine {
         })
     }
 
+    /// Score specific risks
     pub fn score_risks(&self, risks: &[RiskItem]) -> Result<Vec<RiskItem>> {
         Ok(risks.to_vec())
     }
 
+    /// Assess vulnerabilities impact
     pub fn assess_vulnerabilities(
         &self,
         vulnerabilities: &[VulnerabilityItem],

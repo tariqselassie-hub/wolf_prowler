@@ -20,25 +20,39 @@ use crate::wolf_pack::state::{WolfRole, WolfState};
 
 /// Top-level manager to clean up main.rs initialization
 pub struct WolfNode {
+    /// Manages the libp2p swarm and networking
     pub swarm: SwarmManager,
+    /// Service for discovering peers
     pub discovery: DiscoveryService,
+    /// Receiver for discovery events
     pub discovery_rx: Option<mpsc::Receiver<PeerInfo>>,
+    /// Service for reporting telemetry
     pub reporting: Option<ReportingService>,
     // Centralized access to the firewall
+    /// Orchestration for hub communication
     pub hub_orchestration: Option<HubOrchestration>,
+    /// Sender for telemetry events
     pub reporting_tx: Option<tokio::sync::mpsc::Sender<TelemetryEvent>>,
+    /// Sender for node commands
     pub command_tx: mpsc::Sender<NodeCommand>,
+    /// Receiver for node commands
     pub command_rx: mpsc::Receiver<NodeCommand>,
+    /// Internal firewall manager
     pub firewall: Arc<RwLock<InternalFirewall>>,
+    /// Peer metrics and info
     pub metrics: Arc<RwLock<HashMap<PeerId, EntityInfo>>>,
+    /// Sender for coordinator messages
     pub coordinator_tx: Option<mpsc::Sender<CoordinatorMsg>>,
+    /// Current state of the wolf node
     pub wolf_state: Arc<RwLock<WolfState>>,
+    /// Storage for authentication token
     pub auth_token: Arc<RwLock<Option<String>>>,
+    /// Handles for background service tasks.
     background_tasks: Vec<tokio::task::JoinHandle<()>>,
 }
 
 impl WolfNode {
-    /// Initializes all subsystems based on config
+    /// Initializes all subsystems based on the provided configuration.
     pub async fn new(config: WolfConfig) -> Result<Self> {
         let firewall = Arc::new(RwLock::new(InternalFirewall::new()));
         let metrics = Arc::new(RwLock::new(HashMap::new()));
@@ -131,12 +145,12 @@ impl WolfNode {
         (reporting, hub_orchestration, Some(tx_events))
     }
 
-    /// Returns a handle to control the WolfNode from other threads/components
+    /// Returns a handle to control the WolfNode from other components.
     pub fn get_control(&self) -> WolfNodeControl {
         WolfNodeControl::new(self.command_tx.clone())
     }
 
-    /// Helper method to send telemetry events via the reporting channel.
+    /// Sends a telemetry event via the reporting channel.
     pub async fn send_telemetry(&self, event: TelemetryEvent) {
         if let Some(tx) = &self.reporting_tx {
             if let Err(e) = tx.send(event).await {
@@ -207,7 +221,7 @@ impl WolfNode {
         }
     }
 
-    /// Starts the main event loop
+    /// Starts the main event loop and runs the node until shutdown.
     pub async fn run(&mut self) -> Result<()> {
         // 1. Start Background Services
         if let Some(mut reporting) = self.reporting.take() {

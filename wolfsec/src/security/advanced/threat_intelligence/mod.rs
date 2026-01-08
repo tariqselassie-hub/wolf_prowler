@@ -3,9 +3,13 @@
 //! Advanced threat intelligence with wolf pack collective defense.
 //! Wolves share intelligence about threats across the pack for collective protection.
 
+/// Threat feeds
 pub mod feeds;
+/// Threat indicators
 pub mod indicators;
+/// Threat scoring
 pub mod scoring;
+/// Intelligence sharing
 pub mod sharing;
 
 use anyhow::Result;
@@ -98,19 +102,28 @@ pub struct ThreatIntelligenceStats {
 /// Feed statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeedStats {
+    /// Name of the feed
     pub feed_name: String,
+    /// Total indicators collected from feed
     pub indicators_collected: u64,
+    /// Last update timestamp
     pub last_update: DateTime<Utc>,
+    /// Success rate (0.0-1.0)
     pub success_rate: f64,
+    /// Average latency in milliseconds
     pub average_latency_ms: f64,
 }
 
 /// Sharing statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SharingStats {
+    /// Total indicators shared
     pub indicators_shared: u64,
+    /// Total indicators received
     pub indicators_received: u64,
+    /// Number of connected packs
     pub packs_connected: usize,
+    /// Last share timestamp
     pub last_share: DateTime<Utc>,
 }
 
@@ -145,6 +158,7 @@ pub struct ThreatIndicator {
     pub tags: Vec<String>,
     /// Active status
     pub active: bool,
+    /// Source of the indicator
     pub source: String,
 }
 
@@ -222,83 +236,131 @@ pub struct ThreatIntelligenceReport {
 /// Report types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReportType {
+    /// Daily report
     Daily,
+    /// Weekly report
     Weekly,
+    /// Monthly report
     Monthly,
+    /// Incident report
     Incident,
+    /// Campaign report
     Campaign,
+    /// Threat actor report
     ThreatActor,
 }
 
 /// Threat actor
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatActor {
+    /// Unique actor ID
     pub actor_id: String,
+    /// Actor name
     pub name: String,
+    /// Known aliases
     pub aliases: Vec<String>,
+    /// Description
     pub description: String,
+    /// Known capabilities
     pub capabilities: Vec<String>,
+    /// Motivations
     pub motivations: Vec<String>,
+    /// Known indicators associated with actor
     pub known_indicators: Vec<String>,
+    /// First seen timestamp
     pub first_seen: DateTime<Utc>,
+    /// Last seen timestamp
     pub last_seen: DateTime<Utc>,
+    /// Attribution confidence (0.0-1.0)
     pub attribution_confidence: f64,
 }
 
 /// Threat campaign
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatCampaign {
+    /// Campaign ID
     pub campaign_id: String,
+    /// Campaign name
     pub name: String,
+    /// Description
     pub description: String,
+    /// Associated threat actors
     pub threat_actors: Vec<String>,
+    /// Campaign timeline
     pub timeline: CampaignTimeline,
+    /// Target industries
     pub target_industries: Vec<String>,
+    /// Target geographies
     pub target_geographies: Vec<String>,
+    /// Tactics used
     pub tactics: Vec<String>,
+    /// Techniques used
     pub techniques: Vec<String>,
+    /// Procedures used
     pub procedures: Vec<String>,
+    /// Associated indicators
     pub indicators: Vec<String>,
+    /// Campaign status
     pub status: CampaignStatus,
 }
 
 /// Campaign timeline
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CampaignTimeline {
+    /// Start date
     pub start_date: DateTime<Utc>,
+    /// End date (optional)
     pub end_date: Option<DateTime<Utc>>,
+    /// Key events
     pub key_events: Vec<CampaignEvent>,
 }
 
 /// Campaign event
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CampaignEvent {
+    /// Event timestamp
     pub timestamp: DateTime<Utc>,
+    /// Event type
     pub event_type: String,
+    /// Description
     pub description: String,
+    /// Impact description
     pub impact: String,
 }
 
 /// Campaign status
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CampaignStatus {
+    /// Currently active
     Active,
+    /// Dormant/Inactive
     Dormant,
+    /// Concluded
     Concluded,
+    /// Unknown status
     Unknown,
 }
 
 /// TTP (Tactics, Techniques, Procedures)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TTP {
+    /// Tactic ID (e.g., TA0001)
     pub tactic_id: String,
+    /// Tactic name
     pub tactic_name: String,
+    /// Technique ID (e.g., T1566)
     pub technique_id: String,
+    /// Technique name
     pub technique_name: String,
+    /// Procedure ID
     pub procedure_id: String,
+    /// Procedure name
     pub procedure_name: String,
+    /// Description
     pub description: String,
+    /// Detection methods
     pub detection_methods: Vec<String>,
+    /// Mitigation methods
     pub mitigation_methods: Vec<String>,
 }
 
@@ -473,21 +535,32 @@ impl ThreatIntelligenceManager {
 /// Threat query
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatQuery {
+    /// Filter by indicator types
     pub indicator_types: Option<Vec<IndicatorType>>,
+    /// Filter by severities
     pub severities: Option<Vec<ThreatSeverity>>,
+    /// Minimum confidence score
     pub confidence_min: Option<f64>,
+    /// Minimum threat score
     pub threat_score_min: Option<f64>,
+    /// Time range filter
     pub time_range: Option<TimeRange>,
+    /// Filter by source feeds
     pub source_feeds: Option<Vec<String>>,
+    /// Filter by tags
     pub tags: Option<Vec<String>>,
+    /// Text search in value/description
     pub text_search: Option<String>,
+    /// Limit results
     pub limit: Option<usize>,
 }
 
 /// Time range for queries
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimeRange {
+    /// Start time
     pub start: DateTime<Utc>,
+    /// End time
     pub end: DateTime<Utc>,
 }
 

@@ -6,12 +6,18 @@ use std::time::SystemTime;
 /// The role of this specific node in the pack hierarchy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum WolfRole {
-    Stray,  // Untrusted / New (Can only listen)
-    Scout,  // Detector (Can initiate warnings)
-    Hunter, // Verifier (Can participate in active hunts)
-    Beta,   // Coordinator (Can authorize local hunts)
-    Alpha,  // Leader (Pack strategy & global bans)
-    Omega,  // Dev God Mode (Absolute authority)
+    /// Untrusted / New (Can only listen)
+    Stray,
+    /// Detector (Can initiate warnings)
+    Scout,
+    /// Verifier (Can participate in active hunts)
+    Hunter,
+    /// Coordinator (Can authorize local hunts)
+    Beta,
+    /// Leader (Pack strategy & global bans)
+    Alpha,
+    /// Dev God Mode (Absolute authority)
+    Omega,
 }
 
 impl Default for WolfRole {
@@ -26,21 +32,32 @@ pub type HuntId = String;
 /// The lifecycle state of a Hunt.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HuntStatus {
-    Scent,  // Potential threat detected
-    Stalk,  // Verification in progress
-    Strike, // Active neutralization
-    Feast,  // Post-hunt analysis and reward
-    Failed, // Target lost or false positive
+    /// Potential threat detected
+    Scent,
+    /// Verification in progress
+    Stalk,
+    /// Active neutralization
+    Strike,
+    /// Post-hunt analysis and reward
+    Feast,
+    /// Target lost or false positive
+    Failed,
 }
 
 /// Active Hunt Tracking
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActiveHunt {
+    /// Unique ID for the hunt
     pub hunt_id: HuntId,
+    /// The target IP address
     pub target_ip: String,
+    /// Current status of the hunt
     pub status: HuntStatus,
+    /// Implicated peers involved in the hunt
     pub participants: HashSet<PeerId>,
+    /// When the hunt began
     pub start_time: SystemTime,
+    /// Collected evidence strings
     pub evidence: Vec<String>,
     /// Confidence score (0.0 to 1.0) based on peer verification
     pub confidence: f64,
@@ -49,13 +66,20 @@ pub struct ActiveHunt {
 /// The atomic state of the local Wolf Node.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WolfState {
+    /// The node's current role
     pub role: WolfRole,
+    /// The node's reputation score
     pub prestige: u32,
+    /// List of currently active hunts
     pub active_hunts: Vec<ActiveHunt>,
+    /// List of territories (IP ranges) this node monitors
     // In a real implementation, we'd use a dedicated IP handling crate, keeping string for simplicity now
     pub territories: Vec<String>,
+    /// The current leader's ID
     pub leader_id: Option<String>,
+    /// Current election term
     pub election_term: u64,
+    /// Current election state (e.g., "Follower", "Candidate")
     pub election_state: String,
 }
 
@@ -74,6 +98,7 @@ impl Default for WolfState {
 }
 
 impl WolfState {
+    /// Creates a new WolfState with a specific role
     pub fn new(role: WolfRole) -> Self {
         Self {
             role,
@@ -81,16 +106,19 @@ impl WolfState {
         }
     }
 
+    /// Increases prestige and checks for evolution
     pub fn add_prestige(&mut self, amount: u32) {
         self.prestige = self.prestige.saturating_add(amount);
         self.evolve();
     }
 
+    /// Decreases prestige and checks for devolution
     pub fn slash_prestige(&mut self, amount: u32) {
         self.prestige = self.prestige.saturating_sub(amount);
         self.devolve();
     }
 
+    /// Applies natural decay to prestige over time
     pub fn apply_decay(&mut self) {
         // Natural decay over time.
         // 1 point loss per tick (handled by coordinator).

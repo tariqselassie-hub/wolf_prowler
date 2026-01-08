@@ -4,17 +4,21 @@ use crate::security::advanced::cloud_security::{
 };
 use anyhow::Result;
 
+/// Multi-cloud security manager
 pub struct MultiCloudSecurityManager;
 
 impl MultiCloudSecurityManager {
+    /// Create new multi-cloud manager
     pub fn new(_config: CloudSecurityConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Discover resources across clouds
     pub async fn discover_resources(&self, _provider: CloudProvider) -> Result<Vec<CloudResource>> {
         Ok(Vec::new())
     }
 
+    /// Handle cross-cloud incident
     pub async fn handle_incident(
         &self,
         incident: CloudSecurityIncident,

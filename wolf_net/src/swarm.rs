@@ -32,33 +32,54 @@ use x25519_dalek::PublicKey as X25519PublicKey;
 /// Connection state for a peer
 #[derive(Debug, Clone)]
 pub struct PeerConnection {
+    /// Remote Peer ID
     pub peer_id: PeerId,
+    /// Connection start time
     pub connected_since: Instant,
+    /// Last seen time
     pub last_seen: Instant,
+    /// Protocol version
     pub protocol_version: Option<String>,
+    /// Agent version
     pub agent_version: Option<String>,
 }
 
 /// Network metrics
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct NetworkMetrics {
+    /// Total messages sent
     pub total_messages_sent: u64,
+    /// Total messages received
     pub total_messages_received: u64,
+    /// Total bytes sent
     pub total_bytes_sent: u64,
+    /// Total bytes received
     pub total_bytes_received: u64,
+    /// Connection attempts count
     pub connection_attempts: u64,
+    /// Connection failures count
     pub connection_failures: u64,
+    /// Active connections count
     pub active_connections: usize,
+    /// Unique peers seen count
     pub unique_peers_seen: usize,
     #[serde(skip)]
+    /// Last network activity timestamp
     pub last_activity: Option<Instant>,
     // Additional fields for API
+    /// Connected peers count
     pub connected_peers: usize,
+    /// Known peers count
     pub known_peers: usize,
+    /// Average latency in ms
     pub average_latency: f64,
+    /// Total data transferred in bytes
     pub total_data_transferred: u64,
+    /// Transfer rate in bytes/sec
     pub transfer_rate: f64,
+    /// Active streams count
     pub active_streams: usize,
+    /// Network health score (0.0 - 1.0)
     pub network_health: f64,
 }
 
@@ -67,88 +88,142 @@ use crate::message::Message;
 /// Commands to send to the swarm event loop.
 #[derive(Debug)]
 pub enum SwarmCommand {
+    /// Send a message to a specific peer
     SendMessage {
+        /// Target peer
         target: PeerId,
+        /// Message content
         message: Message,
     },
+    /// Publish a message to a pubsub topic
     PublishMessage {
+        /// Topic name
         topic: String,
+        /// Message content
         message: Message,
     },
     /// Broadcast a Howl message (P2P Protocol)
+    /// Broadcast a Howl message (P2P Protocol)
     BroadcastHowl {
+        /// Howl message
         message: crate::wolf_pack::howl::HowlMessage,
     },
     /// General broadcast (bytes)
     Broadcast(Vec<u8>),
+    /// Dial a peer directly
     Dial {
+        /// Peer ID
         peer_id: PeerId,
+        /// Address
         addr: Multiaddr,
     },
+    /// Dial an address
     DialAddr {
+        /// Address
         addr: Multiaddr,
     },
+    /// Request current stats
     GetStats {
+        /// Responder channel
         responder: oneshot::Sender<SwarmStats>,
     },
+    /// Request list of listeners
     GetListeners {
+        /// Responder channel
         responder: oneshot::Sender<Vec<Multiaddr>>,
     },
+    /// Check if peer is connected
     IsConnected {
+        /// Peer ID to check
         peer_id: PeerId,
+        /// Responder
         responder: oneshot::Sender<bool>,
     },
+    /// Prune idle connections
     CheckConnections {
+        /// Max idle time
         max_idle_time: Duration,
+        /// Responder
         responder: oneshot::Sender<Vec<PeerId>>,
     },
+    /// Initiate shutdown
     Shutdown,
+    /// Send a WolfRequest
     SendRequest {
+        /// Target peer
         target: PeerId,
+        /// Request object
         request: crate::protocol::WolfRequest,
+        /// Responder
         responder: oneshot::Sender<anyhow::Result<()>>,
     },
+    /// Block a peer
     BlockPeer {
+        /// Peer to block
         peer_id: PeerId,
     },
     /// Block an IP address in the internal firewall
+    /// Block an IP address in the internal firewall
     BlockIp {
+        /// IP to block
         ip: String,
     },
+    /// Disconnect a peer
     DisconnectPeer {
+        /// Peer to disconnect
         peer_id: PeerId,
     },
+    /// Send an encrypted request
     SendEncryptedRequest {
+        /// Target peer
         target: PeerId,
+        /// Request
         request: crate::protocol::WolfRequest,
+        /// Responder
         responder: oneshot::Sender<anyhow::Result<()>>,
     },
+    /// List known peers
     ListPeers {
+        /// Responder
         responder: oneshot::Sender<Vec<crate::peer::EntityInfo>>,
     },
+    /// Get peer info
     GetPeerInfo {
+        /// Peer ID
         peer_id: PeerId,
+        /// Responder
         responder: oneshot::Sender<Option<crate::peer::EntityInfo>>,
     },
     /// Send a consensus message to the network
     ConsensusMessage(crate::consensus::network::RaftNetworkMessage),
     /// Get Wolf Pack state
+    /// Get Wolf Pack state
     GetWolfState {
+        /// Responder
         responder: oneshot::Sender<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>>,
     },
     /// Omega: Force Rank
+    /// Omega: Force Rank
     OmegaForceRank {
+        /// Target peer
         target: PeerId,
+        /// New role
         role: crate::wolf_pack::state::WolfRole,
     },
     /// Omega: Force Prestige
+    /// Omega: Force Prestige
     OmegaForcePrestige {
+        /// Target peer
         target: PeerId,
+        /// Prestige delta
         change: i32,
     },
     /// Add a peer address to the swarm without dialing
+    /// Add a peer address to the swarm without dialing
     AddAddress {
+        /// Peer ID
         peer_id: PeerId,
+        /// Address
         addr: Multiaddr,
     },
 }
@@ -157,6 +232,7 @@ pub enum SwarmCommand {
 /// This allows SwarmManager to notify the reputation system without a direct dependency.
 #[async_trait]
 pub trait ReputationReporter: Send + Sync + std::fmt::Debug {
+    /// Report a reputation event
     async fn report_event(&self, peer_id: &str, category: &str, impact: f64, description: String);
 }
 
@@ -283,12 +359,14 @@ impl SwarmManager {
         self.command_sender.clone()
     }
 
+    /// Returns a sender handle to the HuntCoordinator
     pub fn hunt_coordinator_sender(
         &self,
     ) -> mpsc::Sender<crate::wolf_pack::coordinator::CoordinatorMsg> {
         self.hunt_coordinator_sender.clone()
     }
 
+    /// Initializes a new SwarmManager
     pub fn new(config: SwarmConfig) -> anyhow::Result<Self> {
         info!("Initializing SwarmManager with config: {:?}", config);
         config.validate()?;
@@ -1818,8 +1896,11 @@ impl SwarmManager {
 /// Statistics about the swarm.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SwarmStats {
+    /// Number of connected peers
     pub connected_peers: usize,
+    /// List of connected peer IDs
     pub connected_peers_list: Vec<PeerId>,
+    /// Network metrics
     pub metrics: NetworkMetrics,
 }
 

@@ -5,15 +5,18 @@ use super::{
 use anyhow::Result;
 use chrono::Utc;
 
+/// Runtime protector
 pub struct ContainerRuntimeProtector {
     config: ContainerSecurityConfig,
 }
 
 impl ContainerRuntimeProtector {
+    /// Create new runtime protector
     pub fn new(config: ContainerSecurityConfig) -> Result<Self> {
         Ok(Self { config })
     }
 
+    /// Protect container runtime
     pub async fn protect_container(&self, container_id: &str) -> Result<RuntimeProtectionResult> {
         let alerts = Vec::new();
 
@@ -31,6 +34,7 @@ impl ContainerRuntimeProtector {
         })
     }
 
+    /// Get container security posture
     pub async fn get_security_posture(
         &self,
         _container_id: &str,

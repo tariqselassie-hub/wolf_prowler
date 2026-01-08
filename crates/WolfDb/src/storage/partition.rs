@@ -1,6 +1,5 @@
-
-
 /// Partition types for separating vector and relational data
+/// Storage partition types for separating different data workloads
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Partition {
     /// Pure relational data, no vectors
@@ -12,59 +11,63 @@ pub enum Partition {
 }
 
 impl Partition {
-    /// Determine partition from table name
-    /// Format: "partition:table_name" or just "table_name" (defaults to Hybrid)
+    /// Determines the partition type and base table name from a formatted table string.
+    /// Format: "`partition:table_name`" (e.g., "relational:users") or just "`table_name`" (defaults to Hybrid).
+    #[must_use]
     pub fn from_table(table: &str) -> (Self, String) {
         if let Some((prefix, table_name)) = table.split_once(':') {
             let partition = match prefix {
-                "relational" => Partition::Relational,
-                "vector" => Partition::Vector,
-                "hybrid" => Partition::Hybrid,
-                _ => Partition::Hybrid, // Unknown prefix defaults to hybrid
+                "relational" => Self::Relational,
+                "vector" => Self::Vector,
+                _ => Self::Hybrid, // Unknown prefix or "hybrid" defaults to hybrid
             };
             (partition, table_name.to_string())
         } else {
             // No prefix, default to hybrid for backward compatibility
-            (Partition::Hybrid, table.to_string())
+            (Self::Hybrid, table.to_string())
         }
     }
     
-    /// Get the database path for this partition
+    /// Returns the database path for this partition
+    #[must_use]
     pub fn get_db_path(&self, base_path: &str) -> String {
         match self {
-            Partition::Relational => format!("{}/relational", base_path),
-            Partition::Vector => format!("{}/vector", base_path),
-            Partition::Hybrid => base_path.to_string(),
+            Self::Relational => format!("{base_path}/relational"),
+            Self::Vector => format!("{base_path}/vector"),
+            Self::Hybrid => base_path.to_string(),
         }
     }
     
     /// Get the vector index path for this partition
+    #[must_use]
     pub fn get_index_path(&self, base_path: &str, table: &str) -> String {
         match self {
-            Partition::Relational => {
+            Self::Relational => {
                 // Relational partitions don't have vector indices
-                format!("{}/indices/relational_{}", base_path, table)
+                format!("{base_path}/indices/relational_{table}")
             }
-            Partition::Vector => {
-                format!("{}/indices/vector_{}", base_path, table)
+            Self::Vector => {
+                format!("{base_path}/indices/vector_{table}")
             }
-            Partition::Hybrid => {
-                format!("{}/vectors/{}", base_path, table)
+            Self::Hybrid => {
+                format!("{base_path}/vectors/{table}")
             }
         }
     }
     
-    /// Check if this partition supports vectors
-    pub fn supports_vectors(&self) -> bool {
-        matches!(self, Partition::Vector | Partition::Hybrid)
+    /// Returns true if this partition supports vector storage and indexing
+    #[must_use]
+    pub const fn supports_vectors(&self) -> bool {
+        matches!(self, Self::Vector | Self::Hybrid)
     }
     
-    /// Get a human-readable name
-    pub fn name(&self) -> &'static str {
+    /// Returns the human-readable prefix name for this partition
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
         match self {
-            Partition::Relational => "relational",
-            Partition::Vector => "vector",
-            Partition::Hybrid => "hybrid",
+            Self::Relational => "relational",
+            Self::Vector => "vector",
+            Self::Hybrid => "hybrid",
         }
     }
 }

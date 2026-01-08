@@ -6,13 +6,16 @@ use anyhow::Result;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
+/// ISO27001 Compliance Manager
 pub struct ISO27001ComplianceManager;
 
 impl ISO27001ComplianceManager {
+    /// Create new ISO27001 manager
     pub fn new(_config: ComplianceConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Run ISO27001 assessment
     pub async fn run_assessment(
         &self,
         assessment_type: AssessmentType,

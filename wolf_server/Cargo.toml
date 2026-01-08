@@ -62,3 +62,5 @@ chrono = "0.4"
 # TODO: Remove PostgreSQL dependencies after WolfDb migration complete
 ipnetwork = "0.20"
 uuid = { version = "1.0", features = ["v4", "serde"] }
+[lints]
+workspace = true

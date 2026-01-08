@@ -6,6 +6,7 @@ description = "Shared types and constants for TersecPot Blind Command-Bus"
 authors = ["TersecPot Contributors"]
 license = "MIT"
 repository = "https://github.com/tersecpot/project"
+autobenches = false
 
 
 [dependencies]
@@ -37,3 +38,5 @@ name = "proof_of_work"
 path = "benches/proof_of_work.rs"
 bench = false
 
+[lints]
+workspace = true

@@ -15,95 +15,95 @@ use std::collections::HashMap;
 use tracing::{debug, info};
 use uuid::Uuid;
 
-/// Main threat hunting engine
+/// central orchestrator for proactive and reactive threat identification
 pub struct ThreatHuntingEngine {
-    /// Automated hunting
+    /// orchestrator for unattended, pattern-driven hunt operations
     automated_hunting: automated::AutomatedHunter,
-    /// Hunting strategies
+    /// Registry of pre-defined hunting tactics and coordination logic
     hunting_strategies: strategies::HuntingStrategies,
-    /// Threat correlation
+    /// Logic for linking disparate findings into a unified threat narrative
     threat_correlation: correlation::ThreatCorrelator,
-    /// Proactive defense
+    /// active measures for neutralizing identified threats
     proactive_defense: proactive::ProactiveDefender,
-    /// Configuration
+    /// Operational parameters for the hunting ecosystem
     config: ThreatHuntingConfig,
-    /// Statistics
+    /// Aggregate telemetry for hunt performance and threat detections
     statistics: ThreatHuntingStats,
 }
 
-/// Threat hunting configuration
+/// configuration for the threat hunting subsystem
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatHuntingConfig {
-    /// Hunting interval in seconds
+    /// Temporal interval (seconds) between automated hunt cycles
     pub hunting_interval: u64,
-    /// Maximum concurrent hunts
+    /// Limit of simultaneous active hunt operations
     pub max_concurrent_hunts: usize,
-    /// Hunt sensitivity
+    /// sensitivity multiplier for threat identification (0.0 - 1.0)
     pub hunt_sensitivity: f64,
-    /// Auto-response enabled
+    /// True if the engine should automatically initiate proactive defense
     pub auto_response_enabled: bool,
-    /// Hunting strategies
+    /// specific toggles for individual hunting strategies
     pub strategy_config: StrategyConfig,
 }
 
-/// Strategy configuration
+/// Toggle configuration for specific hunting tactics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StrategyConfig {
-    /// Wolf pack strategies enabled
+    /// enable/disable wolf pack coordinated leadership hunts
     pub wolf_pack_enabled: bool,
-    /// Territory patrol enabled
+    /// enable/disable systematic territory boundary patrolling
     pub territory_patrol_enabled: bool,
-    /// Pack coordination enabled
+    /// enable/disable inter-wolf communication during hunts
     pub pack_coordination_enabled: bool,
-    /// Adaptive hunting enabled
+    /// enable/disable learning-based strategy adjustments
     pub adaptive_hunting_enabled: bool,
 }
 
-/// Threat hunting statistics
+/// Aggregate performance and success telemetry for threat hunting
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatHuntingStats {
-    /// Total hunts initiated
+    /// total count of initiated hunt operations
     pub total_hunts: u64,
-    /// Successful hunts
+    /// count of hunts that reached successful completion
     pub successful_hunts: u64,
-    /// Threats detected
+    /// global count of verified threats identified
     pub threats_detected: u64,
-    /// Hunts by strategy
+    /// distribution of hunts across different strategies
     pub hunts_by_strategy: HashMap<HuntingStrategy, u64>,
-    /// Average hunt duration
+    /// mean latency for reaching hunt completion
     pub avg_hunt_duration_ms: f64,
-    /// False positives
+    /// count of threats incorrectly flagged during hunts
     pub false_positives: u64,
-    /// Response actions taken
+    /// count of proactive measures initiated by the engine
     pub response_actions: u64,
-    /// Last update timestamp
+    /// point in time of the most recent telemetry update
     pub last_update: DateTime<Utc>,
 }
 
-/// Threat hunt
+/// discrete, time-bound operation for identifying specific threats
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatHunt {
-    /// Hunt ID
+    /// Unique identifier for the hunt operation
     pub id: Uuid,
-    /// Hunt name
+    /// human-readable display name for the hunt
     pub name: String,
-    /// Hunt type
+    /// classification of the hunt trigger (Proactive, Reactive, etc.)
     pub hunt_type: HuntType,
-    /// Hunting strategy
+    /// specific tactic employed during the hunt
     pub strategy: HuntingStrategy,
-    /// Hunt status
+    /// current operational state of the hunt (InProgress, Completed, etc.)
     pub status: HuntStatus,
-    /// Target entities
+    /// list of identifiers for entities targeted during the search
     pub target_entities: Vec<String>,
-    /// Hunt parameters
+    /// environmental constraints and search logic
     pub parameters: HuntParameters,
-    /// Results
+    /// finalized outcome and findings of the operation
     pub results: HuntResults,
-    /// Created timestamp
+    /// when the hunt was initially defined
     pub created_at: DateTime<Utc>,
-    /// Started timestamp
+    /// point in time when execution began
     pub started_at: Option<DateTime<Utc>>,
-    /// Completed timestamp
+    /// point in time when execution reached a final state
     pub completed_at: Option<DateTime<Utc>>,
 }
 
@@ -158,62 +158,62 @@ pub enum HuntStatus {
     Cancelled,
 }
 
-/// Hunt parameters
+/// logic and constraints governing a hunt search
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HuntParameters {
-    /// Time window
+    /// temporal boundaries for data analysis
     pub time_window: TimeWindow,
-    /// Target indicators
+    /// specific cryptographic or behavioral signals to search for
     pub target_indicators: Vec<String>,
-    /// Search patterns
+    /// regex or behavioral templates for identifying threats
     pub search_patterns: Vec<String>,
-    /// Sensitivity level
+    /// sensitivity threshold for the specific hunt (0.0 - 1.0)
     pub sensitivity: f64,
-    /// Max results
+    /// maximum number of findings to record per hunt
     pub max_results: usize,
-    /// Custom parameters
+    /// provider-specific or strategy-specific configurations
     pub custom_params: HashMap<String, serde_json::Value>,
 }
 
-/// Hunt results
+/// outcome and findings of a finalized threat hunt operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HuntResults {
-    /// Threats found
+    /// collection of verified threats identified during the hunt
     pub threats_found: Vec<ThreatFinding>,
-    /// Indicators discovered
+    /// new indicators of compromise (IoCs) discovered
     pub indicators_discovered: Vec<String>,
-    /// Patterns identified
+    /// new behavioral or network patterns identified
     pub patterns_identified: Vec<String>,
-    /// Entities investigated
+    /// total count of entities analyzed during the hunt
     pub entities_investigated: u64,
-    /// Data analyzed
+    /// volume of data ingested and analyzed (MB)
     pub data_analyzed_mb: f64,
-    /// Hunt confidence
+    /// aggregate statistical certainty for all findings
     pub confidence: f64,
-    /// Hunt summary
+    /// narrative summary of the hunt's discoveries
     pub summary: String,
 }
 
-/// Threat finding
+/// discrete identifier of a potential or verified security incident
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatFinding {
-    /// Finding ID
+    /// unique identifier for the finding
     pub id: Uuid,
-    /// Threat type
+    /// classification of the threat (Malware, C2, etc.)
     pub threat_type: String,
-    /// Threat severity
+    /// criticality of the finding (Pup, Alpha, etc.)
     pub severity: ThreatSeverity,
-    /// Confidence score
+    /// statistical probability that the finding is valid
     pub confidence: f64,
-    /// Description
+    /// descriptive text detailing the finding circumstances
     pub description: String,
-    /// Affected entities
+    /// list of identifiers for entities impacted by this threat
     pub affected_entities: Vec<String>,
-    /// Evidence
+    /// collection of raw data and signals supporting the finding
     pub evidence: Vec<Evidence>,
-    /// Recommended actions
+    /// proactive steps suggested for neutralization or remediation
     pub recommended_actions: Vec<String>,
-    /// Timestamp
+    /// point in time when the finding was initially identified
     pub timestamp: DateTime<Utc>,
 }
 
@@ -292,7 +292,7 @@ pub enum PackRole {
 }
 
 impl ThreatHuntingEngine {
-    /// Create new threat hunting engine
+    /// Initializes a new engine with the provided configuration and sub-modules.
     pub fn new(config: ThreatHuntingConfig) -> Result<Self> {
         info!("🎯 Initializing Threat Hunting Engine");
 
@@ -309,7 +309,7 @@ impl ThreatHuntingEngine {
         Ok(engine)
     }
 
-    /// Start automated hunting
+    /// Transitions the engine into an active state for unattended operations.
     pub async fn start_automated_hunting(&mut self) -> Result<()> {
         info!("🚀 Starting automated threat hunting");
 
@@ -319,7 +319,7 @@ impl ThreatHuntingEngine {
         Ok(())
     }
 
-    /// Create new threat hunt
+    /// provisions a new hunt operation with specific constraints and targets.
     pub async fn create_hunt(
         &mut self,
         hunt_type: HuntType,
@@ -348,7 +348,7 @@ impl ThreatHuntingEngine {
         Ok(hunt)
     }
 
-    /// Execute threat hunt
+    /// executes the hunt strategy and records any discovered findings.
     pub async fn execute_hunt(&mut self, mut hunt: ThreatHunt) -> Result<ThreatHunt> {
         debug!("🎯 Executing threat hunt: {}", hunt.id);
 
@@ -412,7 +412,7 @@ impl ThreatHuntingEngine {
         Ok(hunt)
     }
 
-    /// Correlate threats across hunts
+    /// identifies logical links between finding IDs using correlation logic.
     pub async fn correlate_threats(
         &mut self,
         hunts: &[ThreatHunt],
@@ -425,7 +425,7 @@ impl ThreatHuntingEngine {
         Ok(correlations)
     }
 
-    /// Get hunting statistics
+    /// Retrieves the aggregate performance and detection telemetry.
     pub fn get_statistics(&self) -> &ThreatHuntingStats {
         &self.statistics
     }
@@ -497,20 +497,20 @@ impl ThreatHuntingEngine {
     }
 }
 
-/// Threat correlation
+/// logical link established between disparate threat findings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreatCorrelation {
-    /// Correlation ID
+    /// Unique identifier for the correlation event
     pub id: Uuid,
-    /// Correlated threats
+    /// List of identifiers for the threats being linked
     pub correlated_threats: Vec<Uuid>,
-    /// Correlation score
+    /// statistical probability that the threats are related
     pub correlation_score: f64,
-    /// Correlation type
+    /// classification of the link (SameActor, SameTarget, etc.)
     pub correlation_type: CorrelationType,
-    /// Description
+    /// narrative detailing why the link was established
     pub description: String,
-    /// Timestamp
+    /// point in time when the correlation was established
     pub timestamp: DateTime<Utc>,
 }
 

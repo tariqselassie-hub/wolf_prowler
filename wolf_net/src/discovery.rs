@@ -44,6 +44,7 @@ pub struct MdnsDiscovery {
 }
 
 impl MdnsDiscovery {
+    /// Creates a new `MdnsDiscovery` instance.
     pub fn new(enabled: bool) -> Self {
         Self { enabled }
     }
@@ -85,6 +86,7 @@ pub struct DhtDiscovery {
 }
 
 impl DhtDiscovery {
+    /// Creates a new `DhtDiscovery` instance.
     pub fn new(enabled: bool) -> Self {
         Self { enabled }
     }
@@ -127,6 +129,7 @@ pub struct ActiveScanDiscovery {
 }
 
 impl ActiveScanDiscovery {
+    /// Creates a new `ActiveScanDiscovery` instance.
     pub fn new(enabled: bool, ports: Vec<u16>) -> Self {
         Self { enabled, ports }
     }
@@ -171,6 +174,7 @@ impl DiscoveryMethod for ActiveScanDiscovery {
 
 impl DiscoveryService {
     /// Create new discovery service
+    /// Creates a new `DiscoveryService` from the given configuration.
     pub fn new(config: DiscoveryConfig) -> anyhow::Result<(Self, mpsc::Receiver<PeerInfo>)> {
         let (tx, rx) = mpsc::channel(100);
         let mut methods: Vec<Arc<dyn DiscoveryMethod>> = Vec::new();

@@ -275,7 +275,7 @@ pub struct ShardManager;
 
 impl ShardManager {
     /// Saves shards to the database
-    pub fn save_shards_to_db(
+    pub async fn save_shards_to_db(
         store: &mut crate::storage::WolfStore,
         secret_id: &str,
         shards: &[KeyShard],
@@ -288,17 +288,17 @@ impl ShardManager {
                 secret_id,
                 shard.index,
                 &data_hex,
-            )?;
+            ).await?;
         }
         Ok(())
     }
 
     /// Loads shards for a secret from the database
-    pub fn load_shards_from_db(
+    pub async fn load_shards_from_db(
         store: &crate::storage::WolfStore,
         secret_id: &str,
     ) -> Result<Vec<KeyShard>> {
-        let records = store.find_shards_for_secret(secret_id)?;
+        let records = store.find_shards_for_secret(secret_id).await?;
         
         let mut shards: Vec<KeyShard> = records
             .into_iter()

@@ -12,11 +12,23 @@ use wolf_db::storage::model::Record;
 const TABLE_USERS: &str = "users";
 const TABLE_ROLES: &str = "roles";
 
+/// A repository for managing security alerts using WolfDb as the underlying storage.
+pub struct WolfDbAlertRepository {
+    /// The thread-safe storage engine.
+    pub storage: Arc<RwLock<WolfDbStorage>>,
+}
+
+/// A repository for managing authentication and authorization data using WolfDb.
 pub struct WolfDbAuthRepository {
-    storage: Arc<RwLock<WolfDbStorage>>,
+    /// The thread-safe storage engine.
+    pub storage: Arc<RwLock<WolfDbStorage>>,
 }
 
 impl WolfDbAuthRepository {
+    /// Creates a new instance of `WolfDbAuthRepository`.
+    ///
+    /// # Arguments
+    /// * `storage` - An `Arc<RwLock<WolfDbStorage>>` providing thread-safe access to the database.
     pub fn new(storage: Arc<RwLock<WolfDbStorage>>) -> Self {
         Self { storage }
     }
@@ -25,7 +37,7 @@ impl WolfDbAuthRepository {
 #[async_trait]
 impl AuthRepository for WolfDbAuthRepository {
     async fn save_user(&self, user: &User) -> Result<(), DomainError> {
-        let mut storage = self.storage.write().await;
+        let storage = self.storage.write().await;
         let pk = storage.get_active_pk().ok_or_else(|| DomainError::Unexpected("Database locked".to_string()))?.to_vec();
         
         let json_str = serde_json::to_string(user)
@@ -41,7 +53,8 @@ impl AuthRepository for WolfDbAuthRepository {
             vector: None,
         };
         
-        storage.insert_record(TABLE_USERS, &record, &pk)
+        storage.insert_record(TABLE_USERS.to_string(), record, pk)
+            .await
             .map_err(|e| DomainError::Unexpected(e.to_string()))?;
             
         Ok(())
@@ -53,7 +66,8 @@ impl AuthRepository for WolfDbAuthRepository {
         // WolfDb `get_record` requires secret key for decryption if encrypted.
         let sk = storage.get_active_sk().ok_or_else(|| DomainError::Unexpected("Database locked".to_string()))?;
         
-        if let Some(record) = storage.get_record(TABLE_USERS, &id.to_string(), sk)
+        if let Some(record) = storage.get_record(TABLE_USERS.to_string(), id.to_string(), sk.to_vec())
+            .await
             .map_err(|e| DomainError::Unexpected(e.to_string()))? {
             
             if let Some(json) = record.data.get("json") {
@@ -70,7 +84,8 @@ impl AuthRepository for WolfDbAuthRepository {
         let sk = storage.get_active_sk().ok_or_else(|| DomainError::Unexpected("Database locked".to_string()))?;
         
         // This requires a secondary index or scan. WolfDb `find_by_metadata` is suitable here.
-        let records = storage.find_by_metadata(TABLE_USERS, "username", username, sk)
+        let records = storage.find_by_metadata(TABLE_USERS.to_string(), "username".to_string(), username.to_string(), sk.to_vec())
+             .await
              .map_err(|e| DomainError::Unexpected(e.to_string()))?;
              
         if let Some(record) = records.first() {
@@ -84,7 +99,7 @@ impl AuthRepository for WolfDbAuthRepository {
     }
 
     async fn save_role(&self, role: &Role) -> Result<(), DomainError> {
-        let mut storage = self.storage.write().await;
+        let storage = self.storage.write().await;
         let pk = storage.get_active_pk().ok_or_else(|| DomainError::Unexpected("Database locked".to_string()))?.to_vec();
         
         let json_str = serde_json::to_string(role)
@@ -100,7 +115,8 @@ impl AuthRepository for WolfDbAuthRepository {
             vector: None,
         };
         
-        storage.insert_record(TABLE_ROLES, &record, &pk)
+        storage.insert_record(TABLE_ROLES.to_string(), record, pk)
+            .await
             .map_err(|e| DomainError::Unexpected(e.to_string()))?;
             
         Ok(())
@@ -110,7 +126,8 @@ impl AuthRepository for WolfDbAuthRepository {
         let storage = self.storage.read().await;
         let sk = storage.get_active_sk().ok_or_else(|| DomainError::Unexpected("Database locked".to_string()))?;
         
-        let records = storage.find_by_metadata(TABLE_ROLES, "name", name, sk)
+        let records = storage.find_by_metadata(TABLE_ROLES.to_string(), "name".to_string(), name.to_string(), sk.to_vec())
+             .await
              .map_err(|e| DomainError::Unexpected(e.to_string()))?;
              
         if let Some(record) = records.first() {

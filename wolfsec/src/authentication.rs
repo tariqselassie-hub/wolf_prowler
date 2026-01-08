@@ -6,12 +6,11 @@ use argon2::{
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// A secure wrapper for a password hash string.
-///
-/// The internal string is the PHC string format, e.g.,
-/// "$argon2id$v=19$m=19456,t=2,p=1$SALT$HASH"
-/// It implements `ZeroizeOnDrop` to clear the hash from memory when it goes out of scope.
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
-pub struct PasswordHashString(String);
+pub struct PasswordHashString(
+    /// The PHC-formatted password hash string.
+    pub String,
+);
 
 impl PasswordHashString {
     /// Provides read-only access to the underlying hash string.
@@ -20,16 +19,19 @@ impl PasswordHashString {
     }
 }
 
+/// Configuration for the authentication manager.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, Default)]
 pub struct AuthConfig {
-    // Add fields as needed, e.g.,
-    // pub require_mfa: bool,
+    /// Whether multi-factor authentication is required globally.
+    pub require_mfa: bool,
 }
 
 /// Manages user authentication tasks like password hashing and verification.
 pub struct AuthManager {
-    config: AuthConfig,
-    repository: std::sync::Arc<dyn crate::domain::repositories::AuthRepository>,
+    /// Active configuration for this manager.
+    pub config: AuthConfig,
+    /// Persistence layer for authentication data.
+    pub repository: std::sync::Arc<dyn crate::domain::repositories::AuthRepository>,
 }
 
 impl std::ops::Deref for AuthManager {
@@ -128,38 +130,53 @@ impl AuthManager {
     }
 }
 
-/// User representation
+/// User representation within the authentication system.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct User {
+    /// Unique identifier for the user.
     pub id: String,
+    /// Unique login name for the user.
     pub username: String,
+    /// Set of roles assigned to the user.
     pub roles: Vec<Role>,
+    /// specific granular permissions granted to the user.
     pub permissions: Vec<Permission>,
 }
 
-/// Role representation
+/// Defined roles for user grouping and access control.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum Role {
+    /// Full system administrative access.
     Admin,
+    /// General user access.
     User,
+    /// Read-only access for compliance and review.
     Auditor,
+    /// Internal system process identity.
     System,
 }
 
-/// Permission representation
+/// Detailed action-based permissions.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum Permission {
+    /// Permission to view resources.
     Read,
+    /// Permission to modify resources.
     Write,
+    /// Permission to run system operations.
     Execute,
+    /// Full administrative control over specific components.
     Admin,
 }
 
-/// Authentication status
+/// Operational statistics for the authentication subsystem.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AuthStatus {
+    /// Number of users currently holding valid sessions.
     pub active_sessions: usize,
+    /// Total number of registered users.
     pub total_users: usize,
+    /// Cumulative count of failed authentication attempts.
     pub auth_failures: u64,
 }
 

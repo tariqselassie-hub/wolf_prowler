@@ -13,18 +13,31 @@ use tokio::sync::RwLock;
 /// Geographic location data
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeoLocation {
+    /// IP address of the target.
     pub ip: String,
+    /// Two‑letter country code (e.g., "US").
     pub country: String,
+    /// Full country name.
     pub country_code: String,
+    /// Region identifier (e.g., state or province).
     pub region: String,
+    /// Human‑readable region name.
     pub region_name: String,
+    /// City name.
     pub city: String,
+    /// Postal/ZIP code.
     pub zip: String,
+    /// Latitude coordinate.
     pub lat: f64,
+    /// Longitude coordinate.
     pub lon: f64,
+    /// Timezone identifier (e.g., "America/New_York").
     pub timezone: String,
+    /// ISP name.
     pub isp: String,
+    /// Organization name.
     pub org: String,
+    /// Autonomous system identifier.
     pub r#as: String,
 }
 
@@ -38,8 +51,11 @@ struct CachedGeoLocation {
 /// GeoIP service configuration
 #[derive(Debug, Clone)]
 pub struct GeoIPConfig {
+    /// Base URL of the GeoIP API.
     pub api_url: String,
+    /// How long cached entries are considered fresh.
     pub cache_duration: Duration,
+    /// HTTP request timeout for API calls.
     pub timeout: Duration,
 }
 

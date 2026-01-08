@@ -9,9 +9,11 @@ use argon2::{
 };
 use async_trait::async_trait;
 
+/// A password hashing service that uses the Argon2id algorithm.
 pub struct Argon2PasswordHasher;
 
 impl Argon2PasswordHasher {
+    /// Creates a new instance of `Argon2PasswordHasher`.
     pub fn new() -> Self {
         Self
     }

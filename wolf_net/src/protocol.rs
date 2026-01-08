@@ -5,24 +5,45 @@ use libp2p::request_response::Codec;
 use serde::{Deserialize, Serialize};
 use std::io;
 
+/// Enum representing requests in the Wolf protocol.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Requests for the Wolf protocol.
 pub enum WolfRequest {
-    KeyExchange { public_key: Vec<u8> },
+    /// Initiates a key exchange, providing the public key.
+    KeyExchange {
+        /// The public key for the exchange.
+        public_key: Vec<u8>
+    },
+    /// Sends an encrypted message using the Wolf encryption scheme.
     Encrypted(EncryptedMessage),
+    /// Simple ping request to check liveness.
     Ping,
+    /// Echo request that returns the provided string.
     Echo(String),
 }
 
+/// Enum representing responses in the Wolf protocol.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Responses for the Wolf protocol.
 pub enum WolfResponse {
-    KeyExchangeAck { public_key: Vec<u8> },
+    /// Acknowledges a key exchange, returning the peer's public key.
+    KeyExchangeAck {
+        /// The public key received from the peer.
+        public_key: Vec<u8>
+    },
+    /// Sends an encrypted response.
     Encrypted(EncryptedMessage),
+    /// Pong response for ping.
     Pong,
+    /// Echo response returning the string.
     Echo(String),
+    /// Error response with description.
     Error(String),
 }
 
 #[derive(Debug, Clone)]
+/// Protocol identifier for the Wolf request/response communication.
+/// Protocol identifier for the Wolf request/response communication.
 pub struct WolfProtocol;
 
 impl AsRef<str> for WolfProtocol {
@@ -32,6 +53,7 @@ impl AsRef<str> for WolfProtocol {
 }
 
 #[derive(Clone, Default)]
+/// Codec implementation for the Wolf protocol.
 pub struct WolfCodec;
 
 #[async_trait]

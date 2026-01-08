@@ -9,29 +9,53 @@
 //! - **HuntCoordinator**: An actor-based engine managing the "Wolf Pack" lifecycle (Scent -> Stalk -> Strike).
 //! - **Internal Firewall**: Dynamic rule-based traffic control integrated with hunt outcomes.
 
+/// API for external control and status.
 pub mod api;
+/// Custom network behaviours.
 pub mod behavior;
+/// Node and network configuration.
 pub mod config;
+/// Consensus mechanisms.
 pub mod consensus;
+/// Peer discovery services.
 pub mod discovery;
+/// Handler for encrypted messages.
 pub mod encrypted_handler;
+/// PQC encryption utilities.
 pub mod encryption;
+/// System event definitions.
 pub mod event;
+/// Internal firewall manager.
 pub mod firewall;
+/// GeoIP resolution service.
 pub mod geo;
+/// Handshake protocol implementation.
 pub mod handshake;
+/// Central Hub coordination.
 pub mod hub_orchestration;
+/// Network message definitions.
 pub mod message;
+/// Basic metrics collection.
 pub mod metrics_simple;
+/// P2P network behavior.
 pub mod p2p;
+/// Peer identification and tracking.
 pub mod peer;
+/// Custom request/response protocol.
 pub mod protocol;
+/// Telemetry reporting service.
 pub mod reporting_service;
+/// Local network scanner.
 pub mod scanner;
+/// Security monitoring and alerts.
 pub mod security;
+/// Libp2p swarm manager.
 pub mod swarm;
+/// Common utility functions.
 pub mod utils;
+/// Main node entry point.
 pub mod wolf_node;
+/// Distributed coordination protocol.
 pub mod wolf_pack;
 
 // Re-export main components for easy access
@@ -57,6 +81,7 @@ pub use wolf_pack::coordinator::{CoordinatorMsg, HuntCoordinator}; // Export cry
 
 /// Library version and metadata
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// The human‑readable name of the library.
 pub const NAME: &str = "Wolf Net";
 
 /// Initialize Wolf Net ID system

@@ -1,3 +1,4 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, missing_docs)]
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use fips203::ml_kem_1024;
 use fips203::traits::KeyGen;
@@ -11,24 +12,24 @@ fn bench_end_to_end_pipeline(c: &mut Criterion) {
     let mut group = c.benchmark_group("end_to_end_pipeline");
 
     // Setup: Generate keys
-    let (kem_pk, kem_sk) = ml_kem_1024::KG::try_keygen().unwrap();
-    let (dsa_pk, dsa_sk) = ml_dsa_44::KG::try_keygen().unwrap();
+    let (pk_kem, sk_kem) = ml_kem_1024::KG::try_keygen().unwrap();
+    let (pk_dsa, sk_dsa) = ml_dsa_44::KG::try_keygen().unwrap();
     let command = b"systemctl restart nginx";
 
     group.bench_function("complete_submission_flow", |b| {
         b.iter(|| {
             // 1. Encrypt command
-            let encrypted = encrypt_for_sentinel(black_box(command), black_box(&kem_pk));
+            let encrypted = encrypt_for_sentinel(black_box(command), black_box(&pk_kem));
 
             // 2. Sign encrypted payload
-            let signature = dsa_sk.try_sign(black_box(&encrypted), b"").unwrap();
+            let signature = sk_dsa.try_sign(black_box(&encrypted), b"").unwrap();
 
             // 3. Verify signature
-            let verified = dsa_pk.verify(black_box(&encrypted), black_box(&signature), b"");
+            let verified = pk_dsa.verify(black_box(&encrypted), black_box(&signature), b"");
             assert!(verified);
 
             // 4. Decrypt command
-            let decrypted = decrypt_from_client(black_box(&encrypted), black_box(&kem_sk)).unwrap();
+            let decrypted = decrypt_from_client(black_box(&encrypted), black_box(&sk_kem)).unwrap();
             assert_eq!(decrypted, command);
         });
     });
@@ -46,7 +47,9 @@ fn bench_policy_evaluation(c: &mut Criterion) {
     let expression = "Role:DevOps AND Role:ComplianceManager";
 
     group.bench_function("evaluate_complex_policy", |b| {
-        b.iter(|| parse_and_evaluate(black_box(expression), black_box(&roles)).unwrap());
+        b.iter(|| {
+            let _ = parse_and_evaluate(black_box(expression), black_box(&roles)).unwrap();
+        });
     });
     group.finish();
 }

@@ -58,18 +58,18 @@ impl<'a> Transaction<'a> {
         }
     }
 
-    pub fn save_session(
+    pub async fn save_session(
         &mut self,
         session_id: &str,
         metadata: HashMap<String, String>,
     ) -> Result<()> {
-        self.store.save_session_internal(session_id, metadata)?;
+        self.store.save_session_internal(session_id, metadata).await?;
         self.operations
             .push(format!("SAVE_SESSION: {}", session_id));
         Ok(())
     }
 
-    pub fn save_vault_entry(
+    pub async fn save_vault_entry(
         &mut self,
         entry_id: &str,
         secret_type: &str,
@@ -83,12 +83,12 @@ impl<'a> Transaction<'a> {
             description,
             ciphertext_hex,
             nonce_hex,
-        )?;
+        ).await?;
         self.operations.push(format!("SAVE_VAULT: {}", entry_id));
         Ok(())
     }
 
-    pub fn save_key_shard(
+    pub async fn save_key_shard(
         &mut self,
         shard_id: &str,
         secret_id: &str,
@@ -96,7 +96,7 @@ impl<'a> Transaction<'a> {
         data_hex: &str,
     ) -> Result<()> {
         self.store
-            .save_key_shard_internal(shard_id, secret_id, index, data_hex)?;
+            .save_key_shard_internal(shard_id, secret_id, index, data_hex).await?;
         self.operations.push(format!("SAVE_SHARD: {}", shard_id));
         Ok(())
     }
@@ -139,7 +139,7 @@ pub struct WolfStore {
 
 impl WolfStore {
     /// Creates a new WolfStore instance with default configuration
-    pub fn new(path: &str) -> Result<Self> {
+    pub async fn new(path: &str) -> Result<Self> {
         println!("[WolfStore] Attempting to open database at: {}", path);
 
         // Ensure directory exists
@@ -172,15 +172,15 @@ impl WolfStore {
 
         // Load initial stats only if unlocked
         if store.is_unlocked() {
-            store.refresh_stats()?;
+            store.refresh_stats().await?;
         }
 
         Ok(store)
     }
 
     /// Creates a new WolfStore instance with custom configuration
-    pub fn new_with_config(path: &str, config: WolfStoreConfig) -> Result<Self> {
-        let mut store = Self::new(path)?;
+    pub async fn new_with_config(path: &str, config: WolfStoreConfig) -> Result<Self> {
+        let mut store = Self::new(path).await?;
         store.config = config;
         Ok(store)
     }
@@ -196,7 +196,7 @@ impl WolfStore {
     }
 
     /// Initializes the keystore with a password
-    pub fn initialize(&mut self, password: &str) -> Result<()> {
+    pub async fn initialize(&mut self, password: &str) -> Result<()> {
         if self.is_initialized() {
             return Err(anyhow::anyhow!("Database is already initialized"));
         }
@@ -206,12 +206,12 @@ impl WolfStore {
         println!("[WolfStore] Keystore initialized successfully");
 
         self.stats.encryption_status = "INITIALIZED".to_string();
-        self.refresh_stats()?;
+        self.refresh_stats().await?;
         Ok(())
     }
 
     /// Unlocks the database with a password
-    pub fn unlock(&mut self, password: &str) -> Result<()> {
+    pub async fn unlock(&mut self, password: &str) -> Result<()> {
         if !self.is_initialized() {
             return Err(anyhow::anyhow!(
                 "Database not initialized. Initialize first."
@@ -224,7 +224,7 @@ impl WolfStore {
 
         self.stats.encryption_status = "UNLOCKED".to_string();
         self.stats.last_save = Some(Utc::now());
-        self.refresh_stats()?;
+        self.refresh_stats().await?;
         Ok(())
     }
 
@@ -239,12 +239,12 @@ impl WolfStore {
     }
 
     /// Saves a session record to the database
-    pub fn save_session(
+    pub async fn save_session(
         &mut self,
         session_id: &str,
         metadata: HashMap<String, String>,
     ) -> Result<()> {
-        self.save_session_internal(session_id, metadata)?;
+        self.save_session_internal(session_id, metadata).await?;
         if self.config.auto_save {
             self.save()?;
         }
@@ -252,7 +252,8 @@ impl WolfStore {
     }
 
     /// Internal method for saving sessions (used in transactions)
-    fn save_session_internal(
+    /// Internal method for saving sessions (used in transactions)
+    async fn save_session_internal(
         &mut self,
         session_id: &str,
         metadata: HashMap<String, String>,
@@ -273,29 +274,30 @@ impl WolfStore {
             "[WolfStore] Inserting record '{}' into forensics table",
             session_id
         );
-        self.storage.insert_record("forensics", &record, &pk_vec)?;
+        self.storage.insert_record("forensics".to_string(), record, pk_vec).await?;
         self.stats.session_records += 1;
         self.stats.total_records += 1;
         Ok(())
     }
 
     /// Loads a session record from the database
-    pub fn load_session(&self, session_id: &str) -> Result<Option<HashMap<String, String>>> {
+    pub async fn load_session(&self, session_id: &str) -> Result<Option<HashMap<String, String>>> {
         let sk = self
             .storage
             .get_active_sk()
             .context("Database locked. Unlock first.")?;
+         let sk_vec = sk.to_vec();
 
         println!(
             "[WolfStore] Loading session '{}' from forensics table",
             session_id
         );
-        let record = self.storage.get_record("forensics", session_id, sk)?;
+        let record = self.storage.get_record("forensics".to_string(), session_id.to_string(), sk_vec).await?;
         Ok(record.map(|r| r.data))
     }
 
     /// Lists all session IDs
-    pub fn list_sessions(&self) -> Result<Vec<String>> {
+    pub async fn list_sessions(&self) -> Result<Vec<String>> {
         let sk = self
             .storage
             .get_active_sk()
@@ -304,12 +306,12 @@ impl WolfStore {
 
         let records = self
             .storage
-            .find_by_metadata("forensics", "id", "*", &sk_vec)?;
+            .find_by_metadata("forensics".to_string(), "id".to_string(), "*".to_string(), sk_vec).await?;
         Ok(records.into_iter().map(|r| r.id).collect())
     }
 
     /// Saves a vault entry to the database
-    pub fn save_vault_entry(
+    pub async fn save_vault_entry(
         &mut self,
         entry_id: &str,
         secret_type: &str,
@@ -323,7 +325,7 @@ impl WolfStore {
             description,
             ciphertext_hex,
             nonce_hex,
-        )?;
+        ).await?;
         if self.config.auto_save {
             self.save()?;
         }
@@ -331,7 +333,8 @@ impl WolfStore {
     }
 
     /// Internal method for saving vault entries (used in transactions)
-    fn save_vault_entry_internal(
+    /// Internal method for saving vault entries (used in transactions)
+    async fn save_vault_entry_internal(
         &mut self,
         entry_id: &str,
         secret_type: &str,
@@ -358,14 +361,14 @@ impl WolfStore {
             vector: None,
         };
 
-        self.storage.insert_record("vault", &record, &pk_vec)?;
+        self.storage.insert_record("vault".to_string(), record, pk_vec).await?;
         self.stats.vault_records += 1;
         self.stats.total_records += 1;
         Ok(())
     }
 
     /// Finds a vault entry by ID
-    pub fn find_vault_entry(&self, entry_id: &str) -> Result<Option<HashMap<String, String>>> {
+    pub async fn find_vault_entry(&self, entry_id: &str) -> Result<Option<HashMap<String, String>>> {
         let sk = self
             .storage
             .get_active_sk()
@@ -374,19 +377,19 @@ impl WolfStore {
 
         let records = self
             .storage
-            .find_by_metadata("vault", "id", entry_id, &sk_vec)?;
+            .find_by_metadata("vault".to_string(), "id".to_string(), entry_id.to_string(), sk_vec).await?;
         Ok(records.first().map(|r| r.data.clone()))
     }
 
     /// Lists all vault entry IDs
-    pub fn list_vault_entries(&self) -> Result<Vec<String>> {
+    pub async fn list_vault_entries(&self) -> Result<Vec<String>> {
         let sk = self
             .storage
             .get_active_sk()
             .context("Database locked. Unlock first.")?;
         let sk_vec = sk.to_vec();
 
-        let records = self.storage.find_by_metadata("vault", "id", "*", &sk_vec)?;
+        let records = self.storage.find_by_metadata("vault".to_string(), "id".to_string(), "*".to_string(), sk_vec).await?;
         Ok(records
             .into_iter()
             .map(|r| {
@@ -398,14 +401,14 @@ impl WolfStore {
     }
 
     /// Saves a key shard to the database
-    pub fn save_key_shard(
+    pub async fn save_key_shard(
         &mut self,
         shard_id: &str,
         secret_id: &str,
         index: u8,
         data_hex: &str,
     ) -> Result<()> {
-        self.save_key_shard_internal(shard_id, secret_id, index, data_hex)?;
+        self.save_key_shard_internal(shard_id, secret_id, index, data_hex).await?;
         if self.config.auto_save {
             self.save()?;
         }
@@ -413,7 +416,8 @@ impl WolfStore {
     }
 
     /// Internal method for saving key shards (used in transactions)
-    fn save_key_shard_internal(
+    /// Internal method for saving key shards (used in transactions)
+    async fn save_key_shard_internal(
         &mut self,
         shard_id: &str,
         secret_id: &str,
@@ -438,14 +442,14 @@ impl WolfStore {
             vector: None,
         };
 
-        self.storage.insert_record("shards", &record, &pk_vec)?;
+        self.storage.insert_record("shards".to_string(), record, pk_vec).await?;
         self.stats.shard_records += 1;
         self.stats.total_records += 1;
         Ok(())
     }
 
     /// Finds shards for a secret
-    pub fn find_shards_for_secret(&self, secret_id: &str) -> Result<Vec<HashMap<String, String>>> {
+    pub async fn find_shards_for_secret(&self, secret_id: &str) -> Result<Vec<HashMap<String, String>>> {
         let sk = self
             .storage
             .get_active_sk()
@@ -454,12 +458,12 @@ impl WolfStore {
 
         let records = self
             .storage
-            .find_by_metadata("shards", "secret_id", secret_id, &sk_vec)?;
+            .find_by_metadata("shards".to_string(), "secret_id".to_string(), secret_id.to_string(), sk_vec).await?;
         Ok(records.into_iter().map(|r| r.data).collect())
     }
 
     /// Lists all shard IDs
-    pub fn list_shards(&self) -> Result<Vec<String>> {
+    pub async fn list_shards(&self) -> Result<Vec<String>> {
         let sk = self
             .storage
             .get_active_sk()
@@ -468,7 +472,7 @@ impl WolfStore {
 
         let records = self
             .storage
-            .find_by_metadata("shards", "shard_id", "*", &sk_vec)?;
+            .find_by_metadata("shards".to_string(), "shard_id".to_string(), "*".to_string(), sk_vec).await?;
         Ok(records
             .into_iter()
             .map(|r| r.id.strip_prefix("shard_").unwrap_or(&r.id).to_string())
@@ -496,7 +500,8 @@ impl WolfStore {
     }
 
     /// Refreshes database statistics
-    pub fn refresh_stats(&mut self) -> Result<()> {
+    /// Refreshes database statistics
+    pub async fn refresh_stats(&mut self) -> Result<()> {
         let sk = self
             .storage
             .get_active_sk()
@@ -506,15 +511,15 @@ impl WolfStore {
         // Count records in each table
         self.stats.session_records = self
             .storage
-            .find_by_metadata("forensics", "id", "*", &sk_vec)?
+            .find_by_metadata("forensics".to_string(), "id".to_string(), "*".to_string(), sk_vec.clone()).await?
             .len();
         self.stats.vault_records = self
             .storage
-            .find_by_metadata("vault", "id", "*", &sk_vec)?
+            .find_by_metadata("vault".to_string(), "id".to_string(), "*".to_string(), sk_vec.clone()).await?
             .len();
         self.stats.shard_records = self
             .storage
-            .find_by_metadata("shards", "shard_id", "*", &sk_vec)?
+            .find_by_metadata("shards".to_string(), "shard_id".to_string(), "*".to_string(), sk_vec.clone()).await?
             .len();
         self.stats.total_records =
             self.stats.session_records + self.stats.vault_records + self.stats.shard_records;
@@ -530,7 +535,7 @@ impl WolfStore {
 
     /// Gets database information
     pub fn get_info(&self) -> Result<serde_json::Value> {
-        self.storage.get_info()
+        Ok(self.storage.get_info()?)
     }
 
     /// Performs integrity check on the database
@@ -558,7 +563,8 @@ impl WolfStore {
     }
 
     /// Restores the database from a backup
-    pub fn restore(&mut self, backup_path: &str) -> Result<()> {
+    /// Restores the database from a backup
+    pub async fn restore(&mut self, backup_path: &str) -> Result<()> {
         if !Path::new(backup_path).exists() {
             return Err(anyhow::anyhow!(
                 "Backup file does not exist: {}",
@@ -577,7 +583,7 @@ impl WolfStore {
         // Reopen storage
         self.storage = WolfDbStorage::open(&self.db_path)?;
 
-        self.refresh_stats()?;
+        self.refresh_stats().await?;
         println!("[WolfStore] Database restored successfully");
         Ok(())
     }
@@ -614,7 +620,7 @@ impl WolfStore {
     }
 
     /// Deletes a record from the specified table
-    pub fn delete_record(&mut self, table: &str, id: &str) -> Result<()> {
+    pub async fn delete_record(&mut self, table: &str, id: &str) -> Result<()> {
         println!(
             "[WolfStore] Deleting record '{}' from table '{}'",
             id, table
@@ -628,7 +634,7 @@ impl WolfStore {
         // Note: WolfDbStorage::delete_record signature verification needed, assuming standard (table, id, pk) or similar.
         // If delete_record doesn't exist on WolfDbStorage, we might need to implement it there or use a workaround.
         // Verified: WolfDbStorage::delete_record takes (table, id) and returns Result<bool>
-        self.storage.delete_record(table, id)?;
+        self.storage.delete_record(table.to_string(), id.to_string()).await?;
 
         self.stats.total_records = self.stats.total_records.saturating_sub(1);
         if table == "vault" {
@@ -648,7 +654,7 @@ impl WolfStore {
     }
 
     /// Generic insert for any table
-    pub fn generic_insert(
+    pub async fn generic_insert(
         &mut self,
         table: &str,
         id: &str,
@@ -666,7 +672,7 @@ impl WolfStore {
             vector: None,
         };
 
-        self.storage.insert_record(table, &record, &pk_vec)?;
+        self.storage.insert_record(table.to_string(), record, pk_vec).await?;
 
         // Update stats roughly
         self.stats.total_records += 1;
@@ -684,17 +690,17 @@ impl WolfStore {
     }
 
     /// Lists all records from a specified table
-    pub fn list_table_records(&self, table: &str) -> Result<Vec<wolf_db::storage::model::Record>> {
+    pub async fn list_table_records(&self, table: &str) -> Result<Vec<wolf_db::storage::model::Record>> {
         let sk = self
             .storage
             .get_active_sk()
             .context("Database locked. Unlock first.")?;
         let sk_vec = sk.to_vec();
 
-        let keys = self.storage.list_keys(table)?;
+        let keys = self.storage.list_keys(table.to_string()).await?;
         let mut records = Vec::new();
         for key in keys {
-            if let Some(record) = self.storage.get_record(table, &key, &sk_vec)? {
+            if let Some(record) = self.storage.get_record(table.to_string(), key, sk_vec.clone()).await? {
                 records.push(record);
             }
         }

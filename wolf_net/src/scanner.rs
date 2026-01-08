@@ -12,32 +12,49 @@ use tokio::time::timeout;
 /// Discovered network device
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkDevice {
+    /// IP address of the device
     pub ip: IpAddr,
+    /// Optional hostname if resolvable
     pub hostname: Option<String>,
+    /// Optional MAC address (filled after ARP scan)
     pub mac_address: Option<String>,
+    /// Measured latency in milliseconds
     pub latency_ms: u64,
+    /// Classified device type
     pub device_type: DeviceType,
+    /// Timestamp of the last observation
     pub last_seen: chrono::DateTime<chrono::Utc>,
+    /// Reachability flag
     pub is_reachable: bool,
 }
 
 /// Device type classification
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DeviceType {
+    /// Router devices (gateways)
     Router,
+    /// General computers (desktops, laptops)
     Computer,
+    /// Mobile phones
     Phone,
+    /// Network printers
     Printer,
+    /// Internet of Things devices
     IoT,
+    /// Unknown or unclassified devices
     Unknown,
 }
 
 /// Network scanner configuration
 #[derive(Debug, Clone)]
 pub struct ScannerConfig {
+    /// Subnet in CIDR notation to scan (e.g., "192.168.1.0/24")
     pub subnet: String,
+    /// Timeout per ping in milliseconds
     pub timeout_ms: u64,
+    /// Maximum concurrent ping tasks
     pub max_concurrent: usize,
+    /// Optional network interface to bind to
     pub interface: Option<String>,
 }
 
@@ -63,8 +80,8 @@ impl NetworkScanner {
         Self { config }
     }
 
-    /// Create a scanner with auto-detected subnet
-    pub async fn new_auto() -> anyhow::Result<Self> {
+    /// Run the reporting service event loop, batching and sending telemetry events to the hub.
+    pub async fn run(&mut self) -> anyhow::Result<Self> {
         let subnet = Self::detect_local_subnet().await?;
         Ok(Self {
             config: ScannerConfig {
@@ -370,9 +387,13 @@ impl NetworkScanner {
 /// Network Interface Info
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkInterface {
+    /// Interface name (e.g., "eth0")
     pub name: String,
+    /// IP address of the interface
     pub ip: String,
+    /// CIDR representation of the interface address
     pub cidr: String,
+    /// Subnet derived from the CIDR
     pub subnet: String,
 }
 

@@ -11,6 +11,9 @@ use serde_json::json;
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// Inference engine for ML models
+///
+/// Handles execution of ML models and prediction logic.
 pub struct InferenceEngine {
     config: MLSecurityConfig,
     client: reqwest::Client,
@@ -18,6 +21,7 @@ pub struct InferenceEngine {
 }
 
 impl InferenceEngine {
+    /// Create new inference engine
     pub fn new(config: MLSecurityConfig) -> Result<Self> {
         Ok(Self {
             config,
@@ -26,6 +30,7 @@ impl InferenceEngine {
         })
     }
 
+    /// Get feature extractor
     pub fn extractor(&self) -> &FeatureExtractor {
         &self.extractor
     }

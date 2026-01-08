@@ -5,7 +5,8 @@ use lock_prowler::metadata;
 use std::env;
 use std::fs;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     println!("--- Lock Prowler: BitLocker Recovery Assistant ---");
 
@@ -58,7 +59,7 @@ fn main() -> Result<()> {
 
             // Persist session to WolfDb
             println!("\n[+] Persisting Session to WolfDb...");
-            let mut store = lock_prowler::storage::WolfStore::new("wolf.db")?;
+            let mut store = lock_prowler::storage::WolfStore::new("wolf.db").await?;
 
             if !store.is_initialized() {
                 println!("    Initializing new secure storage...");
@@ -66,12 +67,12 @@ fn main() -> Result<()> {
                     .with_prompt("Set Master Password")
                     .with_confirmation("Confirm Password", "Passwords do not match")
                     .interact()?;
-                store.initialize(&password)?;
+                store.initialize(&password).await?;
             } else {
                 let password = dialoguer::Password::new()
                     .with_prompt("Unlock WolfDb")
                     .interact()?;
-                store.unlock(&password)?;
+                store.unlock(&password).await?;
             }
 
             let mut session_data = std::collections::HashMap::new();
@@ -80,7 +81,7 @@ fn main() -> Result<()> {
             session_data.insert("protector_count".to_string(), format!("{}", meta.protectors.len()));
             
             let session_id = format!("session_{}", uuid::Uuid::new_v4());
-            store.save_session(&session_id, session_data)?;
+            store.save_session(&session_id, session_data).await?;
         }
         Err(e) => {
             println!("Error parsing metadata: {}", e);

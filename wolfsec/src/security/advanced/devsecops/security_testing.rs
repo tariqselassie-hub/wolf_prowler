@@ -1,13 +1,16 @@
 use crate::security::advanced::devsecops::DevSecOpsConfig;
 use anyhow::Result;
 
+/// Security testing manager
 pub struct SecurityTestingManager;
 
 impl SecurityTestingManager {
+    /// Create new security testing manager
     pub fn new(_config: DevSecOpsConfig) -> Result<Self> {
         Ok(Self)
     }
 
+    /// Run security test
     pub async fn run_test(&self, _test_config: &super::TestConfiguration) -> Result<super::TestResults> {
         Ok(super::TestResults {
             executed_at: chrono::Utc::now(),
@@ -24,6 +27,7 @@ impl SecurityTestingManager {
         })
     }
 
+    /// Run threat hunting simulation
     pub async fn run_hunt_simulation(&self, _simulation: &super::HuntSimulation) -> Result<super::SimulationResults> {
         Ok(super::SimulationResults {
             executed_at: chrono::Utc::now(),

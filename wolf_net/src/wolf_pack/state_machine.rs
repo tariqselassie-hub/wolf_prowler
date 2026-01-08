@@ -12,17 +12,25 @@ pub enum StateTransitionResult {
     None,
     /// Hunt transitioned to Strike phase (Consensus Reached).
     Strike {
+        /// ID of the hunt
         hunt_id: HuntId,
+        /// Target IP
         target_ip: String,
+        /// Peers participating
         participants: HashSet<PeerId>,
     },
     /// Hunt transitioned to Feast phase (Rewarding).
     Feast {
+        /// ID of the hunt
         hunt_id: HuntId,
+        /// Peers participating
         participants: HashSet<PeerId>,
     },
     /// Hunt failed or timed out.
-    HuntFailed { hunt_id: HuntId },
+    HuntFailed { 
+        /// ID of the failed hunt
+        hunt_id: HuntId 
+    },
 }
 
 /// A pure state machine for WolfPack logic.

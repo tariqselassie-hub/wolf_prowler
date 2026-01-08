@@ -5,15 +5,18 @@ use anyhow::Result;
 use chrono::Utc;
 use uuid::Uuid;
 
+/// Container image scanner
 pub struct ContainerImageScanner {
     config: ContainerSecurityConfig,
 }
 
 impl ContainerImageScanner {
+    /// Create new image scanner
     pub fn new(config: ContainerSecurityConfig) -> Result<Self> {
         Ok(Self { config })
     }
 
+    /// Scan container image
     pub async fn scan_image(&self, image_name: &str) -> Result<ImageScanResult> {
         let start_time = std::time::Instant::now();
         let mut vulnerabilities = Vec::new();

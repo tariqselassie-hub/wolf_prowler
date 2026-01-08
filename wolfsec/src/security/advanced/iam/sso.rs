@@ -7,6 +7,7 @@ use anyhow::{anyhow, Result};
 use chrono::{Duration, Utc};
 use openidconnect::{HttpRequest, HttpResponse};
 
+/// Error type for HTTP client operations
 #[derive(Debug)]
 pub struct HttpClientError(String);
 
@@ -18,7 +19,7 @@ impl std::fmt::Display for HttpClientError {
 
 impl std::error::Error for HttpClientError {}
 
-/// Custom async HTTP client using reqwest
+/// Standardized asynchronous HTTP client for OIDC protocol communication
 pub async fn async_http_client(request: HttpRequest) -> Result<HttpResponse, HttpClientError> {
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
@@ -71,17 +72,10 @@ pub async fn async_http_client(request: HttpRequest) -> Result<HttpResponse, Htt
         .map_err(|e| HttpClientError(e.to_string()))?)
 }
 use openidconnect::{
-    core::{
-        CoreAuthenticationFlow, CoreClient, CoreGenderClaim, CoreGrantType, CoreJsonWebKey,
-        CoreJsonWebKeyType, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm,
-        CoreResponseType, CoreRevocableToken, CoreRevocationErrorResponse,
-        CoreSubjectIdentifierType, CoreTokenResponse, CoreTokenType,
-    },
-    AccessTokenHash, AdditionalClaims, AuthUrl, AuthenticationFlow, Client, ClientId, ClientSecret,
-    CsrfToken, EmptyExtraTokenFields, EndUserEmail, EndUserFamilyName, EndUserGivenName,
-    EndUserName, EndUserPictureUrl, EndpointNotSet, EndpointSet, IssuerUrl, Nonce,
-    OAuth2TokenResponse, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken,
-    ResponseTypes, Scope, StandardErrorResponse, StandardTokenResponse, TokenResponse, UserInfoUrl,
+    core::{CoreClient, CoreResponseType, CoreTokenResponse},
+    AuthUrl, AuthenticationFlow, ClientId, ClientSecret, CsrfToken, EndpointNotSet, EndpointSet,
+    IssuerUrl, OAuth2TokenResponse, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken,
+    Scope, TokenResponse, UserInfoUrl,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -94,80 +88,85 @@ use crate::security::advanced::iam::{
     AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
 };
 
-/// Supported SSO providers
+/// Externally supported Single Sign-On identity providers
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SSOProvider {
+    /// Microsoft Azure Active Directory / Entra ID
     AzureAD,
+    /// Okta Identity Cloud
     Okta,
+    /// Auth0 by Okta
     Auth0,
+    /// Google Identity Platform
     Google,
-    /// Mock provider for testing
+    /// Simulated provider for local development and testing
     Mock,
+    /// User-defined OIDC compliant provider
     Custom(String),
 }
 
-/// SSO provider configuration
+/// Global configuration and secrets for a specific SSO provider integration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SSOProviderConfig {
-    /// Provider type
+    /// The target identity provider
     pub provider: SSOProvider,
-    /// Client ID
+    /// The unique client identifier for the Wolf Prowler application
     pub client_id: String,
-    /// Client secret
+    /// The secure client secret for token exchange
     pub client_secret: String,
-    /// Issuer URL
+    /// The base OIDC discovery URL for the provider
     pub issuer_url: String,
-    /// Redirect URL
+    /// The authorized callback landing page for the provider
     pub redirect_url: String,
-    /// Scopes to request
+    /// List of OIDC/OAuth2 scopes requested during authentication
     pub scopes: Vec<String>,
-    /// Additional provider-specific configuration
+    /// Additional provider-specific metadata or flags
     pub provider_config: HashMap<String, String>,
 }
 
-/// SSO authentication state
+/// Temporary in-memory state tracking for an active OIDC authentication challenge
 #[derive(Debug)]
 pub struct SSOAuthState {
-    /// State token for CSRF protection
+    /// Random token for cross-site request forgery protection
     pub csrf_token: CsrfToken,
-    /// PKCE code verifier
+    /// Verification secret for Proof Key for Code Exchange (PKCE)
     pub pkce_verifier: PkceCodeVerifier,
-    /// Provider
+    /// The provider associated with this authentication attempt
     pub provider: SSOProvider,
-    /// Created timestamp
+    /// Point in time when the state was generated
     pub created_at: chrono::DateTime<Utc>,
 }
 
-/// SSO user information
+/// Normalized user identity data extracted from an external identity provider
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SSOUserInfo {
-    /// User ID from provider
+    /// Universal unique identifier for the user within the provider
     pub sub: String,
-    /// Email
+    /// User's verified email address
     pub email: Option<String>,
-    /// Email verified
+    /// True if the provider has confirmed the user's email ownership
     pub email_verified: Option<bool>,
-    /// Name
+    /// User's complete display name
     pub name: Option<String>,
-    /// Given name
+    /// User's first or given name
     pub given_name: Option<String>,
-    /// Family name
+    /// User's surname or family name
     pub family_name: Option<String>,
-    /// Picture URL
+    /// URL to the user's avatar image
     pub picture: Option<String>,
-    /// Provider
+    /// The provider that asserted this identity
     pub provider: SSOProvider,
-    /// Provider user ID
+    /// The internal username or link for the provider
     pub provider_user_id: String,
 }
 
-/// SSO integration manager
+/// Central authority for managing federated Single Sign-On integrations and lifecycle
 pub struct SSOIntegrationManager {
-    /// Provider configurations
+    /// Active registry of configured identity providers
     providers: Arc<Mutex<HashMap<SSOProvider, SSOProviderConfig>>>,
-    /// Authentication states
+    /// Outstanding authentication states awaiting provider callbacks
     auth_states: Arc<Mutex<HashMap<String, SSOAuthState>>>,
-    /// Configuration
+    /// Global IAM system configuration
     config: IAMConfig,
 }
 
@@ -182,32 +181,35 @@ type FullyConfiguredClient = CoreClient<
     EndpointSet,    // UserInfoUrl
 >;
 
-/// SSO authentication request
+/// Parameters for initiating a new Single Sign-On authentication flow
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SSOAuthenticationRequest {
-    /// Provider
+    /// Target identity provider (Google, Okta, etc.)
     pub provider: SSOProvider,
-    /// Client info
+    /// Requester's environment and browser context
     pub client_info: ClientInfo,
-    /// Redirect URL override
+    /// Optional override for the post-authentication redirect location
     pub redirect_url: Option<String>,
 }
 
-/// SSO callback request
+/// Parameters received from the identity provider after a successful user authentication
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SSOCallbackRequest {
-    /// Provider
+    /// The identity provider that issued the callback
     pub provider: SSOProvider,
-    /// State token
+    /// Random state token returned by the provider to mitigate CSRF attacks
     pub state: String,
-    /// Code
+    /// Authorization code generated by the provider for token exchange
     pub code: String,
-    /// Error (if any)
+    /// Detailed error message if the provider encountered an issue
     pub error: Option<String>,
 }
 
 impl SSOIntegrationManager {
-    /// Create new SSO integration manager
+    /// Initializes a new `SSOIntegrationManager` and registers default providers.
+    ///
+    /// # Errors
+    /// Returns an error if initialization or default provider registration fails.
     pub async fn new(config: IAMConfig) -> Result<Self> {
         info!("🔐 Initializing SSO Integration Manager");
 
@@ -222,7 +224,10 @@ impl SSOIntegrationManager {
         Ok(manager)
     }
 
-    /// Initialize default SSO providers
+    /// Initialize default SSO providers with environment-based configuration
+    ///
+    /// # Errors
+    /// Returns an error if provider registration fails.
     async fn initialize_default_providers(&self) -> Result<()> {
         // Azure AD configuration
         let azure_config = SSOProviderConfig {
@@ -292,7 +297,10 @@ impl SSOIntegrationManager {
         Ok(())
     }
 
-    /// Create OAuth2 client for provider
+    /// Constructs a fully configured OIDC client for a specific provider
+    ///
+    /// # Errors
+    /// Returns an error if the provider is not configured or URL mapping fails.
     async fn create_client(&self, provider: &SSOProvider) -> Result<FullyConfiguredClient> {
         let providers = self.providers.lock().await;
         let config = providers
@@ -332,7 +340,10 @@ impl SSOIntegrationManager {
         Ok(client)
     }
 
-    /// Start SSO authentication flow
+    /// Generates the initial authorization URL and CSRF state for an identity provider challenge.
+    ///
+    /// # Errors
+    /// Returns an error if the provider is not found or URL generation fails.
     pub async fn start_authentication(
         &self,
         request: SSOAuthenticationRequest,
@@ -345,7 +356,7 @@ impl SSOIntegrationManager {
         if let SSOProvider::Mock = request.provider {
             // Generate mock auth state
             let csrf_token = CsrfToken::new_random();
-            let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
+            let (_pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
             let auth_state = SSOAuthState {
                 csrf_token: csrf_token.clone(),
@@ -411,7 +422,10 @@ impl SSOIntegrationManager {
         })
     }
 
-    /// Handle SSO callback
+    /// Processes the provider's callback, verifies the CSRF state, and retrieves the final user identity.
+    ///
+    /// # Errors
+    /// Returns an error if the callback state is invalid, expired, or token exchange fails.
     pub async fn handle_callback(
         &self,
         request: SSOCallbackRequest,
@@ -545,7 +559,10 @@ impl SSOIntegrationManager {
         })
     }
 
-    /// Refresh access token
+    /// Uses a refresh token to obtain a new set of access and ID tokens from the provider.
+    ///
+    /// # Errors
+    /// Returns an error if the refresh token is invalid or the provider rejects the request.
     pub async fn refresh_token(
         &self,
         provider: SSOProvider,
@@ -573,7 +590,10 @@ impl SSOIntegrationManager {
         })
     }
 
-    /// Revoke token
+    /// Requests that the identity provider invalidate an active access token.
+    ///
+    /// # Errors
+    /// Returns an error if the provider cannot be configured for revocation.
     pub async fn revoke_token(
         &self,
         provider: SSOProvider,
@@ -605,7 +625,10 @@ impl SSOIntegrationManager {
         }
     }
 
-    /// Add custom provider
+    /// Dynamically registers a new identity provider configuration in the manager.
+    ///
+    /// # Errors
+    /// Returns an error if registration fails.
     pub async fn add_provider(&self, config: SSOProviderConfig) -> Result<()> {
         info!("🔐 Adding SSO provider: {:?}", config.provider);
 
@@ -616,7 +639,10 @@ impl SSOIntegrationManager {
         Ok(())
     }
 
-    /// Remove provider
+    /// Removes an existing identity provider configuration from the manager.
+    ///
+    /// # Errors
+    /// Returns an error if removal fails.
     pub async fn remove_provider(&self, provider: SSOProvider) -> Result<()> {
         info!("🗑️ Removing SSO provider: {:?}", provider);
 
@@ -639,68 +665,68 @@ impl SSOIntegrationManager {
         Ok(())
     }
 
-    /// Get provider configuration
+    /// Retrieves the low-level OIDC configuration for a specific provider.
     pub async fn get_provider_config(&self, provider: SSOProvider) -> Option<SSOProviderConfig> {
         let providers = self.providers.lock().await;
         providers.get(&provider).cloned()
     }
 
-    /// List configured providers
+    /// Returns a list of all currently configured identity providers.
     pub async fn list_providers(&self) -> Vec<SSOProvider> {
         let providers = self.providers.lock().await;
         providers.keys().cloned().collect()
     }
 }
 
-/// SSO authentication response
+/// Response containing the interactive authorization URL for the user
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SSOAuthResponse {
-    /// Authorization URL
+    /// Fully qualified provider authorization URL
     pub auth_url: String,
-    /// State token
+    /// The random state token used for CSRF verification
     pub state: String,
-    /// Provider
+    /// The identity provider targeted by the request
     pub provider: SSOProvider,
 }
 
-/// SSO authentication result
+/// Comprehensive outcome of a successful SSO identity federation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SSOAuthenticationResult {
-    /// Authentication success
+    /// True if the identity was successfully asserted and verified
     pub success: bool,
-    /// User information
+    /// Normalized user metadata from the provider
     pub user_info: SSOUserInfo,
-    /// Access token
+    /// Bearer token for accessing provider resources or Wolf Prowler services
     pub access_token: String,
-    /// Refresh token
+    /// Token used for acquiring new access tokens without user interaction
     pub refresh_token: Option<String>,
-    /// Expires in seconds
+    /// Token validity duration in seconds
     pub expires_in: Option<u64>,
-    /// ID token
+    /// OIDC Identity Token containing claims about the authenticated user
     pub id_token: Option<String>,
-    /// Provider
+    /// The provider that issued these credentials
     pub provider: SSOProvider,
 }
 
-/// SSO refresh result
+/// Outcome of a token refresh operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SSORefreshResult {
-    /// New access token
+    /// Newly issued access token
     pub access_token: String,
-    /// New refresh token
+    /// Updated refresh token if rotated by the provider
     pub refresh_token: Option<String>,
-    /// Expires in seconds
+    /// Validity of the new access token in seconds
     pub expires_in: Option<u64>,
-    /// New ID token
+    /// Newly issued ID token
     pub id_token: Option<String>,
 }
 
-/// SSO revoke result
+/// Outcome of an explicit token revocation request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SSORevokeResult {
-    /// Revocation success
+    /// True if the provider successfully invalidated the token
     pub success: bool,
-    /// Message
+    /// Narrative detailing the result or error
     pub message: String,
 }
 

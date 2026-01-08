@@ -1,10 +1,8 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, missing_docs)]
 use fips203::ml_kem_1024;
 use fips203::traits::{KeyGen as KemKeyGen, SerDes as KemSerDes};
-use fips204::ml_dsa_44;
-use fips204::traits::{KeyGen, SerDes};
 use shared::*;
 use std::collections::HashSet;
-use std::fs;
 use std::io::Write;
 use tempfile::NamedTempFile;
 
@@ -34,7 +32,7 @@ fn test_partial_signature_creation() {
     let partial_sig = PartialSignature {
         signer_role: Role::DevOps,
         signature: signature.clone(),
-        timestamp: 1234567890,
+        timestamp: 1_234_567_890,
     };
 
     // Test serialization
@@ -43,7 +41,7 @@ fn test_partial_signature_creation() {
 
     assert_eq!(deserialized.signer_role, Role::DevOps);
     assert_eq!(deserialized.signature, signature);
-    assert_eq!(deserialized.timestamp, 1234567890);
+    assert_eq!(deserialized.timestamp, 1_234_567_890);
 }
 
 #[test]

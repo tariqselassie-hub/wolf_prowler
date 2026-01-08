@@ -1,3 +1,6 @@
+//! Repository traits for the domain layer.
+//! These define the ports for persistence operations.
+
 pub mod alert_repository;
 pub mod auth_repository;
 pub mod monitoring_repository;

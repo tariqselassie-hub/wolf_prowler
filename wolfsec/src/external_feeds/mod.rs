@@ -30,14 +30,20 @@ impl Default for ExternalFeedsConfig {
     }
 }
 
-/// Unified threat feed item
+/// A unified record of threat intelligence from an external source.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ThreatFeedItem {
+    /// Unique identifier for the threat (e.g., CVE-ID or file hash).
     pub id: String,
+    /// Short, descriptive title of the threat.
     pub title: String,
+    /// Optional detailed account of the threat behavior and impact.
     pub description: Option<String>,
+    /// Optional classification of the threat risk level.
     pub severity: Option<String>,
+    /// Name of the providing intelligence feed (e.g., "NVD", "VirusTotal").
     pub source: String,
+    /// The complete, unmodified technical data from the source.
     pub raw: serde_json::Value,
 }
 
