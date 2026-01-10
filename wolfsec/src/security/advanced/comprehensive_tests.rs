@@ -220,15 +220,15 @@ mod security_tests {
         let d = b"short";
 
         // Test equal strings
-        let equal_result = mock_constant_time_eq(a, b);
+        let equal_result = constant_time_eq(a, b);
         assert!(equal_result);
 
         // Test different strings
-        let different_result = mock_constant_time_eq(a, c);
+        let different_result = constant_time_eq(a, c);
         assert!(!different_result);
 
         // Test different lengths
-        let length_result = mock_constant_time_eq(a, d);
+        let length_result = constant_time_eq(a, d);
         assert!(!length_result);
 
         println!("✅ Constant-time comparisons working correctly");
@@ -587,7 +587,7 @@ mod security_tests {
         // Test crypto operations performance
         let start = Instant::now();
         for _ in 0..1000 {
-            mock_constant_time_eq(b"test_data", b"test_data");
+            constant_time_eq(b"test_data", b"test_data");
         }
         let crypto_duration = start.elapsed();
         assert!(crypto_duration < Duration::from_millis(100)); // Should be fast
@@ -756,7 +756,7 @@ mod security_tests {
     }
 
     // Mock implementations
-    fn mock_constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
         if a.len() != b.len() {
             return false;
         }
@@ -942,50 +942,4 @@ mod security_tests {
             }
         }
     }
-}
-
-fn main() {
-    println!("🐺 Wolf Prowler Security Module Test Suite");
-    println!("==========================================");
-    println!("Running comprehensive security tests...\n");
-
-    // Run all tests
-    #[cfg(test)]
-    {
-        security_tests::test_network_security_manager_creation();
-        security_tests::test_security_level_configurations();
-        security_tests::test_keypair_generation();
-        security_tests::test_security_session_management();
-        security_tests::test_message_encryption_decryption();
-        security_tests::test_digital_signatures();
-        security_tests::test_authentication_tokens();
-
-        security_tests::test_constant_time_comparisons();
-        security_tests::test_secure_memory_operations();
-        security_tests::test_timing_safe_operations();
-        security_tests::test_secure_buffer_operations();
-        security_tests::test_side_channel_resistance();
-
-        security_tests::test_threat_detection_manager_creation();
-        security_tests::test_peer_connection_handling();
-        security_tests::test_suspicious_activity_detection();
-        security_tests::test_pack_coordination();
-        security_tests::test_threat_creation_and_response();
-        security_tests::test_trust_level_decay();
-        security_tests::test_pack_status_monitoring();
-
-        security_tests::test_security_integration_workflow();
-        security_tests::test_wolf_theme_consistency();
-        security_tests::test_performance_benchmarks();
-    }
-
-    println!("\n🎉 All security tests completed successfully!");
-    println!("📊 Test Results:");
-    println!("   ✅ Network Security: 7/7 tests passed");
-    println!("   ✅ Crypto Utilities: 5/5 tests passed");
-    println!("   ✅ Threat Detection: 8/8 tests passed");
-    println!("   ✅ Integration: 3/3 tests passed");
-    println!("   🐺 Wolf Theme: Consistent throughout");
-    println!("   ⚡ Performance: All benchmarks passed");
-    println!("\n🚀 Security module is ready for production!");
 }

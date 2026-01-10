@@ -3,6 +3,10 @@
 //! This module implements the "Identity Token" requirement for the Air Gap Bridge,
 //! ensuring that data USB in Port A + Identity Token in Port B = Execution.
 
+#![allow(missing_docs)]
+use crate::error::{AirGapError, Result};
+use chrono::{DateTime, Utc};
+
 use std::collections::HashMap;
 use std::io;
 use std::sync::Arc;
@@ -183,7 +187,7 @@ impl PulseManager {
     }
 
     /// Validate identity token
-    pub async fn validate_identity_token(&self, serial: &str) -> Result<(), String> {
+    pub async fn validate_identity_token(&self, serial: &str) -> Result<()> {
         let devices = self.connected_devices.read().await;
 
         if let Some(device) = devices.get(serial) {
@@ -198,10 +202,10 @@ impl PulseManager {
                 println!("✅ Identity token {} validated", serial);
                 Ok(())
             } else {
-                Err("Device is not an identity port or not connected".to_string())
+                Err(AirGapError::PermissionDenied("Device is not an identity port or not connected".to_string()))
             }
         } else {
-            Err("Identity token not found".to_string())
+            Err(AirGapError::PermissionDenied("Identity token not found".to_string()))
         }
     }
 

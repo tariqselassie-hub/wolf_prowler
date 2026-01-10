@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use fips204::ml_dsa_44; // FIPS 204 crate
 use fips204::traits::{KeyGen, SerDes, Signer};
 use std::fs;

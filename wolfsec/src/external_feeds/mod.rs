@@ -15,6 +15,8 @@ pub struct ExternalFeedsConfig {
     pub cve_search_url: Option<String>,
     /// Optional VirusTotal API key
     pub virustotal_api_key: Option<String>,
+    /// Optional HTTP Proxy URL for outbound requests
+    pub proxy_url: Option<String>,
     /// Cache TTL in seconds
     pub cache_ttl_secs: u64,
 }
@@ -25,6 +27,7 @@ impl Default for ExternalFeedsConfig {
             nvd_api_key: None,
             cve_search_url: None,
             virustotal_api_key: None,
+            proxy_url: None,
             cache_ttl_secs: 3600,
         }
     }

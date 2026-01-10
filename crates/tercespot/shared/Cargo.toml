@@ -6,6 +6,8 @@ description = "Shared types and constants for TersecPot Blind Command-Bus"
 authors = ["TersecPot Contributors"]
 license = "MIT"
 repository = "https://github.com/tersecpot/project"
+keywords = ["security", "p2p", "privacy", "wolf-prowler"]
+categories = ["cryptography", "network-programming"]
 autobenches = false
 
 

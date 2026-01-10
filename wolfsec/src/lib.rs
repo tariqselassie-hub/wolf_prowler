@@ -14,8 +14,14 @@ pub mod alerts;
 pub mod application;
 /// Identity and authentication management.
 pub mod authentication;
+/// Comprehensive security test suite.
+pub mod comprehensive_tests;
 /// Core cryptographic primitives and providers.
 pub mod crypto;
+/// Configuration integrity monitoring.
+pub mod configuration_monitor;
+/// Runtime SBOM validation.
+pub mod sbom_validation;
 /// Domain entities and repository traits.
 pub mod domain;
 /// Adapters for external threat intelligence feeds.
@@ -37,6 +43,8 @@ pub mod network_security;
 pub mod reputation;
 /// Comprehensive security management and orchestration.
 pub mod security;
+/// Persistence layer for security data.
+pub mod store;
 /// Threat detection and analysis engines.
 pub mod threat_detection;
 /// Bridges to the broader Wolf Ecoystem.
@@ -138,6 +146,8 @@ pub struct WolfSecurity {
     pub key_manager: KeyManager,
     /// SIEM collector for security metrics and real-time alerts
     pub monitor: SecurityMonitor,
+    /// Monitor for configuration file integrity
+    pub config_monitor: configuration_monitor::ConfigurationMonitor,
     /// Automated vulnerability assessment and scanning tool
     pub vulnerability_scanner: VulnerabilityScanner,
     /// Security Information and Event Management orchestrator
@@ -148,6 +158,8 @@ pub struct WolfSecurity {
     pub container_manager: WolfDenContainerManager,
     /// Shared access to the unified PQC-secured persistence storage
     pub storage: std::sync::Arc<tokio::sync::RwLock<wolf_db::storage::WolfDbStorage>>,
+    /// Event bus for broadcasting security events
+    pub event_bus: tokio::sync::broadcast::Sender<SecurityEvent>,
 }
 
 /// Severity levels for security events
@@ -294,6 +306,8 @@ impl WolfSecurity {
             crate::infrastructure::persistence::WolfDbThreatRepository::new(storage.clone()),
         );
 
+        let (event_bus, _) = tokio::sync::broadcast::channel(1000);
+
         Ok(Self {
             network_security: SecurityManager::new(
                 "wolf_security".to_string(),
@@ -304,11 +318,13 @@ impl WolfSecurity {
             auth_manager: AuthManager::new(config.authentication.clone(), auth_repo),
             key_manager: KeyManager::new(config.key_management.clone()),
             monitor: SecurityMonitor::new(config.monitoring.clone(), monitoring_repo, alert_repo),
+            config_monitor: configuration_monitor::ConfigurationMonitor::new(event_bus.clone()),
             vulnerability_scanner: VulnerabilityScanner::new()?,
             siem: WolfSIEMManager::new(SIEMConfig::default())?,
             swarm_sender: None,
             container_manager: WolfDenContainerManager::new(WolfDenConfig::default()),
             storage,
+            event_bus,
         })
     }
 
@@ -344,10 +360,21 @@ impl WolfSecurity {
         self.monitor.initialize().await?;
         tracing::info!("  ✅ Security monitoring initialized");
 
+        // Initialize Configuration Monitoring
+        if let Err(e) = self.config_monitor.watch_file("settings.toml").await {
+             tracing::warn!("⚠️ Could not watch settings.toml: {}", e);
+        }
+        tracing::info!("  ✅ Configuration monitor initialized");
+
+        // Validate Runtime Integrity
+        if let Err(e) = sbom_validation::validate_runtime_integrity().await {
+            tracing::warn!("⚠️ Runtime integrity check failed: {}", e);
+        } else {
+            tracing::info!("  ✅ Runtime integrity verified");
+        }
+
         // Initialize Zero Trust
-        // // self.zero_trust_manager.initialize().await?;
-        // // ZeroTrustManager currently has no async initialize method in its interface, assuming new() is enough or we add one later.
-        // tracing::info!("  ✅ Zero Trust initialized");
+
 
         Ok(())
     }
@@ -382,6 +409,9 @@ impl WolfSecurity {
     /// # Errors
     /// Returns an error if event processing or response actions fail.
     pub async fn process_security_event(&mut self, event: SecurityEvent) -> anyhow::Result<()> {
+        // Broadcast event
+        let _ = self.event_bus.send(event.clone());
+
         // Route event to appropriate handlers
         self.threat_detector.handle_event(event.clone()).await?;
         self.monitor.log_event(event.clone()).await?;
@@ -535,6 +565,11 @@ impl WolfSecurity {
     pub async fn get_recent_threats(&self) -> Vec<String> {
         // Placeholder
         Vec::new()
+    }
+
+    /// Subscribe to security events
+    pub fn subscribe_events(&self) -> tokio::sync::broadcast::Receiver<SecurityEvent> {
+        self.event_bus.subscribe()
     }
 }
 

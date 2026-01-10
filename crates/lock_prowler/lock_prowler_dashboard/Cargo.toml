@@ -2,6 +2,11 @@
 name = "lock_prowler_dashboard"
 version = "0.1.0"
 edition = "2024"
+description = "Web Dashboard for Lock Prowler"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["dashboard", "security", "web"]
+categories = ["web-programming"]
 
 [features]
 server = []

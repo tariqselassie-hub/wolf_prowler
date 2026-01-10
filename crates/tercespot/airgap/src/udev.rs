@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! udev Event Listener for USB Device Detection
 //!
 //! This module provides real-time monitoring of USB device insertion and removal

@@ -163,7 +163,7 @@ gcp_auth = { version = "0.8", optional = true }
 
 # Container Security (disabled for now due to openssl conflicts)
 # docker = { version = "0.0.41", optional = true }
-k8s-openapi = { version = "0.18", optional = true }
+k8s-openapi = { version = "0.18", features = ["v1_26"], optional = true }
 kube = { version = "0.84", features = [
     "client",
     "rustls-tls",
@@ -273,6 +273,7 @@ members = [
     "wolf_den",
     "wolfsec",
     "wolf_server", "wolf_control",
+    "wolf_fuzz",
     
     # External Crates
     "crates/WolfDb",

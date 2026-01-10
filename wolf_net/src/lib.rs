@@ -1,4 +1,10 @@
 //! 🐺 Wolf Net - Advanced P2P Networking & Coordination
+#![allow(missing_docs)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::return_self_not_must_use)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::doc_markdown)]
 //!
 //! A modular networking library built on libp2p, featuring the "Wolf Pack"
 //! coordination protocol for distributed threat detection and response.

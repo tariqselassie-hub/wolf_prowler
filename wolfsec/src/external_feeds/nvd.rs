@@ -15,7 +15,14 @@ pub async fn fetch_nvd(
         None => return Ok(None),
     };
 
-    let client = Client::new();
+    let mut client_builder = Client::builder();
+    if let Some(proxy_url) = &config.proxy_url {
+        if let Ok(proxy) = reqwest::Proxy::all(proxy_url) {
+            client_builder = client_builder.proxy(proxy);
+        }
+    }
+    let client = client_builder.build()?;
+
     let url = format!(
         "https://services.nvd.nist.gov/rest/json/cve/{}?apiKey={}",
         cve_id, api_key

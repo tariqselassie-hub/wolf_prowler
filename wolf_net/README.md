@@ -27,9 +27,10 @@ Wolf Net provides secure, encrypted peer-to-peer networking built on libp2p for 
 - **Wolf Pack Hierarchy**
   - Role-based access control (Stray → Scout → Hunter → Beta → Alpha → Omega)
   - Prestige system with automatic rank evolution
-  - **Prestige Decay**: Periodic reduction- **P2P Messaging**: Decentralized communication using `libp2p`.
-- **Wolf Pack Protocol**: Custom protocol for pack coordination, status sharing, and hunting.
-- **Alpha Election**: Prestige-weighted consensus mechanism for decentralized leader selection.
+  - **Prestige Decay**: Periodic reduction of prestige to encourage activity
+  - **P2P Messaging**: Decentralized communication using `libp2p`
+  - **Wolf Pack Protocol**: Custom protocol for pack coordination, status sharing, and hunting
+  - **Alpha Election**: Prestige-weighted consensus mechanism for decentralized leader selection
 - **🔔 Alert Management**
   - Smart deduplication (30-minute window)
   - Dynamic severity calculation (event + correlation + attack chain)

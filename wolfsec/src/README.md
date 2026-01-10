@@ -1,5 +1,7 @@
 # Security Module
 
+[![Security Tests](https://github.com/tariqselassie-hub/wolf_prowler/actions/workflows/security_tests.yml/badge.svg)](https://github.com/tariqselassie-hub/wolf_prowler/actions/workflows/security_tests.yml)
+
 Comprehensive security monitoring, auditing, and dashboard functionality for Wolf Prowler.
 
 ## Overview

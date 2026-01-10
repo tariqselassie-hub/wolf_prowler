@@ -5,6 +5,9 @@ edition = "2021"
 authors = ["TersecPot Contributors"]
 description = "Zero-Knowledge Administration for Healthcare & GDPR Compliance"
 license = "MIT"
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["security", "privacy", "compliance"]
+categories = ["cryptography"]
 
 [dependencies]
 tokio = { version = "1.0", features = ["full"] }

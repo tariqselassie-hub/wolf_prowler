@@ -85,6 +85,12 @@ bollard = { version = "0.15", optional = true }
 tokio-test = "0.4"
 tracing-subscriber = "0.3"
 tempfile = "3.8"
+criterion = "0.5"
+
+[[bench]]
+name = "crypto_bench"
+path = "benches/crypto_bench.rs"
+harness = false
 
 [features]
 default = [

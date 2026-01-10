@@ -3,264 +3,132 @@
 //! This module connects wolfsec security events to the database,
 //! automatically saving malicious IPs, vulnerabilities, and threats.
 
-use crate::AppState;
-use anyhow::Result;
+use crate::api::AppState;
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::broadcast;
 use tracing::{debug, error, info, warn};
-use wolf_prowler::threat_feeds::ThreatFeedManager;
-
-use crate::persistence::{DbSecurityAlert, DbSecurityEvent, PersistenceManager};
+use wolfsec::store::{SecurityAlert, WolfDbThreatRepository};
+use wolfsec::{SecurityEvent, SecuritySeverity};
 
 /// Start wolfsec event listener that saves events to database
-pub async fn start_wolfsec_listener(
-    app_state: Arc<AppState>,
-    persistence: Arc<PersistenceManager>,
-) {
+pub async fn start_wolfsec_listener(app_state: Arc<AppState>) {
     info!("🛡️ Starting wolfsec threat intelligence listener");
 
-    // Start reputation sync task
-    start_reputation_sync(app_state.clone(), persistence.clone());
+    let storage = if let Some(s) = &app_state.persistence {
+        s.clone()
+    } else {
+        warn!("Persistence not enabled, skipping wolfsec listener");
+        return;
+    };
+
+    let repository = Arc::new(WolfDbThreatRepository::new(storage));
 
     // Subscribe to security events
-    let mut event_rx = app_state.security.lock().await.subscribe_events();
+    let mut event_rx = {
+        let security = app_state.security.read().await;
+        security.subscribe_events()
+    };
+    let repo_clone = repository.clone();
 
     tokio::spawn(async move {
         loop {
             match event_rx.recv().await {
                 Ok(event) => {
-                    debug!("Received security event: {:?}", event.event_type);
-
-                    // Save security event to database
-                    let db_event = DbSecurityEvent {
-                        id: None,
-                        event_id: None,
-                        timestamp: None,
-                        event_type: format!("{:?}", event.event_type),
-                        severity: format!("{:?}", event.severity),
-                        source: Some(format!("{:?}", event.source)),
-                        peer_id: event.metadata.get("peer_id").cloned(),
-                        description: format!("Security event: {:?}", event.event_type),
-                        details: serde_json::to_value(&event).unwrap_or_default(),
-                        resolved: Some(false),
-                        resolved_at: None,
-                        resolved_by: None,
-                    };
-
-                    if let Err(e) = persistence.save_security_event(&db_event).await {
-                        error!("Failed to save security event: {}", e);
-                    } else {
-                        debug!(
-                            "Saved security event: {:?} from {:?}",
-                            event.event_type, event.source
-                        );
-                    }
-
-                    // If it's a high severity event, create an alert
-                    let severity_str = format!("{:?}", event.severity);
-                    if severity_str == "High" || severity_str == "Critical" {
-                        let escalation = if severity_str == "Critical" { 2 } else { 1 };
-                        let alert = DbSecurityAlert {
-                            id: None,
-                            alert_id: None,
-                            timestamp: None,
-                            severity: severity_str,
-                            status: "active".to_string(),
-                            title: format!("{:?} Detected", event.event_type),
-                            message: Some(format!(
-                                "Security event detected from {:?}",
-                                event.source
-                            )),
-                            category: format!("{:?}", event.event_type),
-                            source: format!("{:?}", event.source),
-                            escalation_level: Some(escalation),
-                            acknowledged_by: None,
-                            acknowledged_at: None,
-                            resolved_by: None,
-                            resolved_at: None,
-                            metadata: serde_json::to_value(&event.metadata).unwrap_or_default(),
-                        };
-
-                        if let Err(e) = persistence.save_security_alert(&alert).await {
-                            error!("Failed to save security alert: {}", e);
-                        } else {
-                            info!("🚨 Created security alert: {}", alert.title);
-                        }
-                    }
-
-                    // Handle specific event types
-                    match format!("{:?}", event.event_type).as_str() {
-                        "malicious_ip_detected" => {
-                            handle_malicious_ip(&persistence, &event).await;
-                        }
-                        "vulnerability_detected" => {
-                            handle_vulnerability(&persistence, &event).await;
-                        }
-                        "intrusion_attempt" => {
-                            handle_intrusion_attempt(&persistence, &event).await;
-                        }
-                        _ => {}
-                    }
+                    process_security_event(&repo_clone, event).await;
                 }
                 Err(e) => {
                     warn!("Error receiving security event: {}", e);
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    if let tokio::sync::broadcast::error::RecvError::Closed = e {
+                        break;
+                    }
                 }
             }
         }
     });
 }
 
-/// Periodically syncs in-memory reputation scores to the database
-fn start_reputation_sync(app_state: Arc<AppState>, persistence: Arc<PersistenceManager>) {
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(300)); // Every 5 minutes
-        loop {
-            interval.tick().await;
-            debug!("Syncing peer reputation to database...");
+/// Process a security event and save it to the repository
+pub async fn process_security_event(repository: &WolfDbThreatRepository, event: SecurityEvent) {
+    debug!("Received security event: {:?}", event.event_type);
 
-            let security_lock = app_state.security.lock().await;
-            let threat_detector = security_lock.threat_detector();
-            let reputation_system = threat_detector.reputation_system();
+    // Map SecurityEvent to SecurityAlert
+    let alert = SecurityAlert {
+        id: event.id.clone(),
+        timestamp: event.timestamp,
+        severity: format!("{:?}", event.severity),
+        title: format!("{:?}", event.event_type),
+        description: event.description.clone(),
+        source: event
+            .peer_id
+            .clone()
+            .unwrap_or_else(|| "system".to_string()),
+        metadata: event.metadata.clone(),
+    };
 
-            let peer_scores = reputation_system.get_all_scores();
-
-            for (peer_id, score) in peer_scores {
-                // update_peer_trust_score updates the 'trust_score' column in the peers table
-                if let Err(e) = persistence.update_peer_trust_score(&peer_id, score).await {
-                    error!("Failed to sync reputation for peer {}: {}", peer_id, e);
-                }
-            }
-        }
-    });
-}
-
-/// Handle malicious IP detection
-async fn handle_malicious_ip(
-    persistence: &Arc<PersistenceManager>,
-    event: &wolfsec::security::advanced::SecurityEvent,
-) {
-    if let Some(ip) = event.metadata.get("ip_address") {
-        let ip_str = ip.as_str();
-
-        // Save to threat_intelligence table
-        let query_result = sqlx::query!(
-            r#"
-            INSERT INTO threat_intelligence (
-                threat_type, severity, indicators, source, confidence, metadata
-            )
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT DO NOTHING
-            "#,
-            "malicious_ip",
-            format!("{:?}", event.severity),
-            serde_json::json!({
-                "ip": ip_str,
-                "type": "ipv4"
-            }),
-            format!("{:?}", event.source),
-            0.9,
-            serde_json::to_value(&event.metadata).unwrap_or_default()
-        )
-        .execute(persistence.pool())
-        .await;
-
-        match query_result {
-            Ok(_) => info!("💾 Saved malicious IP to database: {}", ip_str),
-            Err(e) => error!("Failed to save malicious IP: {}", e),
-        }
-    }
-}
-
-/// Handle vulnerability detection
-async fn handle_vulnerability(
-    persistence: &Arc<PersistenceManager>,
-    event: &wolfsec::security::advanced::SecurityEvent,
-) {
-    if let Some(cve) = event.metadata.get("cve_id") {
-        let cve_str = cve.as_str();
-
-        let query_result = sqlx::query!(
-            r#"
-            INSERT INTO threat_intelligence (
-                threat_type, severity, indicators, source, confidence, metadata
-            )
-            VALUES ($1, $2, $3, $4, $5, $6)
-            "#,
-            "vulnerability",
-            format!("{:?}", event.severity),
-            serde_json::json!({
-                "cve_id": cve_str,
-                "description": event.description.clone()
-            }),
-            format!("{:?}", event.source),
-            0.95,
-            serde_json::to_value(&event.metadata).unwrap_or_default()
-        )
-        .execute(persistence.pool())
-        .await;
-
-        match query_result {
-            Ok(_) => info!("💾 Saved vulnerability to database: {}", cve_str),
-            Err(e) => error!("Failed to save vulnerability: {}", e),
-        }
-    }
-}
-
-/// Handle intrusion attempt
-async fn handle_intrusion_attempt(
-    persistence: &Arc<PersistenceManager>,
-    event: &wolfsec::security::advanced::SecurityEvent,
-) {
-    // Log the intrusion attempt
-    let log = crate::persistence::DbSystemLog::new(
-        "warn".to_string(),
-        format!("Intrusion attempt: {}", event.description),
-        Some("wolfsec".to_string()),
-    );
-
-    if let Err(e) = persistence.save_system_log(&log).await {
-        error!("Failed to save intrusion log: {}", e);
+    if let Err(e) = repository.save_alert(&alert).await {
+        error!("Failed to save security alert: {}", e);
+    } else {
+        debug!("Saved security alert: {} ({})", alert.title, alert.id);
     }
 
-    // If there's an IP, save it as a threat
-    if let Some(ip) = event.metadata.get("source_ip") {
-        let ip_str = ip.as_str();
-
-        let query_result = sqlx::query!(
-            r#"
-            INSERT INTO threat_intelligence (
-                threat_type, severity, indicators, source, confidence, metadata
-            )
-            VALUES ($1, $2, $3, $4, $5, $6)
-            "#,
-            "intrusion_attempt",
-            format!("{:?}", event.severity),
-            serde_json::json!({
-                "ip": ip_str,
-                "attack_type": event.event_type.clone()
-            }),
-            format!("{:?}", event.source),
-            0.85,
-            serde_json::to_value(&event.metadata).unwrap_or_default()
-        )
-        .execute(persistence.pool())
-        .await;
-
-        match query_result {
-            Ok(_) => info!("💾 Saved intrusion attempt from: {}", ip_str),
-            Err(e) => error!("Failed to save intrusion attempt: {}", e),
-        }
+    // Log high severity events
+    if matches!(
+        event.severity,
+        SecuritySeverity::High | SecuritySeverity::Critical
+    ) {
+        info!("🚨 High severity alert saved: {}", alert.title);
     }
 }
 
 /// Start threat feed integration
-pub async fn start_threat_feed_integration(
-    app_state: crate::AppState,
-    _persistence: Arc<PersistenceManager>,
-) {
-    info!("📡 Starting threat feed integration");
-    let manager = ThreatFeedManager::new(app_state.threat_db.clone());
-    manager.start_background_updates().await;
+pub async fn start_threat_feed_integration(_app_state: Arc<AppState>) {
+    info!("📡 Threat feed integration placeholder");
+    // Logic to be implemented with WolfDbThreatRepository
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wolf_db::WolfDbStorage;
+    use wolfsec::SecurityEventType;
+
+    #[tokio::test]
+    async fn test_security_event_persistence() {
+        // Setup temporary DB path with unique name to avoid collisions
+        let db_path = std::env::temp_dir().join(format!("wolf_test_db_{}", uuid::Uuid::new_v4()));
+
+        // Initialize storage
+        let storage = Arc::new(WolfDbStorage::new(&db_path).expect("Failed to create temp DB"));
+        let repository = WolfDbThreatRepository::new(storage);
+
+        // Create a test event
+        let event = SecurityEvent {
+            id: "test-event-id".to_string(),
+            timestamp: chrono::Utc::now(),
+            event_type: SecurityEventType::SuspiciousActivity,
+            severity: SecuritySeverity::High,
+            description: "Integration test event".to_string(),
+            peer_id: Some("malicious-peer-1".to_string()),
+            metadata: std::collections::HashMap::new(),
+        };
+
+        // Process the event (this calls the logic used by the listener)
+        process_security_event(&repository, event.clone()).await;
+
+        // Verify it was saved
+        let alerts = repository
+            .get_recent_alerts(10)
+            .await
+            .expect("Failed to fetch alerts");
+
+        assert_eq!(alerts.len(), 1, "Should have exactly one alert saved");
+        let saved_alert = &alerts[0];
+
+        assert_eq!(saved_alert.id, event.id);
+        assert_eq!(saved_alert.description, event.description);
+        assert_eq!(saved_alert.source, "malicious-peer-1");
+        assert_eq!(saved_alert.severity, "High");
+
+        // Cleanup
+        let _ = std::fs::remove_dir_all(db_path);
+    }
 }

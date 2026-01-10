@@ -782,6 +782,11 @@ impl ThreatDetector {
         }
     }
 
+    /// Get the configuration
+    pub fn config(&self) -> &ThreatDetectionConfig {
+        &self.config
+    }
+
     /// Returns a full history of all recorded security events
     pub async fn get_events(&self) -> Vec<crate::SecurityEvent> {
         self.events.read().await.clone()

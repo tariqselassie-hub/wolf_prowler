@@ -1,8 +1,20 @@
 //! API Methods Tests
+//!
+//! This module contains integration tests for the public API methods of the `SwarmManager`.
+//! It verifies that the high-level API calls correctly interface with the underlying networking logic.
+
 #[allow(unused_imports)]
 use wolf_net::peer::{EntityInfo, PeerId};
 use wolf_net::{SwarmCommand, SwarmConfig, SwarmManager};
 
+/// Verifies the functionality of `SwarmManager`'s backend API methods.
+///
+/// This test ensures that:
+/// 1. `SwarmManager` initializes and starts correctly.
+/// 2. `get_stats()` returns initial empty/default statistics.
+/// 3. `list_peers()` returns an empty list initially.
+/// 4. `get_metrics()` reflects the initial state.
+/// 5. The manager successfully establishes listeners (bindings).
 #[tokio::test]
 async fn test_api_backend_methods() -> anyhow::Result<()> {
     let _ = tracing_subscriber::fmt::try_init();

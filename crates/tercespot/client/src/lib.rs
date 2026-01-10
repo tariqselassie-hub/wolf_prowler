@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 /// # Submitter Library
 ///
 /// This library provides functionality for creating, signing, and managing partial commands

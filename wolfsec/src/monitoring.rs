@@ -991,6 +991,12 @@ impl SecurityMonitor {
         siem.events.clone()
     }
 
+    /// Get all active alerts
+    pub async fn get_alerts(&self) -> Vec<Alert> {
+        let siem = self.siem.read().await;
+        siem.alerts.clone()
+    }
+
     /// Get monitoring status
     pub async fn get_status(&self) -> MonitoringStatus {
         let siem = self.siem.read().await;

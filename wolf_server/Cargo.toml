@@ -30,6 +30,7 @@ serde_json = "1.0"
 wolf_den = { path = "../wolf_den" }
 wolf_net = { path = "../wolf_net" }
 wolfsec = { path = "../wolfsec" }
+wolf_db = { path = "../crates/WolfDb" }
 wolf_prowler = { path = ".." }
 
 # Networking (Pinned to match workspace)

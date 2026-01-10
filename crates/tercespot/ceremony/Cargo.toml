@@ -6,6 +6,9 @@ description = "A reference implementation of the Blind Command-Bus Sentinel arch
 authors = ["TersecPot Developers"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tersecpot/tersecpot"
+readme = "README.md"
+keywords = ["security", "ceremony", "setup"]
+categories = ["cryptography"]
 
 [dependencies]
 fips204 = "0.4.6"

@@ -68,6 +68,8 @@ pub struct IAMConfig {
     pub enabled_identity_providers: Vec<IdentityProviderType>,
     /// Duration of a valid session before re-authentication is required (in minutes)
     pub session_timeout_minutes: u32,
+    /// Duration of inactivity before a session is automatically terminated (in minutes)
+    pub idle_timeout_minutes: u32,
     /// Rigorous multi-factor authentication requirements and grace periods
     pub mfa_requirements: MFARequirements,
     /// Complexity, history, and expiration rules for passwords
@@ -97,6 +99,8 @@ pub enum IdentityProviderType {
     Okta,
     /// Auth0 Identity Management
     Auth0,
+    /// Federal PIV/CAC Smart Card Authentication
+    SmartCard,
     /// Integration with a proprietary or legacy identity provider
     Custom(String),
 }
@@ -854,6 +858,7 @@ impl Default for IAMConfig {
                 IdentityProviderType::OAuth2,
             ],
             session_timeout_minutes: 480, // 8 hours
+            idle_timeout_minutes: 30,     // 30 minutes inactivity
             mfa_requirements: MFARequirements::default(),
             password_policy: PasswordPolicy::default(),
             access_control: AccessControlConfig::default(),

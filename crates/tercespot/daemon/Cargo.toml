@@ -6,6 +6,8 @@ description = "Sentinel daemon for TersecPot Blind Command-Bus"
 authors = ["TersecPot Contributors"]
 license = "MIT"
 repository = "https://github.com/tersecpot/project"
+keywords = ["security", "daemon", "wolf-prowler"]
+categories = ["network-programming", "cryptography"]
 
 
 [dependencies]

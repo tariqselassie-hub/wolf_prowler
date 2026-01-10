@@ -6,6 +6,8 @@ description = "Submitter client for TersecPot Blind Command-Bus"
 authors = ["TersecPot Contributors"]
 license = "MIT"
 repository = "https://github.com/tersecpot/project"
+keywords = ["cli", "security", "client"]
+categories = ["command-line-utilities"]
 
 
 [dependencies]

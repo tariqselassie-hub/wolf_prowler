@@ -4,6 +4,9 @@
 //! disconnected networks, providing secure data ingress with post-quantum
 //! cryptographic validation and forensic logging.
 
+#![allow(missing_docs)]
+pub mod crypto;
+pub mod error;
 pub mod pulse;
 pub mod udev;
 

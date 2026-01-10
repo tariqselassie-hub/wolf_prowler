@@ -286,6 +286,7 @@ impl HuntCoordinator {
             self.handle_strike_transition(hunt_id, target_ip).await?;
         }
 
+        self.sync_public_state().await;
         Ok(())
     }
 

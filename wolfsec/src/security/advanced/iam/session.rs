@@ -300,7 +300,7 @@ impl SessionManager {
         if let Some(session) = session {
             let now = Utc::now();
 
-            // Check if session is expired
+            // Check if session is expired (Absolute Timeout)
             if now > session.expires_at {
                 return Ok(SessionValidationResult {
                     valid: false,
@@ -308,7 +308,21 @@ impl SessionManager {
                     user_id: Some(session.user_id),
                     expires_at: Some(session.expires_at),
                     security_context: Some(session.security_context.clone()),
-                    error_message: Some("Session expired".to_string()),
+                    error_message: Some("Session expired (Absolute)".to_string()),
+                    risk_score: Some(session.security_context.risk_score),
+                });
+            }
+
+            // Check for Idle Timeout
+            let idle_duration = now - session.last_activity;
+            if idle_duration > Duration::minutes(self.config.idle_timeout_minutes as i64) {
+                return Ok(SessionValidationResult {
+                    valid: false,
+                    session_id: Some(session_id),
+                    user_id: Some(session.user_id),
+                    expires_at: Some(session.expires_at),
+                    security_context: Some(session.security_context.clone()),
+                    error_message: Some("Session expired (Inactivity)".to_string()),
                     risk_score: Some(session.security_context.risk_score),
                 });
             }
@@ -442,6 +456,42 @@ impl SessionManager {
         }
 
         Ok(())
+    }
+
+    /// Explicitly terminates a session with a recorded reason, enforcing immediate revocation.
+    ///
+    /// # Errors
+    /// Returns an error if the session cannot be found.
+    pub async fn force_terminate_session(&self, session_id: Uuid, reason: &str) -> Result<()> {
+        info!("🔐 Force terminating session: {} (Reason: {})", session_id, reason);
+
+        let mut sessions = self.sessions.lock().await;
+        
+        if let Some(session) = sessions.get_mut(&session_id) {
+            session.status = SessionStatus::Terminated;
+            session.security_context.locked = true;
+            
+            // Log the violation/reason
+            session.security_context.security_violations.push(SecurityViolation {
+                violation_type: SecurityViolationType::SuspiciousActivity, // Or generic admin action
+                description: format!("Administrative Termination: {}", reason),
+                timestamp: Utc::now(),
+                severity: SecuritySeverity::High,
+            });
+
+            // Remove from user sessions immediately to prevent race conditions during cleanup?
+            // Actually, keeping it as Terminated ensures audit trail persists until cleanup.
+            // But we should remove it from the user's active list.
+            let mut user_sessions = self.user_sessions.lock().await;
+            if let Some(user_session_list) = user_sessions.get_mut(&session.user_id) {
+                user_session_list.retain(|id| *id != session_id);
+            }
+
+            info!("✅ Session force terminated: {}", session_id);
+            Ok(())
+        } else {
+            Err(anyhow!("Session not found for force termination: {}", session_id))
+        }
     }
 
     /// Revokes every active session associated with a specific user identity.
@@ -684,13 +734,18 @@ impl SessionManager {
     /// Returns an error if cleanup fails.
     pub async fn cleanup_expired_sessions(&self) -> Result<()> {
         let now = Utc::now();
+        let idle_timeout = Duration::minutes(self.config.idle_timeout_minutes as i64);
         let mut sessions = self.sessions.lock().await;
         let mut user_sessions = self.user_sessions.lock().await;
 
         let expired_sessions: Vec<Uuid> = sessions
             .iter()
             .filter(|(_, session)| {
-                now > session.expires_at || session.status == SessionStatus::Expired
+                let is_expired = now > session.expires_at;
+                let is_idle = (now - session.last_activity) > idle_timeout;
+                let is_invalid_status = session.status == SessionStatus::Expired;
+                
+                is_expired || is_idle || is_invalid_status
             })
             .map(|(id, _)| *id)
             .collect();

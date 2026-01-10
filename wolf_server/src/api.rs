@@ -1,5 +1,5 @@
 use axum::{
-    extract::{FromRef, State},
+    extract::{FromRef, Query, State},
     http::{header, Request, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -11,10 +11,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use crate::api_middleware::create_cors_layer;
+use wolf_db::WolfDbStorage;
 use wolf_net::api::{ApiResponse, BroadcastRequest, ConnectPeerRequest, WolfNodeControl};
 use wolf_net::peer::{EntityInfo, PeerId};
 use wolf_net::wolf_pack::coordinator::CoordinatorMsg;
 use wolf_net::wolf_pack::state::{ActiveHunt, WolfState};
+use wolfsec::store::WolfDbThreatRepository;
+use wolfsec::WolfSecurity;
 
 /// Shared application state for the Axum server
 #[derive(Clone)]
@@ -27,6 +31,10 @@ pub struct AppState {
     pub control: WolfNodeControl,
     /// Shared storage for the JWT authentication token
     pub auth_token: Arc<RwLock<Option<String>>>,
+    /// Handle to the persistence layer
+    pub persistence: Option<Arc<WolfDbStorage>>,
+    /// The WolfSecurity engine
+    pub security: Arc<RwLock<WolfSecurity>>,
 }
 
 impl FromRef<AppState> for Arc<RwLock<Option<String>>> {
@@ -46,6 +54,12 @@ impl FromRef<AppState> for WolfNodeControl {
 pub struct ManualHuntRequest {
     pub target_ip: String,
     pub reason: String,
+}
+
+/// Query parameters for fetching alerts history
+#[derive(Deserialize)]
+pub struct AlertsQuery {
+    pub limit: Option<usize>,
 }
 
 /// Returns the full WolfState (Role, Prestige, Territories, etc.)
@@ -91,6 +105,35 @@ pub async fn trigger_manual_hunt(
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse::<()>::error(e.to_string())),
         ),
+    }
+}
+
+/// Returns historical security alerts from the persistence layer
+pub async fn get_alerts_history(
+    State(state): State<AppState>,
+    Query(query): Query<AlertsQuery>,
+) -> Response {
+    let storage = match &state.persistence {
+        Some(s) => s.clone(),
+        None => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(ApiResponse::<()>::error("Persistence not enabled")),
+            )
+                .into_response()
+        }
+    };
+
+    let repository = WolfDbThreatRepository::new(storage);
+    let limit = query.limit.unwrap_or(100);
+
+    match repository.get_recent_alerts(limit).await {
+        Ok(alerts) => Json(ApiResponse::success(alerts)).into_response(),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::<()>::error(e.to_string())),
+        )
+            .into_response(),
     }
 }
 
@@ -172,10 +215,12 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/wolf/hunts", get(get_active_hunts))
         .route("/api/peers/metrics", get(get_peer_metrics))
         .route("/api/wolf/hunts/trigger", post(trigger_manual_hunt))
+        .route("/api/v1/alerts/history", get(get_alerts_history))
         .route("/api/v1/status", get(status_handler))
         .route("/api/v1/peers/connect", post(connect_peer_handler))
         .route("/api/v1/messages/broadcast", post(broadcast_handler))
         .route("/api/v1/system/shutdown", post(shutdown_handler))
+        .layer(create_cors_layer())
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,

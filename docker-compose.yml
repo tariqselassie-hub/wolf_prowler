@@ -1,52 +1,20 @@
+version: '3.8'
+
 services:
-  # --- THE CENTRAL SAAS HUB ---
-  # Hosts the Dashboard, Global SIEM, and Multi-tenant management
-  wolf_hub:
+  wolf_server:
     build: .
-    container_name: wolf_hub
-    environment:
-      - WOLF_DASHBOARD__ENABLED=true
-      - WOLF_DASHBOARD__PORT=3031
-      - WOLF_NETWORK__PORT=3030
-      - DATABASE_URL=postgresql://wolf_admin:wolf_secure_pass_2024@db:5432/wolf_prowler
+    image: wolf_prowler:latest
+    container_name: wolf_prowler_node
     ports:
-      - "8080:3031" # Access the Hub Dashboard here
-    depends_on:
-      - db
-    networks:
-      - wolf_network
-
-  # --- HEADLESS AGENT ---
-  # Distributed node running on user infra, reporting to Hub
-  wolf_agent_01:
-    build: .
-    container_name: wolf_agent_01
-    environment:
-      - WOLF_DASHBOARD__ENABLED=false # Headless
-      - WOLF_NETWORK__PORT=3030
-      - WOLF_HUB_URL=http://wolf_hub:3031
-      - WOLF_ORG_KEY=dev-org-key-001
-    depends_on:
-      - wolf_hub
-    networks:
-      - wolf_network
-
-  # Shared Database for the Hub
-  db:
-    image: postgres:15-alpine
-    container_name: wolf_db
-    environment:
-      - POSTGRES_USER=wolf_admin
-      - POSTGRES_PASSWORD=wolf_secure_pass_2024
-      - POSTGRES_DB=wolf_prowler
+      - "3030:3030"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - wolf_network
-
-networks:
-  wolf_network:
-    driver: bridge
+      - wolf_data:/data
+      - ./certs:/certs
+    environment:
+      - RUST_LOG=info
+      - WOLF_TLS_CERT=/certs/cert.pem
+      - WOLF_TLS_KEY=/certs/key.pem
+    restart: unless-stopped
 
 volumes:
-  postgres_data:
+  wolf_data:

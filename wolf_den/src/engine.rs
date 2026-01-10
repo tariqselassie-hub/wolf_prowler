@@ -293,6 +293,13 @@ impl Default for CryptoEngine {
 mod tests {
     use super::*;
 
+    /// Verifies the fundamental operations of the CryptoEngine.
+    ///
+    /// This test checks:
+    /// 1. Hashing produces correct output length.
+    /// 2. MAC computation produces correct output length.
+    /// 3. MAC verification succeeds for valid tags.
+    /// 4. Key derivation produces keys of requested length.
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_crypto_engine_basic_operations() {
@@ -318,6 +325,12 @@ mod tests {
         assert_eq!(key.len(), 32);
     }
 
+    /// Tests digital signature generation and verification.
+    ///
+    /// This ensures:
+    /// 1. Messages can be signed using the internal keypair.
+    /// 2. Public keys can be retrieved.
+    /// 3. Valid signatures verify correctly against the public key.
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_signing_and_verification() {
@@ -331,6 +344,11 @@ mod tests {
         assert!(verification_result.is_ok());
     }
 
+    /// Tests the composite Hash-then-MAC operation.
+    ///
+    /// Verifies:
+    /// 1. The operation succeeds and returns non-empty data.
+    /// 2. The operation is deterministic (same input = same output).
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_hash_and_mac() {
@@ -345,6 +363,9 @@ mod tests {
         assert_eq!(result, result2);
     }
 
+    /// Tests the composite Derive-Key-then-Hash operation.
+    ///
+    /// Verifies that the resulting output matches the configured hash output length.
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_derive_and_hash() {
@@ -356,6 +377,11 @@ mod tests {
         assert_eq!(result.len(), engine.hash_output_length());
     }
 
+    /// Verifies constant-time comparison functionality.
+    ///
+    /// Ensures that:
+    /// 1. Identical data returns true.
+    /// 2. Different data returns false.
     #[test]
     fn test_secure_compare() {
         let engine = CryptoEngine::new(crate::SecurityLevel::Standard).unwrap();
@@ -367,6 +393,11 @@ mod tests {
         assert!(!engine.secure_compare(data1, data3));
     }
 
+    /// Tests random key generation.
+    ///
+    /// Checks:
+    /// 1. Keys are generated with the correct length.
+    /// 2. Successive calls produce different keys (randomness).
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_key_generation() {
@@ -380,6 +411,9 @@ mod tests {
         assert_ne!(key1, key2); // Keys should be different
     }
 
+    /// Verifies that the engine reports its configuration correctly.
+    ///
+    /// Checks all metadata accessors (names, lengths, flags) against expected values for `Maximum` security level.
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_engine_info() {

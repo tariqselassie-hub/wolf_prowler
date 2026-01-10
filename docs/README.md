@@ -25,6 +25,8 @@ Welcome to the Wolf Prowler project documentation. This documentation is organiz
 - **[Git Branch Structure](development/GIT_BRANCH_STRUCTURE.md)** - Version control workflow
 - **[Prototype Status](development/PROTOTYPE_STATUS.md)** - Prototype development status
 - **[Wolf Head Options](development/WOLF_HEAD_OPTIONS.md)** - Configuration options
+- **[Reports](reports/)** - Automated reports, lint summaries, and analysis
+- **[Logs](logs/)** - Error logs and system output
 
 ### 🔐 **Security**
 - **[Advanced Cryptography](security/ADVANCED_CRYPTOGRAPHY_DOCUMENTATION.md)** - Cryptographic implementation details
@@ -41,6 +43,7 @@ Welcome to the Wolf Prowler project documentation. This documentation is organiz
 
 ### 🧪 **Testing**
 - **[Functionality Checklist](testing/FUNCTIONALITY_CHECKLIST.md)** - Testing requirements and checklist
+- **[Fuzzing Guide](testing/FUZZING.md)** - Automated fuzz testing infrastructure
 
 ### 📋 **Planning**
 - **[Consolidation Plan](planning/CONSOLIDATION_PLAN.md)** - Project consolidation strategy

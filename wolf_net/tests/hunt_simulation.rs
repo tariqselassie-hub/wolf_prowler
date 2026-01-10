@@ -1,10 +1,24 @@
 //! Hunt Simulation Tests
+//!
+//! This module simulates the complete "Wolf Pack" Hunt Lifecycle:
+//! Scent -> Stalk -> Strike -> Feast.
+//!
+//! It verifies the coordination state machine and consensus mechanisms.
+
 use std::time::Duration;
 use tokio::time::sleep;
 use wolf_net::peer::PeerId;
 use wolf_net::wolf_pack::coordinator::{CoordinatorMsg, HuntCoordinator};
 use wolf_net::wolf_pack::state::{HuntStatus, WolfRole};
 
+/// Simulates a full end-to-end hunt lifecycle.
+///
+/// Workflow:
+/// 1. **Setup**: Initialize a `HuntCoordinator` as a Beta (Authority).
+/// 2. **Scent**: Authority issues a `HuntRequest`, creating a new hunt in `Scent` status.
+/// 3. **Stalk**: A Scout reports a `WarningHowl`, advancing the hunt to `Stalk`.
+/// 4. **Strike**: Hunters report confirmation (`HuntReport`). The system waits for consensus (66%).
+/// 5. **Feast**: Once consensus is reached, the hunt transitions to `Feast` (successful conclusion).
 #[tokio::test]
 async fn test_full_scent_to_strike_simulation() {
     // 1. Setup Coordinator
