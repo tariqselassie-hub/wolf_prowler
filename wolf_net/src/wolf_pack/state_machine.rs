@@ -27,9 +27,9 @@ pub enum StateTransitionResult {
         participants: HashSet<PeerId>,
     },
     /// Hunt failed or timed out.
-    HuntFailed { 
+    HuntFailed {
         /// ID of the failed hunt
-        hunt_id: HuntId 
+        hunt_id: HuntId,
     },
 }
 
@@ -244,6 +244,28 @@ impl WolfStateMachine {
         }
         Ok(false)
     }
+
+    /// Process rewards for a completed hunt (Feast).
+    /// Updates local prestige if the local node was a participant.
+    /// Returns true if prestige was awarded.
+    pub fn process_feast(
+        state: &mut WolfState,
+        hunt_id: &str,
+        local_peer_id: &PeerId,
+        reward: u32,
+    ) -> Result<bool> {
+        let hunt = state
+            .active_hunts
+            .iter()
+            .find(|h| h.hunt_id == hunt_id)
+            .ok_or_else(|| WolfPackError::HuntNotFound(hunt_id.to_string()))?;
+
+        if hunt.participants.contains(local_peer_id) {
+            state.add_prestige(reward);
+            return Ok(true);
+        }
+        Ok(false)
+    }
 }
 
 #[cfg(test)]
@@ -384,5 +406,58 @@ mod tests {
         let added_again = WolfStateMachine::update_territory(&mut state, region.clone()).unwrap();
         assert!(!added_again);
         assert_eq!(state.territories.len(), 1);
+    }
+
+    #[test]
+    fn test_process_feast_awards_prestige() {
+        let mut state = WolfState::new(WolfRole::Hunter);
+        let hunt_id = "feast-hunt".to_string();
+        let local_peer = PeerId::new();
+
+        state.active_hunts.push(ActiveHunt {
+            hunt_id: hunt_id.clone(),
+            target_ip: "1.1.1.1".to_string(),
+            status: HuntStatus::Feast,
+            participants: HashSet::from([local_peer.clone()]),
+            start_time: SystemTime::now(),
+            evidence: Vec::new(),
+            confidence: 1.0,
+        });
+
+        let initial_prestige = state.prestige;
+        let reward = 50;
+
+        let awarded =
+            WolfStateMachine::process_feast(&mut state, &hunt_id, &local_peer, reward).unwrap();
+
+        assert!(awarded);
+        assert_eq!(state.prestige, initial_prestige + reward);
+    }
+
+    #[test]
+    fn test_process_feast_no_award_if_not_participant() {
+        let mut state = WolfState::new(WolfRole::Hunter);
+        let hunt_id = "feast-hunt-2".to_string();
+        let local_peer = PeerId::new();
+        let other_peer = PeerId::new();
+
+        state.active_hunts.push(ActiveHunt {
+            hunt_id: hunt_id.clone(),
+            target_ip: "1.1.1.1".to_string(),
+            status: HuntStatus::Feast,
+            participants: HashSet::from([other_peer]),
+            start_time: SystemTime::now(),
+            evidence: Vec::new(),
+            confidence: 1.0,
+        });
+
+        let initial_prestige = state.prestige;
+        let reward = 50;
+
+        let awarded =
+            WolfStateMachine::process_feast(&mut state, &hunt_id, &local_peer, reward).unwrap();
+
+        assert!(!awarded);
+        assert_eq!(state.prestige, initial_prestige);
     }
 }

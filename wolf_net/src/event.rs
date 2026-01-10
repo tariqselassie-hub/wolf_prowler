@@ -207,7 +207,7 @@ impl EventHandler {
     pub fn register_callback(&mut self, event_type: &str, callback: EventCallback) {
         self.callbacks
             .entry(event_type.to_string())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(callback);
         self.stats.callbacks_registered += 1;
 
@@ -258,7 +258,7 @@ impl EventHandler {
     }
 
     /// Returns the current statistics of the event handler.
-    pub fn stats(&self) -> &EventHandlerStats {
+    pub const fn stats(&self) -> &EventHandlerStats {
         &self.stats
     }
 
@@ -273,7 +273,7 @@ impl EventHandler {
             NetworkEvent::PeerExpired { .. } => "peer_expired".to_string(),
             NetworkEvent::ConnectionError { .. } => "connection_error".to_string(),
             NetworkEvent::SwarmEvent { event_type, .. } => {
-                format!("swarm_{:?}", event_type).to_lowercase()
+                format!("swarm_{event_type:?}").to_lowercase()
             }
             NetworkEvent::Custom { event_type, .. } => event_type.clone(),
             NetworkEvent::Security(_) => "security_event".to_string(),
@@ -281,32 +281,32 @@ impl EventHandler {
     }
 
     /// Helper to create a `PeerConnected` network event.
-    pub fn peer_connected(peer_id: PeerId, address: String) -> NetworkEvent {
+    pub const fn peer_connected(peer_id: PeerId, address: String) -> NetworkEvent {
         NetworkEvent::PeerConnected { peer_id, address }
     }
 
     /// Helper to create a `PeerDisconnected` network event.
-    pub fn peer_disconnected(peer_id: PeerId, reason: String) -> NetworkEvent {
+    pub const fn peer_disconnected(peer_id: PeerId, reason: String) -> NetworkEvent {
         NetworkEvent::PeerDisconnected { peer_id, reason }
     }
 
     /// Helper to create a `MessageReceived` network event.
-    pub fn message_received(from: PeerId, message: Message) -> NetworkEvent {
+    pub const fn message_received(from: PeerId, message: Message) -> NetworkEvent {
         NetworkEvent::MessageReceived { from, message }
     }
 
     /// Helper to create a `MessageSent` network event.
-    pub fn message_sent(to: PeerId, message_id: String) -> NetworkEvent {
+    pub const fn message_sent(to: PeerId, message_id: String) -> NetworkEvent {
         NetworkEvent::MessageSent { to, message_id }
     }
 
     /// Helper to create a `PeerDiscovered` network event.
-    pub fn peer_discovered(peer_info: PeerInfo) -> NetworkEvent {
+    pub const fn peer_discovered(peer_info: PeerInfo) -> NetworkEvent {
         NetworkEvent::PeerDiscovered { peer_info }
     }
 
     /// Helper to create a `ConnectionError` network event.
-    pub fn connection_error(peer_id: PeerId, error: String) -> NetworkEvent {
+    pub const fn connection_error(peer_id: PeerId, error: String) -> NetworkEvent {
         NetworkEvent::ConnectionError { peer_id, error }
     }
 }
@@ -324,7 +324,7 @@ pub struct EventLogger {
 
 impl EventLogger {
     /// Creates a new `EventLogger` with the specified log level.
-    pub fn new(log_level: tracing::Level) -> Self {
+    pub const fn new(log_level: tracing::Level) -> Self {
         Self { log_level }
     }
 

@@ -85,7 +85,7 @@ pub struct EncryptedAuditEntry {
     /// SHA-256 hash of the original command (for integrity)
     pub command_hash: String,
 
-    /// Encrypted command content (KEM CipherText || Nonce || AES CipherText)
+    /// Encrypted command content (KEM `CipherText` || Nonce || AES `CipherText`)
     pub encrypted_command: Vec<u8>,
 
     /// Execution status
@@ -119,14 +119,17 @@ pub struct PrivacyAuditLogger {
 
 impl PrivacyAuditLogger {
     /// Create a new privacy audit logger
+    ///
+    /// # Errors
+    /// Returns an error if the audit key cannot be loaded.
     pub fn new(config: PrivacyConfig) -> io::Result<Self> {
         // Load Audit Public Key
         let audit_key = shared::load_kem_public_key(&config.audit_key_path).map_err(|e| {
             io::Error::new(
                 io::ErrorKind::NotFound,
                 format!(
-                    "Failed to load audit key from {}: {}",
-                    config.audit_key_path, e
+                    "Failed to load audit key from {}: {e}",
+                    config.audit_key_path
                 ),
             )
         })?;
@@ -138,7 +141,7 @@ impl PrivacyAuditLogger {
         tokio::spawn(async move {
             while let Some(entry) = rx.recv().await {
                 if let Err(e) = Self::process_audit_entry(entry, &config_clone).await {
-                    eprintln!("Failed to process audit entry: {}", e);
+                    eprintln!("Failed to process audit entry: {e}");
                 }
             }
         });
@@ -151,6 +154,12 @@ impl PrivacyAuditLogger {
     }
 
     /// Log a command execution with privacy preservation
+    ///
+    /// # Errors
+    /// Returns an error if logging fails.
+    ///
+    /// # Panics
+    /// Panics if the current time is before the UNIX epoch.
     pub async fn log_command_execution(
         &self,
         command: &str,
@@ -166,7 +175,7 @@ impl PrivacyAuditLogger {
         let entry = EncryptedAuditEntry {
             timestamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap()
+                .expect("Time went backwards")
                 .as_secs(),
             command_hash,
             encrypted_command,
@@ -177,15 +186,15 @@ impl PrivacyAuditLogger {
 
         // Send to audit processing
         if let Err(e) = self.audit_channel.send(entry) {
-            eprintln!("Failed to send audit entry: {:?}", e);
+            eprintln!("Failed to send audit entry: {e:?}");
         }
 
         // If emergency mode, send alerts
         if emergency_mode {
             // Send alerts synchronously for now
-            let _ = self.send_sms_alert(command).await;
-            let _ = self.send_email_alert(command).await;
-            let _ = self.send_pagerduty_alert(command).await;
+            self.send_sms_alert(command);
+            self.send_email_alert(command);
+            self.send_pagerduty_alert(command);
         }
 
         Ok(())
@@ -200,7 +209,7 @@ impl PrivacyAuditLogger {
     /// Let's change the signature to accept the SK or remove it.
     /// Given the context, I will remove it from the Logger struct methods as the Logger shouldn't decrypt.
     /// Decryption should be done by the Auditor tool.
-
+    ///
     /// Process audit entry and ship to syslog
     async fn process_audit_entry(
         entry: EncryptedAuditEntry,
@@ -208,42 +217,45 @@ impl PrivacyAuditLogger {
     ) -> io::Result<()> {
         // Serialize entry
         let serialized = serde_json::to_string(&entry).map_err(|e| {
-            io::Error::new(io::ErrorKind::Other, format!("Serialization failed: {}", e))
+            io::Error::other(format!("Serialization failed: {e}"))
         })?;
 
         // Ship to syslog server (ignore error to ensure local audit persists)
-        if let Err(e) = Self::ship_to_syslog(&serialized, &config.syslog_endpoint).await {
-            eprintln!("Syslog shipment failed: {}", e);
+        if let Err(e) = Self::ship_to_syslog(&serialized, &config.syslog_endpoint) {
+            eprintln!("Syslog shipment failed: {e}");
         }
 
         // Also write to local audit log
-        Self::write_local_audit_log(&serialized, &config).await?;
+        Self::write_local_audit_log(&serialized, config)?;
 
         Ok(())
     }
 
     /// Ship audit entry to syslog server
-    async fn ship_to_syslog(audit_data: &str, endpoint: &str) -> io::Result<()> {
+    fn ship_to_syslog(audit_data: &str, endpoint: &str) -> io::Result<()> {
         // In a real implementation, this would use proper syslog protocol
         // For now, we'll write to a mock syslog endpoint
         let mut file = fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open(format!("{}/syslog_audit.log", endpoint))?;
+            .open(format!("{endpoint}/syslog_audit.log"))?;
 
-        writeln!(file, "{}", audit_data)?;
+        writeln!(file, "{audit_data}")?;
 
         Ok(())
     }
 
     /// Write to local audit log
-    async fn write_local_audit_log(audit_data: &str, config: &PrivacyConfig) -> io::Result<()> {
+    ///
+    /// # Panics
+    /// Panics if the current time is before the UNIX epoch.
+    fn write_local_audit_log(audit_data: &str, config: &PrivacyConfig) -> io::Result<()> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .expect("Time went backwards")
             .as_secs();
 
-        let filename = format!("audit_log_{}.json", timestamp);
+        let filename = format!("audit_log_{timestamp}.json");
         let path = Path::new(&config.syslog_endpoint)
             .join("local_audit")
             .join(filename);
@@ -255,7 +267,7 @@ impl PrivacyAuditLogger {
         fs::write(&path, audit_data).map_err(|e| {
             io::Error::new(
                 e.kind(),
-                format!("Failed to write audit to {:?}: {}", path, e),
+                format!("Failed to write audit to {}: {e}", path.display()),
             )
         })?;
 
@@ -264,48 +276,45 @@ impl PrivacyAuditLogger {
 
     /// Send emergency alerts for break-glass events
     #[allow(dead_code)]
-    async fn send_emergency_alerts(&self, command: &str) -> io::Result<()> {
+    fn send_emergency_alerts(&self, command: &str) {
         for channel in &self.config.alert_channels {
             match channel.as_str() {
-                "sms" => self.send_sms_alert(command).await?,
-                "email" => self.send_email_alert(command).await?,
-                "pagerduty" => self.send_pagerduty_alert(command).await?,
+                "sms" => self.send_sms_alert(command),
+                "email" => self.send_email_alert(command),
+                "pagerduty" => self.send_pagerduty_alert(command),
                 _ => {
-                    eprintln!("Unknown alert channel: {}", channel);
+                    eprintln!("Unknown alert channel: {channel}");
                 }
             }
         }
-        Ok(())
     }
 
     /// Send SMS alert (mock implementation)
-    async fn send_sms_alert(&self, command: &str) -> io::Result<()> {
-        println!("🚨 EMERGENCY: Break-glass command executed: {}", command);
+    fn send_sms_alert(&self, command: &str) {
+        println!("🚨 EMERGENCY: Break-glass command executed: {command}");
         println!("🚨 Alert sent via SMS to all stakeholders");
-        Ok(())
     }
 
     /// Send email alert (mock implementation)
-    async fn send_email_alert(&self, command: &str) -> io::Result<()> {
-        println!("📧 EMERGENCY: Break-glass command executed: {}", command);
+    fn send_email_alert(&self, command: &str) {
+        println!("📧 EMERGENCY: Break-glass command executed: {command}");
         println!("📧 Alert sent via email to all stakeholders");
-        Ok(())
     }
 
-    /// Send PagerDuty alert (mock implementation)
-    async fn send_pagerduty_alert(&self, command: &str) -> io::Result<()> {
-        println!("🚨 EMERGENCY: Break-glass command executed: {}", command);
+    /// Send `PagerDuty` alert (mock implementation)
+    fn send_pagerduty_alert(&self, command: &str) {
+        println!("🚨 EMERGENCY: Break-glass command executed: {command}");
         println!("🚨 PagerDuty alert triggered for all on-call personnel");
-        Ok(())
     }
 
     /// Calculate SHA-256 hash of data
-    fn calculate_sha256(data: &[u8]) -> String {
+    #[must_use]
+    pub fn calculate_sha256(data: &[u8]) -> String {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(data);
         let result = hasher.finalize();
-        format!("{:x}", result)
+        format!("{result:x}")
     }
 }
 
@@ -316,7 +325,10 @@ pub struct PrivacyValidator {
 
 impl PrivacyValidator {
     /// Create a new privacy validator
-    pub fn new(pii_patterns: Vec<String>) -> io::Result<Self> {
+    ///
+    /// # Errors
+    /// Returns an error if any PII pattern is an invalid regex.
+    pub fn new(pii_patterns: &[String]) -> io::Result<Self> {
         let regex_patterns = pii_patterns
             .iter()
             .map(|pattern| regex::Regex::new(pattern))
@@ -329,6 +341,7 @@ impl PrivacyValidator {
     }
 
     /// Check if command contains PII and warn user
+    #[must_use]
     pub fn check_pii(&self, command: &str) -> Vec<String> {
         let mut detected_pii = Vec::new();
 
@@ -342,6 +355,7 @@ impl PrivacyValidator {
     }
 
     /// Strip PII from command (basic implementation)
+    #[must_use]
     pub fn strip_pii(&self, command: &str) -> String {
         let mut result = command.to_string();
 
@@ -353,13 +367,16 @@ impl PrivacyValidator {
     }
 
     /// Validate command for privacy compliance
+    ///
+    /// # Errors
+    /// Returns an error if PII is detected in the command.
     pub fn validate_privacy(&self, command: &str) -> io::Result<()> {
         let pii_warnings = self.check_pii(command);
 
         if !pii_warnings.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
-                format!("PII detected in command: {:?}", pii_warnings),
+                format!("PII detected in command: {pii_warnings:?}"),
             ));
         }
 

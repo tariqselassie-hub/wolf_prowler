@@ -174,7 +174,7 @@ impl EncryptedMessageHandler {
     }
 
     /// Check if encryption is enforced
-    pub fn is_encryption_enforced(&self) -> bool {
+    pub const fn is_encryption_enforced(&self) -> bool {
         self.enforce_encryption
     }
 

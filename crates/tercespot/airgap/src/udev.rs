@@ -35,6 +35,9 @@ pub struct UdevListener {
 
 impl UdevListener {
     /// Create a new udev listener
+    ///
+    /// # Errors
+    /// Returns an error if the listener cannot be initialized.
     pub fn new() -> io::Result<Self> {
         let (tx, _rx) = broadcast::channel(100);
 
@@ -49,6 +52,7 @@ impl UdevListener {
     }
 
     /// Get a receiver for USB events
+    #[must_use]
     pub fn subscribe(&self) -> broadcast::Receiver<UsbEvent> {
         self.event_sender.subscribe()
     }
@@ -60,7 +64,10 @@ impl UdevListener {
 
         loop {
             // Check for new USB devices every 2 seconds
-            if let Ok(devices) = Self::get_usb_devices() {
+            // Optimization: Run blocking IO in spawn_blocking to avoid blocking the async runtime
+            let devices_result = task::spawn_blocking(Self::get_usb_devices).await;
+
+            if let Ok(Ok(devices)) = devices_result {
                 for device in devices {
                     let event = UsbEvent::Inserted {
                         device_path: device.path,
@@ -86,10 +93,7 @@ impl UdevListener {
             .output()?;
 
         if !output.status.success() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Failed to run lsusb command",
-            ));
+            return Err(io::Error::other("Failed to run lsusb command"));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -121,8 +125,8 @@ impl UdevListener {
             let id_part = parts[5];
             let id_parts: Vec<&str> = id_part.split(':').collect();
 
-            let vendor_id = id_parts.get(0).map(|s| s.to_string());
-            let product_id = id_parts.get(1).map(|s| s.to_string());
+            let vendor_id = id_parts.first().map(std::string::ToString::to_string);
+            let product_id = id_parts.get(1).map(std::string::ToString::to_string);
 
             Some(UsbDevice {
                 path: device_path,
@@ -152,6 +156,9 @@ pub struct NetlinkUdevListener {
 
 impl NetlinkUdevListener {
     /// Create a new netlink-based udev listener
+    ///
+    /// # Errors
+    /// Returns an error if the listener cannot be initialized.
     pub fn new() -> io::Result<Self> {
         let (tx, _rx) = broadcast::channel(100);
         let tx_clone = tx.clone();
@@ -165,6 +172,7 @@ impl NetlinkUdevListener {
     }
 
     /// Get a receiver for USB events
+    #[must_use]
     pub fn subscribe(&self) -> broadcast::Receiver<UsbEvent> {
         self.event_sender.subscribe()
     }
@@ -176,10 +184,9 @@ impl NetlinkUdevListener {
 
         loop {
             // Poll for USB events
-            if let Ok(events) = Self::poll_usb_events() {
-                for event in events {
-                    let _ = tx.send(event);
-                }
+            let events = Self::poll_usb_events();
+            for event in events {
+                let _ = tx.send(event);
             }
 
             tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
@@ -187,12 +194,12 @@ impl NetlinkUdevListener {
     }
 
     /// Poll for USB events (simplified implementation)
-    fn poll_usb_events() -> io::Result<Vec<UsbEvent>> {
+    const fn poll_usb_events() -> Vec<UsbEvent> {
         // In a real implementation, this would use netlink sockets
         // to receive real-time udev events
 
         // For now, return empty vector
-        Ok(Vec::new())
+        Vec::new()
     }
 }
 

@@ -134,7 +134,7 @@ impl GeoIPService {
             .get(&url)
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to fetch GeoIP data: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to fetch GeoIP data: {e}"))?;
 
         if !response.status().is_success() {
             return Err(anyhow::anyhow!(
@@ -146,7 +146,7 @@ impl GeoIPService {
         let location: GeoLocation = response
             .json()
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to parse GeoIP response: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to parse GeoIP response: {e}"))?;
 
         Ok(location)
     }

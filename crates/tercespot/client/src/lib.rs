@@ -1,32 +1,40 @@
-#![allow(missing_docs)]
-/// # Submitter Library
-///
-/// This library provides functionality for creating, signing, and managing partial commands
-/// in a multi-signature system, typically used for secure command execution requiring
-/// approval from multiple roles.
+//! # Submitter Library
+//!
+//! This library provides functionality for creating, signing, and managing partial commands
+//! in a multi-signature system, typically used for secure command execution requiring
+//! approval from multiple roles.
 
 use fips204::ml_dsa_44;
 use fips204::traits::{Signer, Verifier};
 pub use shared::{create_partial_command, is_partial_complete, package_payload, PartialCommand};
 use shared::{load_public_key, PartialSignature, Role};
-use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
 /// Signs a byte slice with the given PQC key
+///
+/// # Panics
+/// Panics if the signing operation fails.
+#[must_use]
 pub fn sign_data(signing_key: &ml_dsa_44::PrivateKey, data: &[u8]) -> [u8; 2420] {
     signing_key
         .try_sign(data, b"tersec")
         .expect("Signing failed")
 }
 
-/// Loads a PartialCommand from a .partial file
+/// Loads a `PartialCommand` from a .partial file
+///
+/// # Errors
+/// Returns an error if the file cannot be read or deserialized.
 pub fn load_partial_command<P: AsRef<Path>>(path: P) -> Result<PartialCommand, String> {
     let content = fs::read_to_string(path).map_err(|e| e.to_string())?;
     serde_json::from_str(&content).map_err(|e| e.to_string())
 }
 
-/// Saves a PartialCommand to a .partial file
+/// Saves a `PartialCommand` to a .partial file
+///
+/// # Errors
+/// Returns an error if the command cannot be serialized or written to the file.
 pub fn save_partial_command<P: AsRef<Path>>(
     path: P,
     partial: &PartialCommand,
@@ -35,7 +43,10 @@ pub fn save_partial_command<P: AsRef<Path>>(
     fs::write(path, content).map_err(|e| e.to_string())
 }
 
-/// Appends a signature to a PartialCommand
+/// Appends a signature to a `PartialCommand`
+///
+/// # Errors
+/// Returns an error if signature verification fails or if the role has already signed.
 pub fn append_signature_to_partial(
     mut partial: PartialCommand,
     signature: [u8; 2420],
@@ -44,20 +55,16 @@ pub fn append_signature_to_partial(
 ) -> Result<PartialCommand, String> {
     // Verify signature first
     let pk = load_public_key(public_key_path)
-        .map_err(|e| format!("Failed to load public key: {}", e))?;
+        .map_err(|e| format!("Failed to load public key: {e}"))?;
     let payload = &partial.encrypted_payload;
     if !pk.verify(payload, &signature, b"tersec") {
         return Err("Signature verification failed".to_string());
     }
 
     // Check for duplicate roles
-    let mut roles = HashSet::new();
-    for sig_opt in &partial.signatures {
-        if let Some(sig) = sig_opt {
-            if sig.signer_role == role {
-                return Err(format!("Duplicate signature from role {:?}", role));
-            }
-            roles.insert(sig.signer_role.clone());
+    for sig in partial.signatures.iter().flatten() {
+        if sig.signer_role == role {
+            return Err(format!("Duplicate signature from role {role:?}"));
         }
     }
 
@@ -65,8 +72,8 @@ pub fn append_signature_to_partial(
     let slot = partial
         .signatures
         .iter()
-        .position(|s| s.is_none())
-        .ok_or("No available signature slots".to_string())?;
+        .position(std::option::Option::is_none)
+        .ok_or_else(|| "No available signature slots".to_string())?;
 
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -82,19 +89,20 @@ pub fn append_signature_to_partial(
     Ok(partial)
 }
 
-/// Converts a completed PartialCommand to the signed binary format
+/// Converts a completed `PartialCommand` to the signed binary format
+///
+/// # Errors
+/// Returns an error if the partial command is not complete.
 pub fn partial_to_signed(partial: &PartialCommand) -> Result<Vec<u8>, String> {
     if !is_partial_complete(partial) {
         return Err("Partial command is not complete".to_string());
     }
 
     let mut signatures = Vec::new();
-    for sig_opt in &partial.signatures {
-        if let Some(sig) = sig_opt {
-            let mut sig_array = [0u8; 2420];
-            sig_array.copy_from_slice(&sig.signature);
-            signatures.push(sig_array);
-        }
+    for sig in partial.signatures.iter().flatten() {
+        let mut sig_array = [0u8; 2420];
+        sig_array.copy_from_slice(&sig.signature);
+        signatures.push(sig_array);
     }
 
     Ok(package_payload(&signatures, &partial.encrypted_payload))

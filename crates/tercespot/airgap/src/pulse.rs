@@ -5,7 +5,6 @@
 
 #![allow(missing_docs)]
 use crate::error::{AirGapError, Result};
-use chrono::{DateTime, Utc};
 
 use std::collections::HashMap;
 use std::io;
@@ -15,12 +14,14 @@ use tokio::sync::broadcast;
 use tokio::time::sleep;
 
 /// Hardware pulse device types
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PulseDeviceType {
     /// Data USB port (for .tersec packages)
     DataPort,
     /// Identity token port (for authentication)
     IdentityPort,
+    /// Biometric scanner for multi-factor authentication
+    BiometricScanner,
 }
 
 /// Hardware pulse device information
@@ -43,7 +44,7 @@ pub struct PulseDevice {
 }
 
 /// Device status
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PulseDeviceStatus {
     /// Device is connected and ready
     Connected,
@@ -85,6 +86,7 @@ pub struct PulseManager {
 
 impl PulseManager {
     /// Create a new pulse manager
+    #[must_use]
     pub fn new(data_port: Option<String>, identity_port: Option<String>) -> Self {
         let (tx, _rx) = broadcast::channel(100);
 
@@ -106,6 +108,7 @@ impl PulseManager {
     }
 
     /// Get a receiver for pulse events
+    #[must_use]
     pub fn subscribe(&self) -> broadcast::Receiver<PulseEvent> {
         self.event_sender.subscribe()
     }
@@ -148,7 +151,7 @@ impl PulseManager {
                     }
                 }
                 Err(e) => {
-                    eprintln!("Error scanning pulse devices: {}", e);
+                    eprintln!("Error scanning pulse devices: {e}");
                 }
             }
 
@@ -173,20 +176,26 @@ impl PulseManager {
             d.device_type == PulseDeviceType::IdentityPort
                 && d.status == PulseDeviceStatus::Connected
         });
+        let has_biometric = devices.values().any(|d| {
+            d.device_type == PulseDeviceType::BiometricScanner
+                && d.status == PulseDeviceStatus::Connected
+        });
 
-        if has_data_port && has_identity_port {
+        if has_data_port && has_identity_port && has_biometric {
             // Both devices present, ready for execution
-            // println!("✅ Data Port and Identity Port both connected - system ready");
-        } else if has_data_port && !has_identity_port {
-            // println!("⚠️  Data Port connected but Identity Port missing - execution blocked");
-        } else if !has_data_port && has_identity_port {
-            // println!("⚠️  Identity Port connected but Data Port missing");
+            // println!("✅ All required devices connected - system ready");
         } else {
-            // println!("ℹ️  No required devices connected");
+            // println!("⚠️  Missing required devices:");
+            // if !has_data_port { println!(" - Data Port"); }
+            // if !has_identity_port { println!(" - Identity Port"); }
+            // if !has_biometric { println!(" - Biometric Scanner"); }
         }
     }
 
     /// Validate identity token
+    ///
+    /// # Errors
+    /// Returns an error if the identity token is not found or is not an identity port.
     pub async fn validate_identity_token(&self, serial: &str) -> Result<()> {
         let devices = self.connected_devices.read().await;
 
@@ -199,13 +208,50 @@ impl PulseManager {
                 // 2. Send challenge to identity token
                 // 3. Verify response with stored credentials
 
-                println!("✅ Identity token {} validated", serial);
+                println!("✅ Identity token {serial} validated");
                 Ok(())
             } else {
-                Err(AirGapError::PermissionDenied("Device is not an identity port or not connected".to_string()))
+                Err(AirGapError::PermissionDenied(
+                    "Device is not an identity port or not connected".to_string(),
+                ))
             }
         } else {
-            Err(AirGapError::PermissionDenied("Identity token not found".to_string()))
+            Err(AirGapError::PermissionDenied(
+                "Identity token not found".to_string(),
+            ))
+        }
+    }
+
+    /// Validate biometric scan
+    ///
+    /// # Errors
+    /// Returns an error if the biometric scanner is not found or verification fails.
+    pub async fn validate_biometric_scan(&self, serial: &str) -> Result<()> {
+        let devices = self.connected_devices.read().await;
+
+        if let Some(device) = devices.get(serial) {
+            if device.device_type == PulseDeviceType::BiometricScanner
+                && device.status == PulseDeviceStatus::Connected
+            {
+                // In a real implementation, this would:
+                // 1. Trigger scan on device
+                // 2. Receive biometric template
+                // 3. Match against stored hash
+
+                // Simulate processing delay
+                sleep(Duration::from_millis(500)).await;
+
+                println!("✅ Biometric scan verified for device {serial}");
+                Ok(())
+            } else {
+                Err(AirGapError::PermissionDenied(
+                    "Device is not a biometric scanner or not connected".to_string(),
+                ))
+            }
+        } else {
+            Err(AirGapError::PermissionDenied(
+                "Biometric scanner not found".to_string(),
+            ))
         }
     }
 
@@ -222,7 +268,12 @@ impl PulseManager {
                 && d.status == PulseDeviceStatus::Connected
         });
 
-        has_data_port && has_identity_port
+        let has_biometric = devices.values().any(|d| {
+            d.device_type == PulseDeviceType::BiometricScanner
+                && d.status == PulseDeviceStatus::Connected
+        });
+
+        has_data_port && has_identity_port && has_biometric
     }
 }
 
@@ -231,8 +282,11 @@ pub struct UsbPortController;
 
 impl UsbPortController {
     /// Power off a specific USB port
-    pub async fn power_off_port(port: &str) -> io::Result<()> {
-        println!("Powering off USB port: {}", port);
+    ///
+    /// # Errors
+    /// Returns an error if the operation fails.
+    pub fn power_off_port(port: &str) -> io::Result<()> {
+        println!("Powering off USB port: {port}");
 
         // In a real implementation, this would use:
         // 1. sysfs interface: /sys/bus/usb/devices/usbX/power/level
@@ -244,15 +298,21 @@ impl UsbPortController {
     }
 
     /// Power on a specific USB port
-    pub async fn power_on_port(port: &str) -> io::Result<()> {
-        println!("Powering on USB port: {}", port);
+    ///
+    /// # Errors
+    /// Returns an error if the operation fails.
+    pub fn power_on_port(port: &str) -> io::Result<()> {
+        println!("Powering on USB port: {port}");
 
         // Simulated operation
         Ok(())
     }
 
     /// Get USB port status
-    pub async fn get_port_status(_port: &str) -> io::Result<PortStatus> {
+    ///
+    /// # Errors
+    /// Returns an error if the status cannot be retrieved.
+    pub const fn get_port_status(_port: &str) -> io::Result<PortStatus> {
         // In a real implementation, this would read from sysfs
         // For now, return a simulated status
         Ok(PortStatus::PoweredOff)
@@ -260,7 +320,7 @@ impl UsbPortController {
 }
 
 /// USB port status
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortStatus {
     /// Port is powered on
     PoweredOn,
@@ -275,13 +335,16 @@ pub struct DeviceScanner;
 
 impl DeviceScanner {
     /// Scan for connected pulse devices
+    ///
+    /// # Errors
+    /// Returns an error if the scanning operation fails.
     pub async fn scan_devices() -> io::Result<Vec<PulseDevice>> {
         let mut devices = Vec::new();
 
         // Scan for USB serial devices
         if let Ok(serial_devices) = Self::scan_serial_devices().await {
             for device in serial_devices {
-                if let Some(pulse_device) = Self::identify_pulse_device(&device).await {
+                if let Some(pulse_device) = Self::identify_pulse_device(&device) {
                     devices.push(pulse_device);
                 }
             }
@@ -293,32 +356,22 @@ impl DeviceScanner {
     /// Scan for USB serial devices
     async fn scan_serial_devices() -> io::Result<Vec<String>> {
         let dev_dir = std::env::var("TERSEC_PULSE_DEV_DIR").unwrap_or_else(|_| "/dev".to_string());
-        let pattern = format!("{}/ttyUSB*", dev_dir);
+        let mut devices = Vec::new();
 
-        let output = tokio::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!("ls {}", pattern))
-            .output()
-            .await?;
-
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let devices: Vec<String> = stdout
-                .lines()
-                .map(|line| line.trim().to_string())
-                .filter(|line| !line.is_empty())
-                .collect();
-
-            Ok(devices)
-        } else {
-            // Only return error if we really want to fail. Empty list is fine if no devices.
-            // ls /dev/ttyUSB* returns exit code 2 if no files found.
-            Ok(Vec::new())
+        let mut entries = tokio::fs::read_dir(&dev_dir).await?;
+        while let Some(entry) = entries.next_entry().await? {
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if name_str.starts_with("ttyUSB") {
+                devices.push(format!("{}/{}", dev_dir, name_str));
+            }
         }
+
+        Ok(devices)
     }
 
     /// Identify if a device is a pulse device
-    async fn identify_pulse_device(device_path: &str) -> Option<PulseDevice> {
+    fn identify_pulse_device(device_path: &str) -> Option<PulseDevice> {
         // In a real implementation, this would:
         // 1. Open the serial device
         // 2. Send identification command
@@ -338,6 +391,14 @@ impl DeviceScanner {
                 device_path: device_path.to_string(),
                 device_type: PulseDeviceType::IdentityPort,
                 serial_number: "IDENTITY_TOKEN_001".to_string(),
+                last_seen: SystemTime::now(),
+                status: PulseDeviceStatus::Connected,
+            })
+        } else if device_path.contains("ttyUSB2") {
+            Some(PulseDevice {
+                device_path: device_path.to_string(),
+                device_type: PulseDeviceType::BiometricScanner,
+                serial_number: "BIO_SCANNER_001".to_string(),
                 last_seen: SystemTime::now(),
                 status: PulseDeviceStatus::Connected,
             })
@@ -378,5 +439,134 @@ mod tests {
 
         assert_eq!(device.device_type, PulseDeviceType::DataPort);
         assert_eq!(device.status, PulseDeviceStatus::Connected);
+    }
+
+    #[tokio::test]
+    async fn test_device_scanner_with_mock_fs() {
+        use std::fs::File;
+        use tempfile::tempdir;
+
+        // 1. Create temp directory to simulate /dev
+        let dir = tempdir().unwrap();
+        let dev_path = dir.path().to_str().unwrap().to_string();
+
+        // 2. Create dummy device files
+        File::create(dir.path().join("ttyUSB0")).unwrap(); // Should be identified as Data Port
+        File::create(dir.path().join("ttyUSB1")).unwrap(); // Should be identified as Identity Port
+        File::create(dir.path().join("ttyUSB2")).unwrap(); // Should be identified as Biometric Scanner
+
+        // 3. Set env var to point scanner to temp dir
+        std::env::set_var("TERSEC_PULSE_DEV_DIR", &dev_path);
+
+        // 4. Run scan
+        let devices = DeviceScanner::scan_devices().await.unwrap();
+
+        // 5. Verify results
+        assert_eq!(devices.len(), 3);
+        let serials: Vec<String> = devices.iter().map(|d| d.serial_number.clone()).collect();
+        assert!(serials.contains(&"DATA_PORT_001".to_string()));
+        assert!(serials.contains(&"IDENTITY_TOKEN_001".to_string()));
+        assert!(serials.contains(&"BIO_SCANNER_001".to_string()));
+
+        // Cleanup
+        std::env::remove_var("TERSEC_PULSE_DEV_DIR");
+    }
+
+    #[tokio::test]
+    async fn test_pulse_handshake_simulation() {
+        use std::fs::File;
+        use std::time::Duration;
+        use tempfile::tempdir;
+
+        // 1. Create temp directory to simulate /dev
+        let dir = tempdir().unwrap();
+        let dev_path = dir.path().to_str().unwrap().to_string();
+
+        // 2. Create dummy device files
+        // ttyUSB0 -> Data Port
+        File::create(dir.path().join("ttyUSB0")).unwrap();
+        // ttyUSB1 -> Identity Token
+        File::create(dir.path().join("ttyUSB1")).unwrap();
+        // ttyUSB2 -> Biometric Scanner
+        File::create(dir.path().join("ttyUSB2")).unwrap();
+
+        // 3. Set env var to point scanner to temp dir
+        std::env::set_var("TERSEC_PULSE_DEV_DIR", &dev_path);
+
+        // 4. Initialize PulseManager
+        let manager = PulseManager::new(None, None);
+        let mut rx = manager.subscribe();
+
+        // 5. Wait for devices to be detected
+        // PulseManager scans every 1s. We wait for 3 connection events.
+        let mut connected_count = 0;
+        let timeout = tokio::time::sleep(Duration::from_secs(5));
+        tokio::pin!(timeout);
+
+        loop {
+            tokio::select! {
+                Ok(event) = rx.recv() => {
+                    if let PulseEvent::DeviceConnected(_) = event {
+                        connected_count += 1;
+                        if connected_count >= 3 {
+                            break;
+                        }
+                    }
+                }
+                _ = &mut timeout => {
+                    break;
+                }
+            }
+        }
+
+        // 6. Verify Execution Ready state
+        assert!(
+            manager.is_execution_ready().await,
+            "System should be ready (Data + Identity + Biometric)"
+        );
+
+        // 7. Simulate Handshake
+        let result = manager.validate_identity_token("IDENTITY_TOKEN_001").await;
+        assert!(result.is_ok(), "Handshake should succeed");
+
+        // 8. Simulate Biometric Scan
+        let bio_result = manager.validate_biometric_scan("BIO_SCANNER_001").await;
+        assert!(bio_result.is_ok(), "Biometric scan should succeed");
+
+        // 9. Test Disconnection
+        std::fs::remove_file(dir.path().join("ttyUSB1")).unwrap();
+
+        // Wait for disconnection event
+        let timeout = tokio::time::sleep(Duration::from_secs(5));
+        tokio::pin!(timeout);
+        let mut disconnected = false;
+
+        loop {
+            tokio::select! {
+                Ok(event) = rx.recv() => {
+                    if let PulseEvent::DeviceDisconnected(device) = event {
+                        if device.serial_number == "IDENTITY_TOKEN_001" {
+                            disconnected = true;
+                            break;
+                        }
+                    }
+                }
+                _ = &mut timeout => {
+                    break;
+                }
+            }
+        }
+
+        assert!(
+            disconnected,
+            "Should detect disconnection of Identity Token"
+        );
+        assert!(
+            !manager.is_execution_ready().await,
+            "System should no longer be ready"
+        );
+
+        // Cleanup
+        std::env::remove_var("TERSEC_PULSE_DEV_DIR");
     }
 }

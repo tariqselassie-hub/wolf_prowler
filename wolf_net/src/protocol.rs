@@ -46,7 +46,7 @@ pub enum WolfResponse {
 pub struct WolfProtocol;
 
 impl AsRef<str> for WolfProtocol {
-    fn as_ref(&self) -> &str {
+    fn as_ref(&self) -> &'static str {
         "/wolf-pack/req/1.0.0"
     }
 }

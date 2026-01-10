@@ -73,7 +73,7 @@ impl SharedState {
                 threat_id,
                 proposer,
             } => {
-                self.apply_remove_threat(threat_id, proposer);
+                self.apply_remove_threat(&threat_id, proposer);
             }
         }
 
@@ -142,9 +142,9 @@ impl SharedState {
     ///
     /// # Errors
     /// Returns an error if the proposal cannot be applied (currently always returns Ok).
-    fn apply_remove_threat(&mut self, threat_id: String, proposer: u64) {
+    fn apply_remove_threat(&mut self, threat_id: &str, proposer: u64) {
         tracing::info!("Node {} removed threat: {}", proposer, threat_id);
-        self.threats.remove(&threat_id);
+        self.threats.remove(threat_id);
     }
 
     /// Get threat count

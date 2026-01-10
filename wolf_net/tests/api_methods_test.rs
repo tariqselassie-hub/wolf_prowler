@@ -5,7 +5,7 @@
 
 #[allow(unused_imports)]
 use wolf_net::peer::{EntityInfo, PeerId};
-use wolf_net::{SwarmCommand, SwarmConfig, SwarmManager};
+use wolf_net::{SwarmConfig, SwarmManager};
 
 /// Verifies the functionality of `SwarmManager`'s backend API methods.
 ///

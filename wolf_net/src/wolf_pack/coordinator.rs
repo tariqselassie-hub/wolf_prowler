@@ -94,6 +94,8 @@ pub enum CoordinatorMsg {
         /// Leader
         leader_id: PeerId,
     },
+    /// Manually trigger a new election (force this node to become Candidate).
+    StartElection,
     /// Internal tick for garbage collection / timeouts.
     Tick,
 }
@@ -236,6 +238,7 @@ impl HuntCoordinator {
             CoordinatorMsg::AlphaHeartbeat { term, leader_id } => {
                 self.handle_alpha_heartbeat(term, leader_id).await
             }
+            CoordinatorMsg::StartElection => self.handle_start_election().await,
         }
     }
 
@@ -352,14 +355,26 @@ impl HuntCoordinator {
         );
 
         // Award prestige to local node if participating
-        self.state.add_prestige(reward_per_hunter);
+        let awarded = WolfStateMachine::process_feast(
+            &mut self.state,
+            hunt_id,
+            &self.election_manager.local_peer_id,
+            reward_per_hunter,
+        )?;
+
+        if awarded {
+            info!(
+                "💎 Local prestige increased by {} (new total: {})",
+                reward_per_hunter, self.state.prestige
+            );
+        }
 
         // Award reputation to all participants
         if let Some(reporter) = &self.reputation_reporter {
             for peer_id in participants {
                 reporter
                     .report_event(
-                        &peer_id.to_string(),
+                        peer_id.as_str(),
                         "Security",
                         0.05, // Positive impact for successful hunt participation
                         format!("Participated in successful hunt {hunt_id}"),
@@ -368,10 +383,6 @@ impl HuntCoordinator {
             }
         }
 
-        info!(
-            "💎 Local prestige increased by {} (new total: {})",
-            reward_per_hunter, self.state.prestige
-        );
         Ok(())
     }
 
@@ -420,6 +431,7 @@ impl HuntCoordinator {
                         "Failed to send election tick to swarm: {e}"
                     ))
                 })?;
+            self.sync_public_state().await;
         }
         Ok(())
     }
@@ -514,7 +526,7 @@ impl HuntCoordinator {
                 prestige,
             },
         );
-        match self.election_manager.handle_howl(&howl) {
+        let result = match self.election_manager.handle_howl(&howl) {
             Some(response_howl) => {
                 if let Ok(bytes) = response_howl.to_bytes() {
                     // A vote response should ideally be sent directly to the candidate.
@@ -531,7 +543,9 @@ impl HuntCoordinator {
                 Ok(())
             }
             None => Ok(()),
-        }
+        };
+        self.sync_public_state().await;
+        result
     }
 
     async fn handle_election_vote(
@@ -549,7 +563,7 @@ impl HuntCoordinator {
                 granted,
             },
         );
-        match self.election_manager.handle_howl(&howl) {
+        let result = match self.election_manager.handle_howl(&howl) {
             Some(response_howl) => {
                 // This response would be a heartbeat if we won the election.
                 if let Ok(bytes) = response_howl.to_bytes() {
@@ -565,7 +579,9 @@ impl HuntCoordinator {
                 Ok(())
             }
             None => Ok(()),
-        }
+        };
+        self.sync_public_state().await;
+        result
     }
 
     async fn handle_alpha_heartbeat(&mut self, term: u64, leader_id: PeerId) -> Result<()> {
@@ -580,8 +596,36 @@ impl HuntCoordinator {
         Ok(())
     }
 
+    async fn handle_start_election(&mut self) -> Result<()> {
+        info!("🗳️ Manually starting election");
+        let howl = self.election_manager.start_election();
+
+        // Broadcast the Voice Request
+        if let Ok(bytes) = howl.to_bytes() {
+            self.swarm_sender
+                .send(SwarmCommand::Broadcast(bytes))
+                .await
+                .map_err(|e| {
+                    WolfPackError::ElectionError(format!(
+                        "Failed to broadcast manually started election: {e}"
+                    ))
+                })?;
+        }
+        self.sync_public_state().await;
+        Ok(())
+    }
+
     /// Synchronizes the private actor state to the public shared state.
-    async fn sync_public_state(&self) {
+    async fn sync_public_state(&mut self) {
+        // Sync election state to public state
+        self.state.leader_id = self
+            .election_manager
+            .leader_id
+            .as_ref()
+            .map(|id| id.to_string());
+        self.state.election_term = self.election_manager.current_term;
+        self.state.election_state = format!("{:?}", self.election_manager.state);
+
         let mut public = self.public_state.write().await;
         *public = self.state.clone();
     }

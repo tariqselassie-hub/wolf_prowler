@@ -1,10 +1,12 @@
 //! Peer Tracking Integration Tests
-use wolf_net::peer::{EntityStatus, PeerId};
-use wolf_net::swarm::{SwarmConfig, SwarmManager};
 use std::time::Duration;
+use wolf_net::message::Message;
+use wolf_net::peer::{EntityStatus, PeerId};
+use wolf_net::swarm::{SwarmCommand, SwarmConfig, SwarmManager};
 
 #[tokio::test]
 async fn test_peer_tracking_lifecycle() {
+    let _ = tracing_subscriber::fmt::try_init();
     // Initialize two swarm managers
     let mut config1 = SwarmConfig::default();
     config1.keypair_path = "target/test_peer_tracking_1.key".into();
@@ -37,6 +39,20 @@ async fn test_peer_tracking_lifecycle() {
     // Swarm1 dials Swarm2
     swarm1.dial(peer2_id.clone(), addr2).await.unwrap();
 
+    // Send a message to keep connection alive (prevent idle timeout)
+    // We use a dummy ID for source if we can't easily get swarm1's ID, or use random.
+    // Ideally SwarmManager should expose local_peer_id.
+    // Let's assume we can use random for keep-alive.
+    let msg = Message::chat(PeerId::random(), "KeepAlive".to_string());
+    swarm1
+        .command_sender()
+        .send(SwarmCommand::SendMessage {
+            target: peer2_id.clone(),
+            message: msg,
+        })
+        .await
+        .unwrap();
+
     // Wait for connection to be reflected in registry
     let mut online = false;
     for _ in 0..20 {
@@ -61,7 +77,10 @@ async fn test_peer_tracking_lifecycle() {
             }
         }
     }
-    assert!(identified, "Peer 2 should have protocol version in Swarm 1 registry");
+    assert!(
+        identified,
+        "Peer 2 should have protocol version in Swarm 1 registry"
+    );
 
     // List peers
     let peers = swarm1.list_peers().await.unwrap();
@@ -80,7 +99,10 @@ async fn test_peer_tracking_lifecycle() {
             }
         }
     }
-    assert!(offline, "Peer 2 should be offline in Swarm 1 registry after shutdown");
+    assert!(
+        offline,
+        "Peer 2 should be offline in Swarm 1 registry after shutdown"
+    );
 
     swarm1.stop().await.unwrap();
 }

@@ -49,7 +49,7 @@ impl PeerId {
     /// Convert to libp2p PeerId
     pub fn as_libp2p(&self) -> Libp2pPeerId {
         // Parse from Base58 (which is what we store in self.0)
-        self.0.parse().unwrap_or_else(|_| Libp2pPeerId::random())
+        self.0.parse().expect("Invalid PeerId format")
     }
 
     /// Create from libp2p PeerId

@@ -3,11 +3,11 @@
 //! Consolidated key and certificate management functionality
 
 use anyhow::{anyhow, Result};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, Datelike};
 use openssl::pkcs12::Pkcs12;
 use openssl::pkey::PKey;
 use openssl::x509::X509;
-use rcgen::{CertificateParams, DistinguishedName, DnType, KeyPair};
+use rcgen::{CertificateParams, DistinguishedName, DnType, KeyPair, Ia5String};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -907,19 +907,19 @@ impl KeyManager {
         let not_after = now + chrono::Duration::days(validity_days);
 
         // Generate real X.509 certificate using rcgen
-        let mut params = CertificateParams::new(vec![subject.to_string()]);
-        params.not_before = std::time::SystemTime::from(now).into();
-        params.not_after = std::time::SystemTime::from(not_after).into();
-
         let mut dn = DistinguishedName::new();
         dn.push(DnType::CommonName, subject);
+
+        let mut params = CertificateParams::new(vec![subject.to_string()])?;
         params.distinguished_name = dn;
+        params.not_before = rcgen::date_time_ymd(now.year(), now.month() as u8, now.day() as u8);
+        params.not_after = rcgen::date_time_ymd(not_after.year(), not_after.month() as u8, not_after.day() as u8);
 
         // Use the key data to create a KeyPair (simplified - in practice, you'd use proper key formats)
         // For now, generate a new key pair since we don't have proper key format conversion
-        let key_pair = KeyPair::generate(&rcgen::PKCS_ECDSA_P256_SHA256)?;
+        let key_pair = KeyPair::generate()?;
         params.key_pair = Some(key_pair);
-
+        
         let cert = rcgen::Certificate::from_params(params)?;
         let pem = cert.serialize_pem()?;
 
@@ -1004,7 +1004,7 @@ impl KeyManager {
         // For PKCS#12, we need the private key in PEM format too
         // Since our keys are raw bytes, we'll generate a new key pair for demonstration
         // In a real implementation, you'd store the private key in PEM format
-        let key_pair = KeyPair::generate(&rcgen::PKCS_ECDSA_P256_SHA256)?;
+        let key_pair = KeyPair::generate()?;
         let pem_key = key_pair.serialize_pem();
 
         // Create PKCS#12 using openssl

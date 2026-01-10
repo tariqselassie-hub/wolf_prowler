@@ -14,7 +14,7 @@ pub struct InternalFirewall {
 
 impl InternalFirewall {
     /// Creates a new `InternalFirewall` instance with default policy.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             rules: Vec::new(),
             policy: FirewallPolicy::Default,

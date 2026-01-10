@@ -96,7 +96,7 @@ impl NetworkScanner {
     async fn detect_local_subnet() -> anyhow::Result<String> {
         // Use `ip route` on Linux to find default gateway subnet
         let output = tokio::process::Command::new("ip")
-            .args(&["route", "show", "default"])
+            .args(["route", "show", "default"])
             .output()
             .await?;
 
@@ -265,7 +265,7 @@ impl NetworkScanner {
                     // Look for MAC address (format: xx:xx:xx:xx:xx:xx)
                     if let Some(mac_part) = parts.get(i + 2) {
                         if mac_part.contains(':') && mac_part.len() == 17 {
-                            arp_table.insert(ip.to_string(), mac_part.to_string());
+                            arp_table.insert(ip.to_string(), (*mac_part).to_string());
                         }
                     }
                 }
@@ -321,7 +321,7 @@ impl NetworkScanner {
 
         // Calculate number of hosts
         let host_bits = 32 - prefix;
-        let num_hosts = 2u32.pow(host_bits as u32) - 2; // Exclude network and broadcast
+        let num_hosts = 2u32.pow(u32::from(host_bits)) - 2; // Exclude network and broadcast
 
         let base = u32::from(base_ip);
         let mut ips = Vec::new();
@@ -338,7 +338,7 @@ impl NetworkScanner {
     /// List available network interfaces with their subnets
     pub async fn list_interfaces() -> anyhow::Result<Vec<NetworkInterface>> {
         let output = tokio::process::Command::new("ip")
-            .args(&["-j", "-4", "addr", "show"])
+            .args(["-j", "-4", "addr", "show"])
             .output()
             .await?;
 
@@ -445,7 +445,7 @@ mod tests {
         // This test requires `ip` command which might not be available in all test environments
         if let Ok(interfaces) = NetworkScanner::list_interfaces().await {
             println!("Found interfaces: {:?}", interfaces);
-            assert!(interfaces.len() >= 0); // Just check it doesn't crash
+            // Just check it doesn't crash
         }
     }
 }

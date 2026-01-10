@@ -288,6 +288,8 @@ pub struct SwarmConfig {
     pub reputation_reporter: Option<Arc<dyn ReputationReporter>>,
     /// Deterministic identity seed
     pub identity_seed: Option<String>,
+    /// Initial consensus peers (PeerIds) for Raft cluster bootstrapping
+    pub initial_consensus_peers: Vec<PeerId>,
 }
 
 impl Default for SwarmConfig {
@@ -306,6 +308,7 @@ impl Default for SwarmConfig {
             security_event_sender: None,
             reputation_reporter: None,
             identity_seed: None,
+            initial_consensus_peers: Vec::new(),
         }
     }
 }
@@ -498,6 +501,7 @@ impl SwarmManager {
         let consensus_manager_init = consensus_manager.clone();
         let consensus_swarm_tx = command_sender.clone();
         let consensus_keypair_path = config.keypair_path.clone();
+        let consensus_initial_peers = config.initial_consensus_peers.clone();
         let consensus_local_peer_id = local_peer_id.as_libp2p();
 
         tokio::spawn(async move {
@@ -507,6 +511,18 @@ impl SwarmManager {
                 std::hash::Hasher::finish(&hasher)
             };
 
+            let mut initial_nodes = Vec::new();
+            if consensus_initial_peers.is_empty() {
+                initial_nodes.push(node_id);
+            } else {
+                for peer in consensus_initial_peers {
+                    let p = peer.as_libp2p();
+                    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                    std::hash::Hash::hash(&p, &mut hasher);
+                    initial_nodes.push(std::hash::Hasher::finish(&hasher));
+                }
+            }
+
             let storage_path = consensus_keypair_path
                 .parent()
                 .unwrap_or(&std::env::temp_dir())
@@ -514,7 +530,7 @@ impl SwarmManager {
 
             match crate::consensus::manager::ConsensusManager::start(
                 node_id,
-                vec![node_id],
+                initial_nodes,
                 storage_path.to_str().unwrap_or("/tmp/wolf_consensus"),
                 consensus_swarm_tx,
             ) {
@@ -534,7 +550,6 @@ impl SwarmManager {
         let active_connections_clone = active_connections.clone();
         let peer_registry_clone = peer_registry.clone();
         let security_sender = config.security_event_sender.clone();
-        let security_sender_for_processor = security_sender.clone(); // Clone for security event processor
         let encrypted_handler_clone = encrypted_handler.clone();
         let firewall_clone = firewall.clone();
         let reputation_reporter = config.reputation_reporter.clone();
@@ -679,55 +694,50 @@ impl SwarmManager {
                                                let _ = sender.send(event);
                                            }
                                        }
-                                       SwarmEvent::ConnectionClosed { peer_id, cause, num_established, .. } => {
-                                           // Only report/remove if this was the last connection
-                                           if num_established == 0 {
-                                               warn!("❌ Connection lost with {}: {:?}", peer_id, cause);
-                                               connected_peers.remove(&peer_id);
+                                       SwarmEvent::ConnectionClosed { peer_id, cause, .. } => {
+                                           warn!("❌ Connection lost with {}: {:?}", peer_id, cause);
+                                           connected_peers.remove(&peer_id);
 
-                                               if let Some(reporter) = &reputation_reporter {
-                                                   reporter.report_event(
-                                                       &peer_id.to_string(),
-                                                       "Networking",
-                                                       0.0,
-                                                       format!("Connection closed: {:?}", cause)
-                                                   ).await;
-                                               }
+                                           if let Some(reporter) = &reputation_reporter {
+                                               reporter.report_event(
+                                                   &peer_id.to_string(),
+                                                   "Networking",
+                                                   0.0,
+                                                   format!("Connection closed: {:?}", cause)
+                                               ).await;
+                                           }
 
-                                               active_connections_clone.lock().await.remove(&peer_id);
+                                           active_connections_clone.lock().await.remove(&peer_id);
 
-                                               // Update metrics
-                                               {
-                                                   let mut metrics = metrics_clone.lock().await;
-                                                   metrics.active_connections = connected_peers.len();
-                                                   metrics.last_activity = Some(Instant::now());
-                                               }
+                                           // Update metrics
+                                           {
+                                               let mut metrics = metrics_clone.lock().await;
+                                               metrics.active_connections = connected_peers.len();
+                                               metrics.last_activity = Some(Instant::now());
+                                           }
 
-                                                // Update Peer Registry
-                                                {
-                                                    let mut registry = peer_registry_clone.lock().await;
-                                                    let target = crate::peer::PeerId::from_libp2p(peer_id);
-                                                    if let Some(info) = registry.get_mut(&target) {
-                                                        info.set_status(crate::peer::EntityStatus::Offline);
-                                                        // Update uptime
-                                                        let uptime = active_connections_clone.lock().await.get(&peer_id)
-                                                            .map(|c| u64::try_from(c.connected_since.elapsed().as_millis()).unwrap_or(u64::MAX))
-                                                            .unwrap_or(0);
-                                                        info.metrics.uptime_ms += uptime;
-                                                    }
+                                            // Update Peer Registry
+                                            {
+                                                let mut registry = peer_registry_clone.lock().await;
+                                                let target = crate::peer::PeerId::from_libp2p(peer_id);
+                                                if let Some(info) = registry.get_mut(&target) {
+                                                    info.set_status(crate::peer::EntityStatus::Offline);
+                                                    // Update uptime
+                                                    let uptime = active_connections_clone.lock().await.get(&peer_id)
+                                                        .map(|c| u64::try_from(c.connected_since.elapsed().as_millis()).unwrap_or(u64::MAX))
+                                                        .unwrap_or(0);
+                                                    info.metrics.uptime_ms += uptime;
                                                 }
+                                            }
 
-                                               // Send security event
-                                               if let Some(sender) = &security_sender {
-                                                   let event = crate::event::SecurityEvent::new(
-                                                       crate::event::SecurityEventType::Other("ConnectionClosed".to_string()),
-                                                       crate::event::SecuritySeverity::Low,
-                                                       format!("Connection closed with {}: {:?}", peer_id, cause),
-                                                   ).with_peer(peer_id.to_string());
-                                                   let _ = sender.send(event);
-                                               }
-                                           } else {
-                                               debug!("Connection closed with {}, but {} remain", peer_id, num_established);
+                                           // Send security event
+                                           if let Some(sender) = &security_sender {
+                                               let event = crate::event::SecurityEvent::new(
+                                                   crate::event::SecurityEventType::Other("ConnectionClosed".to_string()),
+                                                   crate::event::SecuritySeverity::Low,
+                                                   format!("Connection closed with {}: {:?}", peer_id, cause),
+                                               ).with_peer(peer_id.to_string());
+                                               let _ = sender.send(event);
                                            }
                                        }
                                         SwarmEvent::Behaviour(event) => {
@@ -826,26 +836,6 @@ impl SwarmManager {
                                                             // Try to convert Multiaddr to SocketAddr if possible (simplified for now)
                                                             // Note: Multiaddr is more general, but EntityInfo uses SocketAddr
                                                         }
-                                                   }
-                                               }
-                                               WolfBehaviorEvent::Mdns(event) => {
-                                                   match event {
-                                                       libp2p::mdns::Event::Discovered(list) => {
-                                                           for (peer_id, multiaddr) in list {
-                                                               info!("🔍 mDNS discovered: {} at {}", peer_id, multiaddr);
-                                                               swarm.behaviour_mut().kad.add_address(&peer_id, multiaddr.clone());
-                                                               
-                                                               // Auto-dial discovered peers to establish connection
-                                                               if !connected_peers.contains(&peer_id) {
-                                                                    let _ = swarm.dial(multiaddr);
-                                                               }
-                                                           }
-                                                       }
-                                                       libp2p::mdns::Event::Expired(list) => {
-                                                           for (peer_id, _multiaddr) in list {
-                                                               debug!("👻 mDNS expired: {}", peer_id);
-                                                           }
-                                                       }
                                                    }
                                                }
                                                WolfBehaviorEvent::Gossipsub(event) => {
@@ -960,6 +950,22 @@ impl SwarmManager {
                                                            }
                                                        }
                                                        _ => {}
+                                                   }
+                                               }
+                                               WolfBehaviorEvent::Mdns(event) => {
+                                                   match event {
+                                                       libp2p::mdns::Event::Discovered(list) => {
+                                                           for (peer_id, _multiaddr) in list {
+                                                               info!("mDNS discovered peer: {}", peer_id);
+                                                               swarm.behaviour_mut().gossipsub.add_explicit_peer(&peer_id);
+                                                           }
+                                                       }
+                                                       libp2p::mdns::Event::Expired(list) => {
+                                                           for (peer_id, _multiaddr) in list {
+                                                               info!("mDNS peer expired: {}", peer_id);
+                                                               swarm.behaviour_mut().gossipsub.remove_explicit_peer(&peer_id);
+                                                           }
+                                                       }
                                                    }
                                                }
                                                WolfBehaviorEvent::ReqResp(event) => {
@@ -1382,7 +1388,7 @@ impl SwarmManager {
                                            }
                                        }
                                         SwarmCommand::AddAddress { peer_id, addr } => {
-                                            swarm.add_peer_address(peer_id.as_libp2p(), addr);
+                                            swarm.behaviour_mut().kad.add_address(&peer_id.as_libp2p(), addr);
                                         }
                                        SwarmCommand::BlockIp { ip } => {
                                            if let Ok(ip_addr) = ip.parse::<std::net::IpAddr>() {
@@ -1410,78 +1416,6 @@ impl SwarmManager {
 
             info!("Swarm event loop stopped");
         });
-
-        // Spawn security event processing task if sender is configured
-        if let Some(_security_sender) = security_sender_for_processor {
-            let (_sec_tx, mut sec_rx) = mpsc::unbounded_channel::<crate::event::SecurityEvent>();
-
-            // Clone necessary references for the security event processor
-            let local_peer_id_for_sec = local_peer_id.clone();
-            let hunt_sender_for_sec = hunt_sender.clone();
-            let wolf_state_for_sec = wolf_state.clone();
-
-            // Store the sender in a way that can be accessed
-            // For now, we'll create a simple processing loop
-            tokio::spawn(async move {
-                #[allow(clippy::expect_used)]
-                let ip_regex =
-                    regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
-
-                while let Some(event) = sec_rx.recv().await {
-                    // Check severity threshold
-                    if !matches!(
-                        event.severity,
-                        crate::event::SecuritySeverity::High
-                            | crate::event::SecuritySeverity::Critical
-                    ) {
-                        continue;
-                    }
-
-                    // Check local role and prestige
-                    let state = wolf_state_for_sec.read().await;
-                    if state.role < crate::wolf_pack::state::WolfRole::Scout || state.prestige < 50
-                    {
-                        debug!(
-                            "Node lacks authority to initiate hunt (role: {:?}, prestige: {})",
-                            state.role, state.prestige
-                        );
-                        continue;
-                    }
-                    drop(state);
-
-                    // Extract target IP
-                    let target_ip = if let Some(peer_id) = &event.peer_id {
-                        ip_regex
-                            .find(peer_id)
-                            .map_or_else(|| peer_id.clone(), |mat| mat.as_str().to_string())
-                    } else {
-                        ip_regex
-                            .find(&event.description)
-                            .map_or_else(|| "unknown".to_string(), |mat| mat.as_str().to_string())
-                    };
-
-                    // Emit WarningHowl
-                    if let Err(e) = hunt_sender_for_sec
-                        .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
-                            source: local_peer_id_for_sec.clone(),
-                            target_ip: target_ip.clone(),
-                            evidence: event.description.clone(),
-                        })
-                        .await
-                    {
-                        error!("Failed to send WarningHowl: {}", e);
-                    } else {
-                        info!(
-                            "🐺 Scout node initiated hunt for {} (severity: {:?})",
-                            target_ip, event.severity
-                        );
-                    }
-                }
-                info!("Security event processor stopped");
-            });
-
-            info!("🔒 Security event processor started");
-        }
 
         let reputation_reporter = config.reputation_reporter.clone();
         Ok(Self {
@@ -1858,20 +1792,21 @@ impl SwarmManager {
 
     /// Extract target IP from security event
     fn extract_target_ip(event: &crate::event::SecurityEvent) -> String {
+        use lazy_static::lazy_static;
+        lazy_static! {
+            static ref IP_REGEX: regex::Regex =
+                regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
+        }
+
         // Try to extract from peer_id if it looks like an IP
         if let Some(peer_id) = &event.peer_id {
-            // Simple IP regex check
-            #[allow(clippy::expect_used)]
-            let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
-            if let Some(mat) = ip_regex.find(peer_id) {
+            if let Some(mat) = IP_REGEX.find(peer_id) {
                 return mat.as_str().to_string();
             }
         }
 
         // Try to extract from description
-        #[allow(clippy::expect_used)]
-        let ip_regex = regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
-        if let Some(mat) = ip_regex.find(&event.description) {
+        if let Some(mat) = IP_REGEX.find(&event.description) {
             return mat.as_str().to_string();
         }
 

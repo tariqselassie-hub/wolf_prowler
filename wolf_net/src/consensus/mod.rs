@@ -122,7 +122,7 @@ impl ConsensusEngine {
     }
 
     /// Get current leader ID
-    pub fn leader_id(&self) -> Option<u64> {
+    pub const fn leader_id(&self) -> Option<u64> {
         let leader = self.raw_node.raft.r.leader_id;
         if leader == 0 {
             None
@@ -186,7 +186,7 @@ impl ConsensusEngine {
         let messages = ready.messages().to_vec();
 
         // Apply committed entries
-        let committed_entries = ready.committed_entries().to_vec();
+        let committed_entries = ready.committed_entries().clone();
         if !committed_entries.is_empty() {
             self.apply_committed_entries(committed_entries).await?;
         }
@@ -211,7 +211,7 @@ impl ConsensusEngine {
         let mut all_messages = messages;
         all_messages.extend(light_rd.messages().to_vec());
 
-        let light_committed_entries = light_rd.committed_entries().to_vec();
+        let light_committed_entries = light_rd.committed_entries().clone();
         if !light_committed_entries.is_empty() {
             self.apply_committed_entries(light_committed_entries)
                 .await?;

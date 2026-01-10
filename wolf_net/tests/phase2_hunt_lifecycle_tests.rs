@@ -213,9 +213,9 @@ async fn test_hunt_lifecycle_minimum_participants() {
         state_read.active_hunts[0].hunt_id.clone()
     };
 
-    // Only 2 hunters (below minimum of 3)
+    // Only 1 hunter (Total 2 participants: 1 Scout + 1 Hunter) - below minimum of 3
     println!("\n🔍 STALK: Only 2 participants (need 3)");
-    for _ in 0..2 {
+    for _ in 0..1 {
         sender
             .send(CoordinatorMsg::HuntReport {
                 hunt_id: hunt_id.clone(),

@@ -94,11 +94,7 @@ async fn test_3_node_election_integration() {
     // 3. Trigger election on Node 0
     let node0_tx = nodes.get(&peer_ids[0]).unwrap();
     node0_tx
-        .send(CoordinatorMsg::ElectionRequest {
-            term: 1,
-            candidate_id: peer_ids[0].clone(),
-            prestige: prestiges[0],
-        })
+        .send(CoordinatorMsg::StartElection)
         .await
         .expect("Failed to trigger election");
 

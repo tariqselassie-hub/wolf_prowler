@@ -20,15 +20,15 @@ async fn test_air_gap_bridge_creation() {
 
     let bridge = AirGapBridge::new(config).unwrap();
     // Test that the bridge was created successfully
-    assert!(bridge.forensic_log.worm_path.len() > 0);
+    assert!(!bridge.forensic_log.worm_path.is_empty());
 }
 
 #[test]
 fn test_sha256_calculation() {
     let config = AirGapConfig {
-        usb_monitor_path: "".to_string(),
-        mount_base_path: "".to_string(),
-        worm_drive_path: "".to_string(),
+        usb_monitor_path: String::new(),
+        mount_base_path: String::new(),
+        worm_drive_path: String::new(),
         authorized_keys: vec![],
         execution_timeout: 0,
         verbose: false,

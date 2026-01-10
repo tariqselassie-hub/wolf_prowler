@@ -58,22 +58,8 @@ impl DiscoveryMethod for MdnsDiscovery {
             return Ok(Vec::new());
         }
 
-        debug!("Starting mDNS discovery...");
-
-        // Simplified mDNS discovery - in practice, you'd use libp2p-mdns
-        let mut peers = Vec::new();
-
-        // Simulate finding some peers
-        for i in 0..3 {
-            let peer_id = PeerId::random();
-            let mut peer_info = PeerInfo::new(peer_id);
-            peer_info.add_address(format!("127.0.0.1:{}", 8080 + i).parse().unwrap());
-            peer_info.add_capability("wolf_prowler".to_string());
-            peers.push(peer_info);
-        }
-
-        info!("mDNS discovered {} peers", peers.len());
-        Ok(peers)
+        // mDNS is handled by the libp2p Swarm behavior (see swarm.rs)
+        Ok(Vec::new())
     }
 
     fn name(&self) -> &'static str {
@@ -101,22 +87,8 @@ impl DiscoveryMethod for DhtDiscovery {
             return Ok(Vec::new());
         }
 
-        debug!("Starting DHT discovery...");
-
-        // Simplified DHT discovery - in practice, you'd use libp2p-kad
-        let mut peers = Vec::new();
-
-        // Simulate DHT peer discovery
-        for i in 0..2 {
-            let peer_id = PeerId::random();
-            let mut peer_info = PeerInfo::new(peer_id);
-            peer_info.add_address(format!("127.0.0.1:{}", 9000 + i).parse().unwrap());
-            peer_info.add_capability("wolf_prowler_dht".to_string());
-            peers.push(peer_info);
-        }
-
-        info!("DHT discovered {} peers", peers.len());
-        Ok(peers)
+        // DHT is handled by the libp2p Swarm behavior (see swarm.rs)
+        Ok(Vec::new())
     }
 
     fn name(&self) -> &'static str {
@@ -145,29 +117,8 @@ impl DiscoveryMethod for ActiveScanDiscovery {
             return Ok(Vec::new());
         }
 
-        debug!("Starting active port scan...");
-
-        let mut peers = Vec::new();
-
-        // Simple port scanning simulation
-        for port in &self.ports {
-            if let Ok(addr) = format!("127.0.0.1:{}", port).parse::<SocketAddr>() {
-                // In practice, you'd actually try to connect to the port
-                // For now, we'll simulate finding some peers
-
-                if *port % 2 == 0 {
-                    // Simulate every other port has a peer
-                    let peer_id = PeerId::random();
-                    let mut peer_info = PeerInfo::new(peer_id);
-                    peer_info.add_address(addr);
-                    peer_info.add_capability("wolf_prowler_active".to_string());
-                    peers.push(peer_info);
-                }
-            }
-        }
-
-        info!("Active scan discovered {} peers", peers.len());
-        Ok(peers)
+        // Active scan requires handshake to obtain PeerId, which is not implemented here.
+        Ok(Vec::new())
     }
 
     fn name(&self) -> &'static str {
@@ -381,14 +332,14 @@ mod tests {
     async fn test_mdns_discovery() {
         let discovery = MdnsDiscovery::new(true);
         let peers = discovery.discover_peers().await.unwrap();
-        assert!(!peers.is_empty());
+        assert!(peers.is_empty());
     }
 
     #[tokio::test]
     async fn test_dht_discovery() {
         let discovery = DhtDiscovery::new(true);
         let peers = discovery.discover_peers().await.unwrap();
-        assert!(!peers.is_empty());
+        assert!(peers.is_empty());
     }
 
     #[tokio::test]

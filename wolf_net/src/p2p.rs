@@ -29,10 +29,10 @@ impl MessagePriority {
     /// Converts the message priority to a gossipsub topic name.
     pub fn to_topic_name(&self) -> String {
         match self {
-            MessagePriority::Low => "wolf-prowler-low".to_string(),
-            MessagePriority::Medium => "wolf-prowler-medium".to_string(),
-            MessagePriority::High => "wolf-prowler-high".to_string(),
-            MessagePriority::Critical => "wolf-prowler-critical".to_string(),
+            Self::Low => "wolf-prowler-low".to_string(),
+            Self::Medium => "wolf-prowler-medium".to_string(),
+            Self::High => "wolf-prowler-high".to_string(),
+            Self::Critical => "wolf-prowler-critical".to_string(),
         }
     }
 }
@@ -112,7 +112,7 @@ pub fn optimized_gossipsub_config() -> gossipsub::Config {
 pub struct WolfNetProtocol;
 
 impl AsRef<str> for WolfNetProtocol {
-    fn as_ref(&self) -> &str {
+    fn as_ref(&self) -> &'static str {
         "/wolf-prowler/req-resp/1.0.0"
     }
 }

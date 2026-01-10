@@ -28,7 +28,6 @@ pub struct SledStorage {
 
 impl SledStorage {
     /// Create new Sled storage
-    /// Create new Sled storage
     ///
     /// # Errors
     /// Returns an error if the database cannot be opened or initialized.
@@ -64,7 +63,6 @@ impl SledStorage {
         })
     }
 
-    /// Set commit index
     /// Set commit index
     ///
     /// # Errors
@@ -103,29 +101,15 @@ impl SledStorage {
     ///
     /// # Panics
     /// Panics if the `hard_state` write lock is poisoned.
-    /// Set hard state
-    ///
-    /// # Errors
-    /// Returns an error if encoding or database write fails.
-    ///
-    /// # Panics
-    /// Panics if the `hard_state` write lock is poisoned.
     pub fn set_hard_state(&self, hs: &HardState) -> Result<()> {
         let mut data = Vec::new();
         <HardState as prost::Message>::encode(hs, &mut data)?;
         self.db.insert(KEY_HARD_STATE, data)?;
-        *self.hard_state.write().unwrap() = hs.clone();
+        *self.hard_state.write().expect("Lock poisoned") = hs.clone();
         self.db.flush()?;
         Ok(())
     }
 
-    /// Set conf state
-    ///
-    /// # Errors
-    /// Returns an error if encoding fails or database write fails.
-    ///
-    /// # Panics
-    /// Panics if the `conf_state` write lock is poisoned.
     /// Set conf state
     ///
     /// # Errors
@@ -137,7 +121,7 @@ impl SledStorage {
         let mut data = Vec::new();
         <ConfState as prost::Message>::encode(cs, &mut data)?;
         self.db.insert(KEY_CONF_STATE, data)?;
-        *self.conf_state.write().unwrap() = cs.clone();
+        *self.conf_state.write().expect("Lock poisoned") = cs.clone();
         self.db.flush()?;
         Ok(())
     }
@@ -149,18 +133,10 @@ impl SledStorage {
     ///
     /// # Panics
     /// Panics if the internal `RwLock`s are poisoned.
-    #[allow(clippy::significant_drop_tightening)]
-    /// Apply a snapshot to the storage
-    ///
-    /// # Errors
-    /// Returns a `raft::Error::Store` if encoding or writing to the database fails.
-    ///
-    /// # Panics
-    /// Panics if the internal `RwLock`s are poisoned.
     pub fn apply_snapshot(&self, snapshot: &Snapshot) -> Result<(), raft::Error> {
-        let mut hs = self.hard_state.write().unwrap();
-        let mut cs = self.conf_state.write().unwrap();
-        let mut snap = self.snapshot.write().unwrap();
+        let mut hs = self.hard_state.write().expect("Lock poisoned");
+        let mut cs = self.conf_state.write().expect("Lock poisoned");
+        let mut snap = self.snapshot.write().expect("Lock poisoned");
 
         let metadata = snapshot.get_metadata();
         *hs = HardState {
@@ -200,8 +176,8 @@ impl SledStorage {
 impl Storage for SledStorage {
     fn initial_state(&self) -> raft::Result<RaftState> {
         Ok(RaftState {
-            hard_state: self.hard_state.read().unwrap().clone(),
-            conf_state: self.conf_state.read().unwrap().clone(),
+            hard_state: self.hard_state.read().expect("Lock poisoned").clone(),
+            conf_state: self.conf_state.read().expect("Lock poisoned").clone(),
         })
     }
 
@@ -246,10 +222,11 @@ impl Storage for SledStorage {
     }
 
     fn term(&self, idx: u64) -> raft::Result<u64> {
-        let snapshot = self.snapshot.read().unwrap();
+        let snapshot = self.snapshot.read().expect("Lock poisoned");
         if idx == snapshot.get_metadata().index {
             return Ok(snapshot.get_metadata().term);
         }
+        drop(snapshot);
 
         let key = Self::entry_key(idx);
 
@@ -267,7 +244,7 @@ impl Storage for SledStorage {
     }
 
     fn first_index(&self) -> raft::Result<u64> {
-        let snapshot = self.snapshot.read().unwrap();
+        let snapshot = self.snapshot.read().expect("Lock poisoned");
         Ok(snapshot.get_metadata().index + 1)
     }
 
@@ -279,7 +256,7 @@ impl Storage for SledStorage {
             if key.len() >= PREFIX_ENTRY.len() + 8 {
                 let idx_bytes: [u8; 8] = key[PREFIX_ENTRY.len()..PREFIX_ENTRY.len() + 8]
                     .try_into()
-                    .unwrap();
+                    .expect("Slice length correct");
                 let idx = u64::from_le_bytes(idx_bytes);
                 if idx > last_idx {
                     last_idx = idx;
@@ -291,7 +268,7 @@ impl Storage for SledStorage {
     }
 
     fn snapshot(&self, _request_index: u64, _to: u64) -> raft::Result<Snapshot> {
-        Ok(self.snapshot.read().unwrap().clone())
+        Ok(self.snapshot.read().expect("Lock poisoned").clone())
     }
 }
 

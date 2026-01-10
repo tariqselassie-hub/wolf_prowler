@@ -1,7 +1,7 @@
 use anyhow::Result;
 use sled::{Db, Tree};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 /// Low-level storage engine based on Sled
 #[derive(Clone)]
@@ -9,7 +9,7 @@ pub struct StorageEngine {
     /// The underlying Sled database
     db: Db,
     /// Cache of open trees (tables)
-    tree_cache: Arc<Mutex<HashMap<String, Tree>>>,
+    tree_cache: Arc<RwLock<HashMap<String, Tree>>>,
 }
 
 impl StorageEngine {
@@ -22,7 +22,7 @@ impl StorageEngine {
         let db = sled::open(path)?;
         Ok(Self {
             db,
-            tree_cache: Arc::new(Mutex::new(HashMap::new())),
+            tree_cache: Arc::new(RwLock::new(HashMap::new())),
         })
     }
 
@@ -32,16 +32,28 @@ impl StorageEngine {
     ///
     /// Returns an error if the cache lock is poisoned or if opening the tree fails.
     pub fn get_table(&self, name: &str) -> Result<Tree> {
+        // Optimistic read: Check if the tree is already cached
+        {
+            let cache = self
+                .tree_cache
+                .read()
+                .map_err(|_| anyhow::anyhow!("Cache lock poisoned"))?;
+            if let Some(tree) = cache.get(name) {
+                return Ok(tree.clone());
+            }
+        }
+
+        // Write path: Acquire write lock and double-check
         let mut cache = self
             .tree_cache
-            .lock()
+            .write()
             .map_err(|_| anyhow::anyhow!("Cache lock poisoned"))?;
         if let Some(tree) = cache.get(name) {
             return Ok(tree.clone());
         }
+
         let tree = self.db.open_tree(name)?;
         cache.insert(name.to_string(), tree.clone());
-        drop(cache);
         Ok(tree)
     }
 
@@ -148,6 +160,6 @@ mod tests {
         assert_eq!(tree1.name(), tree2.name());
 
         // Ensure cache actually populated
-        assert!(engine.tree_cache.lock().unwrap().contains_key(table));
+        assert!(engine.tree_cache.read().unwrap().contains_key(table));
     }
 }

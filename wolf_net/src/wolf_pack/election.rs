@@ -54,6 +54,12 @@ impl ElectionManager {
     /// Create a new `ElectionManager`
     #[must_use]
     pub fn new(local_peer_id: PeerId, local_prestige: u32) -> Self {
+        // Ensure base timeout is significantly larger than heartbeat to prevent thrashing
+        debug_assert!(
+            BASE_ELECTION_TIMEOUT_MS > HEARTBEAT_INTERVAL_MS * 2,
+            "Election timeout should be at least 2x heartbeat interval"
+        );
+
         Self {
             local_peer_id,
             current_term: 0,
@@ -116,7 +122,7 @@ impl ElectionManager {
         }
     }
 
-    fn start_election(&mut self) -> HowlMessage {
+    pub fn start_election(&mut self) -> HowlMessage {
         self.state = ElectionState::Candidate;
         self.current_term += 1;
         self.voted_for = Some(self.local_peer_id.clone());
@@ -183,7 +189,6 @@ impl ElectionManager {
         // let prestige_sufficient = candidate_prestige >= self.local_prestige;
         let prestige_sufficient = candidate_prestige >= self.local_prestige;
 
-
         if can_vote && prestige_sufficient {
             self.voted_for = Some(candidate_id.clone());
             self.election_timeout = Self::randomized_timeout(); // Reset timeout
@@ -193,12 +198,7 @@ impl ElectionManager {
         self.send_vote(term, false)
     }
 
-    fn handle_vote(
-        &mut self,
-        term: u64,
-        granted: bool,
-        voter: PeerId,
-    ) -> Option<HowlMessage> {
+    fn handle_vote(&mut self, term: u64, granted: bool, voter: PeerId) -> Option<HowlMessage> {
         if term < self.current_term {
             return None;
         }
@@ -252,7 +252,8 @@ impl ElectionManager {
 
     fn randomized_timeout() -> Duration {
         let base = BASE_ELECTION_TIMEOUT_MS;
-        let variance = rand::thread_rng().gen_range(0..ELECTION_TIMEOUT_VARIANCE_MS);
+        let variance_limit = std::cmp::max(1, ELECTION_TIMEOUT_VARIANCE_MS);
+        let variance = rand::thread_rng().gen_range(0..variance_limit);
         Duration::from_millis(base + variance)
     }
 }

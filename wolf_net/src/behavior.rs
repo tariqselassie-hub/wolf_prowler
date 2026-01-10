@@ -46,8 +46,12 @@ impl From<gossipsub::Event> for WolfBehaviorEvent {
     }
 }
 
-impl From<request_response::Event<crate::protocol::WolfRequest, crate::protocol::WolfResponse>> for WolfBehaviorEvent {
-    fn from(event: request_response::Event<crate::protocol::WolfRequest, crate::protocol::WolfResponse>) -> Self {
+impl From<request_response::Event<crate::protocol::WolfRequest, crate::protocol::WolfResponse>>
+    for WolfBehaviorEvent
+{
+    fn from(
+        event: request_response::Event<crate::protocol::WolfRequest, crate::protocol::WolfResponse>,
+    ) -> Self {
         Self::ReqResp(event)
     }
 }
@@ -97,7 +101,9 @@ impl WolfBehavior {
         let peer_id = local_key.public().to_peer_id();
 
         // Ping
-        let ping = libp2p::ping::Behaviour::new(libp2p::ping::Config::new());
+        let ping_config =
+            libp2p::ping::Config::new().with_interval(std::time::Duration::from_secs(2));
+        let ping = libp2p::ping::Behaviour::new(ping_config);
 
         // Kademlia
         let store = kad::store::MemoryStore::new(peer_id);
@@ -133,31 +139,11 @@ impl WolfBehavior {
         ));
 
         // mDNS
-        let mdns = if config.enable_mdns {
+        if config.enable_mdns {
             tracing::info!("Enable mDNS for peer discovery");
-            libp2p::mdns::tokio::Behaviour::new(
-                libp2p::mdns::Config::default(),
-                peer_id
-            )?
-        } else {
-            // If disabled, we still need to provide a behaviour instance, but maybe we can disable it via config?
-            // Or we use a Toggle wrapper?
-            // For now, let's just create it but it won't do much if we don't poll it?
-            // Actually, libp2p behaviours are static in the struct.
-            // We'll create it with default config, but we should probably have a way to disable it.
-            // libp2p::mdns::Behaviour doesn't have a "disable" method easily accessible.
-            // We can use `libp2p::swarm::behaviour::toggle::Toggle`.
-            // But that requires changing the struct definition.
-            // For simplicity in this "fix", I'll just enable it if requested, or create it anyway (it's low overhead).
-            // But to be "correct", I should probably follow the config.
-            // Let's stick to creating it for now, as the struct expects it.
-            // PROPER FIX: Use Toggle<Mdns> in struct. But that changes the type.
-            // Let's just create it.
-            libp2p::mdns::tokio::Behaviour::new(
-                libp2p::mdns::Config::default(),
-                peer_id
-            )?
-        };
+        }
+
+        let mdns = libp2p::mdns::tokio::Behaviour::new(libp2p::mdns::Config::default(), peer_id)?;
 
         Ok(Self {
             ping,

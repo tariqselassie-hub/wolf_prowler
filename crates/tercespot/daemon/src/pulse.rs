@@ -21,12 +21,13 @@ pub enum PulseMethod {
 }
 
 impl PulseMethod {
-    /// Creates a PulseMethod from environment variables TERSEC_PULSE_MODE and TERSEC_PULSE_ARG
+    /// Creates a `PulseMethod` from environment variables `TERSEC_PULSE_MODE` and `TERSEC_PULSE_ARG`
     ///
     /// Supported modes: USB, WEB, TCP, CRYPTO. Defaults to WEB if not specified.
+    #[must_use] 
     pub fn from_env() -> Self {
         let mode = std::env::var("TERSEC_PULSE_MODE").unwrap_or_else(|_| "WEB".to_string());
-        let arg = std::env::var("TERSEC_PULSE_ARG").unwrap_or_else(|_| "".to_string());
+        let arg = std::env::var("TERSEC_PULSE_ARG").unwrap_or_else(|_| String::new());
 
         match mode.trim().to_uppercase().as_str() {
             "USB" => {
@@ -35,13 +36,13 @@ impl PulseMethod {
                 } else {
                     arg
                 };
-                PulseMethod::Usb(path)
+                Self::Usb(path)
             }
             "TCP" => {
                 let port = arg.parse().unwrap_or(9999);
-                PulseMethod::Tcp(port)
+                Self::Tcp(port)
             }
-            "CRYPTO" => PulseMethod::Crypto,
+            "CRYPTO" => Self::Crypto,
             _ => {
                 // Default to WEB
                 let path = if arg.is_empty() {
@@ -49,7 +50,7 @@ impl PulseMethod {
                 } else {
                     arg
                 };
-                PulseMethod::Web(path)
+                Self::Web(path)
             }
         }
     }
@@ -57,7 +58,8 @@ impl PulseMethod {
     /// Waits for a pulse signal based on the configured method
     ///
     /// # Returns
-    /// PulseMetadata if pulse is detected within timeout, None otherwise
+    /// `PulseMetadata` if pulse is detected within timeout, None otherwise
+    #[must_use] 
     pub fn wait_for_pulse(&self) -> Option<shared::PulseMetadata> {
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -65,7 +67,7 @@ impl PulseMethod {
             .as_secs();
 
         match self {
-            PulseMethod::Usb(path) => {
+            Self::Usb(path) => {
                 if wait_for_usb(path) {
                     Some(shared::PulseMetadata {
                         timestamp,
@@ -76,7 +78,7 @@ impl PulseMethod {
                     None
                 }
             }
-            PulseMethod::Web(path) => {
+            Self::Web(path) => {
                 if wait_for_web_log(path) {
                     Some(shared::PulseMetadata {
                         timestamp,
@@ -87,7 +89,7 @@ impl PulseMethod {
                     None
                 }
             }
-            PulseMethod::Tcp(port) => {
+            Self::Tcp(port) => {
                 if wait_for_tcp(*port) {
                     Some(shared::PulseMetadata {
                         timestamp,
@@ -98,7 +100,7 @@ impl PulseMethod {
                     None
                 }
             }
-            PulseMethod::Crypto => {
+            Self::Crypto => {
                 if wait_for_crypto() {
                     Some(shared::PulseMetadata {
                         timestamp,
@@ -114,7 +116,7 @@ impl PulseMethod {
 }
 
 fn wait_for_usb(path_str: &str) -> bool {
-    println!("[PULSE] Waiting for USB key file at: {}", path_str);
+    println!("[PULSE] Waiting for USB key file at: {path_str}");
     for _ in 0..30 {
         if Path::new(path_str).exists() {
             return true;
@@ -125,7 +127,7 @@ fn wait_for_usb(path_str: &str) -> bool {
 }
 
 fn wait_for_web_log(path: &str) -> bool {
-    println!("[PULSE] Scanning Web Log at: {}", path);
+    println!("[PULSE] Scanning Web Log at: {path}");
     // Start at current end (or 0 if missing)
     let mut current_pos = match fs::File::open(path) {
         Ok(f) => f.metadata().map(|m| m.len()).unwrap_or(0),
@@ -151,11 +153,11 @@ fn wait_for_web_log(path: &str) -> bool {
 }
 
 fn wait_for_tcp(port: u16) -> bool {
-    println!("[PULSE] Waiting for TCP connection on port {}...", port);
-    let listener = match TcpListener::bind(format!("0.0.0.0:{}", port)) {
+    println!("[PULSE] Waiting for TCP connection on port {port}...");
+    let listener = match TcpListener::bind(format!("0.0.0.0:{port}")) {
         Ok(l) => l,
         Err(e) => {
-            println!("Failed to bind TCP: {}", e);
+            println!("Failed to bind TCP: {e}");
             return false;
         }
     };
@@ -169,7 +171,7 @@ fn wait_for_tcp(port: u16) -> bool {
                 continue;
             }
             Err(e) => {
-                println!("TCP Accept Error: {}", e);
+                println!("TCP Accept Error: {e}");
                 return false;
             }
         }
@@ -181,31 +183,22 @@ fn wait_for_crypto() -> bool {
     println!("[PULSE] Active Challenge-Response (Crypto Mode)...");
 
     let postbox = postbox_path();
-    let challenge_path = format!("{}/pulse_challenge.bin", postbox);
-    let response_path = format!("{}/pulse_response.bin", postbox);
-    let pk_path = format!("{}/pulse_pk", postbox);
+    let challenge_path = format!("{postbox}/pulse_challenge.bin");
+    let response_path = format!("{postbox}/pulse_response.bin");
+    let pk_path = format!("{postbox}/pulse_pk");
 
     // 1. Load Pulse Public Key (Trusted)
-    let pk_bytes = match fs::read(&pk_path) {
-        Ok(b) => b,
-        Err(_) => {
-            println!("[PULSE] Error: pulse_pk not found in postbox.");
-            return false;
-        }
+    let pk_bytes = if let Ok(b) = fs::read(&pk_path) { b } else {
+        println!("[PULSE] Error: pulse_pk not found in postbox.");
+        return false;
     };
-    let pk_array: [u8; 1312] = match pk_bytes.try_into() {
-        Ok(a) => a,
-        Err(_) => {
-            println!("[PULSE] Error: Invalid pulse_pk size.");
-            return false;
-        }
+    let pk_array: [u8; 1312] = if let Ok(a) = pk_bytes.try_into() { a } else {
+        println!("[PULSE] Error: Invalid pulse_pk size.");
+        return false;
     };
-    let pk = match ml_dsa_44::PublicKey::try_from_bytes(pk_array) {
-        Ok(k) => k,
-        Err(_) => {
-            println!("[PULSE] Error: Invalid pulse_pk format.");
-            return false;
-        }
+    let pk = if let Ok(k) = ml_dsa_44::PublicKey::try_from_bytes(pk_array) { k } else {
+        println!("[PULSE] Error: Invalid pulse_pk format.");
+        return false;
     };
 
     // 2. Generate Challenge (32 bytes random)
@@ -215,12 +208,12 @@ fn wait_for_crypto() -> bool {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let challenge_str = format!("CHALLENGE_{}", nanos);
+    let challenge_str = format!("CHALLENGE_{nanos}");
     let challenge = challenge_str.as_bytes();
 
     // Write Challenge
     if let Err(e) = fs::write(&challenge_path, challenge) {
-        println!("[PULSE] Failed to write challenge: {}", e);
+        println!("[PULSE] Failed to write challenge: {e}");
         return false;
     }
 
@@ -231,12 +224,9 @@ fn wait_for_crypto() -> bool {
         if Path::new(&response_path).exists() {
             // Read Response (Should be Signature)
             // Sig size is 2420
-            let sig_bytes = match fs::read(&response_path) {
-                Ok(b) => b,
-                Err(_) => {
-                    std::thread::sleep(Duration::from_millis(500));
-                    continue;
-                }
+            let sig_bytes = if let Ok(b) = fs::read(&response_path) { b } else {
+                std::thread::sleep(Duration::from_millis(500));
+                continue;
             };
 
             if sig_bytes.len() == 2420 {
@@ -246,9 +236,8 @@ fn wait_for_crypto() -> bool {
                     let _ = fs::remove_file(&challenge_path);
                     let _ = fs::remove_file(&response_path);
                     return true;
-                } else {
-                    println!("[PULSE] Invalid Signature on Response.");
                 }
+                println!("[PULSE] Invalid Signature on Response.");
             }
         }
         std::thread::sleep(Duration::from_secs(1));

@@ -73,7 +73,7 @@ struct PendingCommand {
 /// Loads authorized keys and role mappings from a JSON file
 ///
 /// # Arguments
-/// * `path` - Path to the authorized_keys.json file
+/// * `path` - Path to the `authorized_keys.json` file
 ///
 /// # Returns
 /// A tuple of (public keys, role mappings) where role mappings map key hex to role names
@@ -100,6 +100,7 @@ pub fn load_authorized_keys<P: AsRef<std::path::Path>>(
 }
 
 /// Parses the wire format: [Count] || [Sig1] || ... || [Body]
+#[must_use] 
 pub fn parse_wire_format(data: &[u8]) -> Option<(Vec<[u8; SIG_SIZE]>, Vec<u8>)> {
     if data.is_empty() {
         return None;
@@ -134,6 +135,7 @@ pub fn parse_wire_format(data: &[u8]) -> Option<(Vec<[u8; SIG_SIZE]>, Vec<u8>)> 
 ///
 /// # Returns
 /// true if the signature is valid, false otherwise
+#[must_use] 
 pub fn verify_signature(
     body: &[u8],
     sig: &[u8; SIG_SIZE],
@@ -143,6 +145,7 @@ pub fn verify_signature(
 }
 
 /// Parses the plaintext into (Seq, Ts, Command).
+#[must_use] 
 pub fn parse_plaintext(data: &[u8]) -> Option<(u64, u64, String)> {
     if data.len() < SEQ_SIZE + TS_SIZE {
         return None;
@@ -236,7 +239,7 @@ pub fn evaluate_policies(
                                 roles_present.insert(Role::SecurityOfficer);
                             }
                             _ => {}
-                        };
+                        }
                     }
                 }
             }
@@ -381,12 +384,12 @@ fn check_time_window(window: &TimeWindow) -> bool {
 /// An IO result indicating success or failure
 pub async fn start_sentinel() -> std::io::Result<()> {
     let postbox = postbox_path();
-    let auth_keys_path = format!("{}/authorized_keys.json", postbox);
-    let kem_sk_path = format!("{}/kem_private_key", postbox);
-    let kem_pk_path = format!("{}/kem_public_key", postbox);
-    let policies_path = format!("{}/policies.toml", postbox);
-    let audit_log_path = format!("{}/audit_logs", postbox);
-    let audit_key_path = format!("{}/audit_key.pub", postbox);
+    let auth_keys_path = format!("{postbox}/authorized_keys.json");
+    let kem_sk_path = format!("{postbox}/kem_private_key");
+    let kem_pk_path = format!("{postbox}/kem_public_key");
+    let policies_path = format!("{postbox}/policies.toml");
+    let audit_log_path = format!("{postbox}/audit_logs");
+    let audit_key_path = format!("{postbox}/audit_key.pub");
 
     // Ensure Audit Key exists (In real world, Auditor provides this. We generate for demo)
     if !std::path::Path::new(&audit_key_path).exists() {
@@ -397,9 +400,9 @@ pub async fn start_sentinel() -> std::io::Result<()> {
         fs::write(&audit_key_path, pk.into_bytes())?;
 
         // Save Private Key for verification scripts (In real world, this stays with Auditor)
-        let audit_sk_path = format!("{}/audit_key.priv", postbox);
+        let audit_sk_path = format!("{postbox}/audit_key.priv");
         fs::write(&audit_sk_path, sk.into_bytes())?;
-        println!("[SENTINEL] Auditor Keys saved to {}", postbox);
+        println!("[SENTINEL] Auditor Keys saved to {postbox}");
     }
 
     // Initialize privacy audit logger
@@ -421,7 +424,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
     let privacy_logger = PrivacyAuditLogger::new(privacy_config.clone())?; // Clone config for validator access if needed, or re-use patterns
 
     // Initialize Privacy Validator
-    let privacy_validator = PrivacyValidator::new(privacy_config.pii_patterns.clone())?;
+    let privacy_validator = PrivacyValidator::new(&privacy_config.pii_patterns)?;
 
     // Determine Threshold M
     let m_str = std::env::var("TERSEC_M").unwrap_or_else(|_| "1".to_string());
@@ -439,7 +442,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
                 (keys, mappings)
             }
             Err(e) => {
-                println!("[SENTINEL] Warning: Failed to load authorized keys: {}", e);
+                println!("[SENTINEL] Warning: Failed to load authorized keys: {e}");
                 (Vec::new(), HashMap::new())
             }
         }
@@ -460,7 +463,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
                 Some(config)
             }
             Err(e) => {
-                println!("[SENTINEL] Warning: Failed to load policies: {}", e);
+                println!("[SENTINEL] Warning: Failed to load policies: {e}");
                 None
             }
         }
@@ -471,8 +474,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
 
     // 1. Load Authorized Signing Keys (Poll until at least 1? or M?)
     println!(
-        "[SENTINEL] Threshold: {} Signature(s) Required",
-        threshold_m
+        "[SENTINEL] Threshold: {threshold_m} Signature(s) Required"
     );
 
     // Map to hold pending commands: seq -> PendingCommand
@@ -502,13 +504,13 @@ pub async fn start_sentinel() -> std::io::Result<()> {
         let mut f_pk = fs::File::create(&kem_pk_path)?;
         f_pk.write_all(&pk.into_bytes())?;
 
-        println!("[SENTINEL] KEM Keys saved to {}", postbox);
+        println!("[SENTINEL] KEM Keys saved to {postbox}");
         sk
     };
 
     // Determine pulse method at startup
     let pulse_method = PulseMethod::from_env();
-    let state_path = format!("{}/.sentinel_state", postbox);
+    let state_path = format!("{postbox}/.sentinel_state");
 
     println!(
         "[SENTINEL] Protecting root. Algorithm: Sig(ML-DSA-44) + Enc(ML-KEM-1024 + AES-256-GCM)"
@@ -528,8 +530,8 @@ pub async fn start_sentinel() -> std::io::Result<()> {
 
     // Start the file watcher
     if let Err(e) = watcher.start() {
-        eprintln!("[SENTINEL] Failed to start file watcher: {}", e);
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, e));
+        eprintln!("[SENTINEL] Failed to start file watcher: {e}");
+        return Err(std::io::Error::other(e));
     }
 
     // Main event loop
@@ -553,7 +555,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
                     );
                 }
                 Err(e) => {
-                    println!("[SENTINEL] Failed to reload keys: {}", e);
+                    println!("[SENTINEL] Failed to reload keys: {e}");
                 }
             }
         }
@@ -580,7 +582,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
         while let Ok(event) = event_receiver.try_recv() {
             match event {
                 file_watcher::FileSystemEvent::Created(file_name) => {
-                    let file_path = format!("{}/{}", postbox, file_name);
+                    let file_path = format!("{postbox}/{file_name}");
                     process_file(
                         &file_path,
                         &kem_sk,
@@ -598,7 +600,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
                     .await;
                 }
                 file_watcher::FileSystemEvent::Modified(file_name) => {
-                    let file_path = format!("{}/{}", postbox, file_name);
+                    let file_path = format!("{postbox}/{file_name}");
                     process_file(
                         &file_path,
                         &kem_sk,
@@ -616,10 +618,10 @@ pub async fn start_sentinel() -> std::io::Result<()> {
                     .await;
                 }
                 file_watcher::FileSystemEvent::Deleted(file_name) => {
-                    println!("[SENTINEL] File deleted: {}", file_name);
+                    println!("[SENTINEL] File deleted: {file_name}");
                 }
                 file_watcher::FileSystemEvent::Error(error_msg) => {
-                    eprintln!("[SENTINEL] File watcher error: {}", error_msg);
+                    eprintln!("[SENTINEL] File watcher error: {error_msg}");
                 }
             }
         }
@@ -670,7 +672,9 @@ async fn process_file(
             }
         }
 
-        if !verified_sigs.is_empty() {
+        if verified_sigs.is_empty() {
+            println!("[DROP] No valid signatures found in package");
+        } else {
             println!(
                 "[AUTH] Verified {} signature(s) from package",
                 verified_sigs.len()
@@ -681,7 +685,7 @@ async fn process_file(
                 // 4. Parse plaintext
                 if let Some((seq, ts, cmd)) = parse_plaintext(&plaintext) {
                     if seq <= *last_seq {
-                        println!("[DROP] Replay: Seq {} <= {}", seq, last_seq);
+                        println!("[DROP] Replay: Seq {seq} <= {last_seq}");
                         let _ = fs::remove_file(file_path);
                         return;
                     }
@@ -700,7 +704,12 @@ async fn process_file(
                     // Add new unique signatures
                     let mut added_new = false;
                     for (key_hex, sig) in verified_sigs {
-                        if !pending.signatures.iter().any(|s| s.key_hex == key_hex) {
+                        if pending.signatures.iter().any(|s| s.key_hex == key_hex) {
+                            println!(
+                                "[INFO] Duplicate signature from key {} ignored",
+                                &key_hex[..8]
+                            );
+                        } else {
                             println!("[COLLECT] Added signature from key {}", &key_hex[..8]);
                             pending.signatures.push(PendingSignature {
                                 key_hex,
@@ -708,11 +717,6 @@ async fn process_file(
                                 timestamp: ts,
                             });
                             added_new = true;
-                        } else {
-                            println!(
-                                "[INFO] Duplicate signature from key {} ignored",
-                                &key_hex[..8]
-                            );
                         }
                     }
 
@@ -743,15 +747,13 @@ async fn process_file(
                                 ) {
                                     Ok(()) => {
                                         println!(
-                                            "[POLICY] Static Authorization granted for seq {}",
-                                            seq
+                                            "[POLICY] Static Authorization granted for seq {seq}"
                                         );
                                         true
                                     }
                                     Err(e) => {
                                         println!(
-                                            "[POLICY] Static Authorization denied for seq {}: {}",
-                                            seq, e
+                                            "[POLICY] Static Authorization denied for seq {seq}: {e}"
                                         );
                                         false
                                     }
@@ -786,8 +788,7 @@ async fn process_file(
                                             Some(&pulse_metadata),
                                         ) {
                                             println!(
-                                                "[POLICY] Dynamic (Geo) Authorization denied: {}",
-                                                e
+                                                "[POLICY] Dynamic (Geo) Authorization denied: {e}"
                                             );
                                             dynamic_ok = false;
                                         }
@@ -799,15 +800,13 @@ async fn process_file(
                                             privacy_validator.validate_privacy(&pending.cmd)
                                         {
                                             println!(
-                                                "[PRIVACY] Command blocked by PII check: {}",
-                                                e
+                                                "[PRIVACY] Command blocked by PII check: {e}"
                                             );
                                             let _ = privacy_logger
                                                 .log_command_execution(
                                                     &pending.cmd,
                                                     AuditStatus::Rejected(format!(
-                                                        "PII Violation: {}",
-                                                        e
+                                                        "PII Violation: {e}"
                                                     )),
                                                     false,
                                                 )
@@ -846,8 +845,6 @@ async fn process_file(
             } else {
                 println!("[DROP] Decryption Failed");
             }
-        } else {
-            println!("[DROP] No valid signatures found in package");
         }
     } else {
         println!("[DROP] Invalid Wire Format");
@@ -856,9 +853,9 @@ async fn process_file(
 }
 
 async fn execute_as_root(cmd: &str, privacy_logger: &PrivacyAuditLogger, emergency_mode: bool) {
-    println!("[EXEC] Running: {}", cmd);
+    println!("[EXEC] Running: {cmd}");
     let output = Command::new("sh").arg("-c").arg(cmd).output();
-    let _ = fs::write("/tmp/sentinel_history.log", format!("{:?}", output));
+    let _ = fs::write("/tmp/sentinel_history.log", format!("{output:?}"));
 
     // Log to privacy audit system
     let status = if let Ok(output) = output {
@@ -876,7 +873,7 @@ async fn execute_as_root(cmd: &str, privacy_logger: &PrivacyAuditLogger, emergen
         .log_command_execution(cmd, status, emergency_mode)
         .await
     {
-        eprintln!("Failed to log command execution: {}", e);
+        eprintln!("Failed to log command execution: {e}");
     }
 }
 

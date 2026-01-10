@@ -59,6 +59,7 @@ pub struct FileWatcher {
 
 impl FileWatcher {
     /// Create a new file watcher with the given configuration
+    #[must_use] 
     pub fn new(config: WatchConfig, event_sender: UnboundedSender<FileSystemEvent>) -> Self {
         Self {
             config,
@@ -154,12 +155,12 @@ impl FileWatcher {
                         &recent_events,
                         &runtime_handle,
                     ) {
-                        eprintln!("Error handling file system event: {}", e);
+                        eprintln!("Error handling file system event: {e}");
                         let _ = event_sender.send(FileSystemEvent::Error(e.to_string()));
                     }
                 }
                 Ok(Err(e)) => {
-                    eprintln!("Watch error: {:?}", e);
+                    eprintln!("Watch error: {e:?}");
                 }
                 Err(TryRecvError::Empty) => {
                     // No events available, sleep briefly
@@ -250,7 +251,7 @@ impl FileWatcher {
             FileSystemEvent::Created(name)
             | FileSystemEvent::Modified(name)
             | FileSystemEvent::Deleted(name) => {
-                format!("{:?}_{}", event, name)
+                format!("{event:?}_{name}")
             }
             FileSystemEvent::Error(_) => return Ok(()), // Don't debounce errors
         };
@@ -261,7 +262,7 @@ impl FileWatcher {
             recent_guard.insert(event_key.clone());
 
             // Send the event
-            if let Err(_) = event_sender.send(event) {
+            if event_sender.send(event).is_err() {
                 return Err(notify::Error::generic("Failed to send event"));
             }
 

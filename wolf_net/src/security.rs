@@ -25,8 +25,8 @@ pub struct NetworkSecurity;
 
 impl NetworkSecurity {
     /// Creates a new `NetworkSecurity` manager.
-    pub fn new() -> Self {
-        Self::default()
+    pub const fn new() -> Self {
+        Self
     }
 
     /// Signs a payload with the local keypair and wraps it in a `SignedEnvelope`.
@@ -37,7 +37,7 @@ impl NetworkSecurity {
     pub fn sign(&self, keypair: &Keypair, payload: &[u8]) -> Result<SignedEnvelope> {
         let signature = keypair
             .sign(payload)
-            .map_err(|e| anyhow!("Failed to sign payload: {}", e))?;
+            .map_err(|e| anyhow!("Failed to sign payload: {e}"))?;
 
         let public_key_bytes = keypair.public().encode_protobuf();
 
@@ -58,7 +58,7 @@ impl NetworkSecurity {
     /// * `envelope` - The `SignedEnvelope` received from the network.
     pub fn verify(&self, envelope: &SignedEnvelope) -> Result<(PublicKey, Vec<u8>)> {
         let public_key = PublicKey::try_decode_protobuf(&envelope.public_key)
-            .map_err(|e| anyhow!("Failed to decode public key from envelope: {}", e))?;
+            .map_err(|e| anyhow!("Failed to decode public key from envelope: {e}"))?;
 
         // The public key must verify the signature against the original payload.
         if !public_key.verify(&envelope.payload, &envelope.signature) {

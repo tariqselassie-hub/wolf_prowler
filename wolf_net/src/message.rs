@@ -100,10 +100,12 @@ pub enum MessageType {
 
 /// Message priority levels
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum MessagePriority {
     /// Low priority - may be delayed
     Low = 0,
     /// Normal priority - standard delivery
+    #[default]
     Normal = 1,
     /// High priority - prioritized delivery
     High = 2,
@@ -111,11 +113,6 @@ pub enum MessagePriority {
     Critical = 3,
 }
 
-impl Default for MessagePriority {
-    fn default() -> Self {
-        Self::Normal
-    }
-}
 
 /// Network message structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -179,13 +176,13 @@ impl Message {
     }
 
     /// Set message priority
-    pub fn with_priority(mut self, priority: MessagePriority) -> Self {
+    pub const fn with_priority(mut self, priority: MessagePriority) -> Self {
         self.priority = priority;
         self
     }
 
     /// Set TTL
-    pub fn with_ttl(mut self, ttl: chrono::Duration) -> Self {
+    pub const fn with_ttl(mut self, ttl: chrono::Duration) -> Self {
         self.ttl = Some(ttl);
         self
     }
@@ -324,7 +321,7 @@ impl MessageHandler {
     pub fn register_callback(&mut self, message_type: MessageType, callback: MessageCallback) {
         self.callbacks
             .entry((&message_type).into())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(callback);
     }
 
@@ -349,7 +346,7 @@ impl MessageHandler {
     }
 
     /// Get outgoing message receiver
-    pub fn outgoing_receiver(&self) -> Option<tokio::sync::mpsc::UnboundedReceiver<Message>> {
+    pub const fn outgoing_receiver(&self) -> Option<tokio::sync::mpsc::UnboundedReceiver<Message>> {
         // Note: This is a simplified approach. In practice, you'd need a different design
         // to get the receiver since the sender is consumed.
         None

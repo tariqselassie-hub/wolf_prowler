@@ -8378,7 +8378,6 @@ dependencies = [
  "getrandom 0.2.16",
  "http 0.2.12",
  "rand 0.8.5",
- "reqwest 0.11.27",
  "serde",
  "serde_json",
  "serde_path_to_error",
@@ -10379,6 +10378,19 @@ dependencies = [
 
 [[package]]
 name = "rcgen"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75e669e5202259b5314d1ea5397316ad400819437857b90861765f24c4cf80a2"
+dependencies = [
+ "pem 3.0.6",
+ "ring 0.17.14",
+ "rustls-pki-types",
+ "time 0.3.44",
+ "yasna",
+]
+
+[[package]]
+name = "rcgen"
 version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ec0a99f2de91c3cddc84b37e7db80e4d96b743e05607f647eb236fc0455907f"
@@ -10516,7 +10528,6 @@ dependencies = [
  "http 0.2.12",
  "http-body 0.4.6",
  "hyper 0.14.32",
- "hyper-rustls 0.24.2",
  "hyper-tls 0.5.0",
  "ipnet",
  "js-sys",
@@ -10526,7 +10537,6 @@ dependencies = [
  "once_cell",
  "percent-encoding",
  "pin-project-lite",
- "rustls 0.21.12",
  "rustls-pemfile 1.0.4",
  "serde",
  "serde_json",
@@ -10535,7 +10545,6 @@ dependencies = [
  "system-configuration 0.5.1",
  "tokio",
  "tokio-native-tls",
- "tokio-rustls 0.24.1",
  "tokio-util",
  "tower-service",
  "url",
@@ -10543,7 +10552,6 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
- "webpki-roots 0.25.4",
  "winreg",
 ]
 
@@ -10556,6 +10564,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
+ "futures-channel",
  "futures-core",
  "futures-util",
  "h2 0.4.13",
@@ -14546,7 +14555,7 @@ dependencies = [
  "raft",
  "rand 0.8.5",
  "regex",
- "reqwest 0.11.27",
+ "reqwest 0.12.28",
  "ring 0.16.20",
  "serde",
  "serde_json",
@@ -14607,6 +14616,7 @@ dependencies = [
  "git2",
  "hex",
  "histogram",
+ "http 1.4.0",
  "hyper 1.8.1",
  "hyper-util",
  "image 0.24.9",
@@ -14627,7 +14637,7 @@ dependencies = [
  "ndarray 0.15.6",
  "nix 0.27.1",
  "num_cpus",
- "oauth2 4.4.2",
+ "oauth2 5.0.0",
  "openidconnect",
  "openssl",
  "ping",
@@ -14640,7 +14650,7 @@ dependencies = [
  "quanta",
  "rand 0.8.5",
  "ratatui 0.29.0",
- "reqwest 0.11.27",
+ "reqwest 0.12.28",
  "ring 0.16.20",
  "rustls 0.23.36",
  "sentinel",
@@ -14717,7 +14727,7 @@ dependencies = [
  "lock_prowler",
  "once_cell",
  "rand 0.8.5",
- "reqwest 0.11.27",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
@@ -14756,7 +14766,7 @@ dependencies = [
  "getrandom 0.2.16",
  "hex",
  "hmac",
- "http 0.2.12",
+ "http 1.4.0",
  "jsonwebtoken",
  "lettre 0.10.4",
  "libp2p",
@@ -14773,10 +14783,10 @@ dependencies = [
  "qrcode",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
- "rcgen 0.11.3",
+ "rcgen 0.13.2",
  "regex",
- "reqwest 0.11.27",
- "ring 0.16.20",
+ "reqwest 0.12.28",
+ "ring 0.17.14",
  "serde",
  "serde_json",
  "sha1 0.10.6",
