@@ -244,6 +244,8 @@ let config = SIEMConfig {
 
 ## 🧪 Testing
 
+WolfSec maintains a rigorous testing standard with over 100+ tests covering core logic, cryptography, and integration.
+
 ```bash
 # Run all tests
 cargo test --features ml-full

@@ -1,59 +1,53 @@
-# Wolf Prowler Development Makefile
-# Simplifies running tests, benchmarks, and common development tasks.
+# Wolf Prowler Automation
 
-CARGO := cargo
-DOCKER_COMPOSE := docker-compose
+.PHONY: all build test clean run backup restore patch monitor help
 
-.PHONY: all build check test test-all test-security test-persistence test-validation bench clean run-server docker-build docker-up
-
-# Default: Check and run all tests
-all: check test-all
-
-# --- Build & Check ---
+all: build
 
 build:
-	$(CARGO) build --workspace --all-features
+	cargo build --release
 
-check:
-	$(CARGO) check --workspace --all-features
-	$(CARGO) clippy --workspace --all-features
-
-# --- Testing ---
-
-# Run all tests in the workspace
-test-all:
-	$(CARGO) test --workspace --all-features
-
-# Run the comprehensive security test suite in wolfsec
-test-security:
-	$(CARGO) test -p wolfsec comprehensive_tests
-
-# Run the WolfDb persistence integration test in wolfsec
-test-persistence:
-	$(CARGO) test -p wolfsec test_wolf_db_threat_repository_integration -- --nocapture
-
-# Run the server-side security event persistence test
-test-server-persistence:
-	$(CARGO) test -p wolf_server --bin wolf_server wolfsec_integration::tests::test_security_event_persistence
-
-# Run the discovery event validation test (Input Sanitization)
-test-validation:
-	$(CARGO) test -p wolf_server --bin wolf_server tests::test_discovery_event_validation_integration
-
-# --- Benchmarking ---
-
-# Run performance benchmark tests (currently implemented as unit tests in wolfsec)
-bench:
-	$(CARGO) test -p wolfsec test_performance_benchmarks -- --nocapture
-
-# Run criterion benchmarks for accurate cryptographic measurements
-bench-criterion:
-	$(CARGO) bench -p wolfsec
-
-# --- Execution ---
-
-run-server:
-	$(CARGO) run -p wolf_server
+test:
+	cargo test --workspace
 
 clean:
-	$(CARGO) clean
+	cargo clean
+
+run:
+	cargo run --bin wolf_prowler
+
+# --- Admin Tasks ---
+
+backup:
+	@echo "Creating system backup..."
+	@./scripts/backup_system.sh
+
+restore:
+	@echo "Restoring system from backup..."
+	@if [ -z "$(FILE)" ]; then echo "Error: Specify backup file with FILE=path/to/backup.tar.gz"; exit 1; fi
+	@./scripts/restore_system.sh $(FILE)
+
+patch:
+	@echo "Checking for dependency updates..."
+	@cargo update
+	@echo "Dependencies updated. Run 'make test' to verify."
+
+monitor:
+	@echo "Running system health checks..."
+	@cargo test --test dashboard_comprehensive_test
+	@cargo test -p wolf_net --test discovery_integration
+
+user-add:
+	@echo "Running user management tool..."
+	@cargo run --example manage_users
+
+help:
+	@echo "Wolf Prowler Make Commands:"
+	@echo "  build       - Build release binary"
+	@echo "  test        - Run all tests"
+	@echo "  run         - Run the main application"
+	@echo "  backup      - Archive data and config"
+	@echo "  restore     - Restore from backup (FILE=...)"
+	@echo "  patch       - Update Rust dependencies"
+	@echo "  monitor     - Run health and network checks"
+	@echo "  user-add    - Add a new system user"

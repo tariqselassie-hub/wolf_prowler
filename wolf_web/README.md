@@ -52,5 +52,9 @@ Navigate to `http://127.0.0.1:8080` to access the interface.
 Run the dashboard integration tests:
 
 ```bash
-cargo test -p wolf_web --test dashboard_tests
+# Run standard unit tests
+cargo test -p wolf_web
+
+# Run comprehensive system integration tests
+cargo test --test dashboard_comprehensive_test
 ```

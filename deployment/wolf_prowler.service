@@ -1,0 +1,23 @@
+[Unit]
+Description=Wolf Prowler Enterprise Security Platform
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=wolf_prowler
+Group=wolf_prowler
+WorkingDirectory=/opt/wolf_prowler
+ExecStart=/opt/wolf_prowler/wolf_prowler
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/default/wolf_prowler
+LimitNOFILE=65535
+
+# Security Hardening
+ProtectSystem=full
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

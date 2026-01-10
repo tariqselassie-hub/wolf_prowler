@@ -1,6 +1,6 @@
 # Wolf Net - P2P Networking Layer
 
-**Status**: ✅ Production Ready | **Version**: 1.0
+**Status**: ✅ Production Ready | **Version**: 1.1 | **Stability**: High
 
 Wolf Net provides secure, encrypted peer-to-peer networking built on libp2p for the Wolf Prowler platform.
 
@@ -11,18 +11,22 @@ Wolf Net provides secure, encrypted peer-to-peer networking built on libp2p for 
   - ChaCha20-Poly1305 encryption for all peer connections
   - End-to-end encrypted messaging
 
+- **Robust Discovery & Connectivity** 🆕
+  - **mDNS Discovery**: Fully functional local network discovery with auto-dialing.
+  - **Multi-Transport Stability**: Connection tracking now handles multiple simultaneous connections (IPv4, IPv6, loopback) correctly, preventing premature disconnection events.
+  - **Kademlia DHT**: Distributed peer discovery and routing.
+  - **HyperPulse**: QUIC transport for low-latency communication.
+
 - **Internal Firewall**
   - Configurable Allow/Deny rules
   - Filtering by IP, Port, Peer ID, or Protocol
   - Inbound and Outbound traffic control
   - Dynamic rule management via API
 
-- **Network Protocols**
-  - Kademlia DHT for peer discovery
-  - mDNS for local network discovery
-  - Gossipsub for pub/sub messaging
-  - **HyperPulse**: QUIC transport for low-latency, high-performance communication
-  - Automatic NAT traversal and relay support
+- **Advanced Messaging & Transport**
+  - **Gossipsub**: Efficient pub/sub messaging for topic-based broadcasting.
+  - **Automatic NAT Traversal**: Built-in support for relaying and hole punching.
+  - **HyperPulse**: Optimized QUIC transport integration.
 
 - **Wolf Pack Hierarchy**
   - Role-based access control (Stray → Scout → Hunter → Beta → Alpha → Omega)

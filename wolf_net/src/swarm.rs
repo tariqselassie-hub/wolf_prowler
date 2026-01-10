@@ -679,50 +679,55 @@ impl SwarmManager {
                                                let _ = sender.send(event);
                                            }
                                        }
-                                       SwarmEvent::ConnectionClosed { peer_id, cause, .. } => {
-                                           warn!("❌ Connection lost with {}: {:?}", peer_id, cause);
-                                           connected_peers.remove(&peer_id);
+                                       SwarmEvent::ConnectionClosed { peer_id, cause, num_established, .. } => {
+                                           // Only report/remove if this was the last connection
+                                           if num_established == 0 {
+                                               warn!("❌ Connection lost with {}: {:?}", peer_id, cause);
+                                               connected_peers.remove(&peer_id);
 
-                                           if let Some(reporter) = &reputation_reporter {
-                                               reporter.report_event(
-                                                   &peer_id.to_string(),
-                                                   "Networking",
-                                                   0.0,
-                                                   format!("Connection closed: {:?}", cause)
-                                               ).await;
-                                           }
+                                               if let Some(reporter) = &reputation_reporter {
+                                                   reporter.report_event(
+                                                       &peer_id.to_string(),
+                                                       "Networking",
+                                                       0.0,
+                                                       format!("Connection closed: {:?}", cause)
+                                                   ).await;
+                                               }
 
-                                           active_connections_clone.lock().await.remove(&peer_id);
+                                               active_connections_clone.lock().await.remove(&peer_id);
 
-                                           // Update metrics
-                                           {
-                                               let mut metrics = metrics_clone.lock().await;
-                                               metrics.active_connections = connected_peers.len();
-                                               metrics.last_activity = Some(Instant::now());
-                                           }
+                                               // Update metrics
+                                               {
+                                                   let mut metrics = metrics_clone.lock().await;
+                                                   metrics.active_connections = connected_peers.len();
+                                                   metrics.last_activity = Some(Instant::now());
+                                               }
 
-                                            // Update Peer Registry
-                                            {
-                                                let mut registry = peer_registry_clone.lock().await;
-                                                let target = crate::peer::PeerId::from_libp2p(peer_id);
-                                                if let Some(info) = registry.get_mut(&target) {
-                                                    info.set_status(crate::peer::EntityStatus::Offline);
-                                                    // Update uptime
-                                                    let uptime = active_connections_clone.lock().await.get(&peer_id)
-                                                        .map(|c| u64::try_from(c.connected_since.elapsed().as_millis()).unwrap_or(u64::MAX))
-                                                        .unwrap_or(0);
-                                                    info.metrics.uptime_ms += uptime;
+                                                // Update Peer Registry
+                                                {
+                                                    let mut registry = peer_registry_clone.lock().await;
+                                                    let target = crate::peer::PeerId::from_libp2p(peer_id);
+                                                    if let Some(info) = registry.get_mut(&target) {
+                                                        info.set_status(crate::peer::EntityStatus::Offline);
+                                                        // Update uptime
+                                                        let uptime = active_connections_clone.lock().await.get(&peer_id)
+                                                            .map(|c| u64::try_from(c.connected_since.elapsed().as_millis()).unwrap_or(u64::MAX))
+                                                            .unwrap_or(0);
+                                                        info.metrics.uptime_ms += uptime;
+                                                    }
                                                 }
-                                            }
 
-                                           // Send security event
-                                           if let Some(sender) = &security_sender {
-                                               let event = crate::event::SecurityEvent::new(
-                                                   crate::event::SecurityEventType::Other("ConnectionClosed".to_string()),
-                                                   crate::event::SecuritySeverity::Low,
-                                                   format!("Connection closed with {}: {:?}", peer_id, cause),
-                                               ).with_peer(peer_id.to_string());
-                                               let _ = sender.send(event);
+                                               // Send security event
+                                               if let Some(sender) = &security_sender {
+                                                   let event = crate::event::SecurityEvent::new(
+                                                       crate::event::SecurityEventType::Other("ConnectionClosed".to_string()),
+                                                       crate::event::SecuritySeverity::Low,
+                                                       format!("Connection closed with {}: {:?}", peer_id, cause),
+                                                   ).with_peer(peer_id.to_string());
+                                                   let _ = sender.send(event);
+                                               }
+                                           } else {
+                                               debug!("Connection closed with {}, but {} remain", peer_id, num_established);
                                            }
                                        }
                                         SwarmEvent::Behaviour(event) => {
@@ -821,6 +826,26 @@ impl SwarmManager {
                                                             // Try to convert Multiaddr to SocketAddr if possible (simplified for now)
                                                             // Note: Multiaddr is more general, but EntityInfo uses SocketAddr
                                                         }
+                                                   }
+                                               }
+                                               WolfBehaviorEvent::Mdns(event) => {
+                                                   match event {
+                                                       libp2p::mdns::Event::Discovered(list) => {
+                                                           for (peer_id, multiaddr) in list {
+                                                               info!("🔍 mDNS discovered: {} at {}", peer_id, multiaddr);
+                                                               swarm.behaviour_mut().kad.add_address(&peer_id, multiaddr.clone());
+                                                               
+                                                               // Auto-dial discovered peers to establish connection
+                                                               if !connected_peers.contains(&peer_id) {
+                                                                    let _ = swarm.dial(multiaddr);
+                                                               }
+                                                           }
+                                                       }
+                                                       libp2p::mdns::Event::Expired(list) => {
+                                                           for (peer_id, _multiaddr) in list {
+                                                               debug!("👻 mDNS expired: {}", peer_id);
+                                                           }
+                                                       }
                                                    }
                                                }
                                                WolfBehaviorEvent::Gossipsub(event) => {

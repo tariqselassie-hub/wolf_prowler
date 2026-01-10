@@ -1,3 +1,7 @@
+//! PQC signature integration tests.
+//!
+//! This module tests the post-quantum cryptography signing logic.
+
 use fips204::ml_dsa_44; // FIPS 204 crate
 use fips204::traits::{KeyGen, Verifier};
 use submitter::{package_payload, sign_data}; // Need KeyGen for test keys, Verifier for check

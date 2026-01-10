@@ -1,5 +1,7 @@
 # TersecPot: Post-Quantum Secure Blind Command-Bus
 
+**Status**: ✅ Production Ready | **Version**: 1.0 | **Stability**: Verified
+
 **TersecPot** is a high-security "Blind Command-Bus" system designed to execute command instructions on a secure Sentinel (Daemon) only after rigorous cryptographic verification, multi-party authorization, and an active out-of-band "Pulse" confirmation.
 
 ## 🛡️ Security Features

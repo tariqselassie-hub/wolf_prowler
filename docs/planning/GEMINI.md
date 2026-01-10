@@ -7,8 +7,11 @@ The current phase of development prioritizes **making existing code operational*
 
 ### Key Objectives
 1.  **Wolf Net**: Complete the P2P networking layer. Ensure messages can be sent, received, and routed securely.
+    *   ✅ **Fixed**: mDNS discovery and multi-connection stability.
+    *   ✅ **Fixed**: Peer connection tracking logic.
 2.  **Wolfsec**: Connect the security monitoring logic to real network events.
 3.  **Integration**: Ensure the Dashboard accurately reflects the state of the backend systems via the API.
+    *   ✅ **Verified**: Dashboard API tests passed.
 
 ##  Project Structure & Documentation
 Documentation has been consolidated into the `docs/` directory to keep the root clean. Each module maintains its own operational status in a local `README.md` and `TODO.md`.
@@ -26,6 +29,6 @@ Documentation has been consolidated into the `docs/` directory to keep the root 
 
 ## 🚦 Feature Freeze
 New features (e.g., AI models, Blockchain integration) are **paused** until the following core loops are closed:
-- [ ] Node-to-Node Encrypted Messaging.
-- [ ] Peer Discovery & Status Tracking.
+- [x] Node-to-Node Encrypted Messaging.
+- [x] Peer Discovery & Status Tracking.
 - [ ] Security Alerting Pipeline (Detection -> Notification).

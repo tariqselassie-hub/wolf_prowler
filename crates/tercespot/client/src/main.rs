@@ -1,3 +1,7 @@
+//! Submitter client entry point.
+//!
+//! This crate provides the submitter CLI for interacting with the Sentinel system.
+
 use clap::{Parser, Subcommand};
 use fips203::ml_kem_1024;
 use fips204::ml_dsa_44;

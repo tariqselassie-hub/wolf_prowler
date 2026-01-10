@@ -1,3 +1,7 @@
+//! Visual flow integration tests for the submitter client.
+//!
+//! This module contains end-to-end integration tests that simulate the visual command flow.
+
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -185,7 +189,21 @@ fn visual_end_to_end_flow() {
     // Copy generated key to auth keys (submitter saves to authorized_keys/client_key)
     // Wait for authorization and execution
     println!("[5] Waiting for Challenge-Response Execution...");
-    thread::sleep(Duration::from_secs(15));
+    
+    // Poll for the history file instead of fixed sleep
+    let mut executed = false;
+    for _ in 0..30 {
+        if Path::new(history_file).exists() {
+            executed = true;
+            break;
+        }
+        thread::sleep(Duration::from_secs(1));
+    }
+
+    if executed {
+        // Give it a moment to finish writing
+        thread::sleep(Duration::from_secs(1));
+    }
 
     // 5. Verify Execution
     if Path::new(history_file).exists() {

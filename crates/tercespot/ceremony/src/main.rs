@@ -1,3 +1,7 @@
+//! Ceremony CLI tool.
+//!
+//! This crate provides a CLI tool for performing key generation ceremonies.
+
 use clap::Parser;
 use dialoguer::{Input, Select};
 use fips204::ml_dsa_44;

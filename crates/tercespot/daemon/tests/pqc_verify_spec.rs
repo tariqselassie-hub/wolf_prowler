@@ -1,3 +1,7 @@
+//! PQC verification integration tests.
+//!
+//! This module tests the post-quantum cryptography verification logic.
+
 use fips204::ml_dsa_44; // FIPS 204 crate
 use fips204::traits::{KeyGen, Signer};
 use sentinel::{parse_wire_format, verify_signature}; // Use new API
