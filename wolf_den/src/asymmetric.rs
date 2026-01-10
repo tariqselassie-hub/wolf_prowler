@@ -63,7 +63,10 @@ impl Ed25519Keypair {
     /// Returns an error if the key length is invalid.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         let bytes: [u8; 32] = bytes.try_into().map_err(|_| {
-            Error::key_derivation("Ed25519", "Invalid key length, expected 32 bytes".to_string())
+            Error::key_derivation(
+                "Ed25519",
+                "Invalid key length, expected 32 bytes".to_string(),
+            )
         })?;
         let signing_key = SigningKey::from_bytes(&bytes);
         Ok(Self { signing_key })
@@ -73,5 +76,51 @@ impl Ed25519Keypair {
 impl Default for Ed25519Keypair {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_keypair_generation() {
+        let keypair = Ed25519Keypair::new();
+        assert_eq!(keypair.to_bytes().len(), 32);
+    }
+
+    #[test]
+    fn test_signing_verification() {
+        let keypair = Ed25519Keypair::new();
+        let message = b"Hello, World!";
+        let signature = keypair.sign(message);
+        assert!(keypair.verify(message, &signature).is_ok());
+
+        let bad_message = b"Hello, World?";
+        assert!(keypair.verify(bad_message, &signature).is_err());
+    }
+
+    #[test]
+    fn test_serialization() {
+        let keypair = Ed25519Keypair::new();
+        let bytes = keypair.to_bytes();
+        let loaded = Ed25519Keypair::from_bytes(&bytes).unwrap();
+
+        let message = b"Persistence test";
+        let signature = keypair.sign(message);
+        assert!(loaded.verify(message, &signature).is_ok());
+    }
+
+    #[test]
+    fn test_invalid_key_length() {
+        let bad_bytes = [0u8; 31];
+        assert!(Ed25519Keypair::from_bytes(&bad_bytes).is_err());
+    }
+
+    #[test]
+    fn test_public_key_access() {
+        let keypair = Ed25519Keypair::new();
+        let pk = keypair.public_key();
+        assert_eq!(pk.as_bytes().len(), 32);
     }
 }

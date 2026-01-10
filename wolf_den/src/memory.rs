@@ -61,3 +61,40 @@ impl Clone for SecureBytes {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_secure_bytes_basic() {
+        let data = vec![1, 2, 3, 4];
+        let secure = SecureBytes::new(data.clone(), MemoryProtection::Basic);
+
+        assert_eq!(secure.len(), 4);
+        assert!(!secure.is_empty());
+        assert_eq!(secure.as_slice(), &data[..]);
+    }
+
+    #[test]
+    fn test_secure_bytes_cloning() {
+        let data = vec![1, 2, 3, 4];
+        let secure = SecureBytes::new(data.clone(), MemoryProtection::Basic);
+        let cloned = secure.clone();
+
+        assert_eq!(secure.as_slice(), cloned.as_slice());
+        assert_ne!(secure.as_slice().as_ptr(), cloned.as_slice().as_ptr()); // Different memory locations
+    }
+
+    #[test]
+    fn test_protection_modes() {
+        let data = vec![0u8; 32];
+        let none = SecureBytes::new(data.clone(), MemoryProtection::None);
+        let basic = SecureBytes::new(data.clone(), MemoryProtection::Basic);
+        let strict = SecureBytes::new(data.clone(), MemoryProtection::Strict);
+
+        assert_eq!(none.len(), 32);
+        assert_eq!(basic.len(), 32);
+        assert_eq!(strict.len(), 32);
+    }
+}
