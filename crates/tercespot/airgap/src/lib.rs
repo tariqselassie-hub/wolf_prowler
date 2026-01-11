@@ -321,7 +321,7 @@ impl AirGapBridge {
                 file_path: package_path.to_string_lossy().to_string(),
             };
 
-            self.forensic_log.log_rejected_file(log_entry)?;
+            self.forensic_log.log_rejected_file(&log_entry)?;
 
             // Power off USB port
             self.power_off_usb_port(usb_device)?;
@@ -434,6 +434,7 @@ impl AirGapBridge {
     ///
     /// # Errors
     /// Returns an error if the operation fails.
+    #[allow(clippy::unused_self, clippy::unnecessary_wraps)]
     fn power_off_usb_port(&self, usb_device: &str) -> io::Result<()> {
         println!("Powering off USB port for device {usb_device}");
 
@@ -489,13 +490,13 @@ impl ForensicLogger {
     ///
     /// # Panics
     /// Panics if the timestamp is before the UNIX epoch.
-    pub fn log_rejected_file(&self, entry: ForensicLogEntry) -> io::Result<()> {
+    pub fn log_rejected_file(&self, entry: &ForensicLogEntry) -> io::Result<()> {
         self.rotate_if_needed()?;
 
         let timestamp = entry
             .timestamp
             .duration_since(std::time::UNIX_EPOCH)
-            .expect("Time went backwards")
+            .unwrap_or(Duration::ZERO)
             .as_secs();
 
         let log_entry = format!(
@@ -530,7 +531,7 @@ impl ForensicLogger {
                 .unwrap_or_default()
                 .as_millis();
 
-            let rotated_name = format!("forensic_log_{}.txt", timestamp);
+            let rotated_name = format!("forensic_log_{timestamp}.txt");
             let rotated_path = Path::new(&self.worm_path).join(rotated_name);
             fs::rename(&log_path, rotated_path)?;
 
@@ -549,7 +550,7 @@ impl ForensicLogger {
             let path = entry.path();
             if path.is_file() {
                 if let Some(name) = path.file_name().and_then(|s| s.to_str()) {
-                    if name.starts_with("forensic_log_") && name.ends_with(".txt") {
+                    if name.starts_with("forensic_log_") && name.to_lowercase().ends_with(".txt") {
                         log_files.push(path);
                     }
                 }
@@ -566,8 +567,8 @@ impl ForensicLogger {
 
             // Remove oldest files
             let to_remove = log_files.len() - self.max_log_files;
-            for i in 0..to_remove {
-                fs::remove_file(&log_files[i])?;
+            for file in log_files.iter().take(to_remove) {
+                fs::remove_file(file)?;
             }
         }
 
@@ -625,7 +626,7 @@ mod tests {
     #[test]
     fn test_verify_package_signature_integration() {
         use fips204::ml_dsa_44;
-        use fips204::traits::{KeyGen, SerDes, Signer};
+        use fips204::traits::{KeyGen, Signer};
 
         // 1. Generate keys
         let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
@@ -637,7 +638,7 @@ mod tests {
 
         // 3. Sign data
         let signature = sk.try_sign(command, b"").unwrap();
-        let sig_bytes = signature.into_bytes();
+        let sig_bytes = signature;
 
         // 4. Construct package: [data][signature]
         let mut package = command.to_vec();
@@ -666,7 +667,7 @@ mod tests {
     #[test]
     fn test_benchmark_signature_verification() {
         use fips204::ml_dsa_44;
-        use fips204::traits::{KeyGen, SerDes, Signer};
+        use fips204::traits::{KeyGen, Signer};
         use std::time::Instant;
 
         // 1. Setup keys and payload
@@ -675,7 +676,7 @@ mod tests {
         let pk_hex = hex::encode(pk_bytes);
         let command = b"benchmark_payload";
         let signature = sk.try_sign(command, b"").unwrap();
-        let sig_bytes = signature.into_bytes();
+        let sig_bytes = signature;
 
         let mut package = command.to_vec();
         package.extend_from_slice(&sig_bytes);
@@ -723,14 +724,14 @@ mod tests {
         };
 
         // 1. First log
-        logger.log_rejected_file(entry.clone()).unwrap();
+        logger.log_rejected_file(&entry).unwrap();
         let log_path = temp_dir.path().join("forensic_log.txt");
         assert!(log_path.exists());
 
         // 2. Second log (should trigger rotation)
         // Sleep to ensure timestamp difference for rotation filename
         std::thread::sleep(std::time::Duration::from_millis(10));
-        logger.log_rejected_file(entry).unwrap();
+        logger.log_rejected_file(&entry).unwrap();
 
         // Check for rotated file
         let paths: Vec<_> = fs::read_dir(worm_path)

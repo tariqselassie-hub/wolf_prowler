@@ -289,20 +289,7 @@ members = [
 ]
 
 
-"windows-aarch64-gnullvm:0.48.5" = { version = "0.53.1" }
-"windows-aarch64-gnullvm:0.52.6" = { version = "0.53.1" }
-"windows-aarch64-msvc:0.48.5" = { version = "0.53.1" }
-"windows-aarch64-msvc:0.52.6" = { version = "0.53.1" }
 
-"windows-i686-gnu:0.52.6" = { version = "0.53.1" }
-"windows-i686-msvc:0.48.5" = { version = "0.53.1" }
-"windows-i686-msvc:0.52.6" = { version = "0.53.1" }
-"windows-x86_64-gnu:0.48.5" = { version = "0.53.1" }
-
-
-"windows-x86_64-gnullvm:0.52.6" = { version = "0.53.1" }
-"windows-x86_64-msvc:0.48.5" = { version = "0.53.1" }
-"windows-x86_64-msvc:0.52.6" = { version = "0.53.1" }
 
 
 

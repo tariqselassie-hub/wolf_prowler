@@ -445,9 +445,6 @@ impl MessageFloodingMatcher {
             flood_window: Duration::from_secs(60),
         }
     }
-    fn pattern_type(&self) -> &'static str {
-        "sybil_attack"
-    }
 }
 
 impl PatternMatcher for MessageFloodingMatcher {

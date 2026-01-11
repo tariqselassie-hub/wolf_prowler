@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 use crate::dashboard::websocket::WebSocketState;
 use tokio::sync::RwLock;
 use wolf_net::SwarmManager;
-use wolfsec::security::advanced::iam::{AuthenticationManager, IAMConfig};
+use wolfsec::security::advanced::iam::AuthenticationManager;
 use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetector};
 use wolfsec::WolfSecurity;
 

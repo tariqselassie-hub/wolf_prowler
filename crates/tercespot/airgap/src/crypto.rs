@@ -62,7 +62,7 @@ mod tests {
 
         // Verify using our function
         let pk_bytes = pk.into_bytes();
-        let sig_bytes = sig.into_bytes();
+        let sig_bytes = sig;
 
         let result = verify_signature(message, &sig_bytes, &pk_bytes);
         assert!(result.is_ok());
@@ -76,7 +76,7 @@ mod tests {
         let sig = sk.try_sign(message, b"").unwrap();
 
         let pk_bytes = pk.into_bytes();
-        let mut sig_bytes = sig.into_bytes();
+        let mut sig_bytes = sig;
 
         // Tamper with signature
         sig_bytes[0] ^= 0xFF;
@@ -93,7 +93,7 @@ mod tests {
         let sig = sk.try_sign(message, b"").unwrap();
 
         let pk_bytes = pk.into_bytes();
-        let sig_bytes = sig.into_bytes();
+        let sig_bytes = sig;
 
         let wrong_message = b"Goodbye, World!";
 
@@ -110,11 +110,15 @@ mod tests {
 
         // Invalid PK length
         let result = verify_signature(message, &valid_sig, &[0u8; PK_SIZE - 1]);
-        assert!(matches!(result, Err(AirGapError::Crypto(msg)) if msg.contains("Invalid public key length")));
+        assert!(
+            matches!(result, Err(AirGapError::Crypto(msg)) if msg.contains("Invalid public key length"))
+        );
 
         // Invalid Sig length
         let result = verify_signature(message, &[0u8; SIG_SIZE - 1], &valid_pk);
-        assert!(matches!(result, Err(AirGapError::Crypto(msg)) if msg.contains("Invalid signature length")));
+        assert!(
+            matches!(result, Err(AirGapError::Crypto(msg)) if msg.contains("Invalid signature length"))
+        );
     }
 
     #[test]

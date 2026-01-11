@@ -14,16 +14,14 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+// use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
 use crate::dashboard::state::AppState;
 use wolf_net::{swarm::NetworkMetrics, SwarmManager};
-use wolfsec::security::advanced::iam::{
-    ApiKeyValidationResult, AuthenticationMethod, SessionValidationResult,
-};
+use wolfsec::security::advanced::iam::{ApiKeyValidationResult, SessionValidationResult};
 use wolfsec::WolfSecurity;
 
 /// WebSocket connection state
@@ -63,7 +61,7 @@ pub enum DashboardMessage {
         /// Memory usage percentage
         memory: f64,
         /// System uptime in seconds
-        uptime: u64
+        uptime: u64,
     },
 
     /// Network status update
@@ -105,7 +103,7 @@ pub enum DashboardMessage {
         /// Notification title
         title: String,
         /// Notification message
-        message: String
+        message: String,
     },
 }
 
@@ -330,6 +328,7 @@ pub async fn broadcast_threat_update(
 }
 
 /// Calculate network health based on metrics
+#[allow(dead_code)]
 fn calculate_network_health(metrics: &NetworkMetrics) -> f64 {
     let total_connections = metrics.active_connections.max(1);
     let failure_rate =

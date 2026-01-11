@@ -1,6 +1,8 @@
 use dioxus::prelude::*;
 use dioxus_fullstack::prelude::*;
 use serde::{Deserialize, Serialize};
+use wolf_web::dashboard::api::server_fns::get_records;
+use wolf_web::types::RecordView;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct VaultConfigView {
@@ -217,10 +219,11 @@ pub fn VaultTools() -> Element {
 
 #[component]
 pub fn VaultKeys() -> Element {
-    let records = use_resource(move || async move {
-        // Fetch from 'vault' table using main's server fn
-        crate::get_records("vault".to_string()).await
-    });
+    let records: Resource<Result<Vec<RecordView>, ServerFnError>> =
+        use_resource(move || async move {
+            // Fetch from 'vault' table using main's server fn
+            get_records("vault".to_string()).await
+        });
 
     rsx! {
         div { class: "border border-green-800 bg-gray-900/20 p-6 rounded",

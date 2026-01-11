@@ -6,7 +6,7 @@
 
 use axum::{
     extract::State,
-    http::{HeaderMap, HeaderName, StatusCode},
+    http::{HeaderName, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Json, Router,
@@ -15,8 +15,9 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer, trace::TraceLayer};
-use tracing::{error, info, warn};
+// use tracing::{error, info, warn};
 
+pub mod server_fns;
 // use crate::dashboard::middleware::auth::{
 //     api_key_auth_middleware, combined_auth_middleware, session_auth_middleware,
 // };
@@ -176,7 +177,6 @@ pub fn create_api_router(state: Arc<AppState>) -> Router {
         .route("/config", get(get_config))
         .route("/prometheus", get(metrics_handler))
         .with_state(state.clone());
-
 
     let router = v1::create_v1_router(state.clone()).merge(stateful_routes);
 
@@ -376,14 +376,17 @@ async fn metrics_handler(State(state): State<Arc<AppState>>) -> String {
 
     // Format as Prometheus
     let mut metrics = String::new();
-    
+
     metrics.push_str("# HELP wolf_server_requests_total Total number of HTTP requests\n");
     metrics.push_str("# TYPE wolf_server_requests_total counter\n");
     metrics.push_str(&format!("wolf_server_requests_total {}\n", request_count));
 
     metrics.push_str("# HELP wolf_security_events_total Total number of security events\n");
     metrics.push_str("# TYPE wolf_security_events_total gauge\n");
-    metrics.push_str(&format!("wolf_security_events_total {}\n", stats.total_events));
+    metrics.push_str(&format!(
+        "wolf_security_events_total {}\n",
+        stats.total_events
+    ));
 
     metrics.push_str("# HELP wolf_security_risk_score Current system risk score\n");
     metrics.push_str("# TYPE wolf_security_risk_score gauge\n");
@@ -391,15 +394,24 @@ async fn metrics_handler(State(state): State<Arc<AppState>>) -> String {
 
     metrics.push_str("# HELP wolf_security_active_connections Number of active connections\n");
     metrics.push_str("# TYPE wolf_security_active_connections gauge\n");
-    metrics.push_str(&format!("wolf_security_active_connections {}\n", stats.active_connections));
+    metrics.push_str(&format!(
+        "wolf_security_active_connections {}\n",
+        stats.active_connections
+    ));
 
     metrics.push_str("# HELP wolf_system_cpu_usage CPU usage percentage\n");
     metrics.push_str("# TYPE wolf_system_cpu_usage gauge\n");
-    metrics.push_str(&format!("wolf_system_cpu_usage {}\n", stats.system.cpu_usage));
+    metrics.push_str(&format!(
+        "wolf_system_cpu_usage {}\n",
+        stats.system.cpu_usage
+    ));
 
     metrics.push_str("# HELP wolf_system_memory_usage Memory usage in MB\n");
     metrics.push_str("# TYPE wolf_system_memory_usage gauge\n");
-    metrics.push_str(&format!("wolf_system_memory_usage {}\n", stats.system.memory_usage));
+    metrics.push_str(&format!(
+        "wolf_system_memory_usage {}\n",
+        stats.system.memory_usage
+    ));
 
     metrics
 }

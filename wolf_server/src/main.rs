@@ -1,6 +1,7 @@
 mod api;
 mod api_middleware;
 mod tls;
+
 mod wolfsec_integration;
 
 use axum_server::tls_rustls::RustlsConfig;

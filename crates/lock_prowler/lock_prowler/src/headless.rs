@@ -4,12 +4,15 @@ use crate::vault::Vault;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::{sleep, Duration};
+use wolf_net::api::WolfNodeControl;
 use wolf_net::libp2p;
+use wolf_net::peer::{EntityInfo, PeerId};
 use wolf_net::wolf_node::WolfNode;
 use wolf_net::WolfConfig;
 
@@ -91,18 +94,24 @@ pub struct HeadlessWolfProwler {
     scanner: SecretScanner,
     hunter: Hunter,
     log_tx: broadcast::Sender<String>,
-    wolf_node: Arc<RwLock<Option<WolfNode>>>,
+    // Replaced direct WolfNode with Control and Metrics to avoid deadlock
+    node_control: Arc<RwLock<Option<WolfNodeControl>>>,
+    node_metrics: Arc<RwLock<Option<Arc<RwLock<HashMap<PeerId, EntityInfo>>>>>>,
 }
 
 impl HeadlessWolfProwler {
     /// Creates a new `HeadlessWolfProwler` instance.
+    /// Creates a new `HeadlessWolfProwler` instance.
     pub fn new(config: HeadlessConfig, store: WolfStore) -> Self {
         let (log_tx, _) = broadcast::channel(100);
-        let wolf_node = Arc::new(RwLock::new(None));
+        let node_control = Arc::new(RwLock::new(None));
+        let node_metrics = Arc::new(RwLock::new(None));
 
         if config.enable_wolfpack {
-            let node_clone = wolf_node.clone();
+            let control_clone = node_control.clone();
+            let metrics_clone = node_metrics.clone();
             let _config_clone = config.clone();
+
             tokio::spawn(async move {
                 // Initialize defaults for now, in prod this comes from config file
                 let mut wolf_config = WolfConfig::default();
@@ -123,12 +132,6 @@ impl HeadlessWolfProwler {
                 if let Ok(bootstrap_str) = std::env::var("WOLF_BOOTSTRAP") {
                     println!("[Headless] WOLF_BOOTSTRAP env var found: {}", bootstrap_str);
                     if let Ok(addr) = bootstrap_str.parse::<libp2p::Multiaddr>() {
-                        // For simulation, we assume specific peer IDs derived from known seeds
-                        // Alpha: seed=alpha -> PeerID ...
-                        // This is a simplification; in production we'd pass full Multiaddr including PeerID
-
-                        // We need the bootstrap peer ID to be correct for libp2p noise handshake
-                        // For now we just add the address, SwarmManager logic handles discovery
                         wolf_config
                             .network
                             .bootstrap_peers
@@ -136,12 +139,60 @@ impl HeadlessWolfProwler {
                     }
                 }
 
+                // We only prepare the node here, but we don't start it until start() is called?
+                // Actually, logic was to init it here. But if we want to run it without holding the lock...
+                // The previous code initialized it and put it in the lock.
+                // The START method was what ran it.
+                // So we should probably defer creation to START or create here but don't run.
+                // But WolfNode::new() creates it.
+
+                // Let's create it here, but we can't store it in 'node_control'.
+                // We need to store the NODE itself somewhere if we want to run it later.
+                // OR we just spawn the run loop inside start() if we had the node.
+
+                // BETTER APPROACH FOR HEADLESS:
+                // Just let start() do the heavy lifting of spawning the node run loop.
+                // But start() is async.
+                // If we want to support 'new' returning quickly, we can't await WolfNode::new.
+
+                // Let's stick to the previous pattern but store the handles.
                 match WolfNode::new(wolf_config).await {
-                    Ok(node) => {
-                        let mut guard: tokio::sync::RwLockWriteGuard<Option<WolfNode>> =
-                            node_clone.write().await;
-                        *guard = Some(node);
-                        println!("[Headless] WolfNode initialized successfully");
+                    Ok(mut node) => {
+                        // Extract handles
+                        let control = node.get_control();
+                        let metrics = node.metrics.clone();
+
+                        {
+                            let mut c_guard = control_clone.write().await;
+                            *c_guard = Some(control);
+                            let mut m_guard = metrics_clone.write().await;
+                            *m_guard = Some(metrics);
+                        }
+
+                        println!("[Headless] WolfNode initialized successfully. Starting background event loop...");
+
+                        // Run the node immediately in this background task?
+                        // The original code waited for 'start()' to run the node.
+                        // But 'start()' spawns a task to run the node.
+                        // If we run it here, it starts before 'start()' is called.
+                        // Maybe that's fine? Or we check a flag?
+
+                        // The original code:
+                        // 1. new() spawns a task to init WolfNode and put it in Option field.
+                        // 2. start() spawns a task to take lock, and if Some(node), node.run().
+
+                        // New approach:
+                        // 1. new() spawns a task to init WolfNode.
+                        // 2. Once init, extract handles. Store handles.
+                        // 3. RUN the node immediately?
+                        // If we run it immediately, it connects to swarm.
+                        // Does 'start()' imply 'start scanning' or 'start everything'?
+                        // headless.start() starts the scanning loop.
+
+                        // Let's run the node immediately here. It's cleaner.
+                        if let Err(e) = node.run().await {
+                            println!("[Headless] WolfNode run error: {}", e);
+                        }
                     }
                     Err(e) => {
                         println!("[Headless] Failed to initialize WolfNode: {}", e);
@@ -165,7 +216,8 @@ impl HeadlessWolfProwler {
             scanner: SecretScanner::new(),
             hunter: Hunter::new(),
             log_tx,
-            wolf_node,
+            node_control,
+            node_metrics,
         }
     }
 
@@ -214,6 +266,10 @@ impl HeadlessWolfProwler {
         });
 
         // Start WolfNode if present
+        // WolfNode is now auto-started in background if enabled
+        // We don't need to manually run it here.
+        // But we might want to log if it's connected?
+        /*
         let wolf_node_clone = self.wolf_node.clone();
         tokio::spawn(async move {
             let mut guard: tokio::sync::RwLockWriteGuard<Option<WolfNode>> =
@@ -225,6 +281,7 @@ impl HeadlessWolfProwler {
                 }
             }
         });
+        */
 
         Ok(())
     }
@@ -238,6 +295,16 @@ impl HeadlessWolfProwler {
         status.is_running = false;
         status.progress = 0.0;
         println!("[Headless] Stopping automated scan service...");
+
+        // Stop WolfNode if running
+        let guard = self.node_control.write().await;
+        if let Some(control) = guard.as_ref() {
+            println!("[Headless] Sending shutdown signal to WolfNode...");
+            if let Err(e) = control.shutdown().await {
+                println!("[Headless] Failed to send shutdown command: {}", e);
+            }
+        }
+
         Ok(())
     }
 
@@ -290,11 +357,10 @@ impl HeadlessWolfProwler {
 
     /// Retrieves current network statistics.
     pub async fn get_network_stats(&self) -> NetworkStats {
-        let guard: tokio::sync::RwLockReadGuard<Option<WolfNode>> = self.wolf_node.read().await;
-        if let Some(node) = guard.as_ref() {
-            let metrics: tokio::sync::RwLockReadGuard<
-                std::collections::HashMap<wolf_net::PeerId, wolf_net::peer::EntityInfo>,
-            > = node.metrics.read().await;
+        let metrics_wrapper = self.node_metrics.read().await;
+
+        if let Some(metrics_arc) = metrics_wrapper.as_ref() {
+            let metrics = metrics_arc.read().await;
             let peer_count = metrics.len();
 
             // Extract some "active" node IDs for display
@@ -359,7 +425,8 @@ impl HeadlessWolfProwler {
         {
             let mut store = self.store.lock().await;
             self.hunter
-                .save_scan_results(&mut store, &results).await
+                .save_scan_results(&mut store, &results)
+                .await
                 .context("Failed to save scan results to database")?;
         }
 
@@ -452,8 +519,9 @@ impl HeadlessWolfProwler {
         secrets: &[DiscoveredSecret],
     ) -> Result<()> {
         let mut store_guard = store.lock().await;
-        let mut vault =
-            Vault::load_from_db(&mut store_guard).await.context("Failed to load vault for import")?;
+        let mut vault = Vault::load_from_db(&mut store_guard)
+            .await
+            .context("Failed to load vault for import")?;
 
         let mut imported_count = 0;
         let master_key = generate_master_key();
@@ -488,7 +556,8 @@ impl HeadlessWolfProwler {
 
         if imported_count > 0 {
             vault
-                .save_to_db(&mut store_guard).await
+                .save_to_db(&mut store_guard)
+                .await
                 .context("Failed to save vault after import")?;
             println!("[Headless] Imported {} secrets to vault", imported_count);
         }

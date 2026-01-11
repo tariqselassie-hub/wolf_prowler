@@ -24,8 +24,10 @@ use crate::wolf_pack::territory::TerritoryAccess;
 /// Wolf Den Container Manager
 pub struct WolfDenContainerManager {
     /// Configuration
+    #[allow(dead_code)]
     config: WolfDenConfig,
     /// Active containers
+    #[allow(dead_code)]
     containers: Arc<RwLock<HashMap<String, WolfDenContainer>>>,
     #[cfg(feature = "container_security")]
     /// Docker client

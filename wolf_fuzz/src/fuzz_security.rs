@@ -1,18 +1,23 @@
 //! Fuzzing target for Wolf Security Event Validation
 
-use libafl::inputs::{BytesInput, HasTargetBytes};
-use libafl_bolts::AsSlice;
+use rand::{thread_rng, Rng};
 use wolfsec::{SecurityEvent, SecurityEventType, SecuritySeverity};
-use rand::{Rng, thread_rng};
 
 pub fn main() {
-    println!("🐺 Starting Security Event Fuzzer...");
+    let args: Vec<String> = std::env::args().collect();
+    let iterations = if args.len() > 1 {
+        args[1].parse::<usize>().unwrap_or(1000)
+    } else {
+        1000
+    };
+
+    println!(
+        "🐺 Starting Security Event Fuzzer running for {} iterations...",
+        iterations
+    );
     let mut rng = thread_rng();
 
-    let harness = |input: &BytesInput| {
-        let target = input.target_bytes();
-        let data = target.as_slice();
-
+    let harness = |data: &[u8]| {
         // 1. Fuzz Event Deserialization
         if let Ok(event) = serde_json::from_slice::<SecurityEvent>(data) {
             let _ = event.severity;
@@ -24,18 +29,17 @@ pub fn main() {
             let _ = SecurityEvent::new(
                 SecurityEventType::SuspiciousActivity,
                 SecuritySeverity::High,
-                desc.to_string()
+                desc.to_string(),
             );
         }
     };
 
-    for i in 0..1000 {
+    for i in 0..iterations {
         let len = rng.gen_range(1..1024);
         let mut bytes = vec![0u8; len];
         rng.fill(&mut bytes[..]);
-        
-        let input = BytesInput::new(bytes);
-        harness(&input);
+
+        harness(&bytes);
 
         if i % 100 == 0 {
             println!("  Fuzzed {} iterations...", i);

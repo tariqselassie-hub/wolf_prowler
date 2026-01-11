@@ -7,7 +7,6 @@ use anyhow::Result;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 use tokio::fs;
 use tracing::{error, info, warn};
 
@@ -39,7 +38,11 @@ impl ConfigurationMonitor {
         }
 
         let checksum = self.compute_checksum(&path).await?;
-        info!("Started monitoring config file: {:?} (Hash: {})", path, &checksum[..8]);
+        info!(
+            "Started monitoring config file: {:?} (Hash: {})",
+            path,
+            &checksum[..8]
+        );
         self.watched_files.insert(path, checksum);
         Ok(())
     }
@@ -86,7 +89,10 @@ impl ConfigurationMonitor {
         let event = SecurityEvent::new(
             SecurityEventType::PolicyViolation,
             SecuritySeverity::High,
-            format!("Configuration Integrity Violation: {:?} - {}", path, details),
+            format!(
+                "Configuration Integrity Violation: {:?} - {}",
+                path, details
+            ),
         )
         .with_metadata("component".to_string(), "ConfigurationMonitor".to_string())
         .with_metadata("file".to_string(), format!("{:?}", path));

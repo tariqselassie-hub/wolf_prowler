@@ -386,6 +386,7 @@ impl HuntCoordinator {
         Ok(())
     }
 
+    #[allow(clippy::cognitive_complexity)]
     async fn handle_tick(&mut self) -> Result<()> {
         // Garbage Collection: Remove timed out hunts
         let now = std::time::SystemTime::now();
@@ -622,7 +623,7 @@ impl HuntCoordinator {
             .election_manager
             .leader_id
             .as_ref()
-            .map(|id| id.to_string());
+            .map(ToString::to_string);
         self.state.election_term = self.election_manager.current_term;
         self.state.election_state = format!("{:?}", self.election_manager.state);
 

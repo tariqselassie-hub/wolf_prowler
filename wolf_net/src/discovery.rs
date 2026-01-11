@@ -5,7 +5,6 @@
 pub use crate::config::DiscoveryConfig;
 use crate::peer::{PeerId, PeerInfo};
 use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
@@ -99,6 +98,7 @@ impl DiscoveryMethod for DhtDiscovery {
 /// Active port scanning discovery
 pub struct ActiveScanDiscovery {
     enabled: bool,
+    #[allow(dead_code)]
     ports: Vec<u16>,
 }
 

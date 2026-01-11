@@ -18,17 +18,22 @@ use lock_prowler::headless::HeadlessWolfProwler;
 use once_cell::sync::Lazy; // Import Router explicitly
 use std::collections::HashMap;
 
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio::sync::MutexGuard;
+use tokio::sync::RwLock;
+use wolf_net::SwarmManager;
 #[cfg(feature = "server")]
 use wolf_web::dashboard;
 #[cfg(feature = "server")]
 use wolf_web::dashboard::state::AppState;
 use wolfsec::security::advanced::iam::sso::{SSOAuthenticationRequest, SSOCallbackRequest};
 use wolfsec::security::advanced::iam::ClientInfo;
-use wolfsec::security::advanced::iam::{IAMConfig, SSOIntegrationManager, SSOProvider, AuthenticationManager};
+use wolfsec::security::advanced::iam::{
+    AuthenticationManager, IAMConfig, SSOIntegrationManager, SSOProvider,
+};
 use wolfsec::threat_detection::BehavioralAnalyzer;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use tokio::sync::Mutex;
+use wolfsec::WolfSecurity;
 
 mod vault_components;
 use crate::vault_components::*;
@@ -44,329 +49,26 @@ use crate::pages::admin::AdministrationPage;
 use crate::pages::compliance::CompliancePage;
 use crate::pages::database::DatabasePage;
 use crate::pages::intelligence::IntelligencePage;
+use crate::pages::logs::LogsPage;
+use crate::pages::security::SecurityPage;
 use crate::pages::settings::SettingsPage;
 use crate::pages::system::SystemPage;
 use crate::pages::wolfpack::WolfPackPage;
-use crate::pages::logs::LogsPage;
-use crate::pages::security::SecurityPage;
 
 // --- Types & State ---
 use wolf_web::types::*;
 
 // Global state simulation
-#[cfg(feature = "server")]
-pub(crate) static PROWLER: Lazy<AsyncMutex<Option<HeadlessWolfProwler>>> =
-    Lazy::new(|| AsyncMutex::new(None));
-#[cfg(feature = "server")]
-pub(crate) static SSO_MANAGER: Lazy<AsyncMutex<Option<SSOIntegrationManager>>> =
-    Lazy::new(|| AsyncMutex::new(None));
-#[cfg(feature = "server")]
-pub(crate) static APP_STATE: Lazy<AsyncMutex<Option<AppState>>> =
-    Lazy::new(|| AsyncMutex::new(None));
-#[cfg(feature = "server")]
-pub(crate) static SECURITY_ENGINE: Lazy<AsyncMutex<Option<wolfsec::WolfSecurity>>> =
-    Lazy::new(|| AsyncMutex::new(None));
-#[cfg(feature = "server")]
-pub(crate) static SWARM_MANAGER: Lazy<AsyncMutex<Option<Arc<wolf_net::SwarmManager>>>> =
-    Lazy::new(|| AsyncMutex::new(None));
+// Global state is now in crate::globals
+use wolf_web::dashboard::api::server_fns::{
+    add_record, delete_record, get_fullstack_stats, get_prowler_logs, get_prowler_status,
+    get_records, get_sso_auth_url, get_wolfpack_data, handle_sso_callback, run_prowler_scan,
+};
+use wolf_web::globals::{APP_STATE, PROWLER, SECURITY_ENGINE, SSO_MANAGER, SWARM_MANAGER};
 
 // --- Server Functions (Dioxus 0.6 RPC) ---
 
-#[server]
-async fn get_fullstack_stats() -> Result<SystemStats, ServerFnError> {
-    let prowler_lock = PROWLER.lock().await;
-    let security_lock = SECURITY_ENGINE.lock().await;
-    let swarm_lock = SWARM_MANAGER.lock().await;
-
-    let mut stats = SystemStats {
-        volume_size: "Disconnected".to_string(),
-        encrypted_sectors: 0.0,
-        entropy: 0.0,
-        db_status: "OFFLINE".to_string(),
-        active_nodes: 0,
-        threat_level: "UNKNOWN".to_string(),
-        active_alerts: 0,
-        scanner_status: "IDLE".to_string(),
-        network_status: "DISCONNECTED".to_string(),
-        firewall: FirewallStats::default(),
-    };
-
-    if let Some(prowler) = prowler_lock.as_ref() {
-        let db_stats = prowler.get_store_stats().await;
-        // Need to update HeadlessWolfProwler to ensure get_network_stats returns properly
-        let net_stats = prowler.get_network_stats().await;
-        let headless_status = prowler.get_status().await;
-
-        stats.volume_size = format!("{} Records", db_stats.total_records);
-        stats.encrypted_sectors = if db_stats.integrity_check {
-            100.0
-        } else {
-            99.9
-        };
-        stats.entropy = 0.98;
-        stats.db_status = db_stats.encryption_status;
-        stats.active_nodes = net_stats.peer_count;
-        stats.network_status = if net_stats.is_connected {
-            "ONLINE".to_string()
-        } else {
-            "OFFLINE".to_string()
-        };
-
-        if headless_status.is_running {
-            stats.scanner_status = format!("SCANNING: {:.0}%", headless_status.progress);
-        }
-    }
-
-    if let Some(sec) = security_lock.as_ref() {
-        let sec_status = sec.get_status().await;
-        let score = sec_status.threat_detection.metrics.security_score;
-        stats.threat_level = if score > 80.0 {
-            "LOW".to_string()
-        } else if score > 50.0 {
-            "ELEVATED".to_string()
-        } else {
-            "CRITICAL".to_string()
-        };
-
-        stats.active_alerts = sec_status.monitoring.active_alerts;
-    }
-
-    if let Some(swarm) = swarm_lock.as_ref() {
-        let fw = swarm.firewall.read().await;
-        stats.firewall.enabled = fw.enabled;
-        stats.firewall.policy = format!("{:?}", fw.policy);
-        stats.firewall.active_rules = fw.rules.len();
-        
-        stats.firewall.rules = fw.rules.iter().map(|r| FirewallRuleView {
-            name: r.name.clone(),
-            target: format!("{:?}", r.target),
-            protocol: format!("{:?}", r.protocol),
-            action: format!("{:?}", r.action),
-            direction: format!("{:?}", r.direction),
-        }).collect();
-    }
-
-    Ok(stats)
-}
-
-#[server]
-async fn run_prowler_scan() -> Result<String, ServerFnError> {
-    // Simulating backend processing
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-    Ok("Sector Scan Complete. Integrity Verified.".to_string())
-}
-
-#[server]
-async fn get_prowler_logs() -> Result<Vec<String>, ServerFnError> {
-    // Simplified to non-streaming for initial build
-    Ok(vec![
-        "System initialized.".to_string(),
-        "Listening on port 8080.".to_string(),
-        "Secure Storage mounted.".to_string(),
-    ])
-}
-
-#[server]
-async fn get_prowler_status() -> Result<HeadlessStatus, ServerFnError> {
-    // Simplified status return matching actual struct
-    Ok(HeadlessStatus {
-        is_running: true,
-        current_target: Some("/home/user/data".to_string()),
-        discovered_secrets: 42,
-        imported_secrets: 10,
-        last_scan_time: Some(Utc::now()),
-        next_scan_time: None,
-        progress: 100.0,
-    })
-}
-
-#[server]
-async fn get_wolfpack_data() -> Result<WolfPackTelemetry, ServerFnError> {
-    let swarm_lock = SWARM_MANAGER.lock().await;
-    
-    if let Some(swarm) = swarm_lock.as_ref() {
-        let wolf_state = swarm.get_wolf_state().await
-            .map_err(|e| ServerFnError::new(e.to_string()))?;
-        let state = wolf_state.read().await;
-        
-        let active_hunts = state.active_hunts.iter().map(|h| ActiveHuntView {
-            id: h.hunt_id.clone(),
-            target: h.target_ip.clone(),
-            status: format!("{:?}", h.status),
-            confidence: h.confidence,
-            start_time: "Now".to_string(), // Simplified for now
-        }).collect();
-
-        // Get peer list
-        let peers = swarm.list_peers().await
-            .map_err(|e| ServerFnError::new(e.to_string()))?
-            .into_iter()
-            .map(|p| PeerStatus {
-                id: p.entity_id.peer_id.to_string(),
-                status: format!("{:?}", p.status),
-                role: "Unknown".to_string(), // Need to fetch role if possible
-                rtt_ms: p.metrics.latency_ms,
-            })
-            .collect();
-
-        Ok(WolfPackTelemetry {
-            node_id: swarm.local_peer_id.to_string(),
-            raft_state: state.election_state.clone(),
-            term: state.election_term,
-            commit_index: 0, // Not exposed in WolfState yet
-            last_heartbeat: Utc::now().format("%H:%M:%S").to_string(),
-            peers,
-            network_health: 0.95, // Calculated metric
-            active_hunts,
-            role: format!("{:?}", state.role),
-            prestige: state.prestige,
-        })
-    } else {
-        // Fallback for standalone/dev
-        Ok(WolfPackTelemetry {
-            node_id: "DEV-NODE-01".to_string(),
-            raft_state: "Leader".to_string(),
-            term: 1,
-            commit_index: 100,
-            last_heartbeat: Utc::now().format("%H:%M:%S").to_string(),
-            peers: vec![],
-            network_health: 1.0,
-            active_hunts: vec![],
-            role: "Alpha".to_string(),
-            prestige: 9999,
-        })
-    }
-}
-
-// --- SSO Server Functions ---
-
-#[server]
-async fn get_sso_auth_url(provider_name: String) -> Result<String, ServerFnError> {
-    let sso_lock = SSO_MANAGER.lock().await;
-    if let Some(manager) = sso_lock.as_ref() {
-        let provider = match provider_name.as_str() {
-            "azure" => SSOProvider::AzureAD,
-            "okta" => SSOProvider::Okta,
-            "auth0" => SSOProvider::Auth0,
-            "google" => SSOProvider::Google,
-            "mock" => SSOProvider::Mock,
-            _ => return Err(ServerFnError::new("Invalid provider")),
-        };
-
-        let request = SSOAuthenticationRequest {
-            provider,
-            client_info: ClientInfo {
-                ip_address: "127.0.0.1".to_string(), // In real app, extract from headers
-                user_agent: "WolfWeb/1.0".to_string(),
-                device_id: None,
-                location: None,
-            },
-            redirect_url: None, // Use default
-        };
-
-        let response = manager
-            .start_authentication(request)
-            .await
-            .map_err(|e| ServerFnError::new(e.to_string()))?;
-
-        Ok(response.auth_url)
-    } else {
-        Err(ServerFnError::new("SSO System Offline"))
-    }
-}
-
-#[server]
-async fn handle_sso_callback(
-    provider_name: String,
-    code: String,
-    state: String,
-) -> Result<String, ServerFnError> {
-    let sso_lock = SSO_MANAGER.lock().await;
-    if let Some(manager) = sso_lock.as_ref() {
-        let provider = match provider_name.as_str() {
-            "azure" => SSOProvider::AzureAD,
-            "okta" => SSOProvider::Okta,
-            "auth0" => SSOProvider::Auth0,
-            "google" => SSOProvider::Google,
-            "mock" => SSOProvider::Mock,
-            _ => return Err(ServerFnError::new("Invalid provider")),
-        };
-
-        let request = SSOCallbackRequest {
-            provider,
-            code,
-            state,
-            error: None,
-        };
-
-        // In a real app, this would return a session token/cookie.
-        // For now, we just verify the handshake succeeds.
-        let _user_info = manager
-            .handle_callback(request)
-            .await
-            .map_err(|e| ServerFnError::new(e.to_string()))?;
-
-        Ok("Authentication Successful".to_string())
-    } else {
-        Err(ServerFnError::new("SSO System Offline"))
-    }
-}
-
-// --- Database Server Functions ---
-
-#[server]
-pub async fn get_records(table: String) -> Result<Vec<RecordView>, ServerFnError> {
-    let prowler_lock = PROWLER.lock().await;
-    if let Some(prowler) = prowler_lock.as_ref() {
-        let records = prowler
-            .list_database_records(&table)
-            .await
-            .map_err(|e| ServerFnError::new(e.to_string()))?;
-        let views = records
-            .into_iter()
-            .map(|r| RecordView {
-                id: r.id,
-                data: serde_json::to_string(&r.data).unwrap_or_default(),
-                has_vector: r.vector.is_some(),
-            })
-            .collect();
-        Ok(views)
-    } else {
-        Err(ServerFnError::new("Database Offline"))
-    }
-}
-
-#[server]
-async fn add_record(table: String, key: String, data_json: String) -> Result<(), ServerFnError> {
-    let prowler_lock = PROWLER.lock().await;
-    if let Some(prowler) = prowler_lock.as_ref() {
-        // Parse data_json to HashMap
-        let data: HashMap<String, String> = serde_json::from_str(&data_json)
-            .map_err(|_| ServerFnError::new("Invalid JSON Data"))?;
-
-        prowler
-            .add_database_record(&table, &key, data)
-            .await
-            .map_err(|e| ServerFnError::new(e.to_string()))?;
-        Ok(())
-    } else {
-        Err(ServerFnError::new("Database Offline"))
-    }
-}
-
-#[server]
-async fn delete_record(table: String, id: String) -> Result<(), ServerFnError> {
-    let prowler_lock = PROWLER.lock().await;
-    if let Some(prowler) = prowler_lock.as_ref() {
-        prowler
-            .delete_database_record(&table, &id)
-            .await
-            .map_err(|e| ServerFnError::new(e.to_string()))?;
-        Ok(())
-    } else {
-        Err(ServerFnError::new("Database Offline"))
-    }
-}
+// Server functions moved to wolf_web::dashboard::api::server_fns
 
 // --- Routing ---
 
@@ -501,29 +203,33 @@ fn Dashboard() -> Element {
     let mut logs_resource = use_resource(get_prowler_logs);
     let mut progress = use_signal(|| 0.0f32);
 
-    let stats = stats_resource.read().clone().unwrap_or(Ok(SystemStats {
-        volume_size: "---".to_string(),
-        encrypted_sectors: 0.0,
-        entropy: 0.0,
-        db_status: "OFFLINE".to_string(),
-        active_nodes: 0,
-        threat_level: "UNKNOWN".to_string(),
-        active_alerts: 0,
-        scanner_status: "IDLE".to_string(),
-        network_status: "DISCONNECTED".to_string(),
-        firewall: FirewallStats::default(),
-    })).unwrap_or(SystemStats {
-        volume_size: "Error".to_string(),
-        encrypted_sectors: 0.0,
-        entropy: 0.0,
-        db_status: "ERROR".to_string(),
-        active_nodes: 0,
-        threat_level: "ERROR".to_string(),
-        active_alerts: 0,
-        scanner_status: "ERROR".to_string(),
-        network_status: "ERROR".to_string(),
-        firewall: FirewallStats::default(),
-    });
+    let stats = stats_resource
+        .read()
+        .clone()
+        .unwrap_or(Ok(SystemStats {
+            volume_size: "---".to_string(),
+            encrypted_sectors: 0.0,
+            entropy: 0.0,
+            db_status: "OFFLINE".to_string(),
+            active_nodes: 0,
+            threat_level: "UNKNOWN".to_string(),
+            active_alerts: 0,
+            scanner_status: "IDLE".to_string(),
+            network_status: "DISCONNECTED".to_string(),
+            firewall: FirewallStats::default(),
+        }))
+        .unwrap_or(SystemStats {
+            volume_size: "Error".to_string(),
+            encrypted_sectors: 0.0,
+            entropy: 0.0,
+            db_status: "ERROR".to_string(),
+            active_nodes: 0,
+            threat_level: "ERROR".to_string(),
+            active_alerts: 0,
+            scanner_status: "ERROR".to_string(),
+            network_status: "ERROR".to_string(),
+            firewall: FirewallStats::default(),
+        });
 
     // Mock history data for sparklines (would be real in prod)
     let threat_history = vec![10.0, 20.0, 15.0, 40.0, 30.0, 60.0, 20.0, 10.0];
@@ -535,7 +241,7 @@ fn Dashboard() -> Element {
             div { class: "flex justify-between items-end border-b border-green-900/50 pb-4",
                 div {
                     h2 { class: "text-3xl font-bold text-white tracking-widest uppercase flex items-center gap-3",
-                        i { class: "lucide-layout-dashboard" } 
+                        i { class: "lucide-layout-dashboard" }
                         "Command Center"
                     }
                     div { class: "flex items-center gap-4 mt-2",
@@ -545,11 +251,11 @@ fn Dashboard() -> Element {
                     }
                 }
                 div { class: "flex gap-2",
-                     Button { onclick: move |_| { stats_resource.restart(); logs_resource.restart(); }, 
-                        i { class: "lucide-refresh-cw w-4 h-4 mr-2" } "Refresh" 
+                     Button { onclick: move |_| { stats_resource.restart(); logs_resource.restart(); },
+                        i { class: "lucide-refresh-cw w-4 h-4 mr-2" } "Refresh"
                      }
-                     Link { to: Route::Login {}, class: "px-4 py-2 border border-red-900/50 bg-red-950/20 text-red-500 hover:bg-red-900/40 rounded uppercase text-xs font-bold tracking-wider transition-all flex items-center", 
-                        i { class: "lucide-log-out w-4 h-4 mr-2" } "Logout" 
+                     Link { to: Route::Login {}, class: "px-4 py-2 border border-red-900/50 bg-red-950/20 text-red-500 hover:bg-red-900/40 rounded uppercase text-xs font-bold tracking-wider transition-all flex items-center",
+                        i { class: "lucide-log-out w-4 h-4 mr-2" } "Logout"
                      }
                 }
             }
@@ -607,7 +313,7 @@ fn Dashboard() -> Element {
                                     }
                                 }
                             }
-                            Button { 
+                            Button {
                                 class: "w-full py-4 text-lg",
                                 disabled: is_loading(),
                                 onclick: move |_| async move {
@@ -635,7 +341,7 @@ fn Dashboard() -> Element {
                             }
                         }
                     }
-                    
+
                     // Quick Actions
                     Card {
                         h3 { class: "text-lg font-bold mb-4 uppercase border-b border-green-800/50 pb-2", "Quick Actions" }
@@ -663,12 +369,12 @@ fn Dashboard() -> Element {
                                 div { class: "w-2 h-2 rounded-full bg-green-900/50" }
                             }
                         }
-                        
+
                         // Terminal Body
                         div { class: "flex-1 p-4 font-mono text-sm overflow-y-auto space-y-1 font-medium relative",
                             // Scanline Overlay
                             div { class: "pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] z-20 opacity-20" }
-                            
+
                             match &*logs_resource.read() {
                                 Some(Ok(logs)) => rsx! {
                                     {logs.into_iter().map(|log| {
@@ -1051,7 +757,7 @@ async fn main() {
     // Initialize Security Engine
     let mut sec_config = wolfsec::WolfSecurityConfig::default();
     sec_config.db_path = std::path::PathBuf::from(&db_path).join("wolfsec.db");
-    
+
     // Create shared components
     let wolf_security = match wolfsec::WolfSecurity::create(sec_config).await {
         Ok(mut sec) => {
@@ -1086,7 +792,7 @@ async fn main() {
     let _auth_manager = AuthenticationManager::new(IAMConfig::default())
         .await
         .expect("Failed to initialize Authentication Manager");
-    
+
     // Initialize Behavioral Analyzer (Default for now)
     let behavioral_engine = BehavioralAnalyzer {
         baseline_window: 100,
@@ -1100,36 +806,45 @@ async fn main() {
     } else {
         // Fallback or error
         wolfsec::ThreatDetector::new(
-             wolfsec::threat_detection::ThreatDetectionConfig::default(),
-             Arc::new(dashboard::MockThreatRepository)
+            wolfsec::threat_detection::ThreatDetectionConfig::default(),
+            Arc::new(dashboard::MockThreatRepository),
         )
     };
 
     // Create AppState
 
-    
-    // Hack: We need SwarmManager for with_system_components. 
+    // Hack: We need SwarmManager for with_system_components.
     // Creating a placeholder SwarmManager might have side effects (binding ports).
     // Let's construct AppState manually if needed or update AppState.
     // AppState struct fields are public.
-    
+
     let real_app_state = match wolf_security {
         Some(sec) => {
-             AppState {
+            AppState {
                 threat_engine: Arc::new(Mutex::new(sec.read().await.threat_detector.clone())),
                 behavioral_engine: Arc::new(Mutex::new(behavioral_engine)),
                 request_count: Arc::new(Mutex::new(0)),
                 websocket_state: Arc::new(wolf_web::dashboard::websocket::WebSocketState::new()),
-                auth_manager: Arc::new(Mutex::new(AuthenticationManager::new(IAMConfig::default()).await.unwrap())), // Re-init auth manager? No, use the one we made.
+                auth_manager: Arc::new(Mutex::new(
+                    AuthenticationManager::new(IAMConfig::default())
+                        .await
+                        .unwrap(),
+                )), // Re-init auth manager? No, use the one we made.
                 wolf_security: Some(sec.clone()),
                 swarm_manager: None, // Keep None for now
             }
-        },
-        None => AppState::new(threat_detector, behavioral_engine, AuthenticationManager::new(IAMConfig::default()).await.unwrap())
+        }
+        None => AppState::new(
+            threat_detector,
+            behavioral_engine,
+            AuthenticationManager::new(IAMConfig::default())
+                .await
+                .unwrap(),
+        ),
     };
-    
+
     // Initialize Global for legacy access if possible, or just accept it's broken for now.
-    // *APP_STATE.lock().await = Some(real_app_state.clone()); 
+    // *APP_STATE.lock().await = Some(real_app_state.clone());
 
     // Initialize Dashboard Router with State
     let dashboard_router = dashboard::create_router_with_state(real_app_state.clone()).await;
@@ -1145,7 +860,7 @@ async fn main() {
             App,
         )
         .layer(CorsLayer::permissive());
-        // .with_state(Arc::new(real_app_state)); // Inject state into Axum
+    // .with_state(Arc::new(real_app_state)); // Inject state into Axum
 
     let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 8080));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

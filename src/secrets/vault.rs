@@ -153,7 +153,7 @@ impl SecretsVault {
     pub async fn initialize(&self, passphrase: &str) -> VaultResult<()> {
         // Derive master key from passphrase
         let salt: &[u8] = b"wolf_prowler_vault_salt";
-        let master_key = self
+        let _master_key = self
             .crypto_engine
             .derive_key(passphrase.as_bytes(), salt, 32)
             .map_err(|e| VaultError::EncryptionFailed(e.to_string()))?;
@@ -343,7 +343,7 @@ impl SecretsVault {
         metadata: &SecretMetadata,
     ) -> VaultResult<Vec<u8>> {
         // Use metadata as additional authenticated data
-        let aad = serde_json::to_vec(metadata)
+        let _aad = serde_json::to_vec(metadata)
             .map_err(|e| VaultError::SerializationError(e.to_string()))?;
 
         // Encrypt the value using hash and MAC (simplified encryption)
@@ -367,7 +367,7 @@ impl SecretsVault {
     /// Decrypt a secret value
     async fn decrypt_secret(&self, encrypted_secret: &EncryptedSecret) -> VaultResult<Vec<u8>> {
         // Use metadata as additional authenticated data
-        let aad = serde_json::to_vec(&encrypted_secret.metadata)
+        let _aad = serde_json::to_vec(&encrypted_secret.metadata)
             .map_err(|e| VaultError::SerializationError(e.to_string()))?;
 
         // Decrypt the value (simplified - just return the hash part)

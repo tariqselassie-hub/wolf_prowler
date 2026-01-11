@@ -55,7 +55,8 @@ impl ElectionManager {
     #[must_use]
     pub fn new(local_peer_id: PeerId, local_prestige: u32) -> Self {
         // Ensure base timeout is significantly larger than heartbeat to prevent thrashing
-        debug_assert!(
+        // Ensure base timeout is significantly larger than heartbeat to prevent thrashing
+        const _: () = assert!(
             BASE_ELECTION_TIMEOUT_MS > HEARTBEAT_INTERVAL_MS * 2,
             "Election timeout should be at least 2x heartbeat interval"
         );

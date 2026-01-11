@@ -1,7 +1,7 @@
 //! Comprehensive tests for the Quantum-Proof Air Gap Bridge
 
 use airgap::pulse::*;
-use airgap::udev::*;
+// use airgap::udev::*;
 use airgap::*;
 use fips204::ml_dsa_44;
 use fips204::traits::{KeyGen, SerDes, Signer};
@@ -44,7 +44,7 @@ async fn test_forensic_logger() {
         file_path: "/test/file.tersec".to_string(),
     };
 
-    logger.log_rejected_file(entry).await.unwrap();
+    logger.log_rejected_file(entry).unwrap();
 
     // Check that log file was created
     let log_file = format!("{}/forensic_log.txt", worm_path);
@@ -110,14 +110,14 @@ async fn test_package_signature_verification() {
     package_data.extend_from_slice(&signature);
 
     // Verify signature
-    assert!(bridge.verify_package_signature(&package_data).await);
+    assert!(bridge.verify_package_signature(&package_data));
 
     // Test with invalid signature
     let mut invalid_package = Vec::new();
     invalid_package.extend_from_slice(command_data);
     invalid_package.extend_from_slice(&[0u8; 2420]); // Invalid signature
 
-    assert!(!bridge.verify_package_signature(&invalid_package).await);
+    assert!(!bridge.verify_package_signature(&invalid_package));
 }
 
 #[tokio::test]
@@ -127,7 +127,7 @@ async fn test_pulse_manager() {
         Some("/dev/ttyUSB1".to_string()),
     );
 
-    let mut subscriber = manager.subscribe();
+    let _subscriber = manager.subscribe();
 
     // Test device status checking
     let is_ready = manager.is_execution_ready().await;
@@ -141,13 +141,13 @@ async fn test_pulse_manager() {
 #[tokio::test]
 async fn test_usb_port_controller() {
     // Test port power operations
-    let result = UsbPortController::power_off_port("sdb1").await;
+    let result = UsbPortController::power_off_port("sdb1");
     assert!(result.is_ok());
 
-    let result = UsbPortController::power_on_port("sdb1").await;
+    let result = UsbPortController::power_on_port("sdb1");
     assert!(result.is_ok());
 
-    let status = UsbPortController::get_port_status("sdb1").await;
+    let status = UsbPortController::get_port_status("sdb1");
     assert!(status.is_ok());
 }
 

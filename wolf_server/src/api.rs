@@ -140,7 +140,7 @@ pub async fn get_alerts_history(
 /// Middleware to validate the JWT token against the one stored in WolfNode
 async fn auth_middleware(
     State(auth_token): State<Arc<RwLock<Option<String>>>>,
-    req: Request,
+    req: Request<axum::body::Body>,
     next: Next,
 ) -> Result<Response, impl IntoResponse> {
     let auth_header = req

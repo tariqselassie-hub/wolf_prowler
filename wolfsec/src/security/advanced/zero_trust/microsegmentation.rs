@@ -26,6 +26,7 @@ pub struct MicrosegmentationManager {
     /// Aggregate telemetry for segmentation and isolation events
     statistics: SegmentationStatistics,
     /// Backend engine for automated, risk-driven boundary adjustment
+    #[allow(dead_code)]
     dynamic_engine: DynamicSegmentationEngine,
 }
 
@@ -174,10 +175,13 @@ pub enum RulePriority {
 /// engine for automatically adjusting territory boundaries based on real-time risk telemetry
 pub struct DynamicSegmentationEngine {
     /// active rules for modifying zones based on environmental shifts
+    #[allow(dead_code)]
     adaptive_policies: Vec<AdaptiveSegmentationPolicy>,
     /// automated response triggers for detected infrastructure threats
+    #[allow(dead_code)]
     threat_rules: Vec<ThreatBasedRule>,
     /// historical records of how identities traverse segments
+    #[allow(dead_code)]
     behavioral_patterns: HashMap<PeerId, BehavioralPattern>,
 }
 

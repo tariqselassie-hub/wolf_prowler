@@ -23,6 +23,7 @@ pub struct SecureAppSettings {
 /// Base application settings (simplified version of AppSettings)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
+    pub node_id: String,
     pub dashboard: DashboardConfig,
     pub network: NetworkConfig,
     pub security: SecurityConfig,
@@ -142,6 +143,10 @@ impl SecureAppSettings {
                 settings.database.url = db_url;
             }
 
+            if let Ok(node_id) = std::env::var("NODE_ID") {
+                settings.node_id = node_id;
+            }
+
             return Ok(settings);
         }
 
@@ -213,6 +218,7 @@ impl SecureAppSettings {
     /// Get default settings
     fn default_settings() -> AppSettings {
         AppSettings {
+            node_id: "wolf_node_01".to_string(),
             dashboard: DashboardConfig {
                 port: 3031,
                 enabled: true,

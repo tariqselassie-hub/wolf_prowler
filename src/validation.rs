@@ -49,7 +49,7 @@ pub fn validate_port(port: u16) -> Result<(), ValidationError> {
 
 /// Validate port range
 pub fn validate_port_range(port: u16) -> Result<(), ValidationError> {
-    if port == 0 || port > 65535 {
+    if port == 0 {
         return Err(ValidationError::new("invalid_port_range"));
     }
     Ok(())

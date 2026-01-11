@@ -2,11 +2,9 @@
 //!
 //! This module provides API endpoints for authentication and session management.
 
-use axum::extract::rejection::JsonRejection;
 use axum::{
     extract::State,
-    http::{HeaderMap, StatusCode},
-    response::Response,
+    http::HeaderMap,
     routing::{get, post},
     Json, Router,
 };

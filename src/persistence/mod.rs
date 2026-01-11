@@ -78,6 +78,11 @@ impl PersistenceManager {
         Ok(storage.get_active_sk().is_some())
     }
 
+    /// Get a reference to the underlying storage
+    pub fn get_storage(&self) -> Arc<RwLock<WolfDbStorage>> {
+        self.storage.clone()
+    }
+
     // ========================================================================
     // HELPER METHODS
     // ========================================================================
@@ -121,7 +126,7 @@ impl PersistenceManager {
         obj: &T,
         metadata: Option<std::collections::HashMap<String, String>>,
     ) -> Result<()> {
-        let mut storage = self.storage.write().await;
+        let storage = self.storage.write().await;
 
         let pk = storage.get_active_pk().context("Database locked")?.to_vec(); // Clone key to release borrow if needed, but insert takes slice
 

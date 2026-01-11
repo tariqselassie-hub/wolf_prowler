@@ -54,6 +54,7 @@ impl StorageEngine {
 
         let tree = self.db.open_tree(name)?;
         cache.insert(name.to_string(), tree.clone());
+        drop(cache);
         Ok(tree)
     }
 

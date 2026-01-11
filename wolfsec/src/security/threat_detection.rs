@@ -139,4 +139,14 @@ impl ThreatDetector {
         // Placeholder implementation - in real system would query behavioral analysis engine
         Some((0.1, Vec::new()))
     }
+
+    /// Retrieves all security events (mock implementation)
+    pub async fn get_events(&self) -> Vec<SecurityEvent> {
+        Vec::new()
+    }
+
+    /// Clears all security events (mock implementation)
+    pub async fn clear_events(&self) {
+        // No-op for now
+    }
 }

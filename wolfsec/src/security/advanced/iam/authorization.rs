@@ -9,6 +9,7 @@ use uuid::Uuid;
 /// Manages access control logic and evaluates authorization requests across the ecosystem
 pub struct AuthorizationManager {
     /// Global configuration for the IAM system
+    #[allow(dead_code)]
     config: IAMConfig,
 }
 
@@ -41,7 +42,7 @@ impl AuthorizationManager {
     }
 
     /// Derives a set of effective permissions for a wolf based on their rank within the pack hierarchy.
-    /// 
+    ///
     /// This follows a cascading permission model:
     /// - **Omega**: Read-only access to base non-sensitive resources.
     /// - **Scout**: Read/Write access to standard project and job resources.

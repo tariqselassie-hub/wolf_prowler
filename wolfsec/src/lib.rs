@@ -16,12 +16,10 @@ pub mod application;
 pub mod authentication;
 /// Comprehensive security test suite.
 pub mod comprehensive_tests;
-/// Core cryptographic primitives and providers.
-pub mod crypto;
 /// Configuration integrity monitoring.
 pub mod configuration_monitor;
-/// Runtime SBOM validation.
-pub mod sbom_validation;
+/// Core cryptographic primitives and providers.
+pub mod crypto;
 /// Domain entities and repository traits.
 pub mod domain;
 /// Adapters for external threat intelligence feeds.
@@ -41,6 +39,8 @@ pub mod monitoring;
 pub mod network_security;
 /// Peer reputation and behavioral scoring.
 pub mod reputation;
+/// Runtime SBOM validation.
+pub mod sbom_validation;
 /// Comprehensive security management and orchestration.
 pub mod security;
 /// Persistence layer for security data.
@@ -53,10 +53,10 @@ pub use authentication::{AuthManager, Permission, Role, User};
 pub use identity::{IdentityConfig, IdentityManager, SystemIdentity};
 pub use wolf_net::wolf_pack;
 
+pub use domain::events::{AuditEventType, CertificateAuditEvent};
 pub use key_management::{
-    AlertSeverity, AuditEventType, Certificate, CertificateAuditEvent, CertificateStore,
-    ExpirationAlert, KeyEntry, KeyManager, KeyStore, RevocationInfo, RevocationReason,
-    RevocationStatus, TrustLevel, ValidationResult,
+    AlertSeverity, Certificate, CertificateStore, ExpirationAlert, KeyEntry, KeyManager, KeyStore,
+    RevocationInfo, RevocationReason, RevocationStatus, TrustLevel, ValidationResult,
 };
 
 pub use monitoring::{MetricsCollector, SecurityDashboard, SecurityMonitor, SIEM};
@@ -362,7 +362,7 @@ impl WolfSecurity {
 
         // Initialize Configuration Monitoring
         if let Err(e) = self.config_monitor.watch_file("settings.toml").await {
-             tracing::warn!("⚠️ Could not watch settings.toml: {}", e);
+            tracing::warn!("⚠️ Could not watch settings.toml: {}", e);
         }
         tracing::info!("  ✅ Configuration monitor initialized");
 
@@ -374,7 +374,6 @@ impl WolfSecurity {
         }
 
         // Initialize Zero Trust
-
 
         Ok(())
     }

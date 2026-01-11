@@ -1,3 +1,6 @@
+//! Headless Lock Prowler Binary
+//!
+//! Runs the Lock Prowler in automated "hunter" mode.
 use lock_prowler::headless::{HeadlessConfig, HeadlessWolfProwler};
 use lock_prowler::storage::WolfStore;
 use std::env;
@@ -16,8 +19,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db_path = env::var("WOLF_DB_PATH").unwrap_or_else(|_| "./wolf_data".to_string());
     println!("📁 Using database path: {}", db_path);
 
-    let store =
-        WolfStore::new(&db_path).map_err(|e| format!("Failed to initialize database: {}", e))?;
+    let store = WolfStore::new(&db_path)
+        .await
+        .map_err(|e| format!("Failed to initialize database: {}", e))?;
 
     // Initialize headless prowler
     let prowler = HeadlessWolfProwler::new(config.clone(), store);
@@ -31,7 +35,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     prowler.start().await?;
 
     // Handle shutdown signal
-    let mut shutdown_rx = signal::ctrl_c();
+    // In test mode, we might want to simulate a shutdown or have a different monitoring loop.
+    // The `shutdown_rx` is not mutable as it's only consumed once by `tokio::select!`.
+    let shutdown_rx = signal::ctrl_c();
     tokio::select! {
         _ = async {
             loop {

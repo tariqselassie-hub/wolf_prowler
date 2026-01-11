@@ -18,14 +18,14 @@ pub mod middleware;
 pub mod state;
 pub mod websocket;
 
-use crate::dashboard::websocket::start_system_monitoring_task;
-use wolfsec::security::advanced::iam::{AuthenticationManager, IAMConfig};
-use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetectionConfig, ThreatDetector};
+// use crate::dashboard::websocket::start_system_monitoring_task;
 use async_trait::async_trait;
-use wolfsec::domain::repositories::ThreatRepository;
+use uuid::Uuid;
 use wolfsec::domain::entities::Threat;
 use wolfsec::domain::error::DomainError;
-use uuid::Uuid;
+use wolfsec::domain::repositories::ThreatRepository;
+use wolfsec::security::advanced::iam::{AuthenticationManager, IAMConfig};
+use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetectionConfig, ThreatDetector};
 
 /// Mock Threat Repository for dashboard initialization
 pub struct MockThreatRepository;
@@ -116,10 +116,9 @@ pub async fn init() -> DashboardState {
     tracing::info!("- WebSocket: /ws/dashboard");
 
     // Initialize dashboard state with WebSocket support
-    let auth_manager: AuthenticationManager =
-        AuthenticationManager::new(IAMConfig::default())
-            .await
-            .unwrap();
+    let auth_manager: AuthenticationManager = AuthenticationManager::new(IAMConfig::default())
+        .await
+        .unwrap();
 
     let app_state = crate::dashboard::state::AppState::new(
         dashboard_state.threat_engine.as_ref().clone(),

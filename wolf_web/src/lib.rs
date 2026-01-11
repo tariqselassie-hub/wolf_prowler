@@ -8,3 +8,4 @@ pub mod dashboard;
 pub mod types;
 pub use types::*;
 // pub use dashboard::api::ApiError;
+pub mod globals;

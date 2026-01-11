@@ -1,6 +1,9 @@
 use dioxus::prelude::*;
 use dioxus_fullstack::prelude::*;
 use serde::{Deserialize, Serialize};
+use tokio::sync::MutexGuard;
+#[cfg(feature = "server")]
+use wolfsec::WolfSecurity;
 
 #[cfg(feature = "server")]
 use crate::SECURITY_ENGINE;
@@ -19,7 +22,8 @@ async fn get_intelligence_data() -> Result<Vec<ThreatItem>, ServerFnError> {
     let mut threats = Vec::new();
 
     // Simulate some threats or fetch from WolfSec
-    if let Some(sec) = SECURITY_ENGINE.lock().await.as_ref() {
+    let sec_lock: MutexGuard<Option<WolfSecurity>> = SECURITY_ENGINE.lock().await;
+    if let Some(sec) = sec_lock.as_ref() {
         let _status = sec.get_status().await;
         // In a real impl, we would iterate status.threat_detection.active_threats
         // For now, simulating based on security score

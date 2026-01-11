@@ -8,19 +8,20 @@
 
 #[cfg(test)]
 mod security_tests {
-    use std::collections::HashMap;
+
     use std::sync::Arc;
     use std::time::{Duration, Instant};
 
-    use crate::crypto::{constant_time_eq, secure_compare, CryptoConfig, SecureBytes, WolfCrypto};
-    use crate::domain::repositories::ThreatRepository;
+    use crate::crypto::{constant_time_eq, secure_compare, SecureBytes};
+
     use crate::network_security::{
         AuthToken, CryptoAlgorithm, DigitalSignature, EncryptedMessage, HashAlgorithm, KeyExchange,
-        KeyPair, SecurityConfig, SecurityLevel, SecurityManager, SecuritySession,
-        SignatureAlgorithm, HIGH_SECURITY, LOW_SECURITY, MEDIUM_SECURITY,
+        KeyPair, SecurityManager, SecuritySession, SignatureAlgorithm, HIGH_SECURITY, LOW_SECURITY,
+        MEDIUM_SECURITY,
     };
-    use crate::threat_detection::{
-        ThreatDetectionConfig, ThreatDetector, ThreatStatus, ThreatType,
+    use crate::threat_detection::{ThreatDetectionConfig, ThreatDetector, ThreatType};
+    use wolf_den::{
+        symmetric::create_cipher, CipherSuite, CryptoEngine, SecurityLevel as WolfDenSecurityLevel,
     };
 
     use crate::{SecurityEvent, SecurityEventType, SecuritySeverity};
@@ -167,36 +168,79 @@ mod security_tests {
     /// 1. Constructs an `EncryptedMessage` struct manually (simulating encryption).
     /// 2. Verifies that the structure holds the ciphertext, algorithm, and metadata correctly.
     /// 3. Mocks a decryption process by accessing the ciphertext directly.
+
+    /// Uses real ChaCha20Poly1305 encryption from `wolf_den` to verify the `EncryptedMessage` struct.
+    ///
+    /// This test:
+    /// 1. Creates a real ChaCha20Poly1305 cipher.
+    /// 2. Encrypts a plaintext message.
+    /// 3. Stores it in `EncryptedMessage`.
+    /// 4. Decrypts it back and verifies plaintext matches.
     #[test]
     fn test_message_encryption_decryption() {
-        println!("🔐 Testing Message Encryption/Decryption");
+        println!("🔐 Testing Real Message Encryption/Decryption (via wolf_den)");
 
         let plaintext = b"Secret wolf pack message";
         let session_id = "secure_session_456";
         let sender_id = "wolf_alpha";
         let recipient_id = "wolf_beta";
 
-        // Create encrypted message (simplified for testing)
-        let encrypted = EncryptedMessage {
-            ciphertext: plaintext.to_vec(), // In real implementation, this would be encrypted
-            nonce: vec![1u8; 12],
-            tag: vec![2u8; 16],
-            algorithm: CryptoAlgorithm::AES256GCM,
+        // 1. Setup Cipher (ChaCha20Poly1305)
+        // Use a 32-byte key for ChaCha20Poly1305
+        let key = vec![0x42; 32];
+        // Use a 12-byte nonce
+        let nonce = vec![0x01; 12];
+
+        // We use WolfDenSecurityLevel::Standard corresponding to usual defaults
+        let cipher_suite = CipherSuite::ChaCha20Poly1305;
+        let cipher = create_cipher(cipher_suite, WolfDenSecurityLevel::Standard)
+            .expect("Failed to create cipher");
+
+        // 2. Encrypt
+        // Note: wolf_den's cipher.encrypt returns ciphertext with tag appended (usually) or separate tag depending on impl.
+        // Let's assume for this test we treat the whole output as ciphertext+tag for storage,
+        // OR we split it if the struct requires it.
+        // Looking at wolfsec EncryptedMessage: has `ciphertext` and `tag`.
+        // wolf_den::Cipher encrypt signature: fn encrypt(&self, plaintext: &[u8], key: &[u8], nonce: &[u8]) -> Result<Vec<u8>>;
+        // Assuming wolf_den ChaCha20Poly1305 implementation appends the tag.
+        // If it does, we put it all in ciphertext, or split it.
+        // Let's check: typically Poly1305 tag is 16 bytes.
+        let encrypted_data = cipher
+            .encrypt(plaintext, &key, &nonce)
+            .expect("Encryption failed");
+
+        // Split tag if necessary. If wolf_den returns ciphertext + tag appended:
+        // len = plaintext.len() + 16 (tag)
+        let tag_len = cipher.tag_length();
+        let (ct, tag) = encrypted_data.split_at(encrypted_data.len() - tag_len);
+
+        // 3. Create EncryptedMessage
+        let encrypted_msg = EncryptedMessage {
+            ciphertext: ct.to_vec(),
+            nonce: nonce.clone(),
+            tag: tag.to_vec(),
+            algorithm: CryptoAlgorithm::ChaCha20Poly1305, // Matching enum in wolfsec
             sender_id: sender_id.to_string(),
             recipient_id: recipient_id.to_string(),
             timestamp: Utc::now(),
             message_id: session_id.to_string(),
         };
 
-        // Mock decryption (in real implementation, this would decrypt)
-        let decrypted = encrypted.ciphertext.clone();
+        // 4. Decrypt
+        // Reconstruct ciphertext + tag for decryption
+        let mut full_ciphertext = encrypted_msg.ciphertext.clone();
+        full_ciphertext.extend_from_slice(&encrypted_msg.tag);
+
+        let decrypted = cipher
+            .decrypt(&full_ciphertext, &key, &encrypted_msg.nonce)
+            .expect("Decryption failed");
 
         assert_eq!(plaintext.to_vec(), decrypted);
-        assert_eq!(encrypted.algorithm, CryptoAlgorithm::AES256GCM);
-        assert_eq!(encrypted.sender_id, sender_id);
-        assert_eq!(encrypted.recipient_id, recipient_id);
+        assert_eq!(encrypted_msg.algorithm, CryptoAlgorithm::ChaCha20Poly1305);
+        assert_eq!(encrypted_msg.sender_id, sender_id);
+        assert_eq!(encrypted_msg.recipient_id, recipient_id);
 
-        println!("✅ Message encryption/decryption working correctly");
+        println!("✅ Real Message encryption/decryption working correctly");
     }
 
     /// Mocks and verifies the structure of digital signatures.
@@ -206,29 +250,57 @@ mod security_tests {
     /// 2. Verifies that the signature algorithm, fingerprint, and signature data are stored correctly.
     /// 3. Simulates a successful signature verification.
     #[test]
+    /// Uses real Ed25519 signing from `wolf_den` to verify `DigitalSignature`.
+    ///
+    /// This test:
+    /// 1. Initializes a `CryptoEngine` (generating a real Ed25519 keypair).
+    /// 2. Signs a message.
+    /// 3. Stores the signature in `DigitalSignature`.
+    /// 4. Verifies the signature using the engine's public
     fn test_digital_signatures() {
-        println!("✍️ Testing Digital Signatures");
+        println!("✍️ Testing Real Digital Signatures (via wolf_den)");
 
         let data = b"Wolf pack coordination message";
-        let signer_fingerprint = "alpha_key_fingerprint";
 
-        // Create digital signature (simplified for testing)
+        // 1. Init Engine
+        let engine = CryptoEngine::new(WolfDenSecurityLevel::Standard)
+            .expect("Failed to init crypto engine");
+
+        // 2. Sign
+        let signature_bytes = engine.sign_message(data);
+        // wolf_den returns ed25519_dalek::Signature. Convert to Vec<u8>.
+        let signature_vec = signature_bytes.to_bytes().to_vec();
+
+        // Get fingerprint (simplified for test: hash of pubkey)
+        // Note: wolf_den engine doesn't expose raw public key bytes easily via get_public_key() -> VerifyingKey
+        // VerifyingKey has as_bytes().
+        let pub_key = engine.get_public_key();
+        let pub_key_bytes = pub_key.as_bytes(); // returns &[u8; 32]
+        let signer_fingerprint = hex::encode(&pub_key_bytes[0..8]); // Short fingerprint
+
+        // 3. Create DigitalSignature
         let signature = DigitalSignature {
-            signature: vec![3u8; 64], // Mock signature
+            signature: signature_vec,
             algorithm: SignatureAlgorithm::Ed25519,
             timestamp: Utc::now(),
-            signer_fingerprint: signer_fingerprint.to_string(),
+            signer_fingerprint: signer_fingerprint.clone(),
         };
 
-        // Mock verification (in real implementation, this would verify the signature)
-        let is_valid = true;
+        // 4. Verify
+        // Convert signature vec back to Signature for verification
+        // (CryptoEngine has verify_signature which takes Signature)
+        let signature_obj = ed25519_dalek::Signature::from_bytes(
+            signature.signature.as_slice().try_into().unwrap(),
+        );
 
+        let verification_result = engine.verify_signature(data, &signature_obj, &pub_key);
+
+        assert!(verification_result.is_ok());
         assert_eq!(signature.algorithm, SignatureAlgorithm::Ed25519);
         assert_eq!(signature.signer_fingerprint, signer_fingerprint);
         assert_eq!(signature.signature.len(), 64);
-        assert!(is_valid);
 
-        println!("✅ Digital signatures working correctly");
+        println!("✅ Real Digital signatures working correctly");
     }
 
     /// Tests the creation and validation of Authentication Tokens.

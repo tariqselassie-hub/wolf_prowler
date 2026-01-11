@@ -1,3 +1,6 @@
+//! Lock Prowler Main Binary
+//!
+//! Entry point for the Lock Prowler forensic recovery tool.
 use anyhow::Result;
 use lock_prowler::algorithms::{NonceReuseAlgorithm, WeakRsaAlgorithm};
 use lock_prowler::crypto::AlgorithmRunner;
@@ -77,9 +80,15 @@ async fn main() -> Result<()> {
 
             let mut session_data = std::collections::HashMap::new();
             session_data.insert("image_path".to_string(), image_path.to_string());
-            session_data.insert("meta_version".to_string(), format!("{}", meta.header.version));
-            session_data.insert("protector_count".to_string(), format!("{}", meta.protectors.len()));
-            
+            session_data.insert(
+                "meta_version".to_string(),
+                format!("{}", meta.header.version),
+            );
+            session_data.insert(
+                "protector_count".to_string(),
+                format!("{}", meta.protectors.len()),
+            );
+
             let session_id = format!("session_{}", uuid::Uuid::new_v4());
             store.save_session(&session_id, session_data).await?;
         }

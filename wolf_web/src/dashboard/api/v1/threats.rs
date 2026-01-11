@@ -5,11 +5,11 @@
 
 use axum::extract::State;
 use axum::{routing::get, Json, Router};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::sync::Arc;
 
 use crate::dashboard::state::AppState;
-use wolfsec::threat_detection::{Threat, ThreatStatus};
+use wolfsec::threat_detection::Threat;
 
 /// Create threat detection router
 pub fn create_router(state: Arc<AppState>) -> Router {

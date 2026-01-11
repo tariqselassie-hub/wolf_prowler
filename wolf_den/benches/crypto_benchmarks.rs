@@ -19,7 +19,10 @@ fn bench_hash_functions(c: &mut Criterion) {
         let hasher = create_hasher(HashFunction::Blake3, SecurityLevel::Standard).unwrap();
         b.iter(|| {
             let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async { hasher.digest(black_box(TEST_DATA_1KB)).await.unwrap() })
+            rt.block_on(async {
+                let res: Vec<u8> = hasher.digest(black_box(TEST_DATA_1KB)).await.unwrap();
+                res
+            })
         })
     });
 

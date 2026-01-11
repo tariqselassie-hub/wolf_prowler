@@ -1,6 +1,9 @@
 use dioxus::prelude::*;
 use dioxus_fullstack::prelude::*;
 use serde::{Deserialize, Serialize};
+use tokio::sync::MutexGuard;
+#[cfg(feature = "server")]
+use wolfsec::WolfSecurity;
 
 #[cfg(feature = "server")]
 use crate::SECURITY_ENGINE;
@@ -27,7 +30,8 @@ async fn get_system_logs() -> Result<Vec<LogEntry>, ServerFnError> {
         message: "Peer discovery active. Swarm telemetry stable.".to_string(),
     });
 
-    if let Some(sec) = SECURITY_ENGINE.lock().await.as_ref() {
+    let sec_lock: MutexGuard<Option<WolfSecurity>> = SECURITY_ENGINE.lock().await;
+    if let Some(sec) = sec_lock.as_ref() {
         let status = sec.get_status().await;
         logs.push(LogEntry {
             timestamp: timestamp.clone(),

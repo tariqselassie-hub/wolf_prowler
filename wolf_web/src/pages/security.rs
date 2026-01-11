@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
-use crate::ui_kit::{Card, Badge, Button};
-use crate::get_fullstack_stats;
+use crate::ui_kit::{Badge, Button, Card};
 use crate::Route;
 use dioxus::prelude::*;
+use wolf_web::dashboard::api::server_fns::get_fullstack_stats;
 
 #[component]
 pub fn SecurityPage() -> Element {
@@ -41,12 +41,12 @@ pub fn SecurityPage() -> Element {
                         Card { class: "lg:col-span-2",
                             div { class: "flex justify-between items-center border-b border-green-800/50 pb-2 mb-4",
                                 h3 { class: "text-lg font-bold uppercase", "Internal Firewall" }
-                                Badge { 
-                                    label: if stats.firewall.enabled { "ACTIVE".to_string() } else { "DISABLED".to_string() }, 
-                                    color: if stats.firewall.enabled { "green".to_string() } else { "red".to_string() } 
+                                Badge {
+                                    label: if stats.firewall.enabled { "ACTIVE".to_string() } else { "DISABLED".to_string() },
+                                    color: if stats.firewall.enabled { "green".to_string() } else { "red".to_string() }
                                 }
                             }
-                            
+
                             div { class: "grid grid-cols-3 gap-4 mb-6",
                                 div { class: "text-center p-2 bg-gray-900/50 rounded",
                                     div { class: "text-xs uppercase text-gray-500", "Default Policy" }
@@ -82,7 +82,7 @@ pub fn SecurityPage() -> Element {
                                                 td { class: "p-2 font-mono text-xs", "{rule.target}" }
                                                 td { class: "p-2", "{rule.protocol}" }
                                                 td { class: "p-2", "{rule.direction}" }
-                                                td { class: "p-2", 
+                                                td { class: "p-2",
                                                     span { class: if rule.action == "Deny" { "text-red-500" } else { "text-green-500" }, "{rule.action}" }
                                                 }
                                             }

@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
-use crate::ui_kit::{Card, Badge};
-use crate::get_wolfpack_data;
+use crate::ui_kit::{Badge, Card};
 use crate::Route;
 use dioxus::prelude::*;
+use wolf_web::dashboard::api::server_fns::get_wolfpack_data;
 
 #[component]
 pub fn WolfPackPage() -> Element {
@@ -80,7 +80,7 @@ pub fn WolfPackPage() -> Element {
                             div { class: "absolute top-0 right-0 p-8 opacity-10 pointer-events-none",
                                 i { class: "lucide-crosshair w-64 h-64 text-red-500" }
                             }
-                            
+
                             div { class: "flex justify-between items-center border-b border-red-900/30 pb-2 mb-4 relative z-10",
                                 h3 { class: "text-lg font-bold uppercase flex items-center gap-2 text-red-400",
                                     i { class: "lucide-sword" } "Active Hunts"

@@ -140,7 +140,7 @@ impl PrivacyAuditLogger {
         let config_clone = config.clone();
         tokio::spawn(async move {
             while let Some(entry) = rx.recv().await {
-                if let Err(e) = Self::process_audit_entry(entry, &config_clone).await {
+                if let Err(e) = Self::process_audit_entry(entry, &config_clone) {
                     eprintln!("Failed to process audit entry: {e}");
                 }
             }
@@ -160,6 +160,14 @@ impl PrivacyAuditLogger {
     ///
     /// # Panics
     /// Panics if the current time is before the UNIX epoch.
+    /// Log a command execution with privacy preservation
+    ///
+    /// # Errors
+    /// Returns an error if logging fails.
+    ///
+    /// # Panics
+    /// Panics if the current time is before the UNIX epoch.
+    #[allow(clippy::unused_async)]
     pub async fn log_command_execution(
         &self,
         command: &str,
@@ -175,7 +183,7 @@ impl PrivacyAuditLogger {
         let entry = EncryptedAuditEntry {
             timestamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
+                .unwrap_or(std::time::Duration::from_secs(0))
                 .as_secs(),
             command_hash,
             encrypted_command,
@@ -211,14 +219,10 @@ impl PrivacyAuditLogger {
     /// Decryption should be done by the Auditor tool.
     ///
     /// Process audit entry and ship to syslog
-    async fn process_audit_entry(
-        entry: EncryptedAuditEntry,
-        config: &PrivacyConfig,
-    ) -> io::Result<()> {
+    fn process_audit_entry(entry: EncryptedAuditEntry, config: &PrivacyConfig) -> io::Result<()> {
         // Serialize entry
-        let serialized = serde_json::to_string(&entry).map_err(|e| {
-            io::Error::other(format!("Serialization failed: {e}"))
-        })?;
+        let serialized = serde_json::to_string(&entry)
+            .map_err(|e| io::Error::other(format!("Serialization failed: {e}")))?;
 
         // Ship to syslog server (ignore error to ensure local audit persists)
         if let Err(e) = Self::ship_to_syslog(&serialized, &config.syslog_endpoint) {
@@ -252,7 +256,7 @@ impl PrivacyAuditLogger {
     fn write_local_audit_log(audit_data: &str, config: &PrivacyConfig) -> io::Result<()> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
+            .unwrap_or(std::time::Duration::from_secs(0))
             .as_secs();
 
         let filename = format!("audit_log_{timestamp}.json");
@@ -290,18 +294,21 @@ impl PrivacyAuditLogger {
     }
 
     /// Send SMS alert (mock implementation)
+    #[allow(clippy::unused_self)]
     fn send_sms_alert(&self, command: &str) {
         println!("🚨 EMERGENCY: Break-glass command executed: {command}");
         println!("🚨 Alert sent via SMS to all stakeholders");
     }
 
     /// Send email alert (mock implementation)
+    #[allow(clippy::unused_self)]
     fn send_email_alert(&self, command: &str) {
         println!("📧 EMERGENCY: Break-glass command executed: {command}");
         println!("📧 Alert sent via email to all stakeholders");
     }
 
     /// Send `PagerDuty` alert (mock implementation)
+    #[allow(clippy::unused_self)]
     fn send_pagerduty_alert(&self, command: &str) {
         println!("🚨 EMERGENCY: Break-glass command executed: {command}");
         println!("🚨 PagerDuty alert triggered for all on-call personnel");
@@ -434,7 +441,7 @@ mod tests {
             r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b".to_string(), // Email pattern
         ];
 
-        let validator = PrivacyValidator::new(pii_patterns).unwrap();
+        let validator = PrivacyValidator::new(&pii_patterns).unwrap();
 
         // Test PII detection
         let pii_warnings = validator.check_pii("echo 'user@example.com'");

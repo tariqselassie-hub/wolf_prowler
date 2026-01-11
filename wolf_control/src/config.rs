@@ -112,6 +112,7 @@ impl Config {
     /// Reloads the configuration from the specified path.
     /// If successful, updates the current instance.
     /// If the file cannot be read or parsed, returns an error and leaves the current instance unchanged.
+    #[allow(dead_code)]
     pub fn reload(&mut self, path: &str) -> anyhow::Result<()> {
         let content = std::fs::read_to_string(path)
             .map_err(|e| anyhow::anyhow!("Failed to read config file: {}", e))?;
@@ -279,6 +280,7 @@ impl Config {
     }
 
     /// Helper to construct the GraphQL API URL based on the base API URL.
+    #[allow(dead_code)]
     pub fn graphql_url(&self) -> String {
         format!("{}/graphql", self.api_url.trim_end_matches('/'))
     }

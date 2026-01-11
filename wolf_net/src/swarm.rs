@@ -1794,8 +1794,10 @@ impl SwarmManager {
     fn extract_target_ip(event: &crate::event::SecurityEvent) -> String {
         use lazy_static::lazy_static;
         lazy_static! {
-            static ref IP_REGEX: regex::Regex =
-                regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex");
+            static ref IP_REGEX: regex::Regex = {
+                #[allow(clippy::expect_used)]
+                regex::Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").expect("Valid regex")
+            };
         }
 
         // Try to extract from peer_id if it looks like an IP

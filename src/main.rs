@@ -8,8 +8,8 @@ mod config;
 mod secrets;
 mod simple_validation;
 
-use anyhow::Result;
-use axum::{extract::Path, response::Html, routing::get, Router};
+use anyhow::{Context, Result};
+use axum::{response::Html, routing::get, Router};
 use std::path::PathBuf;
 use tower_http::services::ServeDir;
 
@@ -17,19 +17,11 @@ use config::SecureAppSettings;
 use lock_prowler::headless::{HeadlessConfig, HeadlessWolfProwler};
 use lock_prowler::storage::WolfStore;
 use std::{net::SocketAddr, sync::Arc};
-use tokio::{
-    signal,
-    sync::{broadcast, RwLock},
-};
-use tracing::{error, info, warn};
-use wolf_den::CryptoEngine;
-use wolf_net::{SwarmConfig, SwarmManager};
-// use wolf_prowler::persistence::PersistenceManager;
+use tokio::sync::{broadcast, RwLock};
+use tracing::{error, info};
 use wolf_db::storage::WolfDbStorage;
+use wolf_net::{SwarmConfig, SwarmManager};
 use wolf_prowler::persistence::PersistenceManager;
-// use wolf_prowler::P2PNetwork; // Removed redundant P2PNetwork
-use uuid;
-use wolf_web::dashboard::create_router_with_state;
 use wolf_web::dashboard::state::AppState; // For ID generation in bridge
 
 // Use wolfsec types for consistency
@@ -38,13 +30,11 @@ use wolfsec::security::advanced::container_security::{
     ContainerSecurityConfig, ContainerSecurityManager,
 };
 use wolfsec::security::advanced::iam::{AuthenticationManager, IAMConfig};
-use wolfsec::security::advanced::SecurityManager;
 use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetectionConfig, ThreatDetector};
 use wolfsec::WolfSecurity;
 
 // Use the simple validation module
 use dotenv::dotenv;
-use secrets::{SecretsVault, VaultConfig};
 use sentinel;
 use simple_validation::validate_libraries_simple;
 use std::time::Duration;
@@ -104,7 +94,7 @@ async fn main() -> Result<()> {
     let wolf_security = Arc::new(RwLock::new(wolf_security_instance));
 
     // Swarm Manager
-    let (broadcast_tx, _current_rx) = broadcast::channel::<String>(100);
+    let (_broadcast_tx, _current_rx) = broadcast::channel::<String>(100);
 
     let swarm_config = SwarmConfig {
         keypair_path: settings.network.keypair_path.clone(),
@@ -131,7 +121,9 @@ async fn main() -> Result<()> {
                     wolf_net::event::SecuritySeverity::Low => wolfsec::SecuritySeverity::Low,
                     wolf_net::event::SecuritySeverity::Medium => wolfsec::SecuritySeverity::Medium,
                     wolf_net::event::SecuritySeverity::High => wolfsec::SecuritySeverity::High,
-                    wolf_net::event::SecuritySeverity::Critical => wolfsec::SecuritySeverity::Critical,
+                    wolf_net::event::SecuritySeverity::Critical => {
+                        wolfsec::SecuritySeverity::Critical
+                    }
                 };
 
                 let event_type = match net_event.event_type {
@@ -153,8 +145,11 @@ async fn main() -> Result<()> {
                     _ => wolfsec::SecurityEventType::SuspiciousActivity,
                 };
 
-                let mut sec_event =
-                    wolfsec::SecurityEvent::new(event_type, severity, net_event.description.clone());
+                let mut sec_event = wolfsec::SecurityEvent::new(
+                    event_type,
+                    severity,
+                    net_event.description.clone(),
+                );
 
                 if let Some(peer_id) = net_event.peer_id {
                     sec_event = sec_event.with_peer(peer_id);
@@ -193,32 +188,35 @@ async fn main() -> Result<()> {
     // Container Security (with feature flag check implicit)
     // Container Security (with feature flag check implicit)
     let container_config = ContainerSecurityConfig::default();
-    let container_manager = ContainerSecurityManager::new(container_config)?;
+    let _container_manager = ContainerSecurityManager::new(container_config)?;
     // FUTURE: Start container scanning loop if configured
     info!("📦 Container Security Manager initialized");
 
-    // Initialize Lock Prowler (Headless Hunter)
-    let lock_store_path = "wolf_data/store";
-    info!(
-        "🏹 Initializing Lock Prowler Hunter at {}...",
-        lock_store_path
-    );
+    // Start Headless Prowler (Hunter Mode)
+    // We keep a reference to ensure we can stop it on shutdown
+    let headless_prowler =
+        if std::env::var("WOLF_HEADLESS").unwrap_or_else(|_| "true".to_string()) == "true" {
+            info!("Initializing Headless Wolf Prowler (Hunter Mode)...");
+            let store = WolfStore::new(&format!("wolf_data_{}.db", settings.node_id))
+                .await
+                .context("Failed to init headless store")?;
 
-    match WolfStore::new(lock_store_path).await {
-        Ok(store) => {
-            let headless_config = HeadlessConfig::default();
-            // Create and start the hunter
-            // Note: We're not storing the instance yet, so we can't control it via API
-            // But the background task will run independently.
-            let hunter = HeadlessWolfProwler::new(headless_config, store);
-            if let Err(e) = hunter.start().await {
-                error!("Failed to start Lock Prowler Hunter: {}", e);
-            } else {
-                info!("✅ Lock Prowler Hunter active and scanning");
+            let mut headless_config = HeadlessConfig::default();
+            if let Ok(paths) = std::env::var("WOLF_SCAN_PATHS") {
+                headless_config.scan_paths = paths.split(',').map(|s| s.to_string()).collect();
             }
-        }
-        Err(e) => error!("Failed to initialize WolfStore for Hunter: {}", e),
-    }
+            // Force WolfPack on for headless to test P2P interaction with main node
+            headless_config.enable_wolfpack = true;
+
+            let prowler = HeadlessWolfProwler::new(headless_config, store);
+            prowler
+                .start()
+                .await
+                .context("Failed to start headless prowler")?;
+            Some(prowler)
+        } else {
+            None
+        };
 
     // Initialize TersecPot Sentinel
     info!("🛡️ Starting TersecPot Sentinel Daemon...");
@@ -229,7 +227,7 @@ async fn main() -> Result<()> {
     });
 
     // Use the secure settings vault that was already initialized
-    let secrets_vault = secure_settings.vault.clone();
+    let _secrets_vault = secure_settings.vault.clone();
 
     // Initialize dashboard state with real system components
     let auth_manager = AuthenticationManager::new(IAMConfig::default())
@@ -239,11 +237,17 @@ async fn main() -> Result<()> {
         ThreatDetector::new(
             ThreatDetectionConfig::default(),
             Arc::new(
-                wolfsec::infrastructure::persistence::WolfDbThreatRepository::new(Arc::new(
-                    RwLock::new(
-                        WolfDbStorage::open("wolf_data/wolf_prowler.db").unwrap() as WolfDbStorage
-                    ),
-                )),
+                wolfsec::infrastructure::persistence::WolfDbThreatRepository::new(
+                    if let Some(pm) = &persistence {
+                        pm.get_storage()
+                    } else {
+                        // Fallback if persistence manager failed to load, though this will likely fail too if lock is issue
+                        Arc::new(RwLock::new(
+                            WolfDbStorage::open("wolf_data/wolf_prowler.db")
+                                .expect("Failed to open WolfDb for ThreatDetector"),
+                        ))
+                    },
+                ),
             ),
         ),
         BehavioralAnalyzer {
@@ -281,8 +285,13 @@ async fn main() -> Result<()> {
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
     // TLS Configuration: Check env vars or generate
-    let tls_config = if let (Ok(cert_path), Ok(key_path)) = (std::env::var("CERT_FILE"), std::env::var("KEY_FILE")) {
-        info!("🔐 Loading TLS certificates from environment: {}, {}", cert_path, key_path);
+    let tls_config = if let (Ok(cert_path), Ok(key_path)) =
+        (std::env::var("CERT_FILE"), std::env::var("KEY_FILE"))
+    {
+        info!(
+            "🔐 Loading TLS certificates from environment: {}, {}",
+            cert_path, key_path
+        );
         axum_server::tls_rustls::RustlsConfig::from_pem_file(
             PathBuf::from(cert_path),
             PathBuf::from(key_path),
@@ -295,7 +304,7 @@ async fn main() -> Result<()> {
             "127.0.0.1".to_string(),
         ])
         .expect("Failed to generate self-signed certificates");
-        
+
         axum_server::tls_rustls::RustlsConfig::from_pem(
             cert_pem.as_bytes().to_vec(),
             key_pem.as_bytes().to_vec(),
@@ -308,7 +317,33 @@ async fn main() -> Result<()> {
     info!("🔌 WebSocket available at ws://{}/ws/dashboard", addr);
 
     // Serve
+    // Shutdown Handle
+    let handle = axum_server::Handle::new();
+    let shutdown_handle = handle.clone();
+
+    // Spawn shutdown listener
+    tokio::spawn(async move {
+        match tokio::signal::ctrl_c().await {
+            Ok(()) => info!("Shutdown signal received, initiating graceful shutdown..."),
+            Err(e) => error!("Failed to listen for shutdown signal: {}", e),
+        }
+
+        // Stop Headless Prowler if active
+        if let Some(headless) = headless_prowler {
+            info!("Stopping Headless Prowler...");
+            if let Err(e) = headless.stop().await {
+                error!("Error stopping headless prowler: {}", e);
+            }
+        }
+
+        // Stop Web Server
+        info!("Stopping Web Server...");
+        shutdown_handle.graceful_shutdown(Some(Duration::from_secs(5)));
+    });
+
+    // Serve
     axum_server::bind_rustls(addr, tls_config)
+        .handle(handle)
         .serve(app.into_make_service())
         .await?;
 

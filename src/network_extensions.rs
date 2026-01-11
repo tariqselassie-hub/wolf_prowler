@@ -1,3 +1,4 @@
+#![allow(async_fn_in_trait)]
 //! Network extensions for Wolf Prowler communication system
 //!
 //! This module provides extension traits to add missing methods to NetworkSecurityManager and SwarmManager
