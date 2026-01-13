@@ -2,7 +2,7 @@
 use crate::application::services::ThreatDetectionService;
 use crate::domain::entities::{monitoring::SecurityEvent, Threat, ThreatSeverity, ThreatType};
 use crate::domain::error::DomainError;
-use crate::threat_detection::ThreatDetector as LegacyThreatDetectorImpl;
+use crate::protection::threat_detection::ThreatDetector as LegacyThreatDetectorImpl;
 use async_trait::async_trait;
 use std::sync::Arc;
 use tokio::sync::Mutex;

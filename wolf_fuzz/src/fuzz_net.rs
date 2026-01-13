@@ -3,6 +3,7 @@
 use rand::{thread_rng, Rng};
 use wolf_net::Message;
 
+/// Main entry point for the network stack fuzzer.
 pub fn main() {
     let args: Vec<String> = std::env::args().collect();
     let iterations = if args.len() > 1 {

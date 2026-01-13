@@ -27,7 +27,10 @@ impl Keypair {
     #[must_use]
     #[allow(clippy::expect_used)]
     pub fn sign(&self, message: &[u8]) -> Vec<u8> {
-        self.secret.try_sign(message, b"").expect("Signing failed").to_vec()
+        self.secret
+            .try_sign(message, b"")
+            .expect("Signing failed")
+            .to_vec()
     }
 }
 
@@ -37,7 +40,8 @@ impl Keypair {
 ///
 /// Returns an error if key generation fails.
 pub fn generate_keypair() -> Result<(Vec<u8>, Vec<u8>)> {
-    let (pk, sk) = ml_dsa_44::KG::try_keygen().map_err(|e| anyhow::anyhow!("Keygen failed: {e:?}"))?;
+    let (pk, sk) =
+        ml_dsa_44::KG::try_keygen().map_err(|e| anyhow::anyhow!("Keygen failed: {e:?}"))?;
     Ok((sk.into_bytes().to_vec(), pk.into_bytes().to_vec()))
 }
 
@@ -53,19 +57,30 @@ pub fn generate_keypair() -> Result<(Vec<u8>, Vec<u8>)> {
 #[allow(clippy::expect_used)]
 pub fn reconstruct_keypair(secret_key: &[u8], public_key: &[u8]) -> Result<Keypair> {
     if secret_key.len() != SK_SIZE {
-        return Err(anyhow::anyhow!("Invalid secret key length: expected {SK_SIZE}, got {}", secret_key.len()));
+        return Err(anyhow::anyhow!(
+            "Invalid secret key length: expected {SK_SIZE}, got {}",
+            secret_key.len()
+        ));
     }
     if public_key.len() != PK_SIZE {
-        return Err(anyhow::anyhow!("Invalid public key length: expected {PK_SIZE}, got {}", public_key.len()));
+        return Err(anyhow::anyhow!(
+            "Invalid public key length: expected {PK_SIZE}, got {}",
+            public_key.len()
+        ));
     }
 
     let sk_array: [u8; SK_SIZE] = secret_key.try_into().expect("Length checked");
     let pk_array: [u8; PK_SIZE] = public_key.try_into().expect("Length checked");
 
-    let sk = ml_dsa_44::PrivateKey::try_from_bytes(sk_array).map_err(|e| anyhow::anyhow!("Parse SK failed: {e:?}"))?;
-    let pk = ml_dsa_44::PublicKey::try_from_bytes(pk_array).map_err(|e| anyhow::anyhow!("Parse PK failed: {e:?}"))?;
+    let sk = ml_dsa_44::PrivateKey::try_from_bytes(sk_array)
+        .map_err(|e| anyhow::anyhow!("Parse SK failed: {e:?}"))?;
+    let pk = ml_dsa_44::PublicKey::try_from_bytes(pk_array)
+        .map_err(|e| anyhow::anyhow!("Parse PK failed: {e:?}"))?;
 
-    Ok(Keypair { public: pk, secret: sk })
+    Ok(Keypair {
+        public: pk,
+        secret: sk,
+    })
 }
 
 /// Helper to sign a message given a Reconstructed Keypair
@@ -80,7 +95,9 @@ pub fn sign_with_keypair(keys: &Keypair, message: &[u8]) -> Vec<u8> {
 ///
 /// Returns an error as this legacy function is not supported.
 pub fn sign_message(_message: &[u8], _secret_key: &[u8]) -> Result<Vec<u8>> {
-     Err(anyhow::anyhow!("Legacy signature not supported: strictly requires Keypair reconstruction with PK"))
+    Err(anyhow::anyhow!(
+        "Legacy signature not supported: strictly requires Keypair reconstruction with PK"
+    ))
 }
 
 /// Verifies an ML-DSA-44 signature against a public key
@@ -104,8 +121,9 @@ pub fn verify_signature(message: &[u8], signature: &[u8], public_key: &[u8]) -> 
     let pk_array: [u8; PK_SIZE] = public_key.try_into().expect("Length checked");
     let sig_array: [u8; SIG_SIZE] = signature.try_into().expect("Length checked");
 
-    let pk = ml_dsa_44::PublicKey::try_from_bytes(pk_array).map_err(|_| anyhow::anyhow!("Invalid PK"))?;
-    
+    let pk = ml_dsa_44::PublicKey::try_from_bytes(pk_array)
+        .map_err(|_| anyhow::anyhow!("Invalid PK"))?;
+
     // Pass sig_array directly based on search result (Signature might be [u8; N])
     Ok(pk.verify(message, &sig_array, b""))
 }
@@ -119,7 +137,7 @@ mod tests {
     fn test_signature_flow() {
         let (sk, pk) = generate_keypair().expect("Keygen failed");
         let keys = reconstruct_keypair(&sk, &pk).expect("Reconstruct failed");
-        
+
         let message = b"WolfDb integrity check";
         let sig = sign_with_keypair(&keys, message);
         let valid = verify_signature(message, &sig, &pk).expect("Verify failed");

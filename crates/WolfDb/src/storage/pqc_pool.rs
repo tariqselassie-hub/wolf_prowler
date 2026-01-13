@@ -78,8 +78,7 @@ impl PqcWorkerPool {
             dsa_keypair,
             response: tx,
         };
-        Box::pin(self.sender
-            .send(task))
+        Box::pin(self.sender.send(task))
             .await
             .map_err(|_| anyhow::anyhow!("Worker pool channel closed"))?;
         Ok(rx)

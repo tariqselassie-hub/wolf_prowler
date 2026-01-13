@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use dioxus_fullstack::prelude::*;
-use futures_util::{Stream, StreamExt};
+use futures_util::Stream;
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 use tokio::sync::MutexGuard;
@@ -193,7 +193,7 @@ pub fn LogsPage() -> Element {
                         class: "px-4 py-2 border border-blue-700 hover:bg-blue-900/40 text-xs uppercase font-bold transition-colors ml-2 text-blue-500",
                         onclick: move |_| {
                             let json = serde_json::to_string_pretty(&*logs.read()).unwrap_or("[]".to_string());
-                            let mut eval = document::eval(r#"
+                            let eval = document::eval(r#"
                                 let data = await dioxus.recv();
                                 let blob = new Blob([data], { type: 'application/json' });
                                 let url = URL.createObjectURL(blob);

@@ -37,10 +37,7 @@ mod tests {
         let dequantized = ScalarQuantizer::dequantize(&quantized);
 
         for (o, d) in original.iter().zip(dequantized.iter()) {
-            assert!(
-                (o - d).abs() < 0.01,
-                "Precision loss too high: {o} vs {d}"
-            );
+            assert!((o - d).abs() < 0.01, "Precision loss too high: {o} vs {d}");
         }
     }
 }

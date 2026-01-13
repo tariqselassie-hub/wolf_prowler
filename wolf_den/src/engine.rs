@@ -65,10 +65,13 @@ impl CryptoEngine {
     /// # Errors
     ///
     /// Returns an error if initialization or keypair loading fails.
-    pub fn with_keypair(security_level: crate::SecurityLevel, keypair_bytes: &[u8]) -> Result<Self> {
+    pub fn with_keypair(
+        security_level: crate::SecurityLevel,
+        keypair_bytes: &[u8],
+    ) -> Result<Self> {
         let hasher = create_hasher(HashFunction::Blake3, security_level)?;
         let kdf = create_kdf(KdfType::Argon2, security_level)?;
-        
+
         // Generate random MAC key
         let mut mac_key = vec![0u8; 32];
         rand::thread_rng().fill_bytes(&mut mac_key);
@@ -159,12 +162,7 @@ impl CryptoEngine {
     /// # Errors
     ///
     /// Returns an error if key derivation or hashing fails.
-    pub fn derive_and_hash(
-        &self,
-        password: &[u8],
-        salt: &[u8],
-        length: usize,
-    ) -> Result<Vec<u8>> {
+    pub fn derive_and_hash(&self, password: &[u8], salt: &[u8], length: usize) -> Result<Vec<u8>> {
         let key: Vec<u8> = self.derive_key(password, salt, length)?;
         self.hash(&key)
     }

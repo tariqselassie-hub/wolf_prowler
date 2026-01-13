@@ -82,49 +82,49 @@ impl SecurityEvent {
 #[derive(Debug, Clone)]
 pub enum NetworkEvent {
     /// A new peer has connected to the node.
-    PeerConnected { 
+    PeerConnected {
         /// ID of the connected peer.
-        peer_id: PeerId, 
+        peer_id: PeerId,
         /// Network address of the peer.
-        address: String 
+        address: String,
     },
     /// A peer has disconnected from the node.
-    PeerDisconnected { 
+    PeerDisconnected {
         /// ID of the disconnected peer.
-        peer_id: PeerId, 
+        peer_id: PeerId,
         /// Reason for disconnection.
-        reason: String 
+        reason: String,
     },
     /// A message has been received from a peer.
-    MessageReceived { 
+    MessageReceived {
         /// ID of the sender.
-        from: PeerId, 
+        from: PeerId,
         /// The message content.
-        message: Message 
+        message: Box<Message>,
     },
     /// A message has been successfully sent to a peer.
-    MessageSent { 
+    MessageSent {
         /// ID of the recipient.
-        to: PeerId, 
+        to: PeerId,
         /// Identification of the sent message.
-        message_id: String 
+        message_id: String,
     },
     /// A new peer has been discovered.
-    PeerDiscovered { 
+    PeerDiscovered {
         /// Information about the discovered peer.
-        peer_info: PeerInfo 
+        peer_info: PeerInfo,
     },
     /// A previously known peer has expired (e.g., from DHT).
-    PeerExpired { 
+    PeerExpired {
         /// ID of the expired peer.
-        peer_id: PeerId 
+        peer_id: PeerId,
     },
     /// An error occurred during connection.
-    ConnectionError { 
+    ConnectionError {
         /// ID of the peer involved.
-        peer_id: PeerId, 
+        peer_id: PeerId,
         /// Error description.
-        error: String 
+        error: String,
     },
     /// Low-level swarm event.
     SwarmEvent {
@@ -141,7 +141,7 @@ pub enum NetworkEvent {
         data: HashMap<String, String>,
     },
     /// A security-related event.
-    Security(SecurityEvent),
+    Security(Box<SecurityEvent>),
 }
 
 /// Swarm event types
@@ -209,18 +209,18 @@ impl EventHandler {
             .entry(event_type.to_string())
             .or_default()
             .push(callback);
-        self.stats.callbacks_registered += 1;
+        self.stats.callbacks_registered = self.stats.callbacks_registered.saturating_add(1);
 
         debug!("Registered callback for event type: {}", event_type);
     }
 
     /// Emits a network event to the processing queue.
     pub fn emit(&mut self, event: NetworkEvent) -> anyhow::Result<()> {
-        let event_type = self.get_event_type(&event);
+        let event_type = Self::get_event_type(&event);
 
         // Add to queue for async processing
         self.event_queue.send(event)?;
-        self.stats.events_queued += 1;
+        self.stats.events_queued = self.stats.events_queued.saturating_add(1);
 
         debug!("Emitted event: {}", event_type);
         Ok(())
@@ -228,16 +228,16 @@ impl EventHandler {
 
     /// Processes a network event immediately by executing all registered callbacks.
     pub fn process_event(&mut self, event: &NetworkEvent) -> anyhow::Result<()> {
-        let event_type = self.get_event_type(event);
+        let event_type = Self::get_event_type(event);
 
         // Find and execute callbacks
         if let Some(callbacks) = self.callbacks.get(&event_type) {
             for callback in callbacks {
                 if let Err(e) = callback(event) {
                     error!("Event callback error for {}: {}", event_type, e);
-                    self.stats.events_failed += 1;
+                    self.stats.events_failed = self.stats.events_failed.saturating_add(1);
                 } else {
-                    self.stats.events_processed += 1;
+                    self.stats.events_processed = self.stats.events_processed.saturating_add(1);
                 }
             }
         }
@@ -263,7 +263,7 @@ impl EventHandler {
     }
 
     /// Get event type string for an event
-    fn get_event_type(&self, event: &NetworkEvent) -> String {
+    fn get_event_type(event: &NetworkEvent) -> String {
         match event {
             NetworkEvent::PeerConnected { .. } => "peer_connected".to_string(),
             NetworkEvent::PeerDisconnected { .. } => "peer_disconnected".to_string(),
@@ -291,8 +291,11 @@ impl EventHandler {
     }
 
     /// Helper to create a `MessageReceived` network event.
-    pub const fn message_received(from: PeerId, message: Message) -> NetworkEvent {
-        NetworkEvent::MessageReceived { from, message }
+    pub fn message_received(from: PeerId, message: Message) -> NetworkEvent {
+        NetworkEvent::MessageReceived {
+            from,
+            message: Box::new(message),
+        }
     }
 
     /// Helper to create a `MessageSent` network event.

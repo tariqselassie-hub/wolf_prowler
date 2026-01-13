@@ -1,12 +1,9 @@
 #![cfg(test)]
 
 use axum::{
-    body::Body,
     body::to_bytes,
-    extract::{Json, Query, State},
-    http::{HeaderMap, HeaderValue, Request, StatusCode},
-    middleware::{self, Next},
-    response::Response,
+    body::Body,
+    http::{Request, StatusCode},
     routing::get,
     Router,
 };
@@ -14,15 +11,15 @@ use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
+use anyhow::Result;
 use wolf_web::dashboard::{
     api::create_api_router,
     middleware::auth::{api_key_auth_middleware, session_auth_middleware},
     state::AppState,
-    websocket::{create_websocket_router, DashboardMessage, WebSocketState},
+    websocket::{create_websocket_router, DashboardMessage},
 };
-use wolfsec::security::advanced::iam::{AuthenticationManager, IAMConfig};
+use wolfsec::identity::iam::{AuthenticationManager, IAMConfig};
 use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetector};
-use anyhow::Result;
 
 // Mock repository for testing
 struct MockThreatRepository;
@@ -51,9 +48,13 @@ mod dashboard_tests {
     // Helper function to create test state
     async fn create_test_state() -> Arc<AppState> {
         let threat_repo = Arc::new(crate::MockThreatRepository);
-        
+
         // Mock config for ThreatDetector
         let config = wolfsec::threat_detection::ThreatDetectionConfig::default();
+
+        let auth_manager: AuthenticationManager = AuthenticationManager::new(IAMConfig::default())
+            .await
+            .unwrap();
 
         Arc::new(AppState::new(
             ThreatDetector::new(config, threat_repo),
@@ -62,9 +63,7 @@ mod dashboard_tests {
                 deviation_threshold: 2.0,
                 patterns_detected: 0,
             },
-            AuthenticationManager::new(IAMConfig::default())
-                .await
-                .unwrap(),
+            auth_manager,
         ))
     }
 
@@ -105,7 +104,7 @@ mod dashboard_tests {
         let router = create_api_router(state);
 
         // Test v1 status endpoint
-        let response = router
+        let response: axum::response::Response = router
             .oneshot(
                 Request::builder()
                     .uri("/status")
@@ -127,7 +126,7 @@ mod dashboard_tests {
         let router = create_api_router(state);
 
         // Test basic metrics endpoint
-        let response = router
+        let response: axum::response::Response = router
             .clone()
             .oneshot(
                 Request::builder()
@@ -141,7 +140,7 @@ mod dashboard_tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         // Test detailed metrics endpoint
-        let response = router
+        let response: axum::response::Response = router
             .oneshot(
                 Request::builder()
                     .uri("/metrics/detailed")
@@ -166,7 +165,7 @@ mod dashboard_tests {
             "remember_me": false
         });
 
-        let response = router
+        let response: axum::response::Response = router
             .oneshot(
                 Request::builder()
                     .uri("/auth/login")
@@ -226,10 +225,13 @@ mod dashboard_tests {
 
         // Create a mock request
         let session_id = Uuid::new_v4();
-        
+
         let app = Router::new()
             .route("/test", get(|| async { "ok" }))
-            .layer(middleware::from_fn_with_state(state.clone(), session_auth_middleware))
+            .layer(middleware::from_fn_with_state(
+                state.clone(),
+                session_auth_middleware,
+            ))
             .with_state(state);
 
         let response = app
@@ -253,7 +255,10 @@ mod dashboard_tests {
 
         let app = Router::new()
             .route("/test", get(|| async { "ok" }))
-            .layer(middleware::from_fn_with_state(state.clone(), api_key_auth_middleware))
+            .layer(middleware::from_fn_with_state(
+                state.clone(),
+                api_key_auth_middleware,
+            ))
             .with_state(state);
 
         let response = app
@@ -302,7 +307,7 @@ mod dashboard_tests {
         let state = create_test_state().await;
 
         // Test that threat detection engine is accessible
-        let threat_engine = state.threat_engine.lock().await;
+        let _threat_engine = state.threat_engine.lock().await;
         // Just checking access is enough for this integration test
         assert!(true);
     }
@@ -316,8 +321,6 @@ mod dashboard_tests {
         // Just checking access is enough
         assert!(true);
     }
-
-
 
     #[tokio::test]
     async fn test_comprehensive_dashboard_flow() {

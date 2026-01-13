@@ -1,7 +1,7 @@
 use crate::storage::WolfDbStorage;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
 
 /// API request handlers
 pub mod handlers;
@@ -45,7 +45,7 @@ impl AppState {
             .map(char::from)
             .collect();
 
-        let expires_at = chrono::Utc::now().timestamp() + 3600; // 1 hour
+        let expires_at = chrono::Utc::now().timestamp().saturating_add(3600); // 1 hour
 
         let mut sessions = self.sessions.write().await;
         sessions.insert(
@@ -75,13 +75,13 @@ impl AppState {
     }
 }
 
+use axum::extract::DefaultBodyLimit;
 use axum::{
-    routing::{get, post, delete},
+    routing::{delete, get, post},
     Router,
 };
-use tower_http::cors::{CorsLayer, Any};
 use tower::ServiceBuilder;
-use axum::extract::DefaultBodyLimit;
+use tower_http::cors::{Any, CorsLayer};
 
 /// Creates the Axum router with all API routes configured
 pub fn create_router(state: AppState) -> Router {
@@ -92,48 +92,44 @@ pub fn create_router(state: AppState) -> Router {
 
     Router::new()
         // Serve dashboard at root
-        .route("/", get(|| async {
-            axum::response::Html(include_str!("../../dashboard.html"))
-        }))
-        
+        .route(
+            "/",
+            get(|| async { axum::response::Html(include_str!("../../dashboard.html")) }),
+        )
         // Authentication
         .route("/api/auth/init", post(handlers::auth_init))
         .route("/api/auth/unlock", post(handlers::auth_unlock))
         .route("/api/auth/lock", post(handlers::auth_lock))
         .route("/api/auth/status", get(handlers::auth_status))
-        
         // Records
         .route("/api/records", get(handlers::list_records))
         .route("/api/records", post(handlers::insert_record))
         .route("/api/records/batch", post(handlers::batch_insert_records))
         .route("/api/records/:id", get(handlers::get_record))
         .route("/api/records/:id", delete(handlers::delete_record))
-        
         // Queries
         .route("/api/query/metadata", post(handlers::query_by_metadata))
         .route("/api/query/hybrid", post(handlers::hybrid_search))
-        
         // Vector operations
         .route("/api/vector/search", post(handlers::vector_search))
         .route("/api/vector/stats", get(handlers::vector_stats))
-        
         // Tables
         .route("/api/tables", get(handlers::list_tables))
-        
         // Security
         .route("/api/security/backup", post(handlers::generate_backup))
         .route("/api/security/recover", post(handlers::recover_backup))
         .route("/api/security/keystore", get(handlers::keystore_info))
-        
         // Administration
         .route("/api/admin/stats", get(handlers::database_stats))
         .route("/api/admin/import/sqlite", post(handlers::import_sqlite))
-        .route("/api/admin/import/sqlite/upload", post(handlers::import_sqlite_file))
-        
+        .route(
+            "/api/admin/import/sqlite/upload",
+            post(handlers::import_sqlite_file),
+        )
         .layer(
             ServiceBuilder::new()
                 .layer(cors)
-                .layer(DefaultBodyLimit::max(200 * 1024 * 1024)) // 200MB limit
+                .layer(DefaultBodyLimit::max(200 * 1024 * 1024)), // 200MB limit
         )
         .with_state(state)
 }

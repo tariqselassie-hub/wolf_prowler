@@ -36,6 +36,8 @@ pub struct PeerDetailResponse {
     pub reputation: f64,
     /// Connection status
     pub connected: bool,
+    /// Whether the peer is blocked
+    pub blocked: bool,
     /// Last seen timestamp
     pub last_seen: String,
     /// Message count
@@ -92,6 +94,14 @@ async fn get_peer_details(
 ) -> Result<Json<PeerDetailResponse>, crate::dashboard::api::ApiError> {
     state.increment_request_count().await;
 
+    let mut blocked = false;
+    if let Some(wolf_security_arc) = state.get_wolf_security() {
+        let security = wolf_security_arc.read().await;
+        if let Some(peer) = security.threat_detector.get_peer_info(&peer_id).await {
+            blocked = peer.flags.blocked;
+        }
+    }
+
     let threat_engine = state.threat_engine.lock().await;
     let reputation_system = threat_engine.reputation_system();
 
@@ -106,6 +116,7 @@ async fn get_peer_details(
         peer_id: peer_id.clone(),
         reputation,
         connected: reputation_system.is_peer_connected(&peer_id).await,
+        blocked,
         last_seen: last_seen
             .map(|d| d.to_rfc3339())
             .unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),

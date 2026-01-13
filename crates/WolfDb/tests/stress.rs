@@ -1,10 +1,10 @@
 //! High-concurrency stress tests for `WolfDb`.
 
-use wolf_db::storage::WolfDbStorage;
-use wolf_db::storage::model::Record;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tempfile::tempdir;
+use wolf_db::storage::model::Record;
+use wolf_db::storage::WolfDbStorage;
 
 /// Tests high-concurrency record insertions.
 #[tokio::test]
@@ -12,21 +12,28 @@ use tempfile::tempdir;
 async fn test_high_concurrency_stress() -> anyhow::Result<()> {
     let dir = tempdir()?;
     let path_buf = dir.path().to_owned();
-    let path = path_buf.to_str().ok_or_else(|| anyhow::anyhow!("Invalid path"))?;
+    let path = path_buf
+        .to_str()
+        .ok_or_else(|| anyhow::anyhow!("Invalid path"))?;
     let password = "StressPassword";
 
     let mut storage = WolfDbStorage::open(path)?;
-    storage
-        .initialize_keystore(password, None)?;
+    storage.initialize_keystore(password, None)?;
 
-    let pk = storage.get_active_pk().ok_or_else(|| anyhow::anyhow!("No PK"))?.to_vec();
-    let _sk = storage.get_active_sk().ok_or_else(|| anyhow::anyhow!("No SK"))?.to_vec();
-    
+    let pk = storage
+        .get_active_pk()
+        .ok_or_else(|| anyhow::anyhow!("No PK"))?
+        .to_vec();
+    let _sk = storage
+        .get_active_sk()
+        .ok_or_else(|| anyhow::anyhow!("No SK"))?
+        .to_vec();
+
     // No Mutex needed for insert_record as it takes &self now
     let storage = Arc::new(storage);
     let mut handles = Vec::new();
 
-    println!("Starting stress test: 1,000 concurrent insertions...");
+    tracing::info!("Starting stress test: 1,000 concurrent insertions...");
     for i in 0..1000 {
         let storage_clone = Arc::clone(&storage);
         let pk_clone = pk.clone();
@@ -38,9 +45,12 @@ async fn test_high_concurrency_stress() -> anyhow::Result<()> {
                 data,
                 vector: Some(vec![i as f32; 128]),
             };
-            
+
             // Storage is Arc<WolfDbStorage>
-            storage_clone.insert_record("stress".to_string(), record, pk_clone).await.expect("Insert failed");
+            storage_clone
+                .insert_record("stress".to_string(), record, pk_clone)
+                .await
+                .expect("Insert failed");
         });
         handles.push(handle);
     }
@@ -49,10 +59,15 @@ async fn test_high_concurrency_stress() -> anyhow::Result<()> {
         handle.await?;
     }
 
-    println!("Stress test: verifying results...");
+    tracing::info!("Stress test: verifying results...");
     let counts = storage.get_info()?;
-    println!("Final stats: {counts}");
+    tracing::info!("Final stats: {counts}");
 
-    assert!(counts["vector_records"].as_u64().ok_or_else(|| anyhow::anyhow!("Missing count"))? >= 1000);
+    assert!(
+        counts["vector_records"]
+            .as_u64()
+            .ok_or_else(|| anyhow::anyhow!("Missing count"))?
+            >= 1000
+    );
     Ok(())
 }

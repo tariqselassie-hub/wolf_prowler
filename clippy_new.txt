@@ -1,0 +1,1322 @@
+    Blocking waiting for file lock on build directory
+    Checking shared v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/shared)
+    Checking wolf_db v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/WolfDb)
+    Checking wolf_den v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_den)
+error: unnecessary qualification
+   --> crates/tercespot/shared/src/lib.rs:450:9
+    |
+450 |         nom::branch::alt((parenthesized, nom::combinator::map(parse_role, Expr::Role)))(input)?;
+    |         ^^^^^^^^^^^^^^^^
+    |
+    = note: `-D unused-qualifications` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_qualifications)]`
+help: remove the unnecessary path segments
+    |
+450 -         nom::branch::alt((parenthesized, nom::combinator::map(parse_role, Expr::Role)))(input)?;
+450 +         alt((parenthesized, nom::combinator::map(parse_role, Expr::Role)))(input)?;
+    |
+
+    Checking airgap v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/airgap)
+error: unnecessary qualification
+  --> wolf_den/src/hash.rs:41:40
+   |
+41 | pub trait HashAlgorithm: Send + Sync + std::fmt::Debug {
+   |                                        ^^^^^^^^^^^^^^^
+   |
+   = note: `-D unused-qualifications` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(unused_qualifications)]`
+help: remove the unnecessary path segments
+   |
+41 - pub trait HashAlgorithm: Send + Sync + std::fmt::Debug {
+41 + pub trait HashAlgorithm: Send + Sync + fmt::Debug {
+   |
+
+error: unnecessary qualification
+   --> wolf_den/src/hash.rs:237:20
+    |
+237 |     hash_function: crate::HashFunction,
+    |                    ^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+237 -     hash_function: crate::HashFunction,
+237 +     hash_function: HashFunction,
+    |
+
+error: unnecessary qualification
+   --> wolf_den/src/hash.rs:241:9
+    |
+241 |         crate::HashFunction::Blake3 => Ok(Blake3Hasher::new(security_level)?.into()),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+241 -         crate::HashFunction::Blake3 => Ok(Blake3Hasher::new(security_level)?.into()),
+241 +         HashFunction::Blake3 => Ok(Blake3Hasher::new(security_level)?.into()),
+    |
+
+error: unnecessary qualification
+   --> wolf_den/src/hash.rs:242:9
+    |
+242 |         crate::HashFunction::Sha256 => Ok(Sha256Hasher::new(security_level)?.into()),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+242 -         crate::HashFunction::Sha256 => Ok(Sha256Hasher::new(security_level)?.into()),
+242 +         HashFunction::Sha256 => Ok(Sha256Hasher::new(security_level)?.into()),
+    |
+
+error: unnecessary qualification
+   --> wolf_den/src/hash.rs:243:9
+    |
+243 |         crate::HashFunction::Sha512 => Ok(Sha512Hasher::new(security_level)?.into()),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+243 -         crate::HashFunction::Sha512 => Ok(Sha512Hasher::new(security_level)?.into()),
+243 +         HashFunction::Sha512 => Ok(Sha512Hasher::new(security_level)?.into()),
+    |
+
+error: unnecessary qualification
+   --> wolf_den/src/hash.rs:244:9
+    |
+244 |         crate::HashFunction::Sha3_256 => Ok(Sha3_256Hasher::new(security_level)?.into()),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+244 -         crate::HashFunction::Sha3_256 => Ok(Sha3_256Hasher::new(security_level)?.into()),
+244 +         HashFunction::Sha3_256 => Ok(Sha3_256Hasher::new(security_level)?.into()),
+    |
+
+error: unnecessary qualification
+   --> wolf_den/src/hash.rs:245:9
+    |
+245 |         crate::HashFunction::Sha3_512 => Ok(Sha3_512Hasher::new(security_level)?.into()),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+245 -         crate::HashFunction::Sha3_512 => Ok(Sha3_512Hasher::new(security_level)?.into()),
+245 +         HashFunction::Sha3_512 => Ok(Sha3_512Hasher::new(security_level)?.into()),
+    |
+
+error: indexing may panic
+   --> wolf_den/src/mac.rs:147:13
+    |
+147 |             ipad[i] ^= k;
+    |             ^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+    = note: `-D clippy::indexing-slicing` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::indexing_slicing)]`
+
+error: indexing may panic
+   --> wolf_den/src/mac.rs:148:13
+    |
+148 |             opad[i] ^= k;
+    |             ^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: slicing may panic
+   --> wolf_den/src/mac.rs:243:17
+    |
+243 |                 block_data[..chunk.len()].copy_from_slice(chunk);
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: could not compile `wolf_den` (lib) due to 10 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: unnecessary qualification
+   --> crates/tercespot/airgap/src/udev.rs:128:50
+    |
+128 |             let vendor_id = id_parts.first().map(std::string::ToString::to_string);
+    |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `-D unused-qualifications` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_qualifications)]`
+help: remove the unnecessary path segments
+    |
+128 -             let vendor_id = id_parts.first().map(std::string::ToString::to_string);
+128 +             let vendor_id = id_parts.first().map(ToString::to_string);
+    |
+
+error: unnecessary qualification
+   --> crates/tercespot/airgap/src/udev.rs:129:50
+    |
+129 |             let product_id = id_parts.get(1).map(std::string::ToString::to_string);
+    |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+129 -             let product_id = id_parts.get(1).map(std::string::ToString::to_string);
+129 +             let product_id = id_parts.get(1).map(ToString::to_string);
+    |
+
+error: infinite loop detected
+   --> crates/tercespot/airgap/src/pulse.rs:121:9
+    |
+121 | /         loop {
+122 | |             // Scan for devices
+123 | |             match DeviceScanner::scan_devices().await {
+124 | |                 Ok(scanned_devices) => {
+...   |
+161 | |             sleep(Duration::from_secs(1)).await;
+162 | |         }
+    | |_________^
+    |
+    = help: if this is not intended, try adding a `break` or `return` condition in the loop
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#infinite_loop
+    = note: `-D clippy::infinite-loop` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::infinite_loop)]`
+
+error: use of `eprintln!`
+   --> crates/tercespot/airgap/src/pulse.rs:154:21
+    |
+154 |                     eprintln!("Error scanning pulse devices: {e}");
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stderr
+    = note: `-D clippy::print-stderr` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::print_stderr)]`
+
+error: temporary with significant `Drop` can be early dropped
+   --> crates/tercespot/airgap/src/pulse.rs:169:13
+    |
+168 |       ) {
+    |  _______-
+169 | |         let devices = connected_devices.read().await;
+    | |             ^^^^^^^
+...   |
+193 | |     }
+    | |_____- temporary `devices` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+    = note: `-D clippy::significant-drop-tightening` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::significant_drop_tightening)]`
+help: drop the temporary after the end of its last usage
+    |
+182 ~         });
+183 +         drop(devices);
+    |
+
+error: use Option::map_or_else instead of an if let/else
+   --> crates/tercespot/airgap/src/pulse.rs:202:9
+    |
+202 | /         if let Some(device) = devices.get(serial) {
+203 | |             if device.device_type == PulseDeviceType::IdentityPort
+204 | |                 && device.status == PulseDeviceStatus::Connected
+...   |
+221 | |             ))
+222 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#option_if_let_else
+    = note: `-D clippy::option-if-let-else` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::option_if_let_else)]`
+help: try
+    |
+202 ~         devices.get(serial).map_or_else(|| Err(AirGapError::PermissionDenied(
+203 +                 "Identity token not found".to_string(),
+204 +             )), |device| if device.device_type == PulseDeviceType::IdentityPort
+205 +                 && device.status == PulseDeviceStatus::Connected
+206 +             {
+207 +                 // In a real implementation, this would:
+208 +                 // 1. Read challenge from data port
+209 +                 // 2. Send challenge to identity token
+210 +                 // 3. Verify response with stored credentials
+211 + 
+212 ~                 println!("✅ Identity token {serial} validated");
+213 +                 Ok(())
+214 +             } else {
+215 +                 Err(AirGapError::PermissionDenied(
+216 +                     "Device is not an identity port or not connected".to_string(),
+217 +                 ))
+218 +             })
+    |
+
+error: slicing may panic
+  --> crates/tercespot/shared/src/lib.rs:97:32
+   |
+97 |     let array: [u8; PK_SIZE] = bytes[..PK_SIZE].try_into().map_err(|_| {
+   |                                ^^^^^^^^^^^^^^^^
+   |
+   = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+   = note: `-D clippy::indexing-slicing` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::indexing_slicing)]`
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/pulse.rs:211:17
+    |
+211 |                 println!("✅ Identity token {serial} validated");
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+    = note: `-D clippy::print-stdout` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::print_stdout)]`
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/pulse.rs:244:17
+    |
+244 |                 println!("✅ Biometric scan verified for device {serial}");
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: temporary with significant `Drop` can be early dropped
+   --> crates/tercespot/airgap/src/pulse.rs:260:13
+    |
+259 |       pub async fn is_execution_ready(&self) -> bool {
+    |  ____________________________________________________-
+260 | |         let devices = self.connected_devices.read().await;
+    | |             ^^^^^^^
+261 | |
+262 | |         let has_data_port = devices.values().any(|d| {
+...   |
+276 | |         has_data_port && has_identity_port && has_biometric
+277 | |     }
+    | |_____- temporary `devices` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: drop the temporary after the end of its last usage
+    |
+274 ~         });
+275 +         drop(devices);
+    |
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/pulse.rs:289:9
+    |
+289 |         println!("Powering off USB port: {port}");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/pulse.rs:305:9
+    |
+305 |         println!("Powering on USB port: {port}");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/tercespot/shared/src/lib.rs:158:41
+    |
+158 |     let mut output = Vec::with_capacity(ct_bytes.len() + NONCE_SIZE + aes_ct.len());
+    |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+    = note: `-D clippy::arithmetic-side-effects` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::arithmetic_side_effects)]`
+
+error: variables can be used directly in the `format!` string
+   --> crates/tercespot/airgap/src/pulse.rs:366:30
+    |
+366 |                 devices.push(format!("{}/{}", dev_dir, name_str));
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+    = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+    |
+366 -                 devices.push(format!("{}/{}", dev_dir, name_str));
+366 +                 devices.push(format!("{dev_dir}/{name_str}"));
+    |
+
+error: infinite loop detected
+  --> crates/tercespot/airgap/src/udev.rs:65:9
+   |
+65 | /         loop {
+66 | |             // Check for new USB devices every 2 seconds
+67 | |             // Optimization: Run blocking IO in spawn_blocking to avoid blocking the async runtime
+68 | |             let devices_result = task::spawn_blocking(Self::get_usb_devices).await;
+...  |
+84 | |             tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+85 | |         }
+   | |_________^
+   |
+   = help: if this is not intended, try adding a `break` or `return` condition in the loop
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#infinite_loop
+
+error: indexing may panic
+   --> crates/tercespot/airgap/src/udev.rs:116:32
+    |
+116 |         if parts.len() >= 6 && parts[2] == "Device" {
+    |                                ^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+    = note: `-D clippy::indexing-slicing` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::indexing_slicing)]`
+
+error: indexing may panic
+   --> crates/tercespot/airgap/src/udev.rs:119:17
+    |
+119 |                 parts[1],
+    |                 ^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/tercespot/airgap/src/udev.rs:120:17
+    |
+120 |                 parts[3].trim_end_matches(':')
+    |                 ^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: slicing may panic
+   --> crates/tercespot/airgap/src/udev.rs:122:31
+    |
+122 |             let device_name = parts[6..].join(" ");
+    |                               ^^^^^^^^^^
+    |
+    = help: consider using `.get(n..)` or .get_mut(n..)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/tercespot/airgap/src/udev.rs:125:27
+    |
+125 |             let id_part = parts[5];
+    |                           ^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: infinite loop detected
+   --> crates/tercespot/airgap/src/udev.rs:185:9
+    |
+185 | /         loop {
+186 | |             // Poll for USB events
+187 | |             let events = Self::poll_usb_events();
+188 | |             for event in events {
+...   |
+192 | |             tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+193 | |         }
+    | |_________^
+    |
+    = help: if this is not intended, try adding a `break` or `return` condition in the loop
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#infinite_loop
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/tercespot/shared/src/lib.rs:358:39
+    |
+358 |     let mut data = Vec::with_capacity(1 + (count as usize * sig_size) + body.len());
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/tercespot/shared/src/lib.rs:374:22
+    |
+374 |     let json_start = start + "#TERSEC_META:".len();
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/tercespot/shared/src/lib.rs:383:13
+    |
+383 |             brace_count += 1;
+    |             ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/tercespot/shared/src/lib.rs:385:13
+    |
+385 |             brace_count -= 1;
+    |             ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/tercespot/shared/src/lib.rs:387:28
+    |
+387 |                 json_end = json_start + i + 1;
+    |                            ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:152:9
+    |
+152 |         println!("Starting Air Gap Bridge monitoring...");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: infinite loop detected
+   --> crates/tercespot/airgap/src/lib.rs:158:9
+    |
+158 | /         loop {
+159 | |             if let Some(usb_device) = self.detect_usb_insertion() {
+160 | |                 println!("USB device detected: {usb_device}");
+...   |
+168 | |             sleep(Duration::from_secs(2)).await;
+169 | |         }
+    | |_________^
+    |
+    = help: if this is not intended, try adding a `break` or `return` condition in the loop
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#infinite_loop
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:160:17
+    |
+160 |                 println!("USB device detected: {usb_device}");
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `eprintln!`
+   --> crates/tercespot/airgap/src/lib.rs:163:21
+    |
+163 |                     eprintln!("Error processing USB device {usb_device}: {e}");
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stderr
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:202:13
+    |
+202 |             println!("No .tersec packages found on USB device {usb_device}");
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:211:21
+    |
+211 |                     println!("Package {} processed successfully", package_path.display());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `eprintln!`
+   --> crates/tercespot/airgap/src/lib.rs:214:21
+    |
+214 | /                     eprintln!(
+215 | |                         "Failed to process package {}: {}",
+216 | |                         package_path.display(),
+217 | |                         e
+218 | |                     );
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stderr
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:234:9
+    |
+234 |         println!("Mounting USB device {usb_device} at {mount_point} (ro,noexec)");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: unused `self` argument
+   --> crates/tercespot/airgap/src/lib.rs:265:26
+    |
+265 |     fn scan_for_packages(&self, mount_point: &str) -> io::Result<Vec<PathBuf>> {
+    |                          ^^^^^
+    |
+    = help: consider refactoring to an associated function
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unused_self
+    = note: `-D clippy::unused-self` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unused_self)]`
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:287:9
+    |
+287 |         println!("Processing package: {}", package_path.display());
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/tercespot/airgap/src/lib.rs:350:55
+    |
+350 |         let (data, signature) = package_data.split_at(package_data.len() - SIG_SIZE);
+    |                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+    = note: `-D clippy::arithmetic-side-effects` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::arithmetic_side_effects)]`
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:379:9
+    |
+379 |         println!("Executing command: {command}");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:384:13
+    |
+384 |             println!("[TEST] Executing: {command}");
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: could not compile `shared` (lib) due to 8 previous errors
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:399:13
+    |
+399 |             println!("Command executed successfully");
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:414:9
+    |
+414 |         println!("Unmounting USB at {mount_point}");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/tercespot/airgap/src/lib.rs:439:9
+    |
+439 |         println!("Powering off USB port for device {usb_device}");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/tercespot/airgap/src/lib.rs:569:29
+    |
+569 |             let to_remove = log_files.len() - self.max_log_files;
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: could not compile `airgap` (lib) due to 36 previous errors
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/api/handlers.rs:103:22
+    |
+103 |     let expires_at = chrono::Utc::now().timestamp() + 3600;
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+    = note: `-D clippy::arithmetic-side-effects` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::arithmetic_side_effects)]`
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/api/handlers.rs:127:22
+    |
+127 |     let expires_at = chrono::Utc::now().timestamp() + 3600;
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/api/handlers.rs:217:15
+    |
+217 |         page: offset / limit,
+    |               ^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: indexing may panic
+   --> crates/WolfDb/src/api/handlers.rs:498:16
+    |
+498 |         count: info["vector_records"].as_u64().unwrap_or(0) as usize,
+    |                ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+    = note: `-D clippy::indexing-slicing` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::indexing_slicing)]`
+
+error: indexing may panic
+   --> crates/WolfDb/src/api/handlers.rs:499:21
+    |
+499 |         index_size: info["vector_index_size"].as_u64().unwrap_or(0) as usize,
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/api/handlers.rs:500:18
+    |
+500 |         deleted: info["vector_deleted"].as_u64().unwrap_or(0) as usize,
+    |                  ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/api/handlers.rs:615:20
+    |
+615 |             count: info["vector_records"].as_u64().unwrap_or(0) as usize,
+    |                    ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/api/handlers.rs:616:25
+    |
+616 |             index_size: info["vector_index_size"].as_u64().unwrap_or(0) as usize,
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/api/handlers.rs:617:22
+    |
+617 |             deleted: info["vector_deleted"].as_u64().unwrap_or(0) as usize,
+    |                      ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/api/handlers.rs:619:21
+    |
+619 |         pqc_status: info["pqc_integrity"]
+    |                     ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/api/handlers.rs:714:9
+    |
+714 |         total_records += count;
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+  --> crates/WolfDb/src/api/mod.rs:48:26
+   |
+48 |         let expires_at = chrono::Utc::now().timestamp() + 3600; // 1 hour
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:43:13
+   |
+43 |             println!("{}", "✔ Recovery email sent via SMTP.".bright_green());
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+   = note: `-D clippy::print-stdout` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::print_stdout)]`
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:46:13
+   |
+46 | /             println!(
+47 | |                 "\n{}",
+48 | |                 "--- EMAIL SIMULATION MODE ---".bright_yellow().bold()
+49 | |             );
+   | |_____________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:50:13
+   |
+50 |             println!("To: {}", email.bright_white());
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:51:13
+   |
+51 |             println!("Subject: WolfDb PQC Recovery Key");
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:52:13
+   |
+52 |             println!("Body: \n{body}");
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:53:13
+   |
+53 |             println!("{}\n", "--- END OF SIMULATION ---".bright_yellow().bold());
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:54:13
+   |
+54 | /             println!(
+55 | |                 "{}",
+56 | |                 "✔ Recovery email generated (Simulation Mode).".bright_green()
+57 | |             );
+   | |_____________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: slicing may panic
+  --> crates/WolfDb/src/crypto/hsm.rs:70:25
+   |
+70 |         let unwrapped = wrapped_key[2..].to_vec();
+   |                         ^^^^^^^^^^^^^^^^
+   |
+   = help: consider using `.get(n..)` or .get_mut(n..)` instead
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+  --> crates/WolfDb/src/crypto/hsm.rs:86:26
+   |
+86 |             let p_byte = password.as_bytes()[i % password.len()];
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using `.get(n)` or `.get_mut(n)` instead
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+  --> crates/WolfDb/src/crypto/hsm.rs:86:46
+   |
+86 |             let p_byte = password.as_bytes()[i % password.len()];
+   |                                              ^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: slicing may panic
+   --> crates/WolfDb/src/crypto/hsm.rs:102:23
+    |
+102 |         for (i, b) in wrapped[2..].iter().enumerate() {
+    |                       ^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n..)` or .get_mut(n..)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/crypto/hsm.rs:103:26
+    |
+103 |             let p_byte = password.as_bytes()[i % password.len()];
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/crypto/hsm.rs:103:46
+    |
+103 |             let p_byte = password.as_bytes()[i % password.len()];
+    |                                              ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: slicing may panic
+  --> crates/WolfDb/src/crypto/keystore.rs:64:37
+   |
+64 |         master_key.copy_from_slice(&hash_bytes[..32]);
+   |                                     ^^^^^^^^^^^^^^^^
+   |
+   = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: slicing may panic
+   --> crates/WolfDb/src/crypto/keystore.rs:102:37
+    |
+102 |         master_key.copy_from_slice(&hash_bytes[..32]);
+    |                                     ^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: use of `println!`
+  --> crates/WolfDb/src/engine/mod.rs:86:9
+   |
+86 | /         println!(
+87 | |             "{}",
+88 | |             "----------------------------------------".bright_blue()
+89 | |         );
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/WolfDb/src/engine/mod.rs:90:9
+   |
+90 | /         println!(
+91 | |             "{}",
+92 | |             "      WOLFDB HYBRID PQC DATABASE       "
+93 | |                 .bright_white()
+94 | |                 .bold()
+95 | |         );
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/WolfDb/src/engine/mod.rs:96:9
+   |
+96 | /         println!(
+97 | |             "{}",
+98 | |             "----------------------------------------".bright_blue()
+99 | |         );
+   | |_________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:100:9
+    |
+100 |         println!("Type 'help' or any command. Use 'exit' to quit.\n");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:130:13
+    |
+130 | /             println!(
+131 | |                 "{}",
+132 | |                 "✔ Database unlocked. PQC session active.".bright_green()
+133 | |             );
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:135:13
+    |
+135 | /             println!(
+136 | |                 "{}",
+137 | |                 "Welcome! Please set a master password for your PQC database.".bright_blue()
+138 | |             );
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:159:13
+    |
+159 | /             println!(
+160 | |                 "{}",
+161 | |                 "✔ Keystore initialized with PQ-KEM (Kyber768) and PQ-DSA (Dilithium)."
+162 | |                     .bright_green()
+163 | |             );
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:166:13
+    |
+166 |             println!("\n{}", "--- SECURE BACKUP SETUP ---".bright_blue().bold());
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:182:17
+    |
+182 |                 println!("Generating encrypted recovery blob...");
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:186:17
+    |
+186 |                 println!("{}", "✔ Secure recovery backup completed.".bright_green());
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:213:33
+    |
+213 | ...                   println!("{} {e}", "Error:".bright_red().bold());
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:217:29
+    |
+217 | ...                   println!("{e}");
+    |                       ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:222:21
+    |
+222 | /                     println!(
+223 | |                         "\n{}",
+224 | |                         "(!) Interrupted. Cleaning up session...".bright_yellow()
+225 | |                     );
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:230:21
+    |
+230 |                     println!("{}", "(!) Session ended.".bright_yellow());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:235:21
+    |
+235 |                     println!("{} {err:?}", "Error:".bright_red());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:260:17
+    |
+260 |                 println!("Security Status: {status}");
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:261:17
+    |
+261 | /                 println!(
+262 | |                     "Key Type: {}",
+263 | |                     "ML-KEM (Kyber768) + ML-DSA (Dilithium)".bright_white()
+264 | |                 );
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:267:21
+    |
+267 |                     println!("\n{}", "--- DATABASE METRICS ---".bright_blue().bold());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:275:21
+    |
+275 |                     println!("{table}");
+    |                     ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:281:21
+    |
+281 |                     println!("{}", "No records found.".bright_yellow());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:283:21
+    |
+283 | /                     println!(
+284 | |                         "\n{}",
+285 | |                         format!("--- LISTING RECORDS (Limit: {limit}) ---")
+286 | |                             .bright_blue()
+287 | |                             .bold()
+288 | |                     );
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/engine/mod.rs:293:44
+    |
+293 |                         table.add_row(vec![(i + 1).to_string(), key.clone()]);
+    |                                            ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:295:21
+    |
+295 |                     println!("{table}");
+    |                     ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:298:25
+    |
+298 | /                         println!(
+299 | |                             "{}",
+300 | |                             format!("... and {} more records.", keys.len() - limit).dimmed()
+301 | |                         );
+    | |_________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/engine/mod.rs:300:65
+    |
+300 | ...                   format!("... and {} more records.", keys.len() - limit).dimmed()
+    |                                                           ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:329:17
+    |
+329 | /                 println!(
+330 | |                     "{} Record '{}' encrypted and persisted.",
+331 | |                     "✔".bright_green(),
+332 | |                     id.bright_white().bold()
+333 | |                 );
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:348:21
+    |
+348 |                     println!("{} Record '{id}' not found.", "✘".bright_yellow());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:366:21
+    |
+366 |                     println!("{}", "No similar records found.".bright_yellow());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:383:17
+    |
+383 | /                 println!(
+384 | |                     "{}",
+385 | |                     "✔ Database keys recovered and re-initialized.".bright_green()
+386 | |                 );
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:389:17
+    |
+389 |                 println!("{}", format!("Importing from SQLite: {path}").bright_blue());
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:401:21
+    |
+401 |                     println!("  Processing table: {}", table_name.bright_white());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:406:21
+    |
+406 |                     println!("    -> Imported {count} records");
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/engine/mod.rs:407:21
+    |
+407 |                     total_records += count;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:410:17
+    |
+410 | /                 println!(
+411 | |                     "{} Import complete. Total records: {total_records}",
+412 | |                     "✔".bright_green()
+413 | |                 );
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:424:9
+    |
+424 | /         println!(
+425 | |             "{}",
+426 | |             "✔ Database persistence complete.".bright_green().dimmed()
+427 | |         );
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:443:9
+    |
+443 |         println!("\n{table}");
+    |         ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/engine/mod.rs:453:17
+    |
+453 |                 (i + 1).to_string(),
+    |                 ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:460:9
+    |
+460 |         println!("\n{table}");
+    |         ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: slicing may panic
+   --> crates/WolfDb/src/storage/mod.rs:881:37
+    |
+881 |         master_key.copy_from_slice(&hash_bytes[..32]);
+    |                                     ^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:940:34
+    |
+940 |         let encrypted_keys_str = json["encrypted_keys"]
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:947:24
+    |
+947 |         let salt_str = json["salt"]
+    |                        ^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:950:25
+    |
+950 |         let nonce_str = json["nonce"]
+    |                         ^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:957:34
+    |
+957 |         let kem_public_key_b64 = json["kem_pk"]
+    |                                  ^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:964:34
+    |
+964 |         let dsa_public_key_b64 = json["dsa_pk"]
+    |                                  ^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: slicing may panic
+   --> crates/WolfDb/src/storage/mod.rs:986:37
+    |
+986 |         master_key.copy_from_slice(&hash_bytes[..32]);
+    |                                     ^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:998:34
+    |
+998 |         let kem_secret_key_b64 = keys_json["kem_sk"]
+    |                                  ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+    --> crates/WolfDb/src/storage/mod.rs:1005:34
+     |
+1005 |         let dsa_secret_key_b64 = keys_json["dsa_sk"]
+     |                                  ^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using `.get(n)` or `.get_mut(n)` instead
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1052:13
+     |
+1052 |             total_v_count += v_count;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1053:13
+     |
+1053 |             total_v_index_size += v_index_size;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1054:13
+     |
+1054 |             total_v_deleted += v_deleted;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/vector/mod.rs:141:9
+    |
+141 |         state.next_id += 1;
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/vector/mod.rs:181:13
+    |
+181 |             state.next_id += 1;
+    |             ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: could not compile `wolf_db` (lib) due to 79 previous errors

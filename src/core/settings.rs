@@ -332,7 +332,8 @@ impl Default for AppSettings {
                 enabled: true,
                 web_dir: None,
                 admin_username: default_admin_username(),
-                admin_password: std::env::var("WOLF_ADMIN_PASSWORD").expect("WOLF_ADMIN_PASSWORD must be set"),
+                admin_password: std::env::var("WOLF_ADMIN_PASSWORD")
+                    .expect("WOLF_ADMIN_PASSWORD must be set"),
                 admin_email: None,
                 admin_role: WolfRole::Omega,
                 secret_key: default_secret_key(),

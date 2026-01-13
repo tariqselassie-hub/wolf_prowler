@@ -64,8 +64,7 @@ impl InternalFirewall {
 
         // If no rule matches, fallback to default policy
         match self.policy {
-            FirewallPolicy::Default => true, // Default allow if not specified? Or safe fail?
-            FirewallPolicy::AllowAll => true,
+            FirewallPolicy::Default | FirewallPolicy::AllowAll => true,
             FirewallPolicy::DenyAll => false,
         }
     }

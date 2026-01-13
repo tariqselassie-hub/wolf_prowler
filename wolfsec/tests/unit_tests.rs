@@ -107,27 +107,27 @@ mod tests {
 
     #[tokio::test]
     async fn test_zero_trust_manager_creation() {
-        let mut manager = wolfsec::security::advanced::zero_trust::ZeroTrustManager::new()
+        let mut manager = wolfsec::identity::advanced::zero_trust::ZeroTrustManager::new()
             .expect("Failed to create ZeroTrustManager");
 
         // Create a test context
         let peer_id = libp2p::PeerId::random();
-        let context = wolfsec::security::advanced::zero_trust::TrustContext {
+        let context = wolfsec::identity::advanced::zero_trust::TrustContext {
             peer_id: peer_id.clone(),
             timestamp: Utc::now(),
-            location: wolfsec::security::advanced::zero_trust::LocationContext {
+            location: wolfsec::identity::advanced::zero_trust::LocationContext {
                 ip_address: "192.168.1.1".parse().unwrap(),
                 geographic_location: None,
                 network_segment: "internal".to_string(),
                 is_known_territory: true,
             },
-            device_info: wolfsec::security::advanced::zero_trust::DeviceContext {
+            device_info: wolfsec::identity::advanced::zero_trust::DeviceContext {
                 device_id: "test_device".to_string(),
-                device_type: wolfsec::security::advanced::zero_trust::DeviceType::Alpha,
-                security_posture: wolfsec::security::advanced::zero_trust::SecurityPosture {
+                device_type: wolfsec::identity::advanced::zero_trust::DeviceType::Alpha,
+                security_posture: wolfsec::identity::advanced::zero_trust::SecurityPosture {
                     os_version: "Linux 5.14".to_string(),
                     patch_level: "latest".to_string(),
-                    antivirus_status: wolfsec::security::advanced::zero_trust::AVStatus::Active,
+                    antivirus_status: wolfsec::identity::advanced::zero_trust::AVStatus::Active,
                     firewall_enabled: true,
                     disk_encryption: true,
                     secure_boot_enabled: true,
@@ -137,7 +137,7 @@ mod tests {
                 health_score: 0.9,
             },
             behavioral_score: 0.8,
-            historical_trust: wolfsec::security::advanced::zero_trust::HistoricalTrust {
+            historical_trust: wolfsec::identity::advanced::zero_trust::HistoricalTrust {
                 first_seen: Utc::now(),
                 last_seen: Utc::now(),
                 total_interactions: 10,
@@ -146,12 +146,12 @@ mod tests {
                 security_incidents: 0,
                 average_trust_score: 0.85,
             },
-            environmental_factors: wolfsec::security::advanced::zero_trust::EnvironmentalContext {
-                time_of_day: wolfsec::security::advanced::zero_trust::TimeContext::Normal,
-                day_of_week: wolfsec::security::advanced::zero_trust::DayContext::Weekday,
+            environmental_factors: wolfsec::identity::advanced::zero_trust::EnvironmentalContext {
+                time_of_day: wolfsec::identity::advanced::zero_trust::TimeContext::Normal,
+                day_of_week: wolfsec::identity::advanced::zero_trust::DayContext::Weekday,
                 business_hours: true,
-                current_threat_level: wolfsec::security::advanced::zero_trust::ThreatLevel::Low,
-                network_load: wolfsec::security::advanced::zero_trust::NetworkLoad::Low,
+                current_threat_level: wolfsec::identity::advanced::zero_trust::ThreatLevel::Low,
+                network_load: wolfsec::identity::advanced::zero_trust::NetworkLoad::Low,
                 active_incidents: vec![],
             },
         };
@@ -170,22 +170,22 @@ mod tests {
             ContextualAuthenticator::new().expect("Failed to create authenticator");
 
         let peer_id = libp2p::PeerId::random();
-        let context = wolfsec::security::advanced::zero_trust::TrustContext {
+        let context = wolfsec::identity::advanced::zero_trust::TrustContext {
             peer_id: peer_id.clone(),
             timestamp: Utc::now(),
-            location: wolfsec::security::advanced::zero_trust::LocationContext {
+            location: wolfsec::identity::advanced::zero_trust::LocationContext {
                 ip_address: "192.168.1.1".parse().unwrap(),
                 geographic_location: None,
                 network_segment: "internal".to_string(),
                 is_known_territory: true,
             },
-            device_info: wolfsec::security::advanced::zero_trust::DeviceContext {
+            device_info: wolfsec::identity::advanced::zero_trust::DeviceContext {
                 device_id: "test_device".to_string(),
-                device_type: wolfsec::security::advanced::zero_trust::DeviceType::Alpha,
-                security_posture: wolfsec::security::advanced::zero_trust::SecurityPosture {
+                device_type: wolfsec::identity::advanced::zero_trust::DeviceType::Alpha,
+                security_posture: wolfsec::identity::advanced::zero_trust::SecurityPosture {
                     os_version: "Linux 5.14".to_string(),
                     patch_level: "latest".to_string(),
-                    antivirus_status: wolfsec::security::advanced::zero_trust::AVStatus::Active,
+                    antivirus_status: wolfsec::identity::advanced::zero_trust::AVStatus::Active,
                     firewall_enabled: true,
                     disk_encryption: true,
                     secure_boot_enabled: true,
@@ -195,7 +195,7 @@ mod tests {
                 health_score: 0.9,
             },
             behavioral_score: 0.8,
-            historical_trust: wolfsec::security::advanced::zero_trust::HistoricalTrust {
+            historical_trust: wolfsec::identity::advanced::zero_trust::HistoricalTrust {
                 first_seen: Utc::now(),
                 last_seen: Utc::now(),
                 total_interactions: 10,
@@ -204,12 +204,12 @@ mod tests {
                 security_incidents: 0,
                 average_trust_score: 0.85,
             },
-            environmental_factors: wolfsec::security::advanced::zero_trust::EnvironmentalContext {
-                time_of_day: wolfsec::security::advanced::zero_trust::TimeContext::Normal,
-                day_of_week: wolfsec::security::advanced::zero_trust::DayContext::Weekday,
+            environmental_factors: wolfsec::identity::advanced::zero_trust::EnvironmentalContext {
+                time_of_day: wolfsec::identity::advanced::zero_trust::TimeContext::Normal,
+                day_of_week: wolfsec::identity::advanced::zero_trust::DayContext::Weekday,
                 business_hours: true,
-                current_threat_level: wolfsec::security::advanced::zero_trust::ThreatLevel::Low,
-                network_load: wolfsec::security::advanced::zero_trust::NetworkLoad::Low,
+                current_threat_level: wolfsec::identity::advanced::zero_trust::ThreatLevel::Low,
+                network_load: wolfsec::identity::advanced::zero_trust::NetworkLoad::Low,
                 active_incidents: vec![],
             },
         };
@@ -227,22 +227,22 @@ mod tests {
         let mut manager = MicrosegmentationManager::new().expect("Failed to create manager");
 
         let peer_id = libp2p::PeerId::random();
-        let context = wolfsec::security::advanced::zero_trust::TrustContext {
+        let context = wolfsec::identity::advanced::zero_trust::TrustContext {
             peer_id: peer_id.clone(),
             timestamp: Utc::now(),
-            location: wolfsec::security::advanced::zero_trust::LocationContext {
+            location: wolfsec::identity::advanced::zero_trust::LocationContext {
                 ip_address: "192.168.1.1".parse().unwrap(),
                 geographic_location: None,
                 network_segment: "internal".to_string(),
                 is_known_territory: true,
             },
-            device_info: wolfsec::security::advanced::zero_trust::DeviceContext {
+            device_info: wolfsec::identity::advanced::zero_trust::DeviceContext {
                 device_id: "test_device".to_string(),
-                device_type: wolfsec::security::advanced::zero_trust::DeviceType::Alpha,
-                security_posture: wolfsec::security::advanced::zero_trust::SecurityPosture {
+                device_type: wolfsec::identity::advanced::zero_trust::DeviceType::Alpha,
+                security_posture: wolfsec::identity::advanced::zero_trust::SecurityPosture {
                     os_version: "Linux 5.14".to_string(),
                     patch_level: "latest".to_string(),
-                    antivirus_status: wolfsec::security::advanced::zero_trust::AVStatus::Active,
+                    antivirus_status: wolfsec::identity::advanced::zero_trust::AVStatus::Active,
                     firewall_enabled: true,
                     disk_encryption: true,
                     secure_boot_enabled: true,
@@ -252,7 +252,7 @@ mod tests {
                 health_score: 0.9,
             },
             behavioral_score: 0.8,
-            historical_trust: wolfsec::security::advanced::zero_trust::HistoricalTrust {
+            historical_trust: wolfsec::identity::advanced::zero_trust::HistoricalTrust {
                 first_seen: Utc::now(),
                 last_seen: Utc::now(),
                 total_interactions: 10,
@@ -261,12 +261,12 @@ mod tests {
                 security_incidents: 0,
                 average_trust_score: 0.85,
             },
-            environmental_factors: wolfsec::security::advanced::zero_trust::EnvironmentalContext {
-                time_of_day: wolfsec::security::advanced::zero_trust::TimeContext::Normal,
-                day_of_week: wolfsec::security::advanced::zero_trust::DayContext::Weekday,
+            environmental_factors: wolfsec::identity::advanced::zero_trust::EnvironmentalContext {
+                time_of_day: wolfsec::identity::advanced::zero_trust::TimeContext::Normal,
+                day_of_week: wolfsec::identity::advanced::zero_trust::DayContext::Weekday,
                 business_hours: true,
-                current_threat_level: wolfsec::security::advanced::zero_trust::ThreatLevel::Low,
-                network_load: wolfsec::security::advanced::zero_trust::NetworkLoad::Low,
+                current_threat_level: wolfsec::identity::advanced::zero_trust::ThreatLevel::Low,
+                network_load: wolfsec::identity::advanced::zero_trust::NetworkLoad::Low,
                 active_incidents: vec![],
             },
         };
@@ -284,22 +284,22 @@ mod tests {
         let mut engine = WolfPolicyEngine::new().expect("Failed to create policy engine");
 
         let peer_id = libp2p::PeerId::random();
-        let context = wolfsec::security::advanced::zero_trust::TrustContext {
+        let context = wolfsec::identity::advanced::zero_trust::TrustContext {
             peer_id: peer_id.clone(),
             timestamp: Utc::now(),
-            location: wolfsec::security::advanced::zero_trust::LocationContext {
+            location: wolfsec::identity::advanced::zero_trust::LocationContext {
                 ip_address: "192.168.1.1".parse().unwrap(),
                 geographic_location: None,
                 network_segment: "internal".to_string(),
                 is_known_territory: true,
             },
-            device_info: wolfsec::security::advanced::zero_trust::DeviceContext {
+            device_info: wolfsec::identity::advanced::zero_trust::DeviceContext {
                 device_id: "test_device".to_string(),
-                device_type: wolfsec::security::advanced::zero_trust::DeviceType::Alpha,
-                security_posture: wolfsec::security::advanced::zero_trust::SecurityPosture {
+                device_type: wolfsec::identity::advanced::zero_trust::DeviceType::Alpha,
+                security_posture: wolfsec::identity::advanced::zero_trust::SecurityPosture {
                     os_version: "Linux 5.14".to_string(),
                     patch_level: "latest".to_string(),
-                    antivirus_status: wolfsec::security::advanced::zero_trust::AVStatus::Active,
+                    antivirus_status: wolfsec::identity::advanced::zero_trust::AVStatus::Active,
                     firewall_enabled: true,
                     disk_encryption: true,
                     secure_boot_enabled: true,
@@ -309,7 +309,7 @@ mod tests {
                 health_score: 0.9,
             },
             behavioral_score: 0.8,
-            historical_trust: wolfsec::security::advanced::zero_trust::HistoricalTrust {
+            historical_trust: wolfsec::identity::advanced::zero_trust::HistoricalTrust {
                 first_seen: Utc::now(),
                 last_seen: Utc::now(),
                 total_interactions: 10,
@@ -318,12 +318,12 @@ mod tests {
                 security_incidents: 0,
                 average_trust_score: 0.85,
             },
-            environmental_factors: wolfsec::security::advanced::zero_trust::EnvironmentalContext {
-                time_of_day: wolfsec::security::advanced::zero_trust::TimeContext::Normal,
-                day_of_week: wolfsec::security::advanced::zero_trust::DayContext::Weekday,
+            environmental_factors: wolfsec::identity::advanced::zero_trust::EnvironmentalContext {
+                time_of_day: wolfsec::identity::advanced::zero_trust::TimeContext::Normal,
+                day_of_week: wolfsec::identity::advanced::zero_trust::DayContext::Weekday,
                 business_hours: true,
-                current_threat_level: wolfsec::security::advanced::zero_trust::ThreatLevel::Low,
-                network_load: wolfsec::security::advanced::zero_trust::NetworkLoad::Low,
+                current_threat_level: wolfsec::identity::advanced::zero_trust::ThreatLevel::Low,
+                network_load: wolfsec::identity::advanced::zero_trust::NetworkLoad::Low,
                 active_incidents: vec![],
             },
         };
@@ -331,7 +331,7 @@ mod tests {
         let result = engine
             .evaluate_policies(
                 &context,
-                &wolfsec::security::advanced::zero_trust::TrustLevel::Trusted,
+                &wolfsec::identity::advanced::zero_trust::TrustLevel::Trusted,
             )
             .await
             .expect("Policy evaluation failed");
@@ -342,7 +342,7 @@ mod tests {
 
     #[test]
     fn test_trust_level_comparisons() {
-        use wolfsec::security::advanced::zero_trust::TrustLevel;
+        use wolfsec::identity::advanced::zero_trust::TrustLevel;
 
         assert!(TrustLevel::Unknown < TrustLevel::Trusted);
         assert!(TrustLevel::Trusted < TrustLevel::AlphaTrusted);

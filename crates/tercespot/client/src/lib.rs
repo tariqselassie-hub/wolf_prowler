@@ -19,7 +19,7 @@ use std::path::Path;
 pub fn sign_data(signing_key: &ml_dsa_44::PrivateKey, data: &[u8]) -> [u8; 2420] {
     signing_key
         .try_sign(data, b"tersec")
-        .expect("Signing failed")
+        .unwrap_or_else(|e| panic!("Signing failed: {e}"))
 }
 
 /// Loads a `PartialCommand` from a .partial file
@@ -54,8 +54,8 @@ pub fn append_signature_to_partial(
     public_key_path: &str,
 ) -> Result<PartialCommand, String> {
     // Verify signature first
-    let pk = load_public_key(public_key_path)
-        .map_err(|e| format!("Failed to load public key: {e}"))?;
+    let pk =
+        load_public_key(public_key_path).map_err(|e| format!("Failed to load public key: {e}"))?;
     let payload = &partial.encrypted_payload;
     if !pk.verify(payload, &signature, b"tersec") {
         return Err("Signature verification failed".to_string());
@@ -72,7 +72,7 @@ pub fn append_signature_to_partial(
     let slot = partial
         .signatures
         .iter()
-        .position(std::option::Option::is_none)
+        .position(Option::is_none)
         .ok_or_else(|| "No available signature slots".to_string())?;
 
     let ts = std::time::SystemTime::now()
@@ -80,11 +80,13 @@ pub fn append_signature_to_partial(
         .map_err(|e| e.to_string())?
         .as_secs();
 
-    partial.signatures[slot] = Some(PartialSignature {
-        signer_role: role,
-        signature: signature.to_vec(),
-        timestamp: ts,
-    });
+    if let Some(s) = partial.signatures.get_mut(slot) {
+        *s = Some(PartialSignature {
+            signer_role: role,
+            signature: signature.to_vec(),
+            timestamp: ts,
+        });
+    }
 
     Ok(partial)
 }

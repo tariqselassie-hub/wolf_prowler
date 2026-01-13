@@ -1,0 +1,3327 @@
+    Blocking waiting for file lock on build directory
+    Checking wolf_db v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/WolfDb)
+    Checking wolf_net v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_net)
+    Checking privacy v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/privacy)
+    Checking submitter v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/client)
+error: this import is redundant
+  --> crates/tercespot/privacy/src/lib.rs:12:1
+   |
+12 | use tracing;
+   | ^^^^^^^^^^^^ help: remove it entirely
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#single_component_path_imports
+   = note: `-D clippy::single-component-path-imports` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::single_component_path_imports)]`
+
+error: use of `println!`
+  --> crates/tercespot/client/src/bin/pulse_device.rs:10:5
+   |
+10 |     println!("[DEVICE] Pulse Device Simulation Started...");
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+   = note: `-D clippy::print-stdout` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::print_stdout)]`
+
+error: variables can be used directly in the `format!` string
+  --> crates/tercespot/client/src/bin/pulse_device.rs:13:26
+   |
+13 |     let challenge_path = format!("{}/pulse_challenge.bin", postbox);
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+   = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+   |
+13 -     let challenge_path = format!("{}/pulse_challenge.bin", postbox);
+13 +     let challenge_path = format!("{postbox}/pulse_challenge.bin");
+   |
+
+error: variables can be used directly in the `format!` string
+  --> crates/tercespot/client/src/bin/pulse_device.rs:14:25
+   |
+14 |     let response_path = format!("{}/pulse_response.bin", postbox);
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+14 -     let response_path = format!("{}/pulse_response.bin", postbox);
+14 +     let response_path = format!("{postbox}/pulse_response.bin");
+   |
+
+error: variables can be used directly in the `format!` string
+  --> crates/tercespot/client/src/bin/pulse_device.rs:15:19
+   |
+15 |     let sk_path = format!("{}/pulse_sk", postbox);
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+15 -     let sk_path = format!("{}/pulse_sk", postbox);
+15 +     let sk_path = format!("{postbox}/pulse_sk");
+   |
+
+error: variables can be used directly in the `format!` string
+  --> crates/tercespot/client/src/bin/pulse_device.rs:16:19
+   |
+16 |     let pk_path = format!("{}/pulse_pk", postbox);
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+16 -     let pk_path = format!("{}/pulse_pk", postbox);
+16 +     let pk_path = format!("{postbox}/pulse_pk");
+   |
+
+error: use of `println!`
+  --> crates/tercespot/client/src/bin/pulse_device.rs:20:9
+   |
+20 |         println!("[DEVICE] Loading existing Device Key...");
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: used `expect()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:21:21
+   |
+21 |         let bytes = fs::read(&sk_path).expect("Failed to read sk");
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+   = note: `-D clippy::expect-used` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::expect_used)]`
+
+error: used `expect()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:22:39
+   |
+22 |         let bytes_array: [u8; 2560] = bytes.try_into().expect("Invalid sk size");
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:23:9
+   |
+23 |         ml_dsa_44::PrivateKey::try_from_bytes(bytes_array).expect("Invalid sk")
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: use of `println!`
+  --> crates/tercespot/client/src/bin/pulse_device.rs:25:9
+   |
+25 |         println!("[DEVICE] Generating NEW Device Key...");
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: used `unwrap()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:26:24
+   |
+26 |         let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+   = note: `-D clippy::unwrap-used` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unwrap_used)]`
+
+error: used `unwrap()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:27:9
+   |
+27 |         fs::write(&sk_path, sk.clone().into_bytes()).unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:28:9
+   |
+28 |         fs::write(&pk_path, pk.into_bytes()).unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: use of `println!`
+  --> crates/tercespot/client/src/bin/pulse_device.rs:29:9
+   |
+29 |         println!("[DEVICE] Key generated and saved public key to postbox.");
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/tercespot/client/src/bin/pulse_device.rs:33:5
+   |
+33 |     println!("[DEVICE] Standing by for Challenges...");
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: infinite loop detected
+  --> crates/tercespot/client/src/bin/pulse_device.rs:35:5
+   |
+35 | /     loop {
+36 | |         if Path::new(&challenge_path).exists() {
+37 | |             // Read Challenge
+38 | |             match fs::read(&challenge_path) {
+...  |
+60 | |         thread::sleep(Duration::from_secs(1));
+61 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#infinite_loop
+   = note: `-D clippy::infinite-loop` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::infinite_loop)]`
+help: if this is intentional, consider specifying `!` as function return
+   |
+ 9 | fn main() -> ! {
+   |           ++++
+
+error: you seem to be trying to use `match` for destructuring a single pattern. Consider using `if let`
+  --> crates/tercespot/client/src/bin/pulse_device.rs:38:13
+   |
+38 | /             match fs::read(&challenge_path) {
+39 | |                 Ok(challenge) => {
+40 | |                     println!("[DEVICE] Challenge Received: {} bytes", challenge.len());
+...  |
+57 | |                 Err(_) => {}
+58 | |             }
+   | |_____________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#single_match
+   = note: `-D clippy::single-match` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::single_match)]`
+help: try
+   |
+38 ~             if let Ok(challenge) = fs::read(&challenge_path) {
+39 +                 println!("[DEVICE] Challenge Received: {} bytes", challenge.len());
+40 + 
+41 +                 // Sign
+42 +                 let signature = sk.try_sign(&challenge, b"tersec_pulse").unwrap();
+43 + 
+44 +                 // Respond
+45 +                 if let Err(e) = fs::write(&response_path, &signature) {
+46 +                     println!("[DEVICE] Failed to write response: {}", e);
+47 +                 } else {
+48 +                     println!("[DEVICE] Response Sent.");
+49 +                     // Wait for challenge to disappear so we don't sign 1000 times
+50 +                     while Path::new(&challenge_path).exists() {
+51 +                         thread::sleep(Duration::from_millis(100));
+52 +                     }
+53 +                     println!("[DEVICE] Challenge cleared. Resuming standby.");
+54 +                 }
+55 +             }
+   |
+
+error: use of `println!`
+  --> crates/tercespot/client/src/bin/pulse_device.rs:40:21
+   |
+40 |                     println!("[DEVICE] Challenge Received: {} bytes", challenge.len());
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: used `unwrap()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:43:37
+   |
+43 |                     let signature = sk.try_sign(&challenge, b"tersec_pulse").unwrap();
+   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: the borrowed expression implements the required traits
+  --> crates/tercespot/client/src/bin/pulse_device.rs:46:63
+   |
+46 |                     if let Err(e) = fs::write(&response_path, &signature) {
+   |                                                               ^^^^^^^^^^ help: change this to: `signature`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_borrows_for_generic_args
+   = note: `-D clippy::needless-borrows-for-generic-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::needless_borrows_for_generic_args)]`
+
+error: variables can be used directly in the `format!` string
+  --> crates/tercespot/client/src/bin/pulse_device.rs:47:25
+   |
+47 |                         println!("[DEVICE] Failed to write response: {}", e);
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+47 -                         println!("[DEVICE] Failed to write response: {}", e);
+47 +                         println!("[DEVICE] Failed to write response: {e}");
+   |
+
+error: use of `println!`
+  --> crates/tercespot/client/src/bin/pulse_device.rs:47:25
+   |
+47 |                         println!("[DEVICE] Failed to write response: {}", e);
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/tercespot/client/src/bin/pulse_device.rs:49:25
+   |
+49 |                         println!("[DEVICE] Response Sent.");
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/tercespot/client/src/bin/pulse_device.rs:54:25
+   |
+54 |                         println!("[DEVICE] Challenge cleared. Resuming standby.");
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: could not compile `submitter` (bin "pulse_device") due to 24 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: unused `self` argument
+   --> crates/tercespot/privacy/src/lib.rs:298:23
+    |
+298 |     fn send_sms_alert(&self, command: &str) {
+    |                       ^^^^^
+    |
+    = help: consider refactoring to an associated function
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unused_self
+    = note: `-D clippy::unused-self` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unused_self)]`
+
+error: unused `self` argument
+   --> crates/tercespot/privacy/src/lib.rs:304:25
+    |
+304 |     fn send_email_alert(&self, command: &str) {
+    |                         ^^^^^
+    |
+    = help: consider refactoring to an associated function
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unused_self
+
+error: unused `self` argument
+   --> crates/tercespot/privacy/src/lib.rs:310:29
+    |
+310 |     fn send_pagerduty_alert(&self, command: &str) {
+    |                             ^^^^^
+    |
+    = help: consider refactoring to an associated function
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unused_self
+
+error: could not compile `privacy` (lib) due to 4 previous errors
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:817:77
+    |
+817 | ...                   let entity_id = crate::peer::EntityId::create(
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `-D unused-qualifications` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_qualifications)]`
+help: remove the unnecessary path segments
+    |
+817 -                                                             let entity_id = crate::peer::EntityId::create(
+817 +                                                             let entity_id = EntityId::create(
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:818:65
+    |
+818 | ...                   crate::peer::ServiceType::Unknown,
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+818 -                                                                 crate::peer::ServiceType::Unknown,
+818 +                                                                 ServiceType::Unknown,
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:819:65
+    |
+819 | ...                   crate::peer::SystemType::Unknown,
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+819 -                                                                 crate::peer::SystemType::Unknown,
+819 +                                                                 SystemType::Unknown,
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:883:81
+    |
+883 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+883 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+883 +                                                                            Some(CoordinatorMsg::WarningHowl {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:890:81
+    |
+890 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntRequest {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+890 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntRequest {
+890 +                                                                            Some(CoordinatorMsg::HuntRequest {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:898:81
+    |
+898 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+898 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+898 +                                                                            Some(CoordinatorMsg::HuntReport {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:905:81
+    |
+905 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::KillOrder {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+905 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::KillOrder {
+905 +                                                                            Some(CoordinatorMsg::KillOrder {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:913:81
+    |
+913 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::TerritoryUpdate {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+913 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::TerritoryUpdate {
+913 +                                                                            Some(CoordinatorMsg::TerritoryUpdate {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:920:81
+    |
+920 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionRequest {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+920 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionRequest {
+920 +                                                                            Some(CoordinatorMsg::ElectionRequest {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:927:81
+    |
+927 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionVote {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+927 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionVote {
+927 +                                                                            Some(CoordinatorMsg::ElectionVote {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:934:81
+    |
+934 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::AlphaHeartbeat {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+934 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::AlphaHeartbeat {
+934 +                                                                            Some(CoordinatorMsg::AlphaHeartbeat {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:982:85
+    |
+982 | ...                   let target = crate::peer::PeerId::from_libp2p(peer);
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+982 -                                                                        let target = crate::peer::PeerId::from_libp2p(peer);
+982 +                                                                        let target = PeerId::from_libp2p(peer);
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:992:72
+    |
+992 | ...                   crate::protocol::WolfRequest::KeyExchange { public_key } => {
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+992 -                                                                        crate::protocol::WolfRequest::KeyExchange { public_key } => {
+992 +                                                                        WolfRequest::KeyExchange { public_key } => {
+    |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1008:72
+     |
+1008 | ...                   crate::protocol::WolfRequest::Encrypted(encrypted) => {
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1008 -                                                                        crate::protocol::WolfRequest::Encrypted(encrypted) => {
+1008 +                                                                        WolfRequest::Encrypted(encrypted) => {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1015:88
+     |
+1015 | ...                   crate::protocol::WolfRequest::Ping => crate::protocol::WolfResponse::Pong,
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1015 -                                                                                        crate::protocol::WolfRequest::Ping => crate::protocol::WolfResponse::Pong,
+1015 +                                                                                        WolfRequest::Ping => crate::protocol::WolfResponse::Pong,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1016:88
+     |
+1016 | ...                   crate::protocol::WolfRequest::Echo(msg) => crate::protocol::WolfResponse::Echo(msg),
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1016 -                                                                                        crate::protocol::WolfRequest::Echo(msg) => crate::protocol::WolfResponse::Echo(msg),
+1016 +                                                                                        WolfRequest::Echo(msg) => crate::protocol::WolfResponse::Echo(msg),
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1034:102
+     |
+1034 | ...                   let target = crate::peer::PeerId::from_libp2p(peer);
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1034 -                                                                                         let target = crate::peer::PeerId::from_libp2p(peer);
+1034 +                                                                                         let target = PeerId::from_libp2p(peer);
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1047:72
+     |
+1047 | ...                   crate::protocol::WolfRequest::Ping => {
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1047 -                                                                        crate::protocol::WolfRequest::Ping => {
+1047 +                                                                        WolfRequest::Ping => {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1050:72
+     |
+1050 | ...                   crate::protocol::WolfRequest::Echo(msg) => {
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1050 -                                                                        crate::protocol::WolfRequest::Echo(msg) => {
+1050 +                                                                        WolfRequest::Echo(msg) => {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1062:87
+     |
+1062 | ...                   let target = crate::peer::PeerId::from_libp2p(peer);
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1062 -                                                                          let target = crate::peer::PeerId::from_libp2p(peer);
+1062 +                                                                          let target = PeerId::from_libp2p(peer);
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1101:74
+     |
+1101 | ...                   let target = crate::peer::PeerId::from_libp2p(peer);
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1101 -                                                             let target = crate::peer::PeerId::from_libp2p(peer);
+1101 +                                                             let target = PeerId::from_libp2p(peer);
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1110:74
+     |
+1110 | ...                   let target = crate::peer::PeerId::from_libp2p(peer);
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1110 -                                                             let target = crate::peer::PeerId::from_libp2p(peer);
+1110 +                                                             let target = PeerId::from_libp2p(peer);
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1142:68
+     |
+1142 | ...                   let entity_id = crate::peer::EntityId::create(
+     |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1142 -                                                    let entity_id = crate::peer::EntityId::create(
+1142 +                                                    let entity_id = EntityId::create(
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1143:56
+     |
+1143 | ...                   crate::peer::ServiceType::Unknown,
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1143 -                                                        crate::peer::ServiceType::Unknown,
+1143 +                                                        ServiceType::Unknown,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1144:56
+     |
+1144 | ...                   crate::peer::SystemType::Unknown,
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1144 -                                                        crate::peer::SystemType::Unknown,
+1144 +                                                        SystemType::Unknown,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1147:67
+     |
+1147 | ...                   let mut info = crate::peer::EntityInfo::new(entity_id);
+     |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1147 -                                                    let mut info = crate::peer::EntityInfo::new(entity_id);
+1147 +                                                    let mut info = EntityInfo::new(entity_id);
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1233:64
+     |
+1233 | ...                   if matches!(e, libp2p::gossipsub::PublishError::InsufficientPeers) {
+     |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1233 -                                                 if matches!(e, libp2p::gossipsub::PublishError::InsufficientPeers) {
+1233 +                                                 if matches!(e, gossipsub::PublishError::InsufficientPeers) {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1332:62
+     |
+1332 | ...                   let req = crate::protocol::WolfRequest::Encrypted(encrypted.clone());
+     |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1332 -                                                    let req = crate::protocol::WolfRequest::Encrypted(encrypted.clone());
+1332 +                                                    let req = WolfRequest::Encrypted(encrypted.clone());
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1370:81
+     |
+1370 | ...   if let Err(e) = hunt_sender.send(crate::wolf_pack::coordinator::CoordinatorMsg::ForceRank { target: target.clone(), new_role: role ...
+     |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1370 -                                                if let Err(e) = hunt_sender.send(crate::wolf_pack::coordinator::CoordinatorMsg::ForceRank { target: target.clone(), new_role: role }).await {
+1370 +                                                if let Err(e) = hunt_sender.send(CoordinatorMsg::ForceRank { target: target.clone(), new_role: role }).await {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1399:52
+     |
+1399 | ...                   crate::firewall::RuleTarget::Ip(ip_addr),
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1399 -                                                    crate::firewall::RuleTarget::Ip(ip_addr),
+1399 +                                                    RuleTarget::Ip(ip_addr),
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1400:52
+     |
+1400 | ...                   crate::firewall::Protocol::Any,
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1400 -                                                    crate::firewall::Protocol::Any,
+1400 +                                                    Protocol::Any,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1402:52
+     |
+1402 | ...                   crate::firewall::TrafficDirection::Both,
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1402 -                                                    crate::firewall::TrafficDirection::Both,
+1402 +                                                    TrafficDirection::Both,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1596:53
+     |
+1596 |     pub async fn dial(&self, peer_id: PeerId, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
+     |                                                     ^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1596 -     pub async fn dial(&self, peer_id: PeerId, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
+1596 +     pub async fn dial(&self, peer_id: PeerId, addr: Multiaddr) -> anyhow::Result<()> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1607:41
+     |
+1607 |     pub async fn dial_addr(&self, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
+     |                                         ^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1607 -     pub async fn dial_addr(&self, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
+1607 +     pub async fn dial_addr(&self, addr: Multiaddr) -> anyhow::Result<()> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1629:61
+     |
+1629 |     pub async fn get_listeners(&self) -> anyhow::Result<Vec<libp2p::Multiaddr>> {
+     |                                                             ^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1629 -     pub async fn get_listeners(&self) -> anyhow::Result<Vec<libp2p::Multiaddr>> {
+1629 +     pub async fn get_listeners(&self) -> anyhow::Result<Vec<Multiaddr>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1672:58
+     |
+1672 |     pub async fn list_peers(&self) -> anyhow::Result<Vec<crate::peer::EntityInfo>> {
+     |                                                          ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1672 -     pub async fn list_peers(&self) -> anyhow::Result<Vec<crate::peer::EntityInfo>> {
+1672 +     pub async fn list_peers(&self) -> anyhow::Result<Vec<EntityInfo>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1688:32
+     |
+1688 |     ) -> anyhow::Result<Option<crate::peer::EntityInfo>> {
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1688 -     ) -> anyhow::Result<Option<crate::peer::EntityInfo>> {
+1688 +     ) -> anyhow::Result<Option<EntityInfo>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1732:19
+     |
+1732 |             .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1732 -             .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+1732 +             .send(CoordinatorMsg::WarningHowl {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1754:19
+     |
+1754 |             .send(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1754 -             .send(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+1754 +             .send(CoordinatorMsg::HuntReport {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1785:29
+     |
+1785 |     ) -> anyhow::Result<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>> {
+     |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1785 -     ) -> anyhow::Result<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>> {
+1785 +     ) -> anyhow::Result<Arc<RwLock<crate::wolf_pack::state::WolfState>>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1785:49
+     |
+1785 |     ) -> anyhow::Result<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>> {
+     |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1785 -     ) -> anyhow::Result<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>> {
+1785 +     ) -> anyhow::Result<Arc<tokio::sync::RwLock<WolfState>>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1795:34
+     |
+1795 |     fn extract_target_ip(event: &crate::event::SecurityEvent) -> String {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1795 -     fn extract_target_ip(event: &crate::event::SecurityEvent) -> String {
+1795 +     fn extract_target_ip(event: &SecurityEvent) -> String {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1829:16
+     |
+1829 |         event: crate::event::SecurityEvent,
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1829 -         event: crate::event::SecurityEvent,
+1829 +         event: SecurityEvent,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1834:13
+     |
+1834 |             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1834 -             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+1834 +             SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1834:52
+     |
+1834 |             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+     |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1834 -             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+1834 +             crate::event::SecuritySeverity::High | SecuritySeverity::Critical
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1845:13
+     |
+1845 |             crate::wolf_pack::state::WolfRole::Stray => false,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1845 -             crate::wolf_pack::state::WolfRole::Stray => false,
+1845 +             WolfRole::Stray => false,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1846:13
+     |
+1846 |             crate::wolf_pack::state::WolfRole::Scout => state.prestige >= 50,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1846 -             crate::wolf_pack::state::WolfRole::Scout => state.prestige >= 50,
+1846 +             WolfRole::Scout => state.prestige >= 50,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1864:19
+     |
+1864 |             .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1864 -             .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+1864 +             .send(CoordinatorMsg::WarningHowl {
+     |
+
+error: unnecessary qualification
+   --> wolf_net/src/wolf_pack/coordinator.rs:462:44
+    |
+462 |             std::time::SystemTime::now() + std::time::Duration::from_secs(60),
+    |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+462 -             std::time::SystemTime::now() + std::time::Duration::from_secs(60),
+462 +             std::time::SystemTime::now() + Duration::from_secs(60),
+    |
+
+error: the function has a cognitive complexity of (52/25)
+  --> crates/WolfDb/src/backup/email.rs:15:18
+   |
+15 |     pub async fn send_recovery_key(
+   |                  ^^^^^^^^^^^^^^^^^
+   |
+   = help: you could split it up into multiple smaller functions
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+   = note: requested on the command line with `-D clippy::cognitive-complexity`
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+  --> crates/WolfDb/src/crypto/hsm.rs:93:42
+   |
+93 |                 let p_byte = p_bytes.get(i % p_bytes.len()).copied().unwrap_or(0);
+   |                                          ^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+   = note: `-D clippy::arithmetic-side-effects` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::arithmetic_side_effects)]`
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/crypto/hsm.rs:120:42
+    |
+120 |                 let p_byte = p_bytes.get(i % p_bytes.len()).copied().unwrap_or(0);
+    |                                          ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: the function has a cognitive complexity of (111/25)
+  --> crates/WolfDb/src/engine/mod.rs:85:18
+   |
+85 |     pub async fn run_repl(&mut self) -> Result<()> {
+   |                  ^^^^^^^^
+   |
+   = help: you could split it up into multiple smaller functions
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:222:21
+    |
+222 | /                     println!(
+223 | |                         "\n{}",
+224 | |                         "(!) Interrupted. Cleaning up session...".bright_yellow()
+225 | |                     );
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+    = note: `-D clippy::print-stdout` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::print_stdout)]`
+
+error: the function has a cognitive complexity of (130/25)
+   --> crates/WolfDb/src/engine/mod.rs:252:14
+    |
+252 |     async fn execute(&mut self, cmd: Commands) -> Result<()> {
+    |              ^^^^^^^
+    |
+    = help: you could split it up into multiple smaller functions
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/engine/mod.rs:408:21
+    |
+408 |                     total_records += count;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: slicing may panic
+   --> crates/WolfDb/src/storage/mod.rs:881:37
+    |
+881 |         master_key.copy_from_slice(&hash_bytes[..32]);
+    |                                     ^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+    = note: `-D clippy::indexing-slicing` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::indexing_slicing)]`
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:940:34
+    |
+940 |         let encrypted_keys_str = json["encrypted_keys"]
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:947:24
+    |
+947 |         let salt_str = json["salt"]
+    |                        ^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:950:25
+    |
+950 |         let nonce_str = json["nonce"]
+    |                         ^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:957:34
+    |
+957 |         let kem_public_key_b64 = json["kem_pk"]
+    |                                  ^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:964:34
+    |
+964 |         let dsa_public_key_b64 = json["dsa_pk"]
+    |                                  ^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: slicing may panic
+   --> crates/WolfDb/src/storage/mod.rs:986:37
+    |
+986 |         master_key.copy_from_slice(&hash_bytes[..32]);
+    |                                     ^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:998:34
+    |
+998 |         let kem_secret_key_b64 = keys_json["kem_sk"]
+    |                                  ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+    --> crates/WolfDb/src/storage/mod.rs:1005:34
+     |
+1005 |         let dsa_secret_key_b64 = keys_json["dsa_sk"]
+     |                                  ^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using `.get(n)` or `.get_mut(n)` instead
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1052:13
+     |
+1052 |             total_v_count += v_count;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1053:13
+     |
+1053 |             total_v_index_size += v_index_size;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1054:13
+     |
+1054 |             total_v_deleted += v_deleted;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/vector/mod.rs:141:9
+    |
+141 |         state.next_id += 1;
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/vector/mod.rs:181:13
+    |
+181 |             state.next_id += 1;
+    |             ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: could not compile `wolf_db` (lib) due to 21 previous errors
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:108:10
+    |
+108 |         *self.hard_state.write().expect("Lock poisoned") = hs.clone();
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+    = note: `-D clippy::expect-used` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::expect_used)]`
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:124:10
+    |
+124 |         *self.conf_state.write().expect("Lock poisoned") = cs.clone();
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/consensus/storage.rs:137:17
+    |
+136 |       pub fn apply_snapshot(&self, snapshot: &Snapshot) -> Result<(), raft::Error> {
+    |  __________________________________________________________________________________-
+137 | |         let mut hs = self.hard_state.write().expect("Lock poisoned");
+    | |                 ^^
+138 | |         let mut cs = self.conf_state.write().expect("Lock poisoned");
+139 | |         let mut snap = self.snapshot.write().expect("Lock poisoned");
+...   |
+172 | |         Ok(())
+173 | |     }
+    | |_____- temporary `hs` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+    = note: `-D clippy::significant-drop-tightening` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::significant_drop_tightening)]`
+help: drop the temporary after the end of its last usage
+    |
+153 ~             .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?;
+154 +         drop(hs);
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/consensus/storage.rs:138:17
+    |
+136 |       pub fn apply_snapshot(&self, snapshot: &Snapshot) -> Result<(), raft::Error> {
+    |  __________________________________________________________________________________-
+137 | |         let mut hs = self.hard_state.write().expect("Lock poisoned");
+138 | |         let mut cs = self.conf_state.write().expect("Lock poisoned");
+    | |                 ^^
+139 | |         let mut snap = self.snapshot.write().expect("Lock poisoned");
+...   |
+172 | |         Ok(())
+173 | |     }
+    | |_____- temporary `cs` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: drop the temporary after the end of its last usage
+    |
+160 ~             .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?;
+161 +         drop(cs);
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/consensus/storage.rs:139:17
+    |
+136 |       pub fn apply_snapshot(&self, snapshot: &Snapshot) -> Result<(), raft::Error> {
+    |  __________________________________________________________________________________-
+137 | |         let mut hs = self.hard_state.write().expect("Lock poisoned");
+138 | |         let mut cs = self.conf_state.write().expect("Lock poisoned");
+139 | |         let mut snap = self.snapshot.write().expect("Lock poisoned");
+    | |                 ^^^^
+...   |
+172 | |         Ok(())
+173 | |     }
+    | |_____- temporary `snap` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: drop the temporary after the end of its last usage
+    |
+167 ~             .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?;
+168 +         drop(snap);
+    |
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:137:22
+    |
+137 |         let mut hs = self.hard_state.write().expect("Lock poisoned");
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:138:22
+    |
+138 |         let mut cs = self.conf_state.write().expect("Lock poisoned");
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:139:24
+    |
+139 |         let mut snap = self.snapshot.write().expect("Lock poisoned");
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:179:25
+    |
+179 |             hard_state: self.hard_state.read().expect("Lock poisoned").clone(),
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:180:25
+    |
+180 |             conf_state: self.conf_state.read().expect("Lock poisoned").clone(),
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/consensus/storage.rs:209:24
+    |
+209 |                     if total_size + entry_size > max && !entries.is_empty() {
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+    = note: `-D clippy::arithmetic-side-effects` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::arithmetic_side_effects)]`
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/consensus/storage.rs:214:17
+    |
+214 |                 total_size += entry_size;
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:225:24
+    |
+225 |         let snapshot = self.snapshot.read().expect("Lock poisoned");
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:247:24
+    |
+247 |         let snapshot = self.snapshot.read().expect("Lock poisoned");
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/consensus/storage.rs:248:12
+    |
+248 |         Ok(snapshot.get_metadata().index + 1)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/consensus/storage.rs:253:28
+    |
+253 |         let mut last_idx = self.first_index()? - 1;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/consensus/storage.rs:256:29
+    |
+256 |             if key.len() >= PREFIX_ENTRY.len() + 8 {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:257:42
+    |
+257 |                   let idx_bytes: [u8; 8] = key[PREFIX_ENTRY.len()..PREFIX_ENTRY.len() + 8]
+    |  __________________________________________^
+258 | |                     .try_into()
+259 | |                     .expect("Slice length correct");
+    | |___________________________________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: slicing may panic
+   --> wolf_net/src/consensus/storage.rs:257:42
+    |
+257 |                 let idx_bytes: [u8; 8] = key[PREFIX_ENTRY.len()..PREFIX_ENTRY.len() + 8]
+    |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n..m)` or `.get_mut(n..m)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+    = note: `-D clippy::indexing-slicing` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::indexing_slicing)]`
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/consensus/storage.rs:257:66
+    |
+257 |                 let idx_bytes: [u8; 8] = key[PREFIX_ENTRY.len()..PREFIX_ENTRY.len() + 8]
+    |                                                                  ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/consensus/storage.rs:271:12
+    |
+271 |         Ok(self.snapshot.read().expect("Lock poisoned").clone())
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: adding items after statements is confusing, since items exist from the start of the scope
+  --> wolf_net/src/consensus/mod.rs:67:9
+   |
+67 |         use slog::Drain;
+   |         ^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#items_after_statements
+   = note: `-D clippy::items-after-statements` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::items_after_statements)]`
+
+error: field assignment outside of initializer for an instance created with Default::default()
+  --> wolf_net/src/consensus/mod.rs:84:13
+   |
+84 |             conf_state.voters = peers.clone();
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: consider initializing the variable with `raft::prelude::ConfState { voters: peers.clone(), ..Default::default() }` and removing relevant reassignments
+  --> wolf_net/src/consensus/mod.rs:83:13
+   |
+83 |             let mut conf_state = raft::eraftpb::ConfState::default();
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#field_reassign_with_default
+   = note: `-D clippy::field-reassign-with-default` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::field_reassign_with_default)]`
+
+error: assigning the result of `Clone::clone()` may be inefficient
+  --> wolf_net/src/consensus/mod.rs:84:13
+   |
+84 |             conf_state.voters = peers.clone();
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use `clone_from()`: `conf_state.voters.clone_from(&peers)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assigning_clones
+   = note: `-D clippy::assigning-clones` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::assigning_clones)]`
+
+error: this argument is passed by value, but not consumed in the function body
+   --> wolf_net/src/consensus/mod.rs:101:41
+    |
+101 |     pub fn propose(&mut self, proposal: Proposal) -> Result<()> {
+    |                                         ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_pass_by_value
+    = note: `-D clippy::needless-pass-by-value` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_pass_by_value)]`
+help: consider taking a reference instead
+    |
+101 |     pub fn propose(&mut self, proposal: &Proposal) -> Result<()> {
+    |                                         +
+
+error: this could be a `const fn`
+   --> wolf_net/src/discovery.rs:108:5
+    |
+108 | /     pub fn new(enabled: bool, ports: Vec<u16>) -> Self {
+109 | |         Self { enabled, ports }
+110 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+    = note: `-D clippy::missing-const-for-fn` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::missing_const_for_fn)]`
+help: make the function `const`
+    |
+108 |     pub const fn new(enabled: bool, ports: Vec<u16>) -> Self {
+    |         +++++
+
+error: docs for function which may panic missing `# Panics` section
+   --> wolf_net/src/discovery.rs:164:5
+    |
+164 |     pub fn start(&mut self) -> anyhow::Result<()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: first possible panic found here
+   --> wolf_net/src/discovery.rs:233:35
+    |
+233 |   ...                   > chrono::Duration::from_std(Duration::from_secs(config.peer_timeout_secs))
+    |  _________________________^
+234 | | ...                       .unwrap()
+    | |___________________________________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_panics_doc
+    = note: `-D clippy::missing-panics-doc` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::missing_panics_doc)]`
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/discovery.rs:227:33
+    |
+185 |                       _ = interval.tick() => {
+    |  ____________________________________________-
+186 | |                         debug!("Running discovery cycle...");
+187 | |
+188 | |                         for method in &methods {
+...   |
+227 | |                         let mut known_peers = known_peers.write().await;
+    | |                                 ^^^^^^^^^^^
+...   |
+248 | |                         );
+249 | |                     }
+    | |_____________________- temporary `known_peers` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: drop the temporary after the end of its last usage
+   --> /home/t4riq/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tracing-0.1.44/src/macros.rs:2967:123
+    |
+2967~         $crate::valueset_all!(@ { ($crate::__macro_support::Option::Some(&$crate::__macro_support::format_args!($($rest)+)
+2968~                         drop(known_peers); as &dyn $crate::field::Value)), $($out),* },)
+    |
+
+error: redundant pattern matching, consider using `is_err()`
+   --> wolf_net/src/discovery.rs:203:48
+    |
+203 | ...                   if let Err(_) = event_tx.send(peer).await {
+    |                       -------^^^^^^---------------------------- help: try: `if (event_tx.send(peer).await).is_err()`
+    |
+    = note: this will change drop order of the result, as well as all temporaries
+    = note: add `#[allow(clippy::redundant_pattern_matching)]` if this is important
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_pattern_matching
+    = note: `-D clippy::redundant-pattern-matching` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::redundant_pattern_matching)]`
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/discovery.rs:211:54
+    |
+211 | ...                   let excess = known_peers.len() - config.max_peers;
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/discovery.rs:233:35
+    |
+233 |   ...                   > chrono::Duration::from_std(Duration::from_secs(config.peer_timeout_secs))
+    |  _________________________^
+234 | | ...                       .unwrap()
+    | |___________________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+    = note: `-D clippy::unwrap-used` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unwrap_used)]`
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/discovery.rs:315:28
+    |
+315 |         let (service, _) = Self::new(config).expect("Failed to create DiscoveryService");
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: temporary with significant `Drop` can be early dropped
+  --> wolf_net/src/encrypted_handler.rs:79:17
+   |
+78 |       pub async fn remove_peer_key(&self, peer_id: &PeerId) {
+   |  ___________________________________________________________-
+79 | |         let mut keys = self.peer_keys.write().await;
+   | |                 ^^^^
+80 | |         keys.remove(&peer_id.to_string());
+...  |
+83 | |         self.encryption.clear_session(&peer_id.to_string()).await;
+84 | |     }
+   | |_____- temporary `keys` is currently being dropped at the end of its contained scope
+   |
+   = note: this might lead to unnecessary resource contention
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+   |
+79 ~         
+80 +         self.peer_keys.write().await.remove(&peer_id.to_string());
+81 ~         
+   |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/encryption.rs:117:17
+    |
+116 |       ) -> Result<SessionKey> {
+    |  _____________________________-
+117 | |         let mut sessions = self.session_keys.write().await;
+    | |                 ^^^^^^^^
+...   |
+139 | |         Ok(session)
+140 | |     }
+    | |_____- temporary `sessions` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: drop the temporary after the end of its last usage
+    |
+138 ~         sessions.insert(peer_id.to_string(), session.clone());
+139 +         drop(sessions);
+    |
+
+error: slicing may panic
+   --> wolf_net/src/encryption.rs:146:9
+    |
+146 |         nonce[0..8].copy_from_slice(&counter.to_be_bytes());
+    |         ^^^^^^^^^^^
+    |
+    = help: consider using `.get(n..m)` or `.get_mut(n..m)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/encryption.rs:166:9
+    |
+166 |         session.nonce_counter += 1;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/encryption.rs:262:9
+    |
+262 |         Self::new(SecurityLevel::Standard).expect("Failed to create MessageEncryption")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: large size difference between variants
+   --> wolf_net/src/event.rs:83:1
+    |
+ 83 | /   pub enum NetworkEvent {
+ 84 | |       /// A new peer has connected to the node.
+ 85 | |       PeerConnected {
+ 86 | |           /// ID of the connected peer.
+...   |
+ 99 | | /     MessageReceived {
+100 | | |         /// ID of the sender.
+101 | | |         from: PeerId,
+102 | | |         /// The message content.
+103 | | |         message: Message,
+104 | | |     },
+    | | |_____- the largest variant contains at least 360 bytes
+...   |
+113 | | /     PeerDiscovered {
+114 | | |         /// Information about the discovered peer.
+115 | | |         peer_info: PeerInfo,
+116 | | |     },
+    | | |_____- the second-largest variant contains at least 144 bytes
+...   |
+144 | |       Security(SecurityEvent),
+145 | |   }
+    | |___^ the entire enum is at least 360 bytes
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#large_enum_variant
+    = note: `-D clippy::large-enum-variant` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::large_enum_variant)]`
+help: consider boxing the large fields or introducing indirection in some other way to reduce the total size of the enum
+    |
+103 -         message: Message,
+103 +         message: Box<Message>,
+    |
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/event.rs:212:9
+    |
+212 |         self.stats.callbacks_registered += 1;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/event.rs:223:9
+    |
+223 |         self.stats.events_queued += 1;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/event.rs:238:21
+    |
+238 |                     self.stats.events_failed += 1;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/event.rs:240:21
+    |
+240 |                     self.stats.events_processed += 1;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: unused `self` argument
+   --> wolf_net/src/event.rs:266:23
+    |
+266 |     fn get_event_type(&self, event: &NetworkEvent) -> String {
+    |                       ^^^^^
+    |
+    = help: consider refactoring to an associated function
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unused_self
+    = note: `-D clippy::unused-self` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unused_self)]`
+
+error: the function has a cognitive complexity of (37/25)
+   --> wolf_net/src/event.rs:334:23
+    |
+334 |         Box::new(move |event: &NetworkEvent| -> anyhow::Result<()> {
+    |                       ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: you could split it up into multiple smaller functions
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+    = note: requested on the command line with `-D clippy::cognitive-complexity`
+
+error: these match arms have identical bodies
+  --> wolf_net/src/firewall.rs:67:13
+   |
+67 |             FirewallPolicy::Default => true, // Default allow if not specified? Or safe fail?
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+68 |             FirewallPolicy::AllowAll => true,
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: if this is unintentional make the arms return different values
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#match_same_arms
+   = note: `-D clippy::match-same-arms` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::match_same_arms)]`
+help: otherwise merge the patterns into a single arm
+   |
+67 ~             // Default allow if not specified? Or safe fail?
+68 ~             FirewallPolicy::Default | FirewallPolicy::AllowAll => true,
+   |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/geo.rs:174:13
+    |
+173 |       pub async fn cache_stats(&self) -> (usize, usize) {
+    |  _______________________________________________________-
+174 | |         let cache = self.cache.read().await;
+    | |             ^^^^^
+175 | |         let total = cache.len();
+176 | |         let expired = cache
+...   |
+181 | |         (total, expired)
+182 | |     }
+    | |_____- temporary `cache` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: drop the temporary after the end of its last usage
+    |
+179 ~             .count();
+180 +         drop(cache);
+    |
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/hub_orchestration.rs:113:25
+    |
+113 |                         expires_in - 60
+    |                         ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use of `println!`
+   --> wolf_net/src/hub_orchestration.rs:117:21
+    |
+117 | /                     println!(
+118 | |                         "Hub authentication successful. Token expires in {expires_in}s. Refreshing in {refresh_secs}s."
+119 | |                     );
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+    = note: `-D clippy::print-stdout` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::print_stdout)]`
+
+error: use of `eprintln!`
+   --> wolf_net/src/hub_orchestration.rs:123:21
+    |
+123 |                     eprintln!("Hub authentication failed: {e}. Retrying in 30 seconds...");
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stderr
+    = note: `-D clippy::print-stderr` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::print_stderr)]`
+
+error: use Option::map_or instead of an if let/else
+   --> wolf_net/src/message.rs:201:9
+    |
+201 | /         if let Some(ttl) = self.ttl {
+202 | |             Utc::now() > self.timestamp + ttl
+203 | |         } else {
+204 | |             false
+205 | |         }
+    | |_________^ help: try: `self.ttl.map_or(false, |ttl| Utc::now() > self.timestamp + ttl)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#option_if_let_else
+    = note: `-D clippy::option-if-let-else` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::option_if_let_else)]`
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/message.rs:202:26
+    |
+202 |             Utc::now() > self.timestamp + ttl
+    |                          ^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use Option::map_or instead of an if let/else
+   --> wolf_net/src/message.rs:210:9
+    |
+210 | /         match &self.to {
+211 | |             Some(target) => target == local_peer_id,
+212 | |             None => true, // Broadcast
+213 | |         }
+    | |_________^ help: try: `self.to.as_ref().map_or(true, |target| target == local_peer_id)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#option_if_let_else
+
+error: this argument is passed by value, but not consumed in the function body
+   --> wolf_net/src/message.rs:319:55
+    |
+319 |     pub fn register_callback(&mut self, message_type: MessageType, callback: MessageCallback) {
+    |                                                       ^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_pass_by_value
+help: consider taking a reference instead
+    |
+319 |     pub fn register_callback(&mut self, message_type: &MessageType, callback: MessageCallback) {
+    |                                                       +
+
+error: this argument is passed by value, but not consumed in the function body
+   --> wolf_net/src/message.rs:327:44
+    |
+327 |     pub fn process_message(&self, message: Message) -> anyhow::Result<()> {
+    |                                            ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_pass_by_value
+help: consider taking a reference instead
+    |
+327 |     pub fn process_message(&self, message: &Message) -> anyhow::Result<()> {
+    |                                            +
+
+error: parameter of type `HashMap` should be generalized over different hashers
+  --> wolf_net/src/metrics_simple.rs:10:20
+   |
+10 |     registry: &mut HashMap<PeerId, EntityInfo>,
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#implicit_hasher
+   = note: `-D clippy::implicit-hasher` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::implicit_hasher)]`
+help: add a type parameter for `BuildHasher`
+   |
+ 9 ~ pub fn update_peer_metrics<S: ::std::hash::BuildHasher>(
+10 ~     registry: &mut HashMap<PeerId, EntityInfo, S>,
+   |
+
+error: parameter of type `HashMap` should be generalized over different hashers
+  --> wolf_net/src/metrics_simple.rs:21:44
+   |
+21 | pub fn calculate_network_health(registry: &HashMap<PeerId, EntityInfo>) -> f64 {
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#implicit_hasher
+help: add a type parameter for `BuildHasher`
+   |
+21 | pub fn calculate_network_health<S: ::std::hash::BuildHasher>(registry: &HashMap<PeerId, EntityInfo, S>) -> f64 {
+   |                                +++++++++++++++++++++++++++++                                      +++
+
+error: casting `usize` to `f64` causes a loss of precision on targets with 64-bit wide pointers (`usize` is 64 bits wide, but `f64`'s mantissa is only 52 bits wide)
+  --> wolf_net/src/metrics_simple.rs:30:20
+   |
+30 |     total_health / registry.len() as f64
+   |                    ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+   = note: requested on the command line with `-D clippy::cast-precision-loss`
+
+error: docs for function which may panic missing `# Panics` section
+   --> wolf_net/src/p2p.rs:100:1
+    |
+100 | pub fn optimized_gossipsub_config() -> gossipsub::Config {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: first possible panic found here
+   --> wolf_net/src/p2p.rs:101:5
+    |
+101 | /     gossipsub::ConfigBuilder::default()
+102 | |         .heartbeat_interval(Duration::from_secs(1))
+103 | |         .validation_mode(gossipsub::ValidationMode::Strict)
+104 | |         .message_id_fn(|message: &gossipsub::Message| {
+...   |
+111 | |         .build()
+112 | |         .expect("Valid config")
+    | |_______________________________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_panics_doc
+
+error: used `expect()` on a `Result` value
+   --> wolf_net/src/p2p.rs:101:5
+    |
+101 | /     gossipsub::ConfigBuilder::default()
+102 | |         .heartbeat_interval(Duration::from_secs(1))
+103 | |         .validation_mode(gossipsub::ValidationMode::Strict)
+104 | |         .message_id_fn(|message: &gossipsub::Message| {
+...   |
+111 | |         .build()
+112 | |         .expect("Valid config")
+    | |_______________________________^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: casting `usize` to `u32` may truncate the value on targets with 64-bit wide pointers
+   --> wolf_net/src/p2p.rs:220:15
+    |
+220 |     let len = data.len() as u32;
+    |               ^^^^^^^^^^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_possible_truncation
+    = note: requested on the command line with `-D clippy::cast-possible-truncation`
+help: ... or use `try_from` and handle the error accordingly
+    |
+220 -     let len = data.len() as u32;
+220 +     let len = u32::try_from(data.len());
+    |
+
+error: this could be a `const fn`
+  --> wolf_net/src/peer.rs:30:5
+   |
+30 | /     pub fn from_string(id: String) -> Self {
+31 | |         Self(id)
+32 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+   |
+30 |     pub const fn from_string(id: String) -> Self {
+   |         +++++
+
+error: docs for function which may panic missing `# Panics` section
+  --> wolf_net/src/peer.rs:50:5
+   |
+50 |     pub fn as_libp2p(&self) -> Libp2pPeerId {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: first possible panic found here
+  --> wolf_net/src/peer.rs:52:9
+   |
+52 |         self.0.parse().expect("Invalid PeerId format")
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_panics_doc
+
+error: used `expect()` on a `Result` value
+  --> wolf_net/src/peer.rs:52:9
+   |
+52 |         self.0.parse().expect("Invalid PeerId format")
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: variables can be used directly in the `format!` string
+  --> wolf_net/src/peer.rs:91:14
+   |
+91 |         Self(format!("device_hw_{}", hardware_id))
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+   = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+   |
+91 -         Self(format!("device_hw_{}", hardware_id))
+91 +         Self(format!("device_hw_{hardware_id}"))
+   |
+
+error: this could be a `const fn`
+  --> wolf_net/src/peer.rs:95:5
+   |
+95 | /     pub fn from_string(id: String) -> Self {
+96 | |         Self(id)
+97 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+   |
+95 |     pub const fn from_string(id: String) -> Self {
+   |         +++++
+
+error: indexing may panic
+   --> wolf_net/src/peer.rs:159:53
+    |
+159 |         let service_type = ServiceType::from_prefix(parts[1])?;
+    |                                                     ^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:175:5
+    |
+175 | /     pub fn service_type(&self) -> ServiceType {
+176 | |         self.service_type
+177 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+175 |     pub const fn service_type(&self) -> ServiceType {
+    |         +++++
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:180:5
+    |
+180 | /     pub fn instance(&self) -> u32 {
+181 | |         self.instance
+182 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+180 |     pub const fn instance(&self) -> u32 {
+    |         +++++
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:236:5
+    |
+236 | /     pub fn prefix(&self) -> &'static str {
+237 | |         match self {
+238 | |             Self::Unknown => "unknown",
+239 | |             Self::Router => "router",
+...   |
+255 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+236 |     pub const fn prefix(&self) -> &'static str {
+    |         +++++
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/peer.rs:276:22
+    |
+276 |             _ => Err(anyhow::anyhow!("Unknown service type prefix: {}", prefix)),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+276 -             _ => Err(anyhow::anyhow!("Unknown service type prefix: {}", prefix)),
+276 +             _ => Err(anyhow::anyhow!("Unknown service type prefix: {prefix}")),
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:281:5
+    |
+281 | /     pub fn name(&self) -> &'static str {
+282 | |         match self {
+283 | |             Self::Unknown => "Unknown Service",
+284 | |             Self::Router => "Router",
+...   |
+300 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+281 |     pub const fn name(&self) -> &'static str {
+    |         +++++
+
+error: indexing may panic
+   --> wolf_net/src/peer.rs:337:51
+    |
+337 |         let system_type = SystemType::from_prefix(parts[1])?;
+    |                                                   ^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> wolf_net/src/peer.rs:338:23
+    |
+338 |         let version = parts[2].to_string();
+    |                       ^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:354:5
+    |
+354 | /     pub fn system_type(&self) -> SystemType {
+355 | |         self.system_type
+356 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+354 |     pub const fn system_type(&self) -> SystemType {
+    |         +++++
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:364:5
+    |
+364 | /     pub fn created_at(&self) -> DateTime<Utc> {
+365 | |         self.created_at
+366 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+364 |     pub const fn created_at(&self) -> DateTime<Utc> {
+    |         +++++
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:410:5
+    |
+410 | /     pub fn prefix(&self) -> &'static str {
+411 | |         match self {
+412 | |             Self::Unknown => "unknown",
+413 | |             Self::Development => "dev",
+...   |
+424 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+410 |     pub const fn prefix(&self) -> &'static str {
+    |         +++++
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/peer.rs:440:22
+    |
+440 |             _ => Err(anyhow::anyhow!("Unknown system type prefix: {}", prefix)),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+440 -             _ => Err(anyhow::anyhow!("Unknown system type prefix: {}", prefix)),
+440 +             _ => Err(anyhow::anyhow!("Unknown system type prefix: {prefix}")),
+    |
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:445:5
+    |
+445 | /     pub fn name(&self) -> &'static str {
+446 | |         match self {
+447 | |             Self::Unknown => "Unknown System",
+448 | |             Self::Development => "Development System",
+...   |
+459 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+445 |     pub const fn name(&self) -> &'static str {
+    |         +++++
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/peer.rs:562:9
+    |
+562 |         Utc::now() - self.created_at
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:642:5
+    |
+642 | /     pub fn is_online(&self) -> bool {
+643 | |         matches!(self.status, EntityStatus::Online)
+644 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+642 |     pub const fn is_online(&self) -> bool {
+    |         +++++
+
+error: this `if` has identical blocks
+   --> wolf_net/src/peer.rs:742:53
+    |
+742 |           let latency_score = if self.latency_ms == 0 {
+    |  _____________________________________________________^
+743 | |             1.0
+744 | |         } else if self.latency_ms < 50 {
+    | |_________^
+    |
+note: same as this
+   --> wolf_net/src/peer.rs:744:40
+    |
+744 |           } else if self.latency_ms < 50 {
+    |  ________________________________________^
+745 | |             1.0
+746 | |         } else if self.latency_ms < 200 {
+    | |_________^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#if_same_then_else
+    = note: `-D clippy::if-same-then-else` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::if_same_then_else)]`
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/peer.rs:754:30
+    |
+754 |         let total_requests = self.requests_success + self.requests_failed;
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: casting `u64` to `f64` causes a loss of precision (`u64` is 64 bits wide, but `f64`'s mantissa is only 52 bits wide)
+   --> wolf_net/src/peer.rs:758:13
+    |
+758 |             self.requests_success as f64 / total_requests as f64
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+
+error: casting `u64` to `f64` causes a loss of precision (`u64` is 64 bits wide, but `f64`'s mantissa is only 52 bits wide)
+   --> wolf_net/src/peer.rs:758:44
+    |
+758 |             self.requests_success as f64 / total_requests as f64
+    |                                            ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+
+error: this could be a `const fn`
+   --> wolf_net/src/peer.rs:840:5
+    |
+840 | /     pub fn trust_score(&self) -> f64 {
+841 | |         self.trust_score
+842 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+    |
+840 |     pub const fn trust_score(&self) -> f64 {
+    |         +++++
+
+error: casting `usize` to `u32` may truncate the value on targets with 64-bit wide pointers
+   --> wolf_net/src/protocol.rs:135:15
+    |
+135 |     let len = data.len() as u32;
+    |               ^^^^^^^^^^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+    |
+135 -     let len = data.len() as u32;
+135 +     let len = u32::try_from(data.len());
+    |
+
+error: the function has a cognitive complexity of (27/25)
+  --> wolf_net/src/reporting_service.rs:87:14
+   |
+87 |     async fn flush_batch(&self, batch: &mut Vec<TelemetryEvent>) -> Result<()> {
+   |              ^^^^^^^^^^^
+   |
+   = help: you could split it up into multiple smaller functions
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/reporting_service.rs:89:13
+    |
+ 87 |       async fn flush_batch(&self, batch: &mut Vec<TelemetryEvent>) -> Result<()> {
+    |  ________________________________________________________________________________-
+ 88 | |         let events = std::mem::take(batch);
+ 89 | |         let token_lock = self.auth_token.read().await;
+    | |             ^^^^^^^^^^
+...   |
+118 | |         Ok(())
+119 | |     }
+    | |_____- temporary `token_lock` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+    |
+ 89 ~         
+ 90 +         self.auth_token.read().await.;
+ 91 |
+ 92 ~         
+    |
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/scanner.rs:110:47
+    |
+110 |                         let after_via = &line[via_pos + 4..];
+    |                                               ^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: casting `u128` to `u64` may truncate the value
+   --> wolf_net/src/scanner.rs:185:35
+    |
+185 |                     let latency = start.elapsed().as_millis() as u64;
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+    |
+185 -                     let latency = start.elapsed().as_millis() as u64;
+185 +                     let latency = u64::try_from(start.elapsed().as_millis());
+    |
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/scanner.rs:265:55
+    |
+265 |                     if let Some(mac_part) = parts.get(i + 2) {
+    |                                                       ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: it is more idiomatic to use `Option<&T>` instead of `&Option<T>`
+   --> wolf_net/src/scanner.rs:279:5
+    |
+279 |       fn classify_device(hostname: &Option<String>) -> DeviceType {
+    |       ^                            --------------- help: change this to: `Option<&String>`
+    |  _____|
+    | |
+280 | |         if let Some(name) = hostname {
+281 | |             let name_lower = name.to_lowercase();
+...   |
+308 | |     }
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#ref_option
+    = note: `-D clippy::ref-option` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::ref_option)]`
+
+error: use Option::map_or instead of an if let/else
+   --> wolf_net/src/scanner.rs:280:9
+    |
+280 | /         if let Some(name) = hostname {
+281 | |             let name_lower = name.to_lowercase();
+282 | |
+283 | |             if name_lower.contains("router") || name_lower.contains("gateway") {
+...   |
+306 | |             DeviceType::Unknown
+307 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#option_if_let_else
+help: try
+    |
+280 ~         hostname.as_ref().map_or(DeviceType::Unknown, |name| {
+281 +             let name_lower = name.to_lowercase();
+282 + 
+283 +             if name_lower.contains("router") || name_lower.contains("gateway") {
+284 +                 DeviceType::Router
+285 +             } else if name_lower.contains("printer")
+286 +                 || name_lower.contains("hp")
+287 +                 || name_lower.contains("canon")
+288 +             {
+289 +                 DeviceType::Printer
+290 +             } else if name_lower.contains("phone")
+291 +                 || name_lower.contains("android")
+292 +                 || name_lower.contains("iphone")
+293 +             {
+294 +                 DeviceType::Phone
+295 +             } else if name_lower.contains("iot") || name_lower.contains("smart") {
+296 +                 DeviceType::IoT
+297 +             } else if name_lower.contains("pc")
+298 +                 || name_lower.contains("laptop")
+299 +                 || name_lower.contains("desktop")
+300 +             {
+301 +                 DeviceType::Computer
+302 +             } else {
+303 +                 DeviceType::Unknown
+304 +             }
+305 +         })
+    |
+
+error: indexing may panic
+   --> wolf_net/src/scanner.rs:318:33
+    |
+318 |         let base_ip: Ipv4Addr = parts[0].parse()?;
+    |                                 ^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> wolf_net/src/scanner.rs:319:26
+    |
+319 |         let prefix: u8 = parts[1].parse()?;
+    |                          ^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/scanner.rs:322:25
+    |
+322 |         let host_bits = 32 - prefix;
+    |                         ^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/scanner.rs:323:25
+    |
+323 |         let num_hosts = 2u32.pow(u32::from(host_bits)) - 2; // Exclude network and broadcast
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/scanner.rs:330:37
+    |
+330 |             let ip = Ipv4Addr::from(base + i);
+    |                                     ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: used `unwrap()` on a `Result` value
+   --> wolf_net/src/swarm.rs:308:36
+    |
+308 |             listen_addresses: vec!["/ip4/0.0.0.0/tcp/0".parse().unwrap()],
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: if this value is an `Err`, it will panic
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unwrap_used
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:336:28
+    |
+336 |                   return Err(anyhow::anyhow!(
+    |  ____________________________^
+337 | |                     "Invalid listen address format: {}. Must start with /ip4/ or /ip6/",
+338 | |                     addr
+339 | |                 ));
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+
+error: indexing may panic
+   --> wolf_net/src/swarm.rs:395:28
+    |
+395 |                 bytes[i] = seed_bytes[i % 8].wrapping_add(i as u8);
+    |                            ^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> wolf_net/src/swarm.rs:395:17
+    |
+395 |                 bytes[i] = seed_bytes[i % 8].wrapping_add(i as u8);
+    |                 ^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:399:30
+    |
+399 |                 .map_err(|e| anyhow::anyhow!("Failed to generate key from seed: {}", e))?
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+399 -                 .map_err(|e| anyhow::anyhow!("Failed to generate key from seed: {}", e))?
+399 +                 .map_err(|e| anyhow::anyhow!("Failed to generate key from seed: {e}"))?
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:416:38
+    |
+416 |                         .map_err(|e| anyhow::anyhow!("Failed to encode keypair: {}", e))?;
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+416 -                         .map_err(|e| anyhow::anyhow!("Failed to encode keypair: {}", e))?;
+416 +                         .map_err(|e| anyhow::anyhow!("Failed to encode keypair: {e}"))?;
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:420:29
+    |
+420 | ...                   anyhow::anyhow!("Failed to create directory for keypair: {}", e)
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+420 -                             anyhow::anyhow!("Failed to create directory for keypair: {}", e)
+420 +                             anyhow::anyhow!("Failed to create directory for keypair: {e}")
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:449:26
+    |
+449 |             .map_err(|e| anyhow::anyhow!("Failed to create behavior: {}", e))?;
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+449 -             .map_err(|e| anyhow::anyhow!("Failed to create behavior: {}", e))?;
+449 +             .map_err(|e| anyhow::anyhow!("Failed to create behavior: {e}"))?;
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:458:26
+    |
+458 |             .map_err(|e| anyhow::anyhow!("Failed to create TCP transport: {}", e))?
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+458 -             .map_err(|e| anyhow::anyhow!("Failed to create TCP transport: {}", e))?
+458 +             .map_err(|e| anyhow::anyhow!("Failed to create TCP transport: {e}"))?
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:467:30
+    |
+467 |                 .map_err(|e| anyhow::anyhow!("Failed to listen on {}: {}", addr, e))?;
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+467 -                 .map_err(|e| anyhow::anyhow!("Failed to listen on {}: {}", addr, e))?;
+467 +                 .map_err(|e| anyhow::anyhow!("Failed to listen on {addr}: {e}"))?;
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:485:21
+    |
+485 |                     anyhow::anyhow!("Failed to subscribe to topic {}: {}", topic_name, e)
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+485 -                     anyhow::anyhow!("Failed to subscribe to topic {}: {}", topic_name, e)
+485 +                     anyhow::anyhow!("Failed to subscribe to topic {topic_name}: {e}")
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:497:30
+    |
+497 |                 .map_err(|e| anyhow::anyhow!("Failed to initialize encryption: {}", e))?,
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+497 -                 .map_err(|e| anyhow::anyhow!("Failed to initialize encryption: {}", e))?,
+497 +                 .map_err(|e| anyhow::anyhow!("Failed to initialize encryption: {e}"))?,
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/swarm.rs:539:29
+    |
+538 |                   Ok(cm) => {
+    |  ___________________________-
+539 | |                     let mut lock = consensus_manager_init.write().await;
+    | |                             ^^^^
+540 | |                     *lock = Some(cm);
+541 | |                     info!("Consensus Manager started and registered");
+542 | |                 }
+    | |_________________- temporary `lock` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+    |
+539 ~                     
+540 +                     consensus_manager_init.write().await.;
+541 ~                     
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:530:23
+    |
+530 |                 .join(format!("consensus_db_{}", node_id));
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+530 -                 .join(format!("consensus_db_{}", node_id));
+530 +                 .join(format!("consensus_db_{node_id}"));
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/swarm.rs:673:57
+    |
+672 | / ...                   {
+673 | | ...                       let mut registry = peer_registry_clone.lock().await;
+    | |                                   ^^^^^^^^
+674 | | ...                       let target = PeerId::from_libp2p(peer_id);
+675 | | ...                       let entry = registry.entry(target).or_insert_with(|| {
+...   |
+685 | | ...                       entry.set_status(EntityStatus::Online);
+686 | | ...                   }
+    | |_______________________- temporary `registry` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+    |
+673 ~                                                 
+674 +                                                 let entry = peer_registry_clone.lock().await.or_insert_with(|| {
+675 +                                                     let entity_id = EntityId::create(
+676 +                                                         ServiceType::Unknown,
+677 +                                                         SystemType::Unknown,
+678 +                                                         "0.1.0",
+679 +                                                     );
+680 +                                                     let mut info = EntityInfo::new(entity_id);
+681 +                                                     info.entity_id.peer_id = PeerId::from_libp2p(peer_id);
+682 +                                                     info
+683 +                                                 });
+684 |                                                 let target = PeerId::from_libp2p(peer_id);
+685 ~                                                 
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> wolf_net/src/swarm.rs:814:65
+    |
+801 |   ...                   if let libp2p::identify::Event::Received { peer_id, info } = event {
+    |  __________________________________________________________________________________________-
+802 | | ...                       info!("Identified peer {}: {}", peer_id, info.protocol_version);
+803 | | ...
+804 | | ...                       if let Some(reporter) = &reputation_reporter {
+...   |
+814 | | ...                        let mut registry = peer_registry_clone.lock().await;
+    | |                                    ^^^^^^^^
+...   |
+840 | | ...                   }
+    | |_______________________- temporary `registry` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+    |
+814 ~                                                         
+815 +                                                         let entry = peer_registry_clone.lock().await.or_insert_with(|| {
+816 +                                                             let entity_id = crate::peer::EntityId::create(
+817 +                                                                 crate::peer::ServiceType::Unknown,
+818 +                                                                 crate::peer::SystemType::Unknown,
+819 +                                                                 "0.1.0",
+820 +                                                             );
+821 +                                                             let mut info = EntityInfo::new(entity_id);
+822 +                                                             info.entity_id.peer_id = PeerId::from_libp2p(peer_id);
+823 +                                                             info
+824 +                                                         });
+825 |                                                         let target = PeerId::from_libp2p(peer_id);
+826 ~                                                         
+    |
+
+error: temporary with significant `Drop` can be early dropped
+    --> wolf_net/src/swarm.rs:1354:48
+     |
+1353 |   ...                   SwarmCommand::ListPeers { responder } => {
+     |  ________________________________________________________________-
+1354 | | ...                       let registry = peer_registry_clone.lock().await;
+     | |                               ^^^^^^^^
+1355 | | ...                       let peers = registry.values().cloned().collect();
+1356 | | ...                       let _ = responder.send(peers);
+1357 | | ...                   }
+     | |_______________________- temporary `registry` is currently being dropped at the end of its contained scope
+     |
+     = note: this might lead to unnecessary resource contention
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+     |
+1354 ~                                            
+1355 +                                            let peers = peer_registry_clone.lock().await.collect();
+1356 ~                                            
+     |
+
+error: temporary with significant `Drop` can be early dropped
+    --> wolf_net/src/swarm.rs:1359:49
+     |
+1358 |   ...                   SwarmCommand::GetPeerInfo { peer_id, responder } => {
+     |  ___________________________________________________________________________-
+1359 | | ...                        let registry = peer_registry_clone.lock().await;
+     | |                                ^^^^^^^^
+1360 | | ...                        let info = registry.get(&peer_id).cloned(); // peer_id is already PeerId
+1361 | | ...                        let _ = responder.send(info);
+1362 | | ...                   }
+     | |_______________________- temporary `registry` is currently being dropped at the end of its contained scope
+     |
+     = note: this might lead to unnecessary resource contention
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+     |
+1359 ~                                             
+1360 +                                             let info = peer_registry_clone.lock().await.cloned();
+1361 ~                                              // peer_id is already PeerId
+     |
+
+error: temporary with significant `Drop` can be early dropped
+    --> wolf_net/src/swarm.rs:1396:56
+     |
+1395 |   ...                   if let Ok(ip_addr) = ip.parse::<std::net::IpAddr>() {
+     |  ___________________________________________________________________________-
+1396 | | ...                       let mut fw = firewall_clone.write().await;
+     | |                                   ^^
+1397 | | ...                       fw.add_rule(crate::firewall::FirewallRule::new(
+1398 | | ...                           format!("Strike-{ip}"),
+...    |
+1404 | | ...                       info!("🔥 Firewall updated: Deny IP {}", ip);
+1405 | | ...                   } else {
+     | |_______________________- temporary `fw` is currently being dropped at the end of its contained scope
+     |
+     = note: this might lead to unnecessary resource contention
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+     |
+1396 ~                                                
+1397 +                                                firewall_clone.write().await.add_rule(crate::firewall::FirewallRule::new(
+1398 +                                                    format!("Strike-{ip}"),
+1399 +                                                    crate::firewall::RuleTarget::Ip(ip_addr),
+1400 +                                                    crate::firewall::Protocol::Any,
+1401 +                                                    crate::firewall::Action::Deny,
+1402 +                                                    crate::firewall::TrafficDirection::Both,
+1403 +                                                ));
+1404 ~                                                
+     |
+
+error: collection is never read
+   --> wolf_net/src/swarm.rs:578:13
+    |
+578 |             let mut received_messages = Vec::new();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#collection_is_never_read
+    = note: `-D clippy::collection-is-never-read` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::collection_is_never_read)]`
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:620:60
+    |
+620 | ...                   format!("Firewall blocked peer {}", peer_id),
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+620 -                                                            format!("Firewall blocked peer {}", peer_id),
+620 +                                                            format!("Firewall blocked peer {peer_id}"),
+    |
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/swarm.rs:629:44
+    |
+629 | ...                   metrics_clone.lock().await.connection_attempts += 1;
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:693:52
+    |
+693 | ...                   format!("Connected to {}", peer_id),
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+693 -                                                    format!("Connected to {}", peer_id),
+693 +                                                    format!("Connected to {peer_id}"),
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:707:52
+    |
+707 | ...                   format!("Connection closed: {:?}", cause)
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+707 -                                                    format!("Connection closed: {:?}", cause)
+707 +                                                    format!("Connection closed: {cause:?}")
+    |
+
+error: called `map(<f>).unwrap_or(<a>)` on an `Option` value
+   --> wolf_net/src/swarm.rs:727:66
+    |
+727 |   ...                   let uptime = active_connections_clone.lock().await.get(&peer_id)
+    |  ____________________________________^
+728 | | ...                       .map(|c| u64::try_from(c.connected_since.elapsed().as_millis()).unwrap_or(u64::MAX))
+729 | | ...                       .unwrap_or(0);
+    | |_______________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#map_unwrap_or
+    = note: `-D clippy::map-unwrap-or` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::map_unwrap_or)]`
+help: use `map_or(<a>, <f>)` instead
+    |
+728 -                                                         .map(|c| u64::try_from(c.connected_since.elapsed().as_millis()).unwrap_or(u64::MAX))
+728 +                                                         .map_or(0, |c| u64::try_from(c.connected_since.elapsed().as_millis()).unwrap_or(u64::MAX));
+    |
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/swarm.rs:730:53
+    |
+730 | ...                   info.metrics.uptime_ms += uptime;
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:739:52
+    |
+739 | ...                   format!("Connection closed with {}: {:?}", peer_id, cause),
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+739 -                                                    format!("Connection closed with {}: {:?}", peer_id, cause),
+739 +                                                    format!("Connection closed with {peer_id}: {cause:?}"),
+    |
+
+error: you seem to be trying to use `match` for destructuring a single pattern. Consider using `if let`
+   --> wolf_net/src/swarm.rs:747:53
+    |
+747 | / ...                   match event {
+748 | | ...                       libp2p::kad::Event::OutboundQueryProgressed { result, .. } => {
+749 | | ...                           match result {
+750 | | ...                               libp2p::kad::QueryResult::Bootstrap(Ok(ok)) => {
+...   |
+759 | | ...                       _ => {}
+760 | | ...                   }
+    | |_______________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#single_match
+    = note: `-D clippy::single-match` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::single_match)]`
+help: try
+    |
+747 ~                                                     if let libp2p::kad::Event::OutboundQueryProgressed { result, .. } = event {
+748 +                                                         match result {
+749 +                                                             libp2p::kad::QueryResult::Bootstrap(Ok(ok)) => {
+750 +                                                                 debug!("DHT Bootstrap successful: {:?}", ok);
+751 +                                                             }
+752 +                                                             libp2p::kad::QueryResult::Bootstrap(Err(e)) => {
+753 +                                                                 warn!("DHT Bootstrap failed: {:?}", e);
+754 +                                                             }
+755 +                                                             _ => {}
+756 +                                                         }
+757 +                                                     }
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:773:68
+    |
+773 | ...                   format!("Ping success (RTT: {:?})", rtt)
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+773 -                                                                    format!("Ping success (RTT: {:?})", rtt)
+773 +                                                                    format!("Ping success (RTT: {rtt:?})")
+    |
+
+error: variables can be used directly in the `format!` string
+   --> wolf_net/src/swarm.rs:792:68
+    |
+792 | ...                   format!("Ping failure: {:?}", e)
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+792 -                                                                    format!("Ping failure: {:?}", e)
+792 +                                                                    format!("Ping failure: {e:?}")
+    |
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/swarm.rs:796:61
+    |
+796 | ...                   metrics_clone.lock().await.connection_failures += 1;
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: you seem to be trying to use `match` for destructuring a single pattern. Consider using `if let`
+   --> wolf_net/src/swarm.rs:843:52
+    |
+843 | / ...                   match event {
+844 | | ...                       gossipsub::Event::Message {
+845 | | ...                           propagation_source: _peer_id,
+846 | | ...                           message_id: _message_id,
+...   |
+953 | | ...                       _ => {}
+954 | | ...                   }
+    | |_______________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#single_match
+help: try
+    |
+843 ~                                                    if let gossipsub::Event::Message {
+844 +                                                            propagation_source: _peer_id,
+845 +                                                            message_id: _message_id,
+846 +                                                            message,
+847 +                                                        } = event {
+848 +                                                         // Update metrics
+849 +                                                         let mut m = metrics_clone.lock().await;
+850 +                                                         m.total_messages_received += 1;
+851 +                                                         m.total_bytes_received += message.data.len() as u64;
+852 +                                                         m.last_activity = Some(Instant::now());
+853 +                                                         drop(m);
+854 + 
+855 +                                                          // Update peer registry message count and bytes
+856 +                                                          if let Some(peer_id) = message.source {
+857 +                                                              let mut registry = peer_registry_clone.lock().await;
+858 +                                                              let target = PeerId::from_libp2p(peer_id);
+859 +                                                              if let Some(info) = registry.get_mut(&target) {
+860 +                                                                  info.metrics.messages_received += 1;
+861 +                                                                  info.metrics.bytes_received += message.data.len() as u64;
+862 +                                                                  info.metrics.update_health();
+863 +                                                              }
+864 +                                                          }
+865 + 
+866 +                                                        // Try to deserialize and store the message
+867 +                                                        if message.topic.as_str() == "wolf-prowler-consensus" {
+868 +                                                            if let Ok(net_msg) = serde_json::from_slice::<RaftNetworkMessage>(&message.data) {
+869 +                                                                let cm_lock = consensus_manager.read().await;
+870 +                                                                if let Some(cm) = &*cm_lock {
+871 +                                                                    let _ = cm.process_message(net_msg).await;
+872 +                                                                }
+873 +                                                            }
+874 +                                                        } else if message.topic.as_str() == "wolf-pack/gossip/1.0.0" {
+875 +                                                            // Handle Howl Protocol Messages
+876 +                                                            if let Ok(howl) = HowlMessage::from_bytes(&message.data) {
+877 ~                                                                info!("📢 RECEIVED HOWL: {:?} from {}", howl.priority, howl.sender);
+878 + 
+879 +                                                                // Map HowlPayload to CoordinatorMsg
+880 +                                                                let coord_msg = match howl.payload {
+881 +                                                                    crate::wolf_pack::howl::HowlPayload::WarningHowl { target_ip, evidence } => {
+882 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+883 +                                                                            source: howl.sender,
+884 +                                                                            target_ip,
+885 +                                                                            evidence,
+886 +                                                                        })
+887 +                                                                    }
+888 +                                                                    crate::wolf_pack::howl::HowlPayload::HuntRequest { hunt_id, target_ip, min_role } => {
+889 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntRequest {
+890 +                                                                            hunt_id,
+891 +                                                                            source: howl.sender,
+892 +                                                                            target_ip,
+893 +                                                                            min_role,
+894 +                                                                        })
+895 +                                                                    }
+896 +                                                                    crate::wolf_pack::howl::HowlPayload::HuntReport { hunt_id, hunter, confirmed } => {
+897 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+898 +                                                                            hunt_id,
+899 +                                                                            hunter,
+900 +                                                                            confirmed,
+901 +                                                                        })
+902 +                                                                    }
+903 +                                                                    crate::wolf_pack::howl::HowlPayload::KillOrder { target_ip, reason, hunt_id } => {
+904 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::KillOrder {
+905 +                                                                            target_ip,
+906 +                                                                            authorizer: howl.sender,
+907 +                                                                            reason,
+908 +                                                                            hunt_id,
+909 +                                                                        })
+910 +                                                                    }
+911 +                                                                    crate::wolf_pack::howl::HowlPayload::TerritoryUpdate { region_cidr, owner, status } => {
+912 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::TerritoryUpdate {
+913 +                                                                            region: region_cidr,
+914 +                                                                            owner,
+915 +                                                                            status,
+916 +                                                                        })
+917 +                                                                    }
+918 +                                                                    crate::wolf_pack::howl::HowlPayload::ElectionRequest { term, candidate_id, prestige, .. } => {
+919 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionRequest {
+920 +                                                                            term,
+921 +                                                                            candidate_id,
+922 +                                                                            prestige,
+923 +                                                                        })
+924 +                                                                    }
+925 +                                                                    crate::wolf_pack::howl::HowlPayload::ElectionVote { term, voter_id, granted } => {
+926 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionVote {
+927 +                                                                            term,
+928 +                                                                            voter_id,
+929 +                                                                            granted,
+930 +                                                                        })
+931 +                                                                    }
+932 +                                                                    crate::wolf_pack::howl::HowlPayload::AlphaHeartbeat { term, leader_id } => {
+933 +                                                                        Some(crate::wolf_pack::coordinator::CoordinatorMsg::AlphaHeartbeat {
+934 +                                                                            term,
+935 +                                                                            leader_id,
+936 +                                                                        })
+937 +                                                                    }
+938 +                                                                };
+939 + 
+940 +                                                                if let Some(msg) = coord_msg {
+941 +                                                                    let _ = hunt_sender.send(msg).await;
+942 +                                                                }
+943 +                                                            } else {
+944 +                                                                warn!("Failed to deserialize Howl message");
+945 +                                                            }
+946 +                                                        } else if let Ok(msg) = serde_json::from_slice::<Message>(&message.data) {
+947 +                                                            received_messages.push(msg);
+948 +                                                        } else {
+949 +                                                            warn!("Failed to deserialize gossipsub message");
+950 +                                                        }
+951 +                                                    }
+    |
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/swarm.rs:851:61
+    |
+851 | ...                   m.total_messages_received += 1;
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/swarm.rs:852:61
+    |
+852 | ...                   m.total_bytes_received += message.data.len() as u64;
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/swarm.rs:861:70
+    |
+861 | ...                   info.metrics.messages_received += 1;
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/swarm.rs:862:70
+    |
+862 | ...                   info.metrics.bytes_received += message.data.len() as u64;
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/swarm.rs:984:76
+    |
+984 | ...                   info.metrics.messages_received += 1;
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/swarm.rs:985:76
+    |
+985 | ...                   info.metrics.requests_received += 1;
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1036:93
+     |
+1036 | ...                   info.metrics.messages_sent += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1064:78
+     |
+1064 | ...                   info.metrics.messages_received += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1065:78
+     |
+1065 | ...                   info.metrics.requests_success += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1068:82
+     |
+1068 | ...                   info.metrics.bytes_received += bytes.len() as u64;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1103:65
+     |
+1103 | ...                   info.metrics.requests_failed += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1112:65
+     |
+1112 | ...                   info.metrics.requests_failed += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1133:44
+     |
+1133 | ...                   metrics.total_messages_sent += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1134:44
+     |
+1134 | ...                   metrics.total_bytes_sent += msg_len;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1154:52
+     |
+1154 | ...                   info.metrics.messages_sent += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1155:52
+     |
+1155 | ...                   info.metrics.bytes_sent += msg_len;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1176:48
+     |
+1176 | ...                   metrics_clone.lock().await.connection_failures += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1186:48
+     |
+1186 | ...                   metrics_clone.lock().await.connection_failures += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1198:44
+     |
+1198 | ...                   metrics.total_messages_sent += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1199:44
+     |
+1199 | ...                   metrics.total_bytes_sent += msg_len;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1209:48
+     |
+1209 | ...                   metrics_clone.lock().await.connection_failures += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1216:49
+     |
+1216 | ...                   metrics_clone.lock().await.connection_failures += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1226:48
+     |
+1226 | ...                   metrics.total_messages_sent += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1227:48
+     |
+1227 | ...                   metrics.total_bytes_sent += bytes.len() as u64;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1238:53
+     |
+1238 | ...                   metrics_clone.lock().await.connection_failures += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1249:48
+     |
+1249 | ...                   metrics_clone.lock().await.connection_failures += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1258:48
+     |
+1258 | ...                   metrics_clone.lock().await.connection_failures += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1313:52
+     |
+1313 | ...                   info.metrics.messages_sent += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1314:52
+     |
+1314 | ...                   info.metrics.requests_sent += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1315:52
+     |
+1315 | ...                   info.metrics.bytes_sent += msg_len;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1341:56
+     |
+1341 | ...                   info.metrics.messages_sent += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1342:56
+     |
+1342 | ...                   info.metrics.requests_sent += 1;
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> wolf_net/src/swarm.rs:1344:56
+     |
+1344 | ...                   info.metrics.bytes_sent += 100; // Estimated
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use of `println!`
+   --> wolf_net/src/wolf_node.rs:322:13
+    |
+322 |             println!("Initializing Hub Orchestration loop...");
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> wolf_net/src/wolf_node.rs:332:9
+    |
+332 |         println!("Starting Discovery Service...");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> wolf_net/src/wolf_node.rs:338:9
+    |
+338 |         println!("Starting Wolf Prowler Node...");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> wolf_net/src/wolf_node.rs:356:9
+    |
+356 |         println!("Shutdown signal received. Stopping Wolf Node...");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/wolf_node.rs:410:21
+    |
+410 |                     count += 1;
+    |                     ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/wolf_pack/coordinator.rs:265:21
+    |
+265 |                     std::time::SystemTime::now() + Duration::from_secs(30),
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/wolf_pack/coordinator.rs:462:13
+    |
+462 |             std::time::SystemTime::now() + std::time::Duration::from_secs(60),
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/wolf_pack/election.rs:128:9
+    |
+128 |         self.current_term += 1;
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use of `println!`
+   --> wolf_net/src/wolf_pack/election.rs:136:9
+    |
+136 |         println!("Starting election for term {}", self.current_term);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> wolf_net/src/wolf_pack/election.rs:213:17
+    |
+213 | /                 println!(
+214 | |                     "Won election for term {}! Becoming Leader.",
+215 | |                     self.current_term
+216 | |                 );
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> wolf_net/src/wolf_pack/election.rs:258:31
+    |
+258 |         Duration::from_millis(base + variance)
+    |                               ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: accessing first element with `buf.get(0)`
+   --> wolf_net/src/wolf_pack/messaging.rs:304:14
+    |
+304 |             *buf.get(0).unwrap_or(&0),
+    |              ^^^^^^^^^^ help: try: `buf.first()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#get_first
+    = note: `-D clippy::get-first` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::get_first)]`
+
+error: accessing first element with `buf.get(0)`
+   --> wolf_net/src/wolf_pack/messaging.rs:342:14
+    |
+342 |             *buf.get(0).unwrap_or(&0),
+    |              ^^^^^^^^^^ help: try: `buf.first()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#get_first
+
+error: could not compile `wolf_net` (lib) due to 225 previous errors

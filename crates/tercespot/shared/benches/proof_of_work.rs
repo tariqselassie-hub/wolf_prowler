@@ -46,5 +46,5 @@ fn main() {
     assert_eq!(data.as_slice(), decrypted.as_slice());
 
     let _ = writeln!(report, "-----------------------------------");
-    println!("{report}");
+    tracing::info!("{report}");
 }

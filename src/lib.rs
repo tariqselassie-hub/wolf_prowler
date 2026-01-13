@@ -12,6 +12,7 @@ pub mod core;
 // pub mod dashboard; // Moved to wolf_web
 pub mod error; // Centralized error handling
 pub mod health; // Health monitoring system
+pub mod ingress_validation;
 pub mod network;
 pub mod network_extensions;
 pub mod security;

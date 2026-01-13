@@ -125,7 +125,7 @@ impl ElectionManager {
 
     pub fn start_election(&mut self) -> HowlMessage {
         self.state = ElectionState::Candidate;
-        self.current_term += 1;
+        self.current_term = self.current_term.saturating_add(1);
         self.voted_for = Some(self.local_peer_id.clone());
         self.votes_received.clear();
         self.votes_received.insert(self.local_peer_id.clone());
@@ -133,7 +133,7 @@ impl ElectionManager {
         self.election_timeout = Self::randomized_timeout();
         self.leader_id = None;
 
-        println!("Starting election for term {}", self.current_term);
+        tracing::info!("Starting election for term {}", self.current_term);
 
         // Broadcast RequestVote
         HowlMessage::new(
@@ -210,7 +210,7 @@ impl ElectionManager {
             // Should be configurable based on cluster size, using 3 for MVP
             if self.votes_received.len() >= 2 {
                 // Simple quorum of 2 (self + 1) for small packs
-                println!(
+                tracing::info!(
                     "Won election for term {}! Becoming Leader.",
                     self.current_term
                 );
@@ -255,7 +255,7 @@ impl ElectionManager {
         let base = BASE_ELECTION_TIMEOUT_MS;
         let variance_limit = std::cmp::max(1, ELECTION_TIMEOUT_VARIANCE_MS);
         let variance = rand::thread_rng().gen_range(0..variance_limit);
-        Duration::from_millis(base + variance)
+        Duration::from_millis(base.saturating_add(variance))
     }
 }
 

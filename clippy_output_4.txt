@@ -1,0 +1,666 @@
+    Checking wolf_db v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/WolfDb)
+    Checking wolf_net v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_net)
+    Checking privacy v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/privacy)
+    Checking submitter v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/client)
+error: the function has a cognitive complexity of (69/25)
+ --> crates/tercespot/client/src/bin/pulse_device.rs:9:4
+  |
+9 | fn main() {
+  |    ^^^^
+  |
+  = help: you could split it up into multiple smaller functions
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+  = note: requested on the command line with `-D clippy::cognitive-complexity`
+
+error: used `expect()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:22:21
+   |
+22 |         let bytes = fs::read(&sk_path).expect("Failed to read sk");
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+   = note: `-D clippy::expect-used` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::expect_used)]`
+
+error: used `expect()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:23:39
+   |
+23 |         let bytes_array: [u8; 2560] = bytes.try_into().expect("Invalid sk size");
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:24:9
+   |
+24 |         ml_dsa_44::PrivateKey::try_from_bytes(bytes_array).expect("Invalid sk")
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:27:24
+   |
+27 |         let (pk, sk) = ml_dsa_44::KG::try_keygen().expect("Keygen failed");
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:28:9
+   |
+28 |         fs::write(&sk_path, sk.clone().into_bytes()).expect("Failed to write sk");
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:29:9
+   |
+29 |         fs::write(&pk_path, pk.into_bytes()).expect("Failed to write pk");
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: used `expect()` on a `Result` value
+  --> crates/tercespot/client/src/bin/pulse_device.rs:44:33
+   |
+44 |                   let signature = sk
+   |  _________________________________^
+45 | |                     .try_sign(&challenge, b"tersec_pulse")
+46 | |                     .expect("Signing failed");
+   | |_____________________________________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#expect_used
+
+error: could not compile `submitter` (bin "pulse_device") due to 8 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: used underscore-prefixed binding
+   --> crates/tercespot/privacy/src/lib.rs:298:69
+    |
+298 |         tracing::info!("🚨 EMERGENCY: Break-glass command executed: {_command}");
+    |                                                                      ^^^^^^^^
+    |
+note: binding is defined here
+   --> crates/tercespot/privacy/src/lib.rs:297:23
+    |
+297 |     fn send_sms_alert(_command: &str) {
+    |                       ^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#used_underscore_binding
+    = note: `-D clippy::used-underscore-binding` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::used_underscore_binding)]`
+
+error[E0433]: failed to resolve: use of undeclared type `HowlPayload`
+   --> wolf_net/src/swarm.rs:882:72
+    |
+882 | ...                   HowlPayload::WarningHowl { target_ip, evidence } => {
+    |                       ^^^^^^^^^^^ use of undeclared type `HowlPayload`
+    |
+help: consider importing this enum
+    |
+  5 + use crate::wolf_pack::howl::HowlPayload;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `HowlPayload`
+   --> wolf_net/src/swarm.rs:889:72
+    |
+889 | ...                   HowlPayload::HuntRequest { hunt_id, target_ip, min_role } => {
+    |                       ^^^^^^^^^^^ use of undeclared type `HowlPayload`
+    |
+help: consider importing this enum
+    |
+  5 + use crate::wolf_pack::howl::HowlPayload;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `HowlPayload`
+   --> wolf_net/src/swarm.rs:897:72
+    |
+897 | ...                   HowlPayload::HuntReport { hunt_id, hunter, confirmed } => {
+    |                       ^^^^^^^^^^^ use of undeclared type `HowlPayload`
+    |
+help: consider importing this enum
+    |
+  5 + use crate::wolf_pack::howl::HowlPayload;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `HowlPayload`
+   --> wolf_net/src/swarm.rs:904:72
+    |
+904 | ...                   HowlPayload::KillOrder { target_ip, reason, hunt_id } => {
+    |                       ^^^^^^^^^^^ use of undeclared type `HowlPayload`
+    |
+help: consider importing this enum
+    |
+  5 + use crate::wolf_pack::howl::HowlPayload;
+    |
+
+error: used underscore-prefixed binding
+   --> crates/tercespot/privacy/src/lib.rs:304:69
+    |
+304 |         tracing::info!("📧 EMERGENCY: Break-glass command executed: {_command}");
+    |                                                                      ^^^^^^^^
+    |
+note: binding is defined here
+   --> crates/tercespot/privacy/src/lib.rs:303:25
+    |
+303 |     fn send_email_alert(_command: &str) {
+    |                         ^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#used_underscore_binding
+
+error[E0433]: failed to resolve: use of undeclared type `HowlPayload`
+   --> wolf_net/src/swarm.rs:912:72
+    |
+912 | ...                   HowlPayload::TerritoryUpdate { region_cidr, owner, status } => {
+    |                       ^^^^^^^^^^^ use of undeclared type `HowlPayload`
+    |
+help: consider importing this enum
+    |
+  5 + use crate::wolf_pack::howl::HowlPayload;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `HowlPayload`
+   --> wolf_net/src/swarm.rs:919:72
+    |
+919 | ...                   HowlPayload::ElectionRequest { term, candidate_id, prestige, .. } => {
+    |                       ^^^^^^^^^^^ use of undeclared type `HowlPayload`
+    |
+help: consider importing this enum
+    |
+  5 + use crate::wolf_pack::howl::HowlPayload;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `HowlPayload`
+   --> wolf_net/src/swarm.rs:926:72
+    |
+926 | ...                   HowlPayload::ElectionVote { term, voter_id, granted } => {
+    |                       ^^^^^^^^^^^ use of undeclared type `HowlPayload`
+    |
+help: consider importing this enum
+    |
+  5 + use crate::wolf_pack::howl::HowlPayload;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `HowlPayload`
+   --> wolf_net/src/swarm.rs:933:72
+    |
+933 | ...                   HowlPayload::AlphaHeartbeat { term, leader_id } => {
+    |                       ^^^^^^^^^^^ use of undeclared type `HowlPayload`
+    |
+help: consider importing this enum
+    |
+  5 + use crate::wolf_pack::howl::HowlPayload;
+    |
+
+error[E0433]: failed to resolve: use of undeclared type `WolfResponse`
+    --> wolf_net/src/swarm.rs:1002:95
+     |
+1002 | ...                   let response = WolfResponse::KeyExchangeAck {
+     |                                      ^^^^^^^^^^^^ use of undeclared type `WolfResponse`
+     |
+help: consider importing one of these enums
+     |
+   5 + use crate::protocol::WolfResponse;
+     |
+   5 + use crate::wolf_pack::messaging::WolfResponse;
+     |
+
+error[E0433]: failed to resolve: use of undeclared type `WolfResponse`
+    --> wolf_net/src/swarm.rs:1015:109
+     |
+1015 | ...                   WolfRequest::Ping => WolfResponse::Pong,
+     |                                            ^^^^^^^^^^^^ use of undeclared type `WolfResponse`
+     |
+help: consider importing one of these enums
+     |
+   5 + use crate::protocol::WolfResponse;
+     |
+   5 + use crate::wolf_pack::messaging::WolfResponse;
+     |
+
+error: used underscore-prefixed binding
+   --> crates/tercespot/privacy/src/lib.rs:310:69
+    |
+310 |         tracing::info!("🚨 EMERGENCY: Break-glass command executed: {_command}");
+    |                                                                      ^^^^^^^^
+    |
+note: binding is defined here
+   --> crates/tercespot/privacy/src/lib.rs:309:29
+    |
+309 |     fn send_pagerduty_alert(_command: &str) {
+    |                             ^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#used_underscore_binding
+
+error[E0433]: failed to resolve: use of undeclared type `WolfResponse`
+    --> wolf_net/src/swarm.rs:1016:114
+     |
+1016 | ...                   WolfRequest::Echo(msg) => WolfResponse::Echo(msg),
+     |                                                 ^^^^^^^^^^^^ use of undeclared type `WolfResponse`
+     |
+help: consider importing one of these enums
+     |
+   5 + use crate::protocol::WolfResponse;
+     |
+   5 + use crate::wolf_pack::messaging::WolfResponse;
+     |
+
+error[E0433]: failed to resolve: use of undeclared type `WolfResponse`
+    --> wolf_net/src/swarm.rs:1017:93
+     |
+1017 | ...                   _ => WolfResponse::Error("Not implemented".to_string()),
+     |                            ^^^^^^^^^^^^ use of undeclared type `WolfResponse`
+     |
+help: consider importing one of these enums
+     |
+   5 + use crate::protocol::WolfResponse;
+     |
+   5 + use crate::wolf_pack::messaging::WolfResponse;
+     |
+
+error[E0433]: failed to resolve: use of undeclared type `WolfResponse`
+    --> wolf_net/src/swarm.rs:1023:156
+     |
+1023 | ...                   let _ = swarm.behaviour_mut().req_resp.send_response(channel, WolfResponse::Encrypted(enc_res));
+     |                                                                                     ^^^^^^^^^^^^ use of undeclared type `WolfResponse`
+     |
+help: consider importing one of these enums
+     |
+   5 + use crate::protocol::WolfResponse;
+     |
+   5 + use crate::wolf_pack::messaging::WolfResponse;
+     |
+
+error[E0433]: failed to resolve: use of undeclared type `WolfResponse`
+    --> wolf_net/src/swarm.rs:1043:147
+     |
+1043 | ...                   let _ = swarm.behaviour_mut().req_resp.send_response(channel, WolfResponse::Error("Decryption failed".to_string()));
+     |                                                                                     ^^^^^^^^^^^^ use of undeclared type `WolfResponse`
+     |
+help: consider importing one of these enums
+     |
+   5 + use crate::protocol::WolfResponse;
+     |
+   5 + use crate::wolf_pack::messaging::WolfResponse;
+     |
+
+error[E0433]: failed to resolve: use of undeclared type `WolfResponse`
+    --> wolf_net/src/swarm.rs:1048:139
+     |
+1048 | ...                   let _ = swarm.behaviour_mut().req_resp.send_response(channel, WolfResponse::Pong);
+     |                                                                                     ^^^^^^^^^^^^ use of undeclared type `WolfResponse`
+     |
+help: consider importing one of these enums
+     |
+   5 + use crate::protocol::WolfResponse;
+     |
+   5 + use crate::wolf_pack::messaging::WolfResponse;
+     |
+
+error[E0433]: failed to resolve: use of undeclared type `WolfResponse`
+    --> wolf_net/src/swarm.rs:1051:139
+     |
+1051 | ...                   let _ = swarm.behaviour_mut().req_resp.send_response(channel, WolfResponse::Echo(msg));
+     |                                                                                     ^^^^^^^^^^^^ use of undeclared type `WolfResponse`
+     |
+help: consider importing one of these enums
+     |
+   5 + use crate::protocol::WolfResponse;
+     |
+   5 + use crate::wolf_pack::messaging::WolfResponse;
+     |
+
+error[E0433]: failed to resolve: use of undeclared type `WolfResponse`
+    --> wolf_net/src/swarm.rs:1075:72
+     |
+1075 | ...                   WolfResponse::KeyExchangeAck { public_key } => {
+     |                       ^^^^^^^^^^^^ use of undeclared type `WolfResponse`
+     |
+help: consider importing one of these enums
+     |
+   5 + use crate::protocol::WolfResponse;
+     |
+   5 + use crate::wolf_pack::messaging::WolfResponse;
+     |
+
+error[E0433]: failed to resolve: use of undeclared type `WolfResponse`
+    --> wolf_net/src/swarm.rs:1083:72
+     |
+1083 | ...                   WolfResponse::Encrypted(encrypted) => {
+     |                       ^^^^^^^^^^^^ use of undeclared type `WolfResponse`
+     |
+help: consider importing one of these enums
+     |
+   5 + use crate::protocol::WolfResponse;
+     |
+   5 + use crate::wolf_pack::messaging::WolfResponse;
+     |
+
+error[E0433]: failed to resolve: use of undeclared type `FirewallRule`
+    --> wolf_net/src/swarm.rs:1397:60
+     |
+1397 | ...                   fw.add_rule(FirewallRule::new(
+     |                                   ^^^^^^^^^^^^ use of undeclared type `FirewallRule`
+     |
+help: consider importing one of these structs
+     |
+   5 + use crate::consensus::state::FirewallRule;
+     |
+   5 + use crate::firewall::FirewallRule;
+     |
+
+error: could not compile `privacy` (lib) due to 3 previous errors
+error[E0433]: failed to resolve: use of undeclared type `Action`
+    --> wolf_net/src/swarm.rs:1401:52
+     |
+1401 | ...                   Action::Deny,
+     |                       ^^^^^^ use of undeclared type `Action`
+     |
+help: an enum with a similar name exists
+     |
+1401 -                                                    Action::Deny,
+1401 +                                                    Option::Deny,
+     |
+help: consider importing one of these items
+     |
+   5 + use crate::firewall::Action;
+     |
+   5 + use reqwest::redirect::Action;
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1233:64
+     |
+1233 | ...                   if matches!(e, libp2p::gossipsub::PublishError::InsufficientPeers) {
+     |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `-D unused-qualifications` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(unused_qualifications)]`
+help: remove the unnecessary path segments
+     |
+1233 -                                                 if matches!(e, libp2p::gossipsub::PublishError::InsufficientPeers) {
+1233 +                                                 if matches!(e, gossipsub::PublishError::InsufficientPeers) {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1780:62
+     |
+1780 |     pub async fn get_wolf_state(&self) -> anyhow::Result<Arc<tokio::sync::RwLock<WolfState>>> {
+     |                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1780 -     pub async fn get_wolf_state(&self) -> anyhow::Result<Arc<tokio::sync::RwLock<WolfState>>> {
+1780 +     pub async fn get_wolf_state(&self) -> anyhow::Result<Arc<RwLock<WolfState>>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1790:34
+     |
+1790 |     fn extract_target_ip(event: &crate::event::SecurityEvent) -> String {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1790 -     fn extract_target_ip(event: &crate::event::SecurityEvent) -> String {
+1790 +     fn extract_target_ip(event: &SecurityEvent) -> String {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1824:16
+     |
+1824 |         event: crate::event::SecurityEvent,
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1824 -         event: crate::event::SecurityEvent,
+1824 +         event: SecurityEvent,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1829:13
+     |
+1829 |             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1829 -             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+1829 +             SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1829:52
+     |
+1829 |             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+     |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1829 -             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+1829 +             crate::event::SecuritySeverity::High | SecuritySeverity::Critical
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1840:13
+     |
+1840 |             crate::wolf_pack::state::WolfRole::Stray => false,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1840 -             crate::wolf_pack::state::WolfRole::Stray => false,
+1840 +             WolfRole::Stray => false,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1841:13
+     |
+1841 |             crate::wolf_pack::state::WolfRole::Scout => state.prestige >= 50,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1841 -             crate::wolf_pack::state::WolfRole::Scout => state.prestige >= 50,
+1841 +             WolfRole::Scout => state.prestige >= 50,
+     |
+
+error: the function has a cognitive complexity of (52/25)
+  --> crates/WolfDb/src/backup/email.rs:15:18
+   |
+15 |     pub async fn send_recovery_key(
+   |                  ^^^^^^^^^^^^^^^^^
+   |
+   = help: you could split it up into multiple smaller functions
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+   = note: requested on the command line with `-D clippy::cognitive-complexity`
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+  --> crates/WolfDb/src/crypto/hsm.rs:93:42
+   |
+93 |                 let p_byte = p_bytes.get(i % p_bytes.len()).copied().unwrap_or(0);
+   |                                          ^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+   = note: `-D clippy::arithmetic-side-effects` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::arithmetic_side_effects)]`
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/crypto/hsm.rs:120:42
+    |
+120 |                 let p_byte = p_bytes.get(i % p_bytes.len()).copied().unwrap_or(0);
+    |                                          ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: the function has a cognitive complexity of (111/25)
+  --> crates/WolfDb/src/engine/mod.rs:85:18
+   |
+85 |     pub async fn run_repl(&mut self) -> Result<()> {
+   |                  ^^^^^^^^
+   |
+   = help: you could split it up into multiple smaller functions
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:222:21
+    |
+222 | /                     println!(
+223 | |                         "\n{}",
+224 | |                         "(!) Interrupted. Cleaning up session...".bright_yellow()
+225 | |                     );
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+    = note: `-D clippy::print-stdout` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::print_stdout)]`
+
+error: the function has a cognitive complexity of (130/25)
+   --> crates/WolfDb/src/engine/mod.rs:252:14
+    |
+252 |     async fn execute(&mut self, cmd: Commands) -> Result<()> {
+    |              ^^^^^^^
+    |
+    = help: you could split it up into multiple smaller functions
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/engine/mod.rs:408:21
+    |
+408 |                     total_records += count;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: slicing may panic
+   --> crates/WolfDb/src/storage/mod.rs:881:37
+    |
+881 |         master_key.copy_from_slice(&hash_bytes[..32]);
+    |                                     ^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+    = note: `-D clippy::indexing-slicing` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::indexing_slicing)]`
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:940:34
+    |
+940 |         let encrypted_keys_str = json["encrypted_keys"]
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:947:24
+    |
+947 |         let salt_str = json["salt"]
+    |                        ^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:950:25
+    |
+950 |         let nonce_str = json["nonce"]
+    |                         ^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:957:34
+    |
+957 |         let kem_public_key_b64 = json["kem_pk"]
+    |                                  ^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:964:34
+    |
+964 |         let dsa_public_key_b64 = json["dsa_pk"]
+    |                                  ^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: slicing may panic
+   --> crates/WolfDb/src/storage/mod.rs:986:37
+    |
+986 |         master_key.copy_from_slice(&hash_bytes[..32]);
+    |                                     ^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:998:34
+    |
+998 |         let kem_secret_key_b64 = keys_json["kem_sk"]
+    |                                  ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+    --> crates/WolfDb/src/storage/mod.rs:1005:34
+     |
+1005 |         let dsa_secret_key_b64 = keys_json["dsa_sk"]
+     |                                  ^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using `.get(n)` or `.get_mut(n)` instead
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1052:13
+     |
+1052 |             total_v_count += v_count;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1053:13
+     |
+1053 |             total_v_index_size += v_index_size;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1054:13
+     |
+1054 |             total_v_deleted += v_deleted;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/vector/mod.rs:141:9
+    |
+141 |         state.next_id += 1;
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/vector/mod.rs:181:13
+    |
+181 |             state.next_id += 1;
+    |             ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: could not compile `wolf_db` (lib) due to 21 previous errors
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `wolf_net` (lib) due to 28 previous errors

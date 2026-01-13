@@ -4,6 +4,7 @@
 //! This module discovers devices on the local network that are not running Wolf Prowler.
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::process::Command;
 use std::time::{Duration, Instant};
@@ -106,10 +107,10 @@ impl NetworkScanner {
             for line in stdout.lines() {
                 if line.contains("default") {
                     if let Some(via_pos) = line.find("via") {
-                        let after_via = &line[via_pos + 4..];
+                        let after_via = &line[via_pos.saturating_add(4)..];
                         if let Some(ip_str) = after_via.split_whitespace().next() {
                             // Extract network from gateway IP
-                            if let Ok(gateway) = ip_str.parse::<std::net::Ipv4Addr>() {
+                            if let Ok(gateway) = ip_str.parse::<Ipv4Addr>() {
                                 let octets = gateway.octets();
                                 let subnet =
                                     format!("{}.{}.{}.0/24", octets[0], octets[1], octets[2]);
@@ -181,13 +182,13 @@ impl NetworkScanner {
         match result {
             Ok(Ok(Ok(output))) => {
                 if output.status.success() {
-                    let latency = start.elapsed().as_millis() as u64;
+                    let latency = u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX);
 
                     // Try to resolve hostname
                     let hostname = Self::resolve_hostname(&ip).await;
 
                     // Classify device type based on hostname or other heuristics
-                    let device_type = Self::classify_device(&hostname);
+                    let device_type = Self::classify_device(hostname.as_ref());
 
                     Ok(Some(NetworkDevice {
                         ip,
@@ -237,9 +238,7 @@ impl NetworkScanner {
     }
 
     /// Read system ARP table
-    async fn read_arp_table() -> anyhow::Result<std::collections::HashMap<String, String>> {
-        use std::collections::HashMap;
-
+    async fn read_arp_table() -> anyhow::Result<HashMap<String, String>> {
         let output = tokio::process::Command::new("arp")
             .arg("-a")
             .output()
@@ -263,7 +262,7 @@ impl NetworkScanner {
                     let ip = part.trim_matches(|c| c == '(' || c == ')');
 
                     // Look for MAC address (format: xx:xx:xx:xx:xx:xx)
-                    if let Some(mac_part) = parts.get(i + 2) {
+                    if let Some(mac_part) = parts.get(i.saturating_add(2)) {
                         if mac_part.contains(':') && mac_part.len() == 17 {
                             arp_table.insert(ip.to_string(), (*mac_part).to_string());
                         }
@@ -277,8 +276,8 @@ impl NetworkScanner {
     }
 
     /// Classify device type based on hostname
-    fn classify_device(hostname: &Option<String>) -> DeviceType {
-        if let Some(name) = hostname {
+    fn classify_device(hostname: Option<&String>) -> DeviceType {
+        hostname.map_or(DeviceType::Unknown, |name| {
             let name_lower = name.to_lowercase();
 
             if name_lower.contains("router") || name_lower.contains("gateway") {
@@ -303,9 +302,7 @@ impl NetworkScanner {
             } else {
                 DeviceType::Unknown
             }
-        } else {
-            DeviceType::Unknown
-        }
+        })
     }
 
     /// Get list of IPs in the subnet
@@ -316,19 +313,25 @@ impl NetworkScanner {
             return Err(anyhow::anyhow!("Invalid subnet format"));
         }
 
-        let base_ip: Ipv4Addr = parts[0].parse()?;
-        let prefix: u8 = parts[1].parse()?;
+        let base_ip: Ipv4Addr = parts
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("Invalid subnet"))?
+            .parse()?;
+        let prefix: u8 = parts
+            .get(1)
+            .ok_or_else(|| anyhow::anyhow!("Invalid prefix"))?
+            .parse()?;
 
         // Calculate number of hosts
-        let host_bits = 32 - prefix;
-        let num_hosts = 2u32.pow(u32::from(host_bits)) - 2; // Exclude network and broadcast
+        let host_bits = 32u8.saturating_sub(prefix);
+        let num_hosts = 2u32.saturating_pow(u32::from(host_bits)).saturating_sub(2); // Exclude network and broadcast
 
         let base = u32::from(base_ip);
         let mut ips = Vec::new();
 
         // Generate IPs (skip first and last)
         for i in 1..=num_hosts.min(254) {
-            let ip = Ipv4Addr::from(base + i);
+            let ip = Ipv4Addr::from(base.saturating_add(i));
             ips.push(IpAddr::V4(ip));
         }
 
@@ -408,7 +411,7 @@ struct IpAddrEntry {
 #[derive(Deserialize)]
 struct AddrInfo {
     family: String,
-    local: std::net::Ipv4Addr,
+    local: Ipv4Addr,
     prefixlen: u8,
 }
 
@@ -431,11 +434,11 @@ mod tests {
     #[test]
     fn test_device_classification() {
         assert_eq!(
-            NetworkScanner::classify_device(&Some("router-home".to_string())),
+            NetworkScanner::classify_device(Some(&"router-home".to_string())),
             DeviceType::Router
         );
         assert_eq!(
-            NetworkScanner::classify_device(&Some("hp-printer-123".to_string())),
+            NetworkScanner::classify_device(Some(&"hp-printer-123".to_string())),
             DeviceType::Printer
         );
     }
@@ -444,7 +447,7 @@ mod tests {
     async fn test_list_interfaces() {
         // This test requires `ip` command which might not be available in all test environments
         if let Ok(interfaces) = NetworkScanner::list_interfaces().await {
-            println!("Found interfaces: {:?}", interfaces);
+            tracing::info!("Found interfaces: {:?}", interfaces);
             // Just check it doesn't crash
         }
     }

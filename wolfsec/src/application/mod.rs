@@ -3,7 +3,7 @@
 
 pub mod commands;
 pub mod dtos;
+pub mod error;
 /// Integration bridges for third-party security systems.
 pub mod queries;
 pub mod services;
-pub mod error;

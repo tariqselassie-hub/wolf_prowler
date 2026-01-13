@@ -1,0 +1,1542 @@
+    Checking shared v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/shared)
+    Checking wolf_db v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/WolfDb)
+    Checking wolf_den v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_den)
+    Checking airgap v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/airgap)
+    Checking wolf_net v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_net)
+    Checking privacy v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/privacy)
+error: called `map(<f>).unwrap_or(<a>)` on an `Option` value
+   --> crates/tercespot/airgap/src/udev.rs:121:17
+    |
+121 |                 parts.get(3).map(|s| s.trim_end_matches(':')).unwrap_or("")
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#map_unwrap_or
+    = note: `-D clippy::map-unwrap-or` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::map_unwrap_or)]`
+help: use `map_or(<a>, <f>)` instead
+    |
+121 -                 parts.get(3).map(|s| s.trim_end_matches(':')).unwrap_or("")
+121 +                 parts.get(3).map_or("", |s| s.trim_end_matches(':'))
+    |
+
+error: the function has a cognitive complexity of (26/25)
+   --> crates/tercespot/airgap/src/lib.rs:151:18
+    |
+151 |     pub async fn start_monitoring(&self) -> io::Result<()> {
+    |                  ^^^^^^^^^^^^^^^^
+    |
+    = help: you could split it up into multiple smaller functions
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+    = note: requested on the command line with `-D clippy::cognitive-complexity`
+
+error: could not compile `airgap` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: use of `eprintln!`
+   --> crates/tercespot/privacy/src/lib.rs:144:21
+    |
+144 |                     eprintln!("Failed to process audit entry: {e}");
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stderr
+    = note: `-D clippy::print-stderr` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::print_stderr)]`
+
+error: use of `eprintln!`
+   --> crates/tercespot/privacy/src/lib.rs:197:13
+    |
+197 |             eprintln!("Failed to send audit entry: {e:?}");
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stderr
+
+error: this argument is passed by value, but not consumed in the function body
+   --> crates/tercespot/privacy/src/lib.rs:222:35
+    |
+222 |     fn process_audit_entry(entry: EncryptedAuditEntry, config: &PrivacyConfig) -> io::Result<()> {
+    |                                   ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_pass_by_value
+    = note: `-D clippy::needless-pass-by-value` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_pass_by_value)]`
+help: consider taking a reference instead
+    |
+222 |     fn process_audit_entry(entry: &EncryptedAuditEntry, config: &PrivacyConfig) -> io::Result<()> {
+    |                                   +
+
+error: use of `eprintln!`
+   --> crates/tercespot/privacy/src/lib.rs:229:13
+    |
+229 |             eprintln!("Syslog shipment failed: {e}");
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stderr
+
+error: use of `eprintln!`
+   --> crates/tercespot/privacy/src/lib.rs:290:21
+    |
+290 |                     eprintln!("Unknown alert channel: {channel}");
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stderr
+
+error: use of `println!`
+   --> crates/tercespot/privacy/src/lib.rs:299:9
+    |
+299 |         println!("🚨 EMERGENCY: Break-glass command executed: {command}");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+    = note: `-D clippy::print-stdout` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::print_stdout)]`
+
+error: use of `println!`
+   --> crates/tercespot/privacy/src/lib.rs:300:9
+    |
+300 |         println!("🚨 Alert sent via SMS to all stakeholders");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/tercespot/privacy/src/lib.rs:306:9
+    |
+306 |         println!("📧 EMERGENCY: Break-glass command executed: {command}");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/tercespot/privacy/src/lib.rs:307:9
+    |
+307 |         println!("📧 Alert sent via email to all stakeholders");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/tercespot/privacy/src/lib.rs:313:9
+    |
+313 |         println!("🚨 EMERGENCY: Break-glass command executed: {command}");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/tercespot/privacy/src/lib.rs:314:9
+    |
+314 |         println!("🚨 PagerDuty alert triggered for all on-call personnel");
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/tercespot/privacy/src/lib.rs:357:81
+    |
+357 |                 detected_pii.push(format!("PII pattern {} detected in command", i + 1));
+    |                                                                                 ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+    = note: `-D clippy::arithmetic-side-effects` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::arithmetic_side_effects)]`
+
+error: could not compile `privacy` (lib) due to 12 previous errors
+error[E0252]: the name `Message` is defined multiple times
+  --> wolf_net/src/swarm.rs:97:5
+   |
+12 | use crate::message::Message;
+   |     ----------------------- previous import of the type `Message` here
+...
+97 | use crate::message::Message;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^ `Message` reimported here
+   |
+   = note: `Message` must be defined only once in the type namespace of this module
+
+error: unnecessary qualification
+   --> wolf_net/src/behavior.rs:124:13
+    |
+124 |             crate::protocol::WolfCodec,
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `-D unused-qualifications` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_qualifications)]`
+help: remove the unnecessary path segments
+    |
+124 -             crate::protocol::WolfCodec,
+124 +             WolfCodec,
+    |
+
+error: unnecessary qualification
+  --> wolf_net/src/consensus/storage.rs:39:13
+   |
+39 |             <HardState as prost::Message>::decode(&data[..])?
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: remove the unnecessary path segments
+   |
+39 -             <HardState as prost::Message>::decode(&data[..])?
+39 +             <HardState as Message>::decode(&data[..])?
+   |
+
+error: unnecessary qualification
+  --> wolf_net/src/consensus/storage.rs:46:13
+   |
+46 |             <ConfState as prost::Message>::decode(&data[..])?
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: remove the unnecessary path segments
+   |
+46 -             <ConfState as prost::Message>::decode(&data[..])?
+46 +             <ConfState as Message>::decode(&data[..])?
+   |
+
+error: unnecessary qualification
+  --> wolf_net/src/consensus/storage.rs:53:13
+   |
+53 |             <Snapshot as prost::Message>::decode(&data[..])?
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: remove the unnecessary path segments
+   |
+53 -             <Snapshot as prost::Message>::decode(&data[..])?
+53 +             <Snapshot as Message>::decode(&data[..])?
+   |
+
+error: unnecessary qualification
+  --> wolf_net/src/consensus/storage.rs:90:13
+   |
+90 |             <Entry as prost::Message>::encode(entry, &mut data)?;
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: remove the unnecessary path segments
+   |
+90 -             <Entry as prost::Message>::encode(entry, &mut data)?;
+90 +             <Entry as Message>::encode(entry, &mut data)?;
+   |
+
+error: unnecessary qualification
+   --> wolf_net/src/consensus/storage.rs:106:9
+    |
+106 |         <HardState as prost::Message>::encode(hs, &mut data)?;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+106 -         <HardState as prost::Message>::encode(hs, &mut data)?;
+106 +         <HardState as Message>::encode(hs, &mut data)?;
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/consensus/storage.rs:122:9
+    |
+122 |         <ConfState as prost::Message>::encode(cs, &mut data)?;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+122 -         <ConfState as prost::Message>::encode(cs, &mut data)?;
+122 +         <ConfState as Message>::encode(cs, &mut data)?;
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/consensus/storage.rs:203:36
+    |
+203 |                 let entry: Entry = <Entry as prost::Message>::decode(&data[..])
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+203 -                 let entry: Entry = <Entry as prost::Message>::decode(&data[..])
+203 +                 let entry: Entry = <Entry as Message>::decode(&data[..])
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/consensus/storage.rs:238:32
+    |
+238 |             let entry: Entry = <Entry as prost::Message>::decode(&data[..])
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+238 -             let entry: Entry = <Entry as prost::Message>::decode(&data[..])
+238 +             let entry: Entry = <Entry as Message>::decode(&data[..])
+    |
+
+error: unused imports: `DeviceId`, `EntityId`, `EntityStatus`, `ServiceId`, `ServiceType`, `SystemId`, and `SystemType`
+  --> wolf_net/src/swarm.rs:15:5
+   |
+15 |     DeviceId, EntityId, EntityInfo, EntityStatus, PeerId, ServiceId, ServiceType, SystemId,
+   |     ^^^^^^^^  ^^^^^^^^              ^^^^^^^^^^^^          ^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^
+16 |     SystemType,
+   |     ^^^^^^^^^^
+   |
+   = note: `-D unused-imports` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(unused_imports)]`
+
+error: unused import: `crate::message::Message`
+  --> wolf_net/src/swarm.rs:97:5
+   |
+97 | use crate::message::Message;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:506:42
+    |
+506 |         let consensus_manager = Arc::new(tokio::sync::RwLock::new(
+    |                                          ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+506 -         let consensus_manager = Arc::new(tokio::sync::RwLock::new(
+506 +         let consensus_manager = Arc::new(RwLock::new(
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:507:20
+    |
+507 |             None::<crate::consensus::manager::ConsensusManager>,
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+507 -             None::<crate::consensus::manager::ConsensusManager>,
+507 +             None::<ConsensusManager>,
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:539:19
+    |
+539 |             match crate::consensus::manager::ConsensusManager::start(
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+539 -             match crate::consensus::manager::ConsensusManager::start(
+539 +             match ConsensusManager::start(
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:663:55
+    |
+663 | ...                   let req = crate::protocol::WolfRequest::KeyExchange {
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+663 -                                             let req = crate::protocol::WolfRequest::KeyExchange {
+663 +                                             let req = WolfRequest::KeyExchange {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:681:62
+    |
+681 | ...                   let target = crate::peer::PeerId::from_libp2p(peer_id);
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+681 -                                                 let target = crate::peer::PeerId::from_libp2p(peer_id);
+681 +                                                 let target = PeerId::from_libp2p(peer_id);
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:688:68
+    |
+688 | ...                   let mut info = crate::peer::EntityInfo::new(entity_id);
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+688 -                                                     let mut info = crate::peer::EntityInfo::new(entity_id);
+688 +                                                     let mut info = EntityInfo::new(entity_id);
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:697:60
+    |
+697 | ...                   let event = crate::event::SecurityEvent::new(
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+697 -                                                let event = crate::event::SecurityEvent::new(
+697 +                                                let event = SecurityEvent::new(
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:698:52
+    |
+698 | ...                   crate::event::SecurityEventType::Other("ConnectionEstablished".to_string()),
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+698 -                                                    crate::event::SecurityEventType::Other("ConnectionEstablished".to_string()),
+698 +                                                    SecurityEventType::Other("ConnectionEstablished".to_string()),
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:699:52
+    |
+699 | ...                   crate::event::SecuritySeverity::Low,
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+699 -                                                    crate::event::SecuritySeverity::Low,
+699 +                                                    SecuritySeverity::Low,
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:730:62
+    |
+730 | ...                   let target = crate::peer::PeerId::from_libp2p(peer_id);
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+730 -                                                 let target = crate::peer::PeerId::from_libp2p(peer_id);
+730 +                                                 let target = PeerId::from_libp2p(peer_id);
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:743:60
+    |
+743 | ...                   let event = crate::event::SecurityEvent::new(
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+743 -                                                let event = crate::event::SecurityEvent::new(
+743 +                                                let event = SecurityEvent::new(
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:744:52
+    |
+744 | ...                   crate::event::SecurityEventType::Other("ConnectionClosed".to_string()),
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+744 -                                                    crate::event::SecurityEventType::Other("ConnectionClosed".to_string()),
+744 +                                                    SecurityEventType::Other("ConnectionClosed".to_string()),
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:745:52
+    |
+745 | ...                   crate::event::SecuritySeverity::Low,
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+745 -                                                    crate::event::SecuritySeverity::Low,
+745 +                                                    SecuritySeverity::Low,
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:785:74
+    |
+785 | ...                   let target = crate::peer::PeerId::from_libp2p(event.peer);
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+785 -                                                             let target = crate::peer::PeerId::from_libp2p(event.peer);
+785 +                                                             let target = PeerId::from_libp2p(event.peer);
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:822:70
+    |
+822 | ...                   let target = crate::peer::PeerId::from_libp2p(peer_id);
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+822 -                                                         let target = crate::peer::PeerId::from_libp2p(peer_id);
+822 +                                                         let target = PeerId::from_libp2p(peer_id);
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:829:76
+    |
+829 | ...                   let mut info = crate::peer::EntityInfo::new(entity_id);
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+829 -                                                             let mut info = crate::peer::EntityInfo::new(entity_id);
+829 +                                                             let mut info = EntityInfo::new(entity_id);
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:866:79
+    |
+866 | ...                   let target = crate::peer::PeerId::from_libp2p(peer_id);
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+866 -                                                                  let target = crate::peer::PeerId::from_libp2p(peer_id);
+866 +                                                                  let target = PeerId::from_libp2p(peer_id);
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:876:110
+    |
+876 | ...                   if let Ok(net_msg) = serde_json::from_slice::<crate::consensus::network::RaftNetworkMessage>(&message.data) {
+    |                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+876 -                                                                if let Ok(net_msg) = serde_json::from_slice::<crate::consensus::network::RaftNetworkMessage>(&message.data) {
+876 +                                                                if let Ok(net_msg) = serde_json::from_slice::<RaftNetworkMessage>(&message.data) {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:884:82
+    |
+884 | ...                   if let Ok(howl) = crate::wolf_pack::howl::HowlMessage::from_bytes(&message.data) {
+    |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+884 -                                                                if let Ok(howl) = crate::wolf_pack::howl::HowlMessage::from_bytes(&message.data) {
+884 +                                                                if let Ok(howl) = HowlMessage::from_bytes(&message.data) {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:890:81
+    |
+890 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+890 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+890 +                                                                            Some(CoordinatorMsg::WarningHowl {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:897:81
+    |
+897 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntRequest {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+897 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntRequest {
+897 +                                                                            Some(CoordinatorMsg::HuntRequest {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:905:81
+    |
+905 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+905 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+905 +                                                                            Some(CoordinatorMsg::HuntReport {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:912:81
+    |
+912 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::KillOrder {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+912 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::KillOrder {
+912 +                                                                            Some(CoordinatorMsg::KillOrder {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:920:81
+    |
+920 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::TerritoryUpdate {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+920 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::TerritoryUpdate {
+920 +                                                                            Some(CoordinatorMsg::TerritoryUpdate {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:927:81
+    |
+927 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionRequest {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+927 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionRequest {
+927 +                                                                            Some(CoordinatorMsg::ElectionRequest {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:934:81
+    |
+934 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionVote {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+934 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionVote {
+934 +                                                                            Some(CoordinatorMsg::ElectionVote {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:941:81
+    |
+941 | ...                   Some(crate::wolf_pack::coordinator::CoordinatorMsg::AlphaHeartbeat {
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+941 -                                                                            Some(crate::wolf_pack::coordinator::CoordinatorMsg::AlphaHeartbeat {
+941 +                                                                            Some(CoordinatorMsg::AlphaHeartbeat {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:989:85
+    |
+989 | ...                   let target = crate::peer::PeerId::from_libp2p(peer);
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+989 -                                                                        let target = crate::peer::PeerId::from_libp2p(peer);
+989 +                                                                        let target = PeerId::from_libp2p(peer);
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/swarm.rs:999:72
+    |
+999 | ...                   crate::protocol::WolfRequest::KeyExchange { public_key } => {
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+999 -                                                                        crate::protocol::WolfRequest::KeyExchange { public_key } => {
+999 +                                                                        WolfRequest::KeyExchange { public_key } => {
+    |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1015:72
+     |
+1015 | ...                   crate::protocol::WolfRequest::Encrypted(encrypted) => {
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1015 -                                                                        crate::protocol::WolfRequest::Encrypted(encrypted) => {
+1015 +                                                                        WolfRequest::Encrypted(encrypted) => {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1022:88
+     |
+1022 | ...                   crate::protocol::WolfRequest::Ping => crate::protocol::WolfResponse::Pong,
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1022 -                                                                                        crate::protocol::WolfRequest::Ping => crate::protocol::WolfResponse::Pong,
+1022 +                                                                                        WolfRequest::Ping => crate::protocol::WolfResponse::Pong,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1023:88
+     |
+1023 | ...                   crate::protocol::WolfRequest::Echo(msg) => crate::protocol::WolfResponse::Echo(msg),
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1023 -                                                                                        crate::protocol::WolfRequest::Echo(msg) => crate::protocol::WolfResponse::Echo(msg),
+1023 +                                                                                        WolfRequest::Echo(msg) => crate::protocol::WolfResponse::Echo(msg),
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1041:102
+     |
+1041 | ...                   let target = crate::peer::PeerId::from_libp2p(peer);
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1041 -                                                                                         let target = crate::peer::PeerId::from_libp2p(peer);
+1041 +                                                                                         let target = PeerId::from_libp2p(peer);
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1054:72
+     |
+1054 | ...                   crate::protocol::WolfRequest::Ping => {
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1054 -                                                                        crate::protocol::WolfRequest::Ping => {
+1054 +                                                                        WolfRequest::Ping => {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1057:72
+     |
+1057 | ...                   crate::protocol::WolfRequest::Echo(msg) => {
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1057 -                                                                        crate::protocol::WolfRequest::Echo(msg) => {
+1057 +                                                                        WolfRequest::Echo(msg) => {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1069:87
+     |
+1069 | ...                   let target = crate::peer::PeerId::from_libp2p(peer);
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1069 -                                                                          let target = crate::peer::PeerId::from_libp2p(peer);
+1069 +                                                                          let target = PeerId::from_libp2p(peer);
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1108:74
+     |
+1108 | ...                   let target = crate::peer::PeerId::from_libp2p(peer);
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1108 -                                                             let target = crate::peer::PeerId::from_libp2p(peer);
+1108 +                                                             let target = PeerId::from_libp2p(peer);
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1117:74
+     |
+1117 | ...                   let target = crate::peer::PeerId::from_libp2p(peer);
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1117 -                                                             let target = crate::peer::PeerId::from_libp2p(peer);
+1117 +                                                             let target = PeerId::from_libp2p(peer);
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1154:67
+     |
+1154 | ...                   let mut info = crate::peer::EntityInfo::new(entity_id);
+     |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1154 -                                                    let mut info = crate::peer::EntityInfo::new(entity_id);
+1154 +                                                    let mut info = EntityInfo::new(entity_id);
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1240:64
+     |
+1240 | ...                   if matches!(e, libp2p::gossipsub::PublishError::InsufficientPeers) {
+     |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1240 -                                                 if matches!(e, libp2p::gossipsub::PublishError::InsufficientPeers) {
+1240 +                                                 if matches!(e, gossipsub::PublishError::InsufficientPeers) {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1339:62
+     |
+1339 | ...                   let req = crate::protocol::WolfRequest::Encrypted(encrypted.clone());
+     |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1339 -                                                    let req = crate::protocol::WolfRequest::Encrypted(encrypted.clone());
+1339 +                                                    let req = WolfRequest::Encrypted(encrypted.clone());
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1377:81
+     |
+1377 | ...   if let Err(e) = hunt_sender.send(crate::wolf_pack::coordinator::CoordinatorMsg::ForceRank { target: target.clone(), new_role: role ...
+     |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1377 -                                                if let Err(e) = hunt_sender.send(crate::wolf_pack::coordinator::CoordinatorMsg::ForceRank { target: target.clone(), new_role: role }).await {
+1377 +                                                if let Err(e) = hunt_sender.send(CoordinatorMsg::ForceRank { target: target.clone(), new_role: role }).await {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1406:52
+     |
+1406 | ...                   crate::firewall::RuleTarget::Ip(ip_addr),
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1406 -                                                    crate::firewall::RuleTarget::Ip(ip_addr),
+1406 +                                                    RuleTarget::Ip(ip_addr),
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1407:52
+     |
+1407 | ...                   crate::firewall::Protocol::Any,
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1407 -                                                    crate::firewall::Protocol::Any,
+1407 +                                                    Protocol::Any,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1409:52
+     |
+1409 | ...                   crate::firewall::TrafficDirection::Both,
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1409 -                                                    crate::firewall::TrafficDirection::Both,
+1409 +                                                    TrafficDirection::Both,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1603:53
+     |
+1603 |     pub async fn dial(&self, peer_id: PeerId, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
+     |                                                     ^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1603 -     pub async fn dial(&self, peer_id: PeerId, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
+1603 +     pub async fn dial(&self, peer_id: PeerId, addr: Multiaddr) -> anyhow::Result<()> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1614:41
+     |
+1614 |     pub async fn dial_addr(&self, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
+     |                                         ^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1614 -     pub async fn dial_addr(&self, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
+1614 +     pub async fn dial_addr(&self, addr: Multiaddr) -> anyhow::Result<()> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1636:61
+     |
+1636 |     pub async fn get_listeners(&self) -> anyhow::Result<Vec<libp2p::Multiaddr>> {
+     |                                                             ^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1636 -     pub async fn get_listeners(&self) -> anyhow::Result<Vec<libp2p::Multiaddr>> {
+1636 +     pub async fn get_listeners(&self) -> anyhow::Result<Vec<Multiaddr>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1679:58
+     |
+1679 |     pub async fn list_peers(&self) -> anyhow::Result<Vec<crate::peer::EntityInfo>> {
+     |                                                          ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1679 -     pub async fn list_peers(&self) -> anyhow::Result<Vec<crate::peer::EntityInfo>> {
+1679 +     pub async fn list_peers(&self) -> anyhow::Result<Vec<EntityInfo>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1695:32
+     |
+1695 |     ) -> anyhow::Result<Option<crate::peer::EntityInfo>> {
+     |                                ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1695 -     ) -> anyhow::Result<Option<crate::peer::EntityInfo>> {
+1695 +     ) -> anyhow::Result<Option<EntityInfo>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1739:19
+     |
+1739 |             .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1739 -             .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+1739 +             .send(CoordinatorMsg::WarningHowl {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1761:19
+     |
+1761 |             .send(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1761 -             .send(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+1761 +             .send(CoordinatorMsg::HuntReport {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1792:29
+     |
+1792 |     ) -> anyhow::Result<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>> {
+     |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1792 -     ) -> anyhow::Result<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>> {
+1792 +     ) -> anyhow::Result<Arc<RwLock<crate::wolf_pack::state::WolfState>>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1792:49
+     |
+1792 |     ) -> anyhow::Result<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>> {
+     |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1792 -     ) -> anyhow::Result<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>> {
+1792 +     ) -> anyhow::Result<Arc<tokio::sync::RwLock<WolfState>>> {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1802:34
+     |
+1802 |     fn extract_target_ip(event: &crate::event::SecurityEvent) -> String {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1802 -     fn extract_target_ip(event: &crate::event::SecurityEvent) -> String {
+1802 +     fn extract_target_ip(event: &SecurityEvent) -> String {
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1836:16
+     |
+1836 |         event: crate::event::SecurityEvent,
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1836 -         event: crate::event::SecurityEvent,
+1836 +         event: SecurityEvent,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1841:13
+     |
+1841 |             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1841 -             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+1841 +             SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1841:52
+     |
+1841 |             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+     |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1841 -             crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+1841 +             crate::event::SecuritySeverity::High | SecuritySeverity::Critical
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1852:13
+     |
+1852 |             crate::wolf_pack::state::WolfRole::Stray => false,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1852 -             crate::wolf_pack::state::WolfRole::Stray => false,
+1852 +             WolfRole::Stray => false,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1853:13
+     |
+1853 |             crate::wolf_pack::state::WolfRole::Scout => state.prestige >= 50,
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1853 -             crate::wolf_pack::state::WolfRole::Scout => state.prestige >= 50,
+1853 +             WolfRole::Scout => state.prestige >= 50,
+     |
+
+error: unnecessary qualification
+    --> wolf_net/src/swarm.rs:1871:19
+     |
+1871 |             .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+help: remove the unnecessary path segments
+     |
+1871 -             .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+1871 +             .send(CoordinatorMsg::WarningHowl {
+     |
+
+error: unnecessary qualification
+  --> wolf_net/src/wolf_node.rs:47:30
+   |
+47 |     pub reporting_tx: Option<tokio::sync::mpsc::Sender<TelemetryEvent>>,
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: remove the unnecessary path segments
+   |
+47 -     pub reporting_tx: Option<tokio::sync::mpsc::Sender<TelemetryEvent>>,
+47 +     pub reporting_tx: Option<mpsc::Sender<TelemetryEvent>>,
+   |
+
+error: unnecessary qualification
+   --> wolf_net/src/wolf_node.rs:250:49
+    |
+250 |     async fn handle_coordinator_msg(&self, msg: crate::wolf_pack::coordinator::CoordinatorMsg) {
+    |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+250 -     async fn handle_coordinator_msg(&self, msg: crate::wolf_pack::coordinator::CoordinatorMsg) {
+250 +     async fn handle_coordinator_msg(&self, msg: CoordinatorMsg) {
+    |
+
+error: unnecessary qualification
+   --> wolf_net/src/wolf_pack/coordinator.rs:462:44
+    |
+462 |             std::time::SystemTime::now() + std::time::Duration::from_secs(60),
+    |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the unnecessary path segments
+    |
+462 -             std::time::SystemTime::now() + std::time::Duration::from_secs(60),
+462 +             std::time::SystemTime::now() + Duration::from_secs(60),
+    |
+
+error: redundant closure
+   --> crates/WolfDb/src/api/handlers.rs:500:23
+    |
+500 |             .and_then(|n| n.as_u64())
+    |                       ^^^^^^^^^^^^^^ help: replace the closure with the method itself: `serde_json::Value::as_u64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_closure_for_method_calls
+    = note: `-D clippy::redundant-closure-for-method-calls` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::redundant_closure_for_method_calls)]`
+
+error: redundant closure
+   --> crates/WolfDb/src/api/handlers.rs:504:23
+    |
+504 |             .and_then(|n| n.as_u64())
+    |                       ^^^^^^^^^^^^^^ help: replace the closure with the method itself: `serde_json::Value::as_u64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_closure_for_method_calls
+
+error: redundant closure
+   --> crates/WolfDb/src/api/handlers.rs:508:23
+    |
+508 |             .and_then(|n| n.as_u64())
+    |                       ^^^^^^^^^^^^^^ help: replace the closure with the method itself: `serde_json::Value::as_u64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_closure_for_method_calls
+
+error: redundant closure
+   --> crates/WolfDb/src/api/handlers.rs:626:27
+    |
+626 |                 .and_then(|n| n.as_u64())
+    |                           ^^^^^^^^^^^^^^ help: replace the closure with the method itself: `serde_json::Value::as_u64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_closure_for_method_calls
+
+error: redundant closure
+   --> crates/WolfDb/src/api/handlers.rs:630:27
+    |
+630 |                 .and_then(|n| n.as_u64())
+    |                           ^^^^^^^^^^^^^^ help: replace the closure with the method itself: `serde_json::Value::as_u64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_closure_for_method_calls
+
+error: redundant closure
+   --> crates/WolfDb/src/api/handlers.rs:634:27
+    |
+634 |                 .and_then(|n| n.as_u64())
+    |                           ^^^^^^^^^^^^^^ help: replace the closure with the method itself: `serde_json::Value::as_u64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_closure_for_method_calls
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+  --> crates/WolfDb/src/api/mod.rs:48:26
+   |
+48 |         let expires_at = chrono::Utc::now().timestamp() + 3600; // 1 hour
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+   = note: `-D clippy::arithmetic-side-effects` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::arithmetic_side_effects)]`
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:50:13
+   |
+50 |             println!("To: {}", email.bright_white());
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+   = note: `-D clippy::print-stdout` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::print_stdout)]`
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:51:13
+   |
+51 |             println!("Subject: WolfDb PQC Recovery Key");
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:52:13
+   |
+52 |             println!("Body: \n{body}");
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:53:13
+   |
+53 |             println!("{}\n", "--- END OF SIMULATION ---".bright_yellow().bold());
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+  --> crates/WolfDb/src/backup/email.rs:54:13
+   |
+54 | /             println!(
+55 | |                 "{}",
+56 | |                 "✔ Recovery email generated (Simulation Mode).".bright_green()
+57 | |             );
+   | |_____________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+  --> crates/WolfDb/src/crypto/hsm.rs:93:42
+   |
+93 |                 let p_byte = p_bytes.get(i % p_bytes.len()).copied().unwrap_or(0);
+   |                                          ^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/crypto/hsm.rs:120:42
+    |
+120 |                 let p_byte = p_bytes.get(i % p_bytes.len()).copied().unwrap_or(0);
+    |                                          ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: the function has a cognitive complexity of (55/25)
+  --> crates/WolfDb/src/engine/mod.rs:85:18
+   |
+85 |     pub async fn run_repl(&mut self) -> Result<()> {
+   |                  ^^^^^^^^
+   |
+   = help: you could split it up into multiple smaller functions
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+   = note: requested on the command line with `-D clippy::cognitive-complexity`
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:159:13
+    |
+159 | /             println!(
+160 | |                 "{}",
+161 | |                 "✔ Keystore initialized with PQ-KEM (Kyber768) and PQ-DSA (Dilithium)."
+162 | |                     .bright_green()
+163 | |             );
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:166:13
+    |
+166 |             println!("\n{}", "--- SECURE BACKUP SETUP ---".bright_blue().bold());
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:182:17
+    |
+182 |                 println!("Generating encrypted recovery blob...");
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:186:17
+    |
+186 |                 println!("{}", "✔ Secure recovery backup completed.".bright_green());
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:213:33
+    |
+213 | ...                   println!("{} {e}", "Error:".bright_red().bold());
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:217:29
+    |
+217 | ...                   println!("{e}");
+    |                       ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:222:21
+    |
+222 | /                     println!(
+223 | |                         "\n{}",
+224 | |                         "(!) Interrupted. Cleaning up session...".bright_yellow()
+225 | |                     );
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:230:21
+    |
+230 |                     println!("{}", "(!) Session ended.".bright_yellow());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:235:21
+    |
+235 |                     println!("{} {err:?}", "Error:".bright_red());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: the function has a cognitive complexity of (32/25)
+   --> crates/WolfDb/src/engine/mod.rs:252:14
+    |
+252 |     async fn execute(&mut self, cmd: Commands) -> Result<()> {
+    |              ^^^^^^^
+    |
+    = help: you could split it up into multiple smaller functions
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cognitive_complexity
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:260:17
+    |
+260 |                 println!("Security Status: {status}");
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:261:17
+    |
+261 | /                 println!(
+262 | |                     "Key Type: {}",
+263 | |                     "ML-KEM (Kyber768) + ML-DSA (Dilithium)".bright_white()
+264 | |                 );
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:267:21
+    |
+267 |                     println!("\n{}", "--- DATABASE METRICS ---".bright_blue().bold());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:275:21
+    |
+275 |                     println!("{table}");
+    |                     ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:281:21
+    |
+281 |                     println!("{}", "No records found.".bright_yellow());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:283:21
+    |
+283 | /                     println!(
+284 | |                         "\n{}",
+285 | |                         format!("--- LISTING RECORDS (Limit: {limit}) ---")
+286 | |                             .bright_blue()
+287 | |                             .bold()
+288 | |                     );
+    | |_____________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:330:17
+    |
+330 | /                 println!(
+331 | |                     "{} Record '{}' encrypted and persisted.",
+332 | |                     "✔".bright_green(),
+333 | |                     id.bright_white().bold()
+334 | |                 );
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:349:21
+    |
+349 |                     println!("{} Record '{id}' not found.", "✘".bright_yellow());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:367:21
+    |
+367 |                     println!("{}", "No similar records found.".bright_yellow());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:384:17
+    |
+384 | /                 println!(
+385 | |                     "{}",
+386 | |                     "✔ Database keys recovered and re-initialized.".bright_green()
+387 | |                 );
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:390:17
+    |
+390 |                 println!("{}", format!("Importing from SQLite: {path}").bright_blue());
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:402:21
+    |
+402 |                     println!("  Processing table: {}", table_name.bright_white());
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:407:21
+    |
+407 |                     println!("    -> Imported {count} records");
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/engine/mod.rs:408:21
+    |
+408 |                     total_records += count;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:411:17
+    |
+411 | /                 println!(
+412 | |                     "{} Import complete. Total records: {total_records}",
+413 | |                     "✔".bright_green()
+414 | |                 );
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: use of `println!`
+   --> crates/WolfDb/src/engine/mod.rs:425:9
+    |
+425 | /         println!(
+426 | |             "{}",
+427 | |             "✔ Database persistence complete.".bright_green().dimmed()
+428 | |         );
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#print_stdout
+
+error: slicing may panic
+   --> crates/WolfDb/src/storage/mod.rs:881:37
+    |
+881 |         master_key.copy_from_slice(&hash_bytes[..32]);
+    |                                     ^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+    = note: `-D clippy::indexing-slicing` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::indexing_slicing)]`
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:940:34
+    |
+940 |         let encrypted_keys_str = json["encrypted_keys"]
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:947:24
+    |
+947 |         let salt_str = json["salt"]
+    |                        ^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:950:25
+    |
+950 |         let nonce_str = json["nonce"]
+    |                         ^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:957:34
+    |
+957 |         let kem_public_key_b64 = json["kem_pk"]
+    |                                  ^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:964:34
+    |
+964 |         let dsa_public_key_b64 = json["dsa_pk"]
+    |                                  ^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: slicing may panic
+   --> crates/WolfDb/src/storage/mod.rs:986:37
+    |
+986 |         master_key.copy_from_slice(&hash_bytes[..32]);
+    |                                     ^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(..n)`or `.get_mut(..n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+   --> crates/WolfDb/src/storage/mod.rs:998:34
+    |
+998 |         let kem_secret_key_b64 = keys_json["kem_sk"]
+    |                                  ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using `.get(n)` or `.get_mut(n)` instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: indexing may panic
+    --> crates/WolfDb/src/storage/mod.rs:1005:34
+     |
+1005 |         let dsa_secret_key_b64 = keys_json["dsa_sk"]
+     |                                  ^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using `.get(n)` or `.get_mut(n)` instead
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#indexing_slicing
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1052:13
+     |
+1052 |             total_v_count += v_count;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1053:13
+     |
+1053 |             total_v_index_size += v_index_size;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+    --> crates/WolfDb/src/storage/mod.rs:1054:13
+     |
+1054 |             total_v_deleted += v_deleted;
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/vector/mod.rs:141:9
+    |
+141 |         state.next_id += 1;
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: arithmetic operation that can potentially result in unexpected side-effects
+   --> crates/WolfDb/src/vector/mod.rs:181:13
+    |
+181 |             state.next_id += 1;
+    |             ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#arithmetic_side_effects
+
+error: could not compile `wolf_db` (lib) due to 55 previous errors
+For more information about this error, try `rustc --explain E0252`.
+error: could not compile `wolf_net` (lib) due to 76 previous errors

@@ -8,85 +8,75 @@
 //! - **`SwarmManager`**: Low-level P2P swarm management, discovery, and routing.
 //! - **`HuntCoordinator`**: An actor-based engine managing the "Wolf Pack" lifecycle (`Scent` -> `Stalk` -> `Strike`).
 
-/// Security alerts and notifications.
-pub mod alerts;
+/// Identity, authentication and key management.
+pub mod identity;
+/// Monitoring, alerting and reporting.
+pub mod observability;
+/// Common imports and re-exports for convenient use.
+pub mod prelude;
+/// Network security, threat detection and protection.
+pub mod protection;
+
 /// High-level application services and business logic.
 pub mod application;
-/// Identity and authentication management.
-pub mod authentication;
 /// Comprehensive security test suite.
 pub mod comprehensive_tests;
 /// Configuration integrity monitoring.
 pub mod configuration_monitor;
-/// Core cryptographic primitives and providers.
-pub mod crypto;
 /// Domain entities and repository traits.
 pub mod domain;
-/// Adapters for external threat intelligence feeds.
-pub mod external_feeds;
-/// Management of certificates and transient keys.
-pub mod identity;
-/// Concrete implementations of domain repositories and services.
 pub mod infrastructure;
-/// Integrations with third-party security systems.
-pub mod integration;
-pub mod key_management;
-/// Machine learning models for behavioral analysis.
+pub mod external_feeds {
+    pub use crate::infrastructure::adapters::threat_intel::*;
+}
+pub mod key_management {
+    pub use crate::identity::key_management::*;
+}
+pub use identity::key_management::KeyManager;
 pub mod ml;
-/// SIEM and telemetry collection subsystems.
-pub mod monitoring;
-/// Network-level security and transport protection.
-pub mod network_security;
-/// Peer reputation and behavioral scoring.
-pub mod reputation;
-/// Runtime SBOM validation.
-pub mod sbom_validation;
-/// Comprehensive security management and orchestration.
-pub mod security;
-/// Persistence layer for security data.
-pub mod store;
-/// Threat detection and analysis engines.
-pub mod threat_detection;
-/// Bridges to the broader Wolf Ecoystem.
 pub mod wolf_ecosystem_integration;
-pub use authentication::{AuthManager, Permission, Role, User};
+
+// Re-exports for backward compatibility
+pub use identity::auth::{self, AuthConfig, AuthManager, Permission, Role, User};
 pub use identity::{IdentityConfig, IdentityManager, SystemIdentity};
+pub use observability::alerts;
+pub use observability::audit;
+pub use observability::metrics;
+pub use observability::monitoring::{
+    self, MetricsCollector, SecurityDashboard, SecurityMonitor, SIEM,
+};
+pub use observability::reporting;
+pub use protection::network_security::{
+    self, CryptoAlgorithm, DigitalSignature, EncryptedMessage, KeyPair, SecurityConfig,
+    SecurityLevel, SecurityManager as NetworkSecurityManager, SignatureAlgorithm, HIGH_SECURITY,
+    LOW_SECURITY, MEDIUM_SECURITY,
+};
+pub use protection::reputation::{self, ReputationCategory};
+pub use protection::sbom_validation;
+pub use protection::threat_detection::{self, ThreatDetector, VulnerabilityScanner};
+
 pub use wolf_net::wolf_pack;
 
 pub use domain::events::{AuditEventType, CertificateAuditEvent};
-pub use key_management::{
-    AlertSeverity, Certificate, CertificateStore, ExpirationAlert, KeyEntry, KeyManager, KeyStore,
-    RevocationInfo, RevocationReason, RevocationStatus, TrustLevel, ValidationResult,
-};
-
-pub use monitoring::{MetricsCollector, SecurityDashboard, SecurityMonitor, SIEM};
-pub use reputation::ReputationCategory;
-
-pub use crypto::{constant_time_eq, secure_compare, CryptoConfig, SecureRandom, WolfCrypto};
-
-pub use threat_detection::{ThreatDetector, VulnerabilityScanner};
-
-pub use network_security::{
-    CryptoAlgorithm, DigitalSignature, EncryptedMessage, KeyPair, SecurityConfig, SecurityLevel,
-    SecurityManager as NetworkSecurityManager, SignatureAlgorithm, HIGH_SECURITY, LOW_SECURITY,
-    MEDIUM_SECURITY,
+pub use identity::crypto::{
+    constant_time_eq, secure_compare, CryptoConfig, SecureRandom, WolfCrypto,
 };
 use thiserror::Error;
 pub use wolf_net::firewall::{Action as FirewallAction, FirewallPolicy, FirewallRule};
 
-use crate::network_security::SecurityManager;
-use crate::security::advanced::siem::{
+use crate::observability::siem::{
     /* Asset, */ EventDetails, EventSeverity as SiemSeverity, EventSource, SIEMConfig,
     SecurityEvent as AdvancedSecurityEvent, SecurityEventType as SiemEventType, SourceType,
     WolfSIEMManager,
 };
+use crate::protection::network_security::SecurityManager;
 use uuid::Uuid;
 
-use crate::security::advanced::siem::ResponseAction;
+use crate::observability::siem::ResponseAction;
 use tokio::sync::mpsc;
 use wolf_net::{PeerId, SwarmCommand};
 
-use crate::security::advanced::container_security::wolf_den_containers::WolfDenContainerManager;
+use crate::protection::container_security::wolf_den_containers::WolfDenContainerManager;
 use crate::wolf_pack::hierarchy::WolfDenConfig;
 
 /// Custom Error Type for Wolf Security.
@@ -135,7 +125,7 @@ pub type SecurityEngine = WolfSecurity;
 /// central orchestrator that manages the lifecycle of all security components
 pub struct WolfSecurity {
     /// Manager for low-level network security and firewalling
-    pub network_security: SecurityManager,
+    pub network_security: NetworkSecurityManager,
     /// Core cryptographic engine for PQC-secured encryption and signing
     pub crypto: WolfCrypto,
     /// High-level threat detection and behavioral analysis engine
@@ -232,7 +222,7 @@ impl SecurityEvent {
         description: String,
     ) -> Self {
         Self {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: Uuid::new_v4().to_string(),
             timestamp: chrono::Utc::now(),
             event_type,
             severity,
@@ -294,16 +284,22 @@ impl WolfSecurity {
         }
 
         let auth_repo = std::sync::Arc::new(
-            crate::infrastructure::persistence::WolfDbAuthRepository::new(storage.clone()),
+            infrastructure::persistence::wolf_db_auth_repository::WolfDbAuthRepository::new(
+                storage.clone(),
+            ),
         );
         let alert_repo = std::sync::Arc::new(
-            crate::infrastructure::persistence::WolfDbAlertRepository::new(storage.clone()),
+            infrastructure::persistence::wolf_db_alert_repository::WolfDbAlertRepository::new(
+                storage.clone(),
+            ),
         );
         let monitoring_repo = std::sync::Arc::new(
-            crate::infrastructure::persistence::WolfDbMonitoringRepository::new(storage.clone()),
+            infrastructure::persistence::wolf_db_monitoring_repository::WolfDbMonitoringRepository::new(storage.clone()),
         );
         let threat_repo = std::sync::Arc::new(
-            crate::infrastructure::persistence::WolfDbThreatRepository::new(storage.clone()),
+            infrastructure::persistence::wolf_db_threat_repository::WolfDbThreatRepository::new(
+                storage.clone(),
+            ),
         );
 
         let (event_bus, _) = tokio::sync::broadcast::channel(1000);
@@ -458,7 +454,7 @@ impl WolfSecurity {
 
         // Alert administrators
         let monitoring_alert = monitoring::Alert {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: Uuid::new_v4().to_string(),
             timestamp: chrono::Utc::now(),
             severity: monitoring::AlertSeverity::High,
             title: "High Security Event".to_string(),
@@ -476,7 +472,7 @@ impl WolfSecurity {
     }
 
     /// Execute SOAR response actions
-    async fn execute_response_actions(
+    pub async fn execute_response_actions(
         &mut self,
         actions: Vec<ResponseAction>,
         event: &AdvancedSecurityEvent,
@@ -575,14 +571,13 @@ impl WolfSecurity {
 /// Configuration for Wolf Security
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WolfSecurityConfig {
-    pub network_security: network_security::SecurityConfig,
-    pub crypto: crypto::CryptoConfig,
+    pub network_security: SecurityConfig,
+    pub crypto: CryptoConfig,
     pub threat_detection: threat_detection::ThreatDetectionConfig,
-    pub authentication: authentication::AuthConfig,
-    pub key_management: key_management::KeyManagementConfig,
+    pub authentication: AuthConfig,
+    pub key_management: identity::key_management::KeyManagementConfig,
     pub monitoring: monitoring::MonitoringConfig,
     pub db_path: std::path::PathBuf,
-    // pub zero_trust: security::advanced::zero_trust::ZeroTrustConfig,
 }
 
 impl Default for WolfSecurityConfig {
@@ -603,10 +598,10 @@ impl Default for WolfSecurityConfig {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WolfSecurityStatus {
     pub network_security: network_security::SecurityStats,
-    pub crypto: crypto::CryptoStatus,
+    pub crypto: identity::crypto::CryptoStatus,
     pub threat_detection: threat_detection::ThreatDetectionStatus,
-    pub authentication: authentication::AuthStatus,
-    pub key_management: key_management::KeyManagementStatus,
+    pub authentication: auth::AuthStatus,
+    pub key_management: identity::key_management::KeyManagementStatus,
     pub monitoring: monitoring::MonitoringStatus,
 }
 
@@ -620,9 +615,8 @@ impl WolfSecurity {
         };
 
         // Map event type vaguely for now
-        let event_type = SiemEventType::SystemEvent(
-            crate::security::advanced::siem::SystemEventType::SystemUpdate,
-        ); // Default fallback
+        let event_type =
+            SiemEventType::SystemEvent(observability::siem::SystemEventType::SystemUpdate); // Default fallback
 
         AdvancedSecurityEvent {
             event_id: Uuid::parse_str(&event.id).unwrap_or_else(|_| Uuid::new_v4()),
@@ -644,7 +638,7 @@ impl WolfSecurity {
                 system_context: None,
             },
             mitre_tactics: vec![],
-            correlation_data: crate::security::advanced::siem::CorrelationData {
+            correlation_data: observability::siem::CorrelationData {
                 related_events: vec![],
                 correlation_score: 0.0,
                 correlation_rules: vec![],

@@ -1,7 +1,7 @@
 // /home/t4riq/Desktop/Rust/wolf_prowler/wolfsec/src/application/queries/network/get_status.rs
 use crate::application::error::ApplicationError;
-use crate::domain::entities::network::NetworkSecurityStatus;
 use crate::application::services::NetworkSecurityService;
+use crate::domain::entities::network::NetworkSecurityStatus;
 use anyhow::Context;
 use std::sync::Arc;
 

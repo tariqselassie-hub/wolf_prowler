@@ -108,7 +108,7 @@ pub struct DbThreatIntelligence {
 
 impl DbSecurityEvent {
     /// Convert from SIEM SecurityEvent to database model
-    pub fn from_siem_event(event: &wolfsec::security::advanced::siem::SecurityEvent) -> Self {
+    pub fn from_siem_event(event: &wolfsec::observability::siem::SecurityEvent) -> Self {
         // Extract peer_id from affected assets if available (first asset's ID)
         let peer_id = event
             .affected_assets

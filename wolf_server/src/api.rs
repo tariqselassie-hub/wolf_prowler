@@ -6,18 +6,20 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::api_middleware::create_cors_layer;
-use wolf_db::WolfDbStorage;
+use wolf_db::storage::WolfDbStorage;
 use wolf_net::api::{ApiResponse, BroadcastRequest, ConnectPeerRequest, WolfNodeControl};
 use wolf_net::peer::{EntityInfo, PeerId};
 use wolf_net::wolf_pack::coordinator::CoordinatorMsg;
-use wolf_net::wolf_pack::state::{ActiveHunt, WolfState};
-use wolfsec::store::WolfDbThreatRepository;
+use wolf_net::wolf_pack::state::WolfState;
+pub use wolfsec;
+use wolfsec::domain::repositories::AlertRepository;
+use wolfsec::infrastructure::persistence::wolf_db_alert_repository::WolfDbAlertRepository;
 use wolfsec::WolfSecurity;
 
 /// Shared application state for the Axum server
@@ -32,7 +34,7 @@ pub struct AppState {
     /// Shared storage for the JWT authentication token
     pub auth_token: Arc<RwLock<Option<String>>>,
     /// Handle to the persistence layer
-    pub persistence: Option<Arc<WolfDbStorage>>,
+    pub persistence: Option<Arc<RwLock<WolfDbStorage>>>,
     /// The WolfSecurity engine
     pub security: Arc<RwLock<WolfSecurity>>,
 }
@@ -91,16 +93,13 @@ pub async fn trigger_manual_hunt(
 
     let msg = CoordinatorMsg::KillOrder {
         target_ip: payload.target_ip,
-        authorizer: state.control.command_tx.clone().into(), // Conceptual: use local PeerId
+        authorizer: PeerId::random(), // Conceptual placeholder
         reason: payload.reason,
         hunt_id,
     };
 
     match state.control.send_coordinator_msg(msg).await {
-        Ok(_) => (
-            StatusCode::ACCEPTED,
-            Json(ApiResponse::success("Hunt triggered")),
-        ),
+        Ok(_) => (StatusCode::ACCEPTED, Json(ApiResponse::<()>::success(()))),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ApiResponse::<()>::error(e.to_string())),
@@ -124,14 +123,16 @@ pub async fn get_alerts_history(
         }
     };
 
-    let repository = WolfDbThreatRepository::new(storage);
+    let repository = WolfDbAlertRepository::new(storage);
     let limit = query.limit.unwrap_or(100);
 
     match repository.get_recent_alerts(limit).await {
         Ok(alerts) => Json(ApiResponse::success(alerts)).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse::<()>::error(e.to_string())),
+            Json(ApiResponse::<Vec<wolfsec::domain::entities::Alert>>::error(
+                e.to_string(),
+            )),
         )
             .into_response(),
     }

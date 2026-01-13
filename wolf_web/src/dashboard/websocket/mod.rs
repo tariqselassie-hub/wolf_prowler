@@ -21,7 +21,7 @@ use uuid::Uuid;
 
 use crate::dashboard::state::AppState;
 use wolf_net::{swarm::NetworkMetrics, SwarmManager};
-use wolfsec::security::advanced::iam::{ApiKeyValidationResult, SessionValidationResult};
+use wolfsec::identity::iam::{ApiKeyValidationResult, SessionValidationResult};
 use wolfsec::WolfSecurity;
 
 /// WebSocket connection state

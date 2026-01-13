@@ -1,11 +1,11 @@
-use crate::storage::WolfDbStorage;
 use crate::storage::model::Record;
+use crate::storage::WolfDbStorage;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use comfy_table::Table;
-use rustyline::DefaultEditor;
 use rustyline::error::ReadlineError;
+use rustyline::DefaultEditor;
 use std::collections::HashMap;
 
 #[derive(Parser)]
@@ -81,23 +81,24 @@ impl QueryEngine {
     ///
     /// Returns an error if the REPL session cannot be initialized, historical commands cannot be loaded,
     /// or if database operations fail.
+    #[allow(clippy::cognitive_complexity)]
     #[allow(clippy::too_many_lines)]
     pub async fn run_repl(&mut self) -> Result<()> {
-        println!(
+        tracing::info!(
             "{}",
             "----------------------------------------".bright_blue()
         );
-        println!(
+        tracing::info!(
             "{}",
             "      WOLFDB HYBRID PQC DATABASE       "
-            .bright_white()
-            .bold()
+                .bright_white()
+                .bold()
         );
-        println!(
+        tracing::info!(
             "{}",
             "----------------------------------------".bright_blue()
         );
-        println!("Type 'help' or any command. Use 'exit' to quit.\n");
+        tracing::info!("Type 'help' or any command. Use 'exit' to quit.\n");
 
         let mut rl = DefaultEditor::new()?;
         let history_path = "wolfdb_history.txt";
@@ -127,12 +128,12 @@ impl QueryEngine {
             self.storage
                 .unlock(&password, hsm_pin)
                 .context("Failed to unlock database. Invalid password?")?;
-            println!(
+            tracing::info!(
                 "{}",
                 "✔ Database unlocked. PQC session active.".bright_green()
             );
         } else {
-            println!(
+            tracing::info!(
                 "{}",
                 "Welcome! Please set a master password for your PQC database.".bright_blue()
             );
@@ -156,14 +157,14 @@ impl QueryEngine {
             }
 
             self.storage.initialize_keystore(&password, hsm_pin)?;
-            println!(
+            tracing::info!(
                 "{}",
                 "✔ Keystore initialized with PQ-KEM (Kyber768) and PQ-DSA (Dilithium)."
-                .bright_green()
+                    .bright_green()
             );
 
             // Phase 3: Email Backup
-            println!("\n{}", "--- SECURE BACKUP SETUP ---".bright_blue().bold());
+            tracing::info!("\n{}", "--- SECURE BACKUP SETUP ---".bright_blue().bold());
             let do_backup: bool = dialoguer::Confirm::new()
                 .with_prompt("Enable Cloud/Email Backup?")
                 .default(true)
@@ -179,11 +180,11 @@ impl QueryEngine {
                     .with_confirmation("Confirm Recovery Password", "Passwords do not match!")
                     .interact()?;
 
-                println!("Generating encrypted recovery blob...");
+                tracing::info!("Generating encrypted recovery blob...");
                 let blob = self.storage.generate_recovery_backup(&recovery_pass)?;
 
                 crate::backup::email::EmailBackup::send_recovery_key(&email, &blob, None).await?;
-                println!("{}", "✔ Secure recovery backup completed.".bright_green());
+                tracing::info!("{}", "✔ Secure recovery backup completed.".bright_green());
             }
         }
 
@@ -210,16 +211,16 @@ impl QueryEngine {
                     match Cli::try_parse_from(parts) {
                         Ok(cli) => {
                             if let Err(e) = self.execute(cli.command).await {
-                                println!("{} {e}", "Error:".bright_red().bold());
+                                tracing::error!("{} {e}", "Error:".bright_red().bold());
                             }
                         }
                         Err(e) => {
-                            println!("{e}");
+                            tracing::error!("{e}");
                         }
                     }
                 }
                 Err(ReadlineError::Interrupted) => {
-                    println!(
+                    tracing::info!(
                         "\n{}",
                         "(!) Interrupted. Cleaning up session...".bright_yellow()
                     );
@@ -227,12 +228,12 @@ impl QueryEngine {
                     break;
                 }
                 Err(ReadlineError::Eof) => {
-                    println!("{}", "(!) Session ended.".bright_yellow());
+                    tracing::info!("{}", "(!) Session ended.".bright_yellow());
                     let _ = self.save();
                     break;
                 }
                 Err(err) => {
-                    println!("{} {err:?}", "Error:".bright_red());
+                    tracing::error!("{} {err:?}", "Error:".bright_red());
                     break;
                 }
             }
@@ -249,6 +250,7 @@ impl QueryEngine {
     ///
     /// Returns an error if the command fails.
     #[allow(clippy::too_many_lines)]
+    #[allow(clippy::cognitive_complexity)]
     async fn execute(&mut self, cmd: Commands) -> Result<()> {
         match cmd {
             Commands::Status => {
@@ -257,14 +259,14 @@ impl QueryEngine {
                 } else {
                     "LOCKED".bright_red()
                 };
-                println!("Security Status: {status}");
-                println!(
+                tracing::info!("Security Status: {status}");
+                tracing::info!(
                     "Key Type: {}",
                     "ML-KEM (Kyber768) + ML-DSA (Dilithium)".bright_white()
                 );
 
                 if let Ok(info) = self.storage.get_info() {
-                    println!("\n{}", "--- DATABASE METRICS ---".bright_blue().bold());
+                    tracing::info!("\n{}", "--- DATABASE METRICS ---".bright_blue().bold());
                     let mut table = Table::new();
                     table.set_header(vec!["Metric", "Value"]);
                     if let Some(obj) = info.as_object() {
@@ -272,25 +274,34 @@ impl QueryEngine {
                             table.add_row(vec![k, &v.to_string()]);
                         }
                     }
-                    println!("{table}");
+                    tracing::info!("{table}");
                 }
             }
             Commands::List { limit } => {
                 let keys = self.storage.list_keys("default".to_string()).await?; // Assuming 'default' table for now
                 if keys.is_empty() {
-                     println!("{}", "No records found.".bright_yellow());
+                    tracing::info!("{}", "No records found.".bright_yellow());
                 } else {
-                    println!("\n{}", format!("--- LISTING RECORDS (Limit: {limit}) ---").bright_blue().bold());
+                    tracing::info!(
+                        "\n{}",
+                        format!("--- LISTING RECORDS (Limit: {limit}) ---")
+                            .bright_blue()
+                            .bold()
+                    );
                     let mut table = Table::new();
                     table.set_header(vec!["#", "Record ID"]);
-                    
+
                     for (i, key) in keys.iter().take(limit).enumerate() {
-                        table.add_row(vec![(i + 1).to_string(), key.clone()]);
+                        table.add_row(vec![i.saturating_add(1).to_string(), key.clone()]);
                     }
-                    println!("{table}");
-                    
+                    tracing::info!("{table}");
+
                     if keys.len() > limit {
-                        println!("{}", format!("... and {} more records.", keys.len() - limit).dimmed());
+                        tracing::info!(
+                            "{}",
+                            format!("... and {} more records.", keys.len().saturating_sub(limit))
+                                .dimmed()
+                        );
                     }
                 }
             }
@@ -315,8 +326,10 @@ impl QueryEngine {
                     data: data_map,
                     vector: vector_data,
                 };
-                self.storage.insert_record("default".to_string(), record, pk).await?;
-                println!(
+                self.storage
+                    .insert_record("default".to_string(), record, pk)
+                    .await?;
+                tracing::info!(
                     "{} Record '{}' encrypted and persisted.",
                     "✔".bright_green(),
                     id.bright_white().bold()
@@ -328,10 +341,14 @@ impl QueryEngine {
                     .get_active_sk()
                     .context("No KEM secret key active. Unlock required.")?
                     .to_vec();
-                if let Some(record) = self.storage.get_record("default".to_string(), id.clone(), sk).await? {
+                if let Some(record) = self
+                    .storage
+                    .get_record("default".to_string(), id.clone(), sk)
+                    .await?
+                {
                     Self::print_record(&record);
                 } else {
-                    println!("{} Record '{id}' not found.", "✘".bright_yellow());
+                    tracing::info!("{} Record '{id}' not found.", "✘".bright_yellow());
                 }
             }
             Commands::Search { vector, k } => {
@@ -345,15 +362,16 @@ impl QueryEngine {
 
                 let results = self
                     .storage
-                    .search_similar_records("default".to_string(), query_vec, k, sk).await?;
+                    .search_similar_records("default".to_string(), query_vec, k, sk)
+                    .await?;
 
                 if results.is_empty() {
-                    println!("{}", "No similar records found.".bright_yellow());
+                    tracing::info!("{}", "No similar records found.".bright_yellow());
                 } else {
                     Self::print_results(results);
                 }
             }
-    Commands::Recover { blob } => {
+            Commands::Recover { blob } => {
                 let recovery_pass = dialoguer::Password::new()
                     .with_prompt("Recovery Security Password")
                     .interact()?;
@@ -365,30 +383,34 @@ impl QueryEngine {
 
                 self.storage
                     .recover_from_backup(&blob, &recovery_pass, &new_master_pass)?;
-                println!(
+                tracing::info!(
                     "{}",
                     "✔ Database keys recovered and re-initialized.".bright_green()
                 );
             }
             Commands::ImportSqlite { path } => {
-                println!("{}", format!("Importing from SQLite: {path}").bright_blue());
+                tracing::info!("{}", format!("Importing from SQLite: {path}").bright_blue());
 
-                let pk = self.storage.get_active_pk()
+                let pk = self
+                    .storage
+                    .get_active_pk()
                     .context("No KEM public key active. Unlock required.")?
                     .to_vec();
 
                 let records_map = crate::import::sqlite::SqliteImporter::import_from_path(&path)?;
-                let mut total_records = 0;
+                let mut total_records: usize = 0;
 
                 for (table_name, records) in records_map {
-                    println!("  Processing table: {}", table_name.bright_white());
+                    tracing::info!("  Processing table: {}", table_name.bright_white());
                     let count = records.len();
-                    self.storage.insert_batch_records(table_name, records, pk.clone()).await?;
-                    println!("    -> Imported {count} records");
-                    total_records += count;
+                    self.storage
+                        .insert_batch_records(table_name, records, pk.clone())
+                        .await?;
+                    tracing::info!("    -> Imported {count} records");
+                    total_records = total_records.saturating_add(count);
                 }
 
-                println!(
+                tracing::info!(
                     "{} Import complete. Total records: {total_records}",
                     "✔".bright_green()
                 );
@@ -402,7 +424,7 @@ impl QueryEngine {
 
     fn save(&self) -> Result<()> {
         self.storage.save().map_err(|e| anyhow::anyhow!(e))?;
-        println!(
+        tracing::info!(
             "{}",
             "✔ Database persistence complete.".bright_green().dimmed()
         );
@@ -421,7 +443,7 @@ impl QueryEngine {
             table.add_row(vec!["Vector Data", &format!("{v:?}")]);
         }
 
-        println!("\n{table}");
+        tracing::info!("\n{table}");
     }
 
     fn print_results(results: Vec<(Record, f32)>) {
@@ -431,13 +453,13 @@ impl QueryEngine {
         for (i, (rec, dist)) in results.into_iter().enumerate() {
             let meta_str = serde_json::to_string(&rec.data).unwrap_or_default();
             table.add_row(vec![
-                (i + 1).to_string(),
+                i.saturating_add(1).to_string(),
                 format!("{dist:.4}"),
                 rec.id,
                 meta_str,
             ]);
         }
 
-        println!("\n{table}");
+        tracing::info!("\n{table}");
     }
 }

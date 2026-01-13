@@ -54,9 +54,12 @@ async fn test_network_security_event_integration() -> Result<()> {
 
     // 2. Simulate a Wolf Net Event (e.g. from Swarm)
     let peer_id = "12D3KooWSimulatedPeer".to_string();
-    
+
     // Register the peer first so ThreatDetector knows about it (required for blocking)
-    wolf_sec.threat_detector.register_peer(peer_id.clone(), 0.5).await?;
+    wolf_sec
+        .threat_detector
+        .register_peer(peer_id.clone(), 0.5)
+        .await?;
 
     let net_event = NetEvent::new(
         NetEventType::PolicyViolation,

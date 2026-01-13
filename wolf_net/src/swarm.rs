@@ -3,10 +3,21 @@
 //! This module handles the libp2p swarm and network operations.
 
 use crate::behavior::WolfBehaviorEvent;
+use crate::consensus::manager::ConsensusManager;
+use crate::consensus::network::RaftNetworkMessage;
 use crate::encrypted_handler::EncryptedMessageHandler;
 use crate::encryption::MessageEncryption;
+use crate::event::{SecurityEvent, SecurityEventType, SecuritySeverity};
+use crate::firewall::{
+    Action, FirewallRule, InternalFirewall, Protocol, RuleTarget, TrafficDirection,
+};
+use crate::message::Message;
 use crate::metrics_simple;
-use crate::peer::PeerId;
+use crate::peer::{EntityId, EntityInfo, EntityStatus, PeerId, ServiceType, SystemType};
+use crate::protocol::{WolfRequest, WolfResponse};
+use crate::wolf_pack::coordinator::{CoordinatorMsg, HuntCoordinator};
+use crate::wolf_pack::howl::{HowlMessage, HowlPayload};
+use crate::wolf_pack::state::{WolfRole, WolfState};
 use crate::WolfBehavior;
 use async_trait::async_trait;
 use futures::StreamExt;
@@ -22,7 +33,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::sync::{mpsc, oneshot, Mutex, RwLock};
 use tracing::{debug, error, info, warn};
 use wolf_den::SecurityLevel;
 use x25519_dalek::PublicKey as X25519PublicKey;
@@ -82,8 +93,6 @@ pub struct NetworkMetrics {
     pub network_health: f64,
 }
 
-use crate::message::Message;
-
 /// Commands to send to the swarm event loop.
 #[derive(Debug)]
 pub enum SwarmCommand {
@@ -104,7 +113,7 @@ pub enum SwarmCommand {
     /// Broadcast a Howl message (P2P Protocol)
     BroadcastHowl {
         /// Howl message
-        message: crate::wolf_pack::howl::HowlMessage,
+        message: HowlMessage,
     },
     /// General broadcast (bytes)
     Broadcast(Vec<u8>),
@@ -151,7 +160,7 @@ pub enum SwarmCommand {
         /// Target peer
         target: PeerId,
         /// Request object
-        request: crate::protocol::WolfRequest,
+        request: WolfRequest,
         /// Responder
         responder: oneshot::Sender<anyhow::Result<()>>,
     },
@@ -175,35 +184,35 @@ pub enum SwarmCommand {
         /// Target peer
         target: PeerId,
         /// Request
-        request: crate::protocol::WolfRequest,
+        request: WolfRequest,
         /// Responder
         responder: oneshot::Sender<anyhow::Result<()>>,
     },
     /// List known peers
     ListPeers {
         /// Responder
-        responder: oneshot::Sender<Vec<crate::peer::EntityInfo>>,
+        responder: oneshot::Sender<Vec<EntityInfo>>,
     },
     /// Get peer info
     GetPeerInfo {
         /// Peer ID
         peer_id: PeerId,
         /// Responder
-        responder: oneshot::Sender<Option<crate::peer::EntityInfo>>,
+        responder: oneshot::Sender<Option<EntityInfo>>,
     },
     /// Send a consensus message to the network
-    ConsensusMessage(crate::consensus::network::RaftNetworkMessage),
+    ConsensusMessage(RaftNetworkMessage),
     /// Get Wolf Pack state
     GetWolfState {
         /// Responder
-        responder: oneshot::Sender<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>>,
+        responder: oneshot::Sender<Arc<RwLock<WolfState>>>,
     },
     /// Omega: Force Rank
     OmegaForceRank {
         /// Target peer
         target: PeerId,
         /// New role
-        role: crate::wolf_pack::state::WolfRole,
+        role: WolfRole,
     },
     /// Omega: Force Prestige
     OmegaForcePrestige {
@@ -246,7 +255,7 @@ pub struct SwarmManager {
     metrics: Arc<Mutex<NetworkMetrics>>,
     /// Peer registry for status tracking and discovery
     #[allow(dead_code)]
-    peer_registry: Arc<Mutex<HashMap<crate::peer::PeerId, crate::peer::EntityInfo>>>,
+    peer_registry: Arc<Mutex<HashMap<PeerId, EntityInfo>>>,
     /// Shutdown signal sender
     shutdown_sender: Option<oneshot::Sender<()>>,
     /// Swarm handle
@@ -254,13 +263,13 @@ pub struct SwarmManager {
     /// Encrypted message handler
     pub encrypted_handler: Arc<EncryptedMessageHandler>,
     /// Firewall manager
-    pub firewall: Arc<tokio::sync::RwLock<crate::firewall::InternalFirewall>>,
+    pub firewall: Arc<RwLock<InternalFirewall>>,
     /// Consensus manager
-    pub consensus: Arc<tokio::sync::RwLock<Option<crate::consensus::manager::ConsensusManager>>>,
+    pub consensus: Arc<RwLock<Option<ConsensusManager>>>,
     /// Hunt Coordinator sender for wolf pack operations
-    hunt_coordinator_sender: mpsc::Sender<crate::wolf_pack::coordinator::CoordinatorMsg>,
+    hunt_coordinator_sender: mpsc::Sender<CoordinatorMsg>,
     /// Shared wolf pack state
-    wolf_state: Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>,
+    wolf_state: Arc<RwLock<WolfState>>,
     /// Reputation reporter hook
     pub reputation_reporter: Option<Arc<dyn ReputationReporter>>,
 }
@@ -283,7 +292,7 @@ pub struct SwarmConfig {
     /// Path to the keypair file
     pub keypair_path: PathBuf,
     /// Channel for sending security events
-    pub security_event_sender: Option<mpsc::UnboundedSender<crate::event::SecurityEvent>>,
+    pub security_event_sender: Option<mpsc::UnboundedSender<SecurityEvent>>,
     /// Reputation reporter hook
     pub reputation_reporter: Option<Arc<dyn ReputationReporter>>,
     /// Deterministic identity seed
@@ -298,6 +307,7 @@ impl Default for SwarmConfig {
         path.push("wolf_prowler_swarm.key");
 
         Self {
+            #[allow(clippy::unwrap_used)]
             listen_addresses: vec!["/ip4/0.0.0.0/tcp/0".parse().unwrap()],
             bootstrap_peers: Vec::new(),
             max_connections: 50,
@@ -327,8 +337,7 @@ impl SwarmConfig {
         for addr in &self.listen_addresses {
             if !addr.to_string().starts_with("/ip4/") && !addr.to_string().starts_with("/ip6/") {
                 return Err(anyhow::anyhow!(
-                    "Invalid listen address format: {}. Must start with /ip4/ or /ip6/",
-                    addr
+                    "Invalid listen address format: {addr}. Must start with /ip4/ or /ip6/"
                 ));
             }
         }
@@ -350,9 +359,7 @@ impl SwarmManager {
     }
 
     /// Returns a sender handle to the HuntCoordinator
-    pub fn hunt_coordinator_sender(
-        &self,
-    ) -> mpsc::Sender<crate::wolf_pack::coordinator::CoordinatorMsg> {
+    pub fn hunt_coordinator_sender(&self) -> mpsc::Sender<CoordinatorMsg> {
         self.hunt_coordinator_sender.clone()
     }
 
@@ -372,9 +379,7 @@ impl SwarmManager {
         let peer_registry = Arc::new(Mutex::new(HashMap::new()));
 
         // Initialize Firewall
-        let firewall = Arc::new(tokio::sync::RwLock::new(
-            crate::firewall::InternalFirewall::new(),
-        ));
+        let firewall = Arc::new(RwLock::new(InternalFirewall::new()));
 
         // Load or create a new identity with improved error handling
         let local_key = if let Some(seed) = &config.identity_seed {
@@ -388,12 +393,13 @@ impl SwarmManager {
             let mut bytes = [0u8; 32];
             let seed_bytes = seed_u64.to_le_bytes();
             #[allow(clippy::cast_possible_truncation)]
+            #[allow(clippy::indexing_slicing)]
             for i in 0..32 {
                 bytes[i] = seed_bytes[i % 8].wrapping_add(i as u8);
             }
 
             identity::Keypair::ed25519_from_bytes(bytes)
-                .map_err(|e| anyhow::anyhow!("Failed to generate key from seed: {}", e))?
+                .map_err(|e| anyhow::anyhow!("Failed to generate key from seed: {e}"))?
         } else {
             match fs::read(&config.keypair_path) {
                 Ok(key_bytes) => {
@@ -410,11 +416,11 @@ impl SwarmManager {
                     let key = identity::Keypair::generate_ed25519();
                     let key_bytes = key
                         .to_protobuf_encoding()
-                        .map_err(|e| anyhow::anyhow!("Failed to encode keypair: {}", e))?;
+                        .map_err(|e| anyhow::anyhow!("Failed to encode keypair: {e}"))?;
 
                     if let Some(parent) = config.keypair_path.parent() {
                         fs::create_dir_all(parent).map_err(|e| {
-                            anyhow::anyhow!("Failed to create directory for keypair: {}", e)
+                            anyhow::anyhow!("Failed to create directory for keypair: {e}")
                         })?;
                     }
 
@@ -443,7 +449,7 @@ impl SwarmManager {
 
         // Initialize behavior
         let behavior = WolfBehavior::new(&local_key, &config)
-            .map_err(|e| anyhow::anyhow!("Failed to create behavior: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to create behavior: {e}"))?;
 
         let mut swarm = SwarmBuilder::with_existing_identity(local_key)
             .with_tokio()
@@ -452,7 +458,7 @@ impl SwarmManager {
                 noise::Config::new,
                 yamux::Config::default,
             )
-            .map_err(|e| anyhow::anyhow!("Failed to create TCP transport: {}", e))?
+            .map_err(|e| anyhow::anyhow!("Failed to create TCP transport: {e}"))?
             .with_quic() // HyperPulse: Enable QUIC low-latency transport
             .with_behaviour(|_| behavior)?
             .build();
@@ -461,7 +467,7 @@ impl SwarmManager {
         for addr in &config.listen_addresses {
             swarm
                 .listen_on(addr.clone())
-                .map_err(|e| anyhow::anyhow!("Failed to listen on {}: {}", addr, e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to listen on {addr}: {e}"))?;
         }
 
         // Subscribe to priority topics
@@ -478,9 +484,7 @@ impl SwarmManager {
                 .behaviour_mut()
                 .gossipsub
                 .subscribe(&topic)
-                .map_err(|e| {
-                    anyhow::anyhow!("Failed to subscribe to topic {}: {}", topic_name, e)
-                })?;
+                .map_err(|e| anyhow::anyhow!("Failed to subscribe to topic {topic_name}: {e}"))?;
         }
 
         info!(
@@ -491,13 +495,11 @@ impl SwarmManager {
         // Initialize encryption
         let encryption = Arc::new(
             MessageEncryption::new(SecurityLevel::Standard)
-                .map_err(|e| anyhow::anyhow!("Failed to initialize encryption: {}", e))?,
+                .map_err(|e| anyhow::anyhow!("Failed to initialize encryption: {e}"))?,
         );
         let encrypted_handler = Arc::new(EncryptedMessageHandler::new(encryption));
 
-        let consensus_manager = Arc::new(tokio::sync::RwLock::new(
-            None::<crate::consensus::manager::ConsensusManager>,
-        ));
+        let consensus_manager = Arc::new(RwLock::new(None::<ConsensusManager>));
         let consensus_manager_init = consensus_manager.clone();
         let consensus_swarm_tx = command_sender.clone();
         let consensus_keypair_path = config.keypair_path.clone();
@@ -526,17 +528,16 @@ impl SwarmManager {
             let storage_path = consensus_keypair_path
                 .parent()
                 .unwrap_or(&std::env::temp_dir())
-                .join(format!("consensus_db_{}", node_id));
+                .join(format!("consensus_db_{node_id}"));
 
-            match crate::consensus::manager::ConsensusManager::start(
+            match ConsensusManager::start(
                 node_id,
                 initial_nodes,
                 storage_path.to_str().unwrap_or("/tmp/wolf_consensus"),
                 consensus_swarm_tx,
             ) {
                 Ok(cm) => {
-                    let mut lock = consensus_manager_init.write().await;
-                    *lock = Some(cm);
+                    consensus_manager_init.write().await.replace(cm);
                     info!("Consensus Manager started and registered");
                 }
                 Err(e) => {
@@ -558,8 +559,8 @@ impl SwarmManager {
         let consensus_manager_clone = consensus_manager.clone();
 
         // Initialize Wolf Pack State and Hunt Coordinator
-        let (actor, hunt_sender, wolf_state) = crate::wolf_pack::coordinator::HuntCoordinator::new(
-            crate::wolf_pack::state::WolfRole::Stray,
+        let (actor, hunt_sender, wolf_state) = HuntCoordinator::new(
+            WolfRole::Stray,
             command_sender.clone(),
             local_peer_id.clone(),
             0, // Initial prestige
@@ -591,12 +592,12 @@ impl SwarmManager {
                                            // Firewall check
                                            {
                                                let firewall = firewall_clone.read().await;
-                                               let target_peer = crate::firewall::RuleTarget::PeerId(peer_id.to_string());
+                                               let target_peer = RuleTarget::PeerId(peer_id.to_string());
                                                // We can't easily check IP here without endpoint info, but we can check PeerID
                                                if !firewall.check_access(
                                                    &target_peer,
-                                                   &crate::firewall::Protocol::WolfProto,
-                                                   &crate::firewall::TrafficDirection::Inbound
+                                                   &Protocol::WolfProto,
+                                                   &TrafficDirection::Inbound
                                                ) {
                                                    warn!("🔥 Firewall blocked incoming connection from {}", peer_id);
 
@@ -613,9 +614,9 @@ impl SwarmManager {
 
                                                    // Send security event for block
                                                    if let Some(sender) = &security_sender {
-                                                       let event = crate::event::SecurityEvent::new(
-                                                           crate::event::SecurityEventType::PolicyViolation,
-                                                           crate::event::SecuritySeverity::Medium,
+                                                       let event = SecurityEvent::new(
+                                                           SecurityEventType::PolicyViolation,
+                                                           SecuritySeverity::Medium,
                                                            format!("Firewall blocked peer {}", peer_id),
                                                        ).with_peer(peer_id.to_string());
                                                        let _ = sender.send(event);
@@ -625,7 +626,7 @@ impl SwarmManager {
                                            }
 
                                            // Update metrics
-                                           metrics_clone.lock().await.connection_attempts += 1;
+                                           { let mut m = metrics_clone.lock().await; m.connection_attempts = m.connection_attempts.saturating_add(1); }
                                            info!("🤝 Connection established with: {}", peer_id);
 
                                            if let Some(reporter) = &reputation_reporter {
@@ -652,7 +653,7 @@ impl SwarmManager {
 
                                             // Initiate key exchange
                                             let public_key = encrypted_handler.public_key();
-                                            let req = crate::protocol::WolfRequest::KeyExchange {
+                                            let req = WolfRequest::KeyExchange {
                                                 public_key: public_key.as_bytes().to_vec(),
                                             };
                                             swarm.behaviour_mut().req_resp.send_request(&peer_id, req);
@@ -669,26 +670,24 @@ impl SwarmManager {
 
                                             // Update Peer Registry
                                             {
-                                                let mut registry = peer_registry_clone.lock().await;
-                                                let target = crate::peer::PeerId::from_libp2p(peer_id);
-                                                let entry = registry.entry(target).or_insert_with(|| {
-                                                    let entity_id = crate::peer::EntityId::create(
-                                                        crate::peer::ServiceType::Unknown,
-                                                        crate::peer::SystemType::Unknown,
+                                                let target = PeerId::from_libp2p(peer_id);
+                                                peer_registry_clone.lock().await.entry(target.clone()).or_insert_with(|| {
+                                                    let entity_id = EntityId::create(
+                                                        ServiceType::Unknown,
+                                                        SystemType::Unknown,
                                                         "0.1.0",
                                                     );
-                                                    let mut info = crate::peer::EntityInfo::new(entity_id);
-                                                    info.entity_id.peer_id = PeerId::from_libp2p(peer_id);
+                                                    let mut info = EntityInfo::new(entity_id);
+                                                    info.entity_id.peer_id = target;
                                                     info
-                                                });
-                                                entry.set_status(crate::peer::EntityStatus::Online);
+                                                }).set_status(EntityStatus::Online);
                                             }
 
                                            // Send security event
                                            if let Some(sender) = &security_sender {
-                                               let event = crate::event::SecurityEvent::new(
-                                                   crate::event::SecurityEventType::Other("ConnectionEstablished".to_string()),
-                                                   crate::event::SecuritySeverity::Low,
+                                               let event = SecurityEvent::new(
+                                                   SecurityEventType::Other("ConnectionEstablished".to_string()),
+                                                   SecuritySeverity::Low,
                                                    format!("Connected to {}", peer_id),
                                                ).with_peer(peer_id.to_string());
                                                let _ = sender.send(event);
@@ -719,9 +718,9 @@ impl SwarmManager {
                                             // Update Peer Registry
                                             {
                                                 let mut registry = peer_registry_clone.lock().await;
-                                                let target = crate::peer::PeerId::from_libp2p(peer_id);
+                                                let target = PeerId::from_libp2p(peer_id);
                                                 if let Some(info) = registry.get_mut(&target) {
-                                                    info.set_status(crate::peer::EntityStatus::Offline);
+                                                    info.set_status(EntityStatus::Offline);
                                                     // Update uptime
                                                     let uptime = active_connections_clone.lock().await.get(&peer_id)
                                                         .map(|c| u64::try_from(c.connected_since.elapsed().as_millis()).unwrap_or(u64::MAX))
@@ -732,9 +731,9 @@ impl SwarmManager {
 
                                            // Send security event
                                            if let Some(sender) = &security_sender {
-                                               let event = crate::event::SecurityEvent::new(
-                                                   crate::event::SecurityEventType::Other("ConnectionClosed".to_string()),
-                                                   crate::event::SecuritySeverity::Low,
+                                               let event = SecurityEvent::new(
+                                                   SecurityEventType::Other("ConnectionClosed".to_string()),
+                                                   SecuritySeverity::Low,
                                                    format!("Connection closed with {}: {:?}", peer_id, cause),
                                                ).with_peer(peer_id.to_string());
                                                let _ = sender.send(event);
@@ -774,7 +773,7 @@ impl SwarmManager {
                                                            }
 
                                                             let mut registry = peer_registry_clone.lock().await;
-                                                            let target = crate::peer::PeerId::from_libp2p(event.peer);
+                                                            let target = PeerId::from_libp2p(event.peer);
                                                              if let Some(info) = registry.get_mut(&target) {
                                                                  info.metrics.latency_ms = u64::try_from(rtt.as_millis()).unwrap_or(u64::MAX);
                                                                  info.metrics.update_health();
@@ -792,7 +791,7 @@ impl SwarmManager {
                                                                ).await;
                                                            }
 
-                                                            metrics_clone.lock().await.connection_failures += 1;
+                                                            { let mut m = metrics_clone.lock().await; m.connection_failures = m.connection_failures.saturating_add(1); }
                                                         }
                                                     }
                                                }
@@ -811,14 +810,14 @@ impl SwarmManager {
 
                                                         // Update registry with metadata
                                                         let mut registry = peer_registry_clone.lock().await;
-                                                        let target = crate::peer::PeerId::from_libp2p(peer_id);
+                                                        let target = PeerId::from_libp2p(peer_id);
                                                         let entry = registry.entry(target).or_insert_with(|| {
-                                                            let entity_id = crate::peer::EntityId::create(
-                                                                crate::peer::ServiceType::Unknown,
-                                                                crate::peer::SystemType::Unknown,
+                                                            let entity_id = EntityId::create(
+                                                                ServiceType::Unknown,
+                                                                SystemType::Unknown,
                                                                 "0.1.0",
                                                             );
-                                                            let mut info = crate::peer::EntityInfo::new(entity_id);
+                                                            let mut info = EntityInfo::new(entity_id);
                                                             info.entity_id.peer_id = PeerId::from_libp2p(peer_id);
                                                             info
                                                         });
@@ -847,25 +846,25 @@ impl SwarmManager {
                                                        } => {
                                                             // Update metrics
                                                             let mut m = metrics_clone.lock().await;
-                                                            m.total_messages_received += 1;
-                                                            m.total_bytes_received += message.data.len() as u64;
+                                                            m.total_messages_received = m.total_messages_received.saturating_add(1);
+                                                            m.total_bytes_received = m.total_bytes_received.saturating_add(message.data.len() as u64);
                                                             m.last_activity = Some(Instant::now());
                                                             drop(m);
 
                                                              // Update peer registry message count and bytes
                                                              if let Some(peer_id) = message.source {
                                                                  let mut registry = peer_registry_clone.lock().await;
-                                                                 let target = crate::peer::PeerId::from_libp2p(peer_id);
+                                                                 let target = PeerId::from_libp2p(peer_id);
                                                                  if let Some(info) = registry.get_mut(&target) {
-                                                                     info.metrics.messages_received += 1;
-                                                                     info.metrics.bytes_received += message.data.len() as u64;
+                                                                     info.metrics.messages_received = info.metrics.messages_received.saturating_add(1);
+                                                                     info.metrics.bytes_received = info.metrics.bytes_received.saturating_add(message.data.len() as u64);
                                                                      info.metrics.update_health();
                                                                  }
                                                              }
 
                                                            // Try to deserialize and store the message
                                                            if message.topic.as_str() == "wolf-prowler-consensus" {
-                                                               if let Ok(net_msg) = serde_json::from_slice::<crate::consensus::network::RaftNetworkMessage>(&message.data) {
+                                                               if let Ok(net_msg) = serde_json::from_slice::<RaftNetworkMessage>(&message.data) {
                                                                    let cm_lock = consensus_manager.read().await;
                                                                    if let Some(cm) = &*cm_lock {
                                                                        let _ = cm.process_message(net_msg).await;
@@ -873,64 +872,64 @@ impl SwarmManager {
                                                                }
                                                            } else if message.topic.as_str() == "wolf-pack/gossip/1.0.0" {
                                                                // Handle Howl Protocol Messages
-                                                               if let Ok(howl) = crate::wolf_pack::howl::HowlMessage::from_bytes(&message.data) {
+                                                               if let Ok(howl) = HowlMessage::from_bytes(&message.data) {
                                                                    info!("📢 RECEIVED HOWL: {:?} from {}", howl.priority, howl.sender);
 
                                                                    // Map HowlPayload to CoordinatorMsg
                                                                    let coord_msg = match howl.payload {
-                                                                       crate::wolf_pack::howl::HowlPayload::WarningHowl { target_ip, evidence } => {
-                                                                           Some(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+                                                                       HowlPayload::WarningHowl { target_ip, evidence } => {
+                                                                           Some(CoordinatorMsg::WarningHowl {
                                                                                source: howl.sender,
                                                                                target_ip,
                                                                                evidence,
                                                                            })
                                                                        }
-                                                                       crate::wolf_pack::howl::HowlPayload::HuntRequest { hunt_id, target_ip, min_role } => {
-                                                                           Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntRequest {
+                                                                       HowlPayload::HuntRequest { hunt_id, target_ip, min_role } => {
+                                                                           Some(CoordinatorMsg::HuntRequest {
                                                                                hunt_id,
                                                                                source: howl.sender,
                                                                                target_ip,
                                                                                min_role,
                                                                            })
                                                                        }
-                                                                       crate::wolf_pack::howl::HowlPayload::HuntReport { hunt_id, hunter, confirmed } => {
-                                                                           Some(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+                                                                       HowlPayload::HuntReport { hunt_id, hunter, confirmed } => {
+                                                                           Some(CoordinatorMsg::HuntReport {
                                                                                hunt_id,
                                                                                hunter,
                                                                                confirmed,
                                                                            })
                                                                        }
-                                                                       crate::wolf_pack::howl::HowlPayload::KillOrder { target_ip, reason, hunt_id } => {
-                                                                           Some(crate::wolf_pack::coordinator::CoordinatorMsg::KillOrder {
+                                                                       HowlPayload::KillOrder { target_ip, reason, hunt_id } => {
+                                                                           Some(CoordinatorMsg::KillOrder {
                                                                                target_ip,
                                                                                authorizer: howl.sender,
                                                                                reason,
                                                                                hunt_id,
                                                                            })
                                                                        }
-                                                                       crate::wolf_pack::howl::HowlPayload::TerritoryUpdate { region_cidr, owner, status } => {
-                                                                           Some(crate::wolf_pack::coordinator::CoordinatorMsg::TerritoryUpdate {
+                                                                       HowlPayload::TerritoryUpdate { region_cidr, owner, status } => {
+                                                                           Some(CoordinatorMsg::TerritoryUpdate {
                                                                                region: region_cidr,
                                                                                owner,
                                                                                status,
                                                                            })
                                                                        }
-                                                                       crate::wolf_pack::howl::HowlPayload::ElectionRequest { term, candidate_id, prestige, .. } => {
-                                                                           Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionRequest {
+                                                                       HowlPayload::ElectionRequest { term, candidate_id, prestige, .. } => {
+                                                                           Some(CoordinatorMsg::ElectionRequest {
                                                                                term,
                                                                                candidate_id,
                                                                                prestige,
                                                                            })
                                                                        }
-                                                                       crate::wolf_pack::howl::HowlPayload::ElectionVote { term, voter_id, granted } => {
-                                                                           Some(crate::wolf_pack::coordinator::CoordinatorMsg::ElectionVote {
+                                                                       HowlPayload::ElectionVote { term, voter_id, granted } => {
+                                                                           Some(CoordinatorMsg::ElectionVote {
                                                                                term,
                                                                                voter_id,
                                                                                granted,
                                                                            })
                                                                        }
-                                                                       crate::wolf_pack::howl::HowlPayload::AlphaHeartbeat { term, leader_id } => {
-                                                                           Some(crate::wolf_pack::coordinator::CoordinatorMsg::AlphaHeartbeat {
+                                                                       HowlPayload::AlphaHeartbeat { term, leader_id } => {
+                                                                           Some(CoordinatorMsg::AlphaHeartbeat {
                                                                                term,
                                                                                leader_id,
                                                                            })
@@ -978,17 +977,17 @@ impl SwarmManager {
                                                                    // Update registry
                                                                    {
                                                                        let mut registry = peer_registry_clone.lock().await;
-                                                                       let target = crate::peer::PeerId::from_libp2p(peer);
+                                                                       let target = PeerId::from_libp2p(peer);
                                                                        if let Some(info) = registry.get_mut(&target) {
-                                                                           info.metrics.messages_received += 1;
-                                                                           info.metrics.requests_received += 1;
+                                                                           info.metrics.messages_received = info.metrics.messages_received.saturating_add(1);
+                                                                           info.metrics.requests_received = info.metrics.requests_received.saturating_add(1);
                                                                            info.metrics.last_updated = chrono::Utc::now();
                                                                            info.metrics.update_health();
                                                                        }
                                                                    }
 
                                                                    match request {
-                                                                       crate::protocol::WolfRequest::KeyExchange { public_key } => {
+                                                                       WolfRequest::KeyExchange { public_key } => {
                                                                            // Register peer key
                                                                            let key_bytes: Result<[u8; 32], _> = public_key.try_into();
                                                                            if let Ok(bytes) = key_bytes {
@@ -998,28 +997,28 @@ impl SwarmManager {
 
                                                                                // Send our key back
                                                                                let our_pk = encrypted_handler.public_key();
-                                                                               let response = crate::protocol::WolfResponse::KeyExchangeAck {
+                                                                               let response = WolfResponse::KeyExchangeAck {
                                                                                    public_key: our_pk.as_bytes().to_vec(),
                                                                                };
                                                                                 let _ = swarm.behaviour_mut().req_resp.send_response(channel, response);
                                                                            }
                                                                        }
-                                                                       crate::protocol::WolfRequest::Encrypted(encrypted) => {
+                                                                       WolfRequest::Encrypted(encrypted) => {
                                                                            // Decrypt and handle
                                                                            match encrypted_handler.decrypt_request(&peer, &encrypted).await {
                                                                                Ok(decrypted_req) => {
                                                                                    info!("🔓 Decrypted request from {}: {:?}", peer, decrypted_req);
                                                                                    // Handle decrypted request
                                                                                    let response = match decrypted_req {
-                                                                                       crate::protocol::WolfRequest::Ping => crate::protocol::WolfResponse::Pong,
-                                                                                       crate::protocol::WolfRequest::Echo(msg) => crate::protocol::WolfResponse::Echo(msg),
-                                                                                       _ => crate::protocol::WolfResponse::Error("Not implemented".to_string()),
+                                                                                       WolfRequest::Ping => WolfResponse::Pong,
+                                                                                       WolfRequest::Echo(msg) => WolfResponse::Echo(msg),
+                                                                                       _ => WolfResponse::Error("Not implemented".to_string()),
                                                                                    };
 
                                                                                    // Encrypt response if we have the key
                                                                                     match encrypted_handler.encrypt_response(&peer, &response).await {
                                                                                         Ok(enc_res) => {
-                                                                                             let _ = swarm.behaviour_mut().req_resp.send_response(channel, crate::protocol::WolfResponse::Encrypted(enc_res));
+                                                                                             let _ = swarm.behaviour_mut().req_resp.send_response(channel, WolfResponse::Encrypted(enc_res));
                                                                                         }
                                                                                         Err(_) => {
                                                                                             // Fallback to plaintext if encryption fails or no key
@@ -1030,24 +1029,24 @@ impl SwarmManager {
                                                                                     // Update registry
                                                                                     {
                                                                                         let mut registry = peer_registry_clone.lock().await;
-                                                                                        let target = crate::peer::PeerId::from_libp2p(peer);
+                                                                                        let target = PeerId::from_libp2p(peer);
                                                                                         if let Some(info) = registry.get_mut(&target) {
-                                                                                            info.metrics.messages_sent += 1;
+                                                                                            info.metrics.messages_sent = info.metrics.messages_sent.saturating_add(1);
                                                                                             info.metrics.update_health();
                                                                                         }
                                                                                     }
                                                                                }
                                                                                Err(e) => {
                                                                                    error!("Failed to decrypt request from {}: {}", peer, e);
-                                                                                    let _ = swarm.behaviour_mut().req_resp.send_response(channel, crate::protocol::WolfResponse::Error("Decryption failed".to_string()));
+                                                                                    let _ = swarm.behaviour_mut().req_resp.send_response(channel, WolfResponse::Error("Decryption failed".to_string()));
                                                                                }
                                                                            }
                                                                        }
-                                                                       crate::protocol::WolfRequest::Ping => {
-                                                                            let _ = swarm.behaviour_mut().req_resp.send_response(channel, crate::protocol::WolfResponse::Pong);
+                                                                       WolfRequest::Ping => {
+                                                                            let _ = swarm.behaviour_mut().req_resp.send_response(channel, WolfResponse::Pong);
                                                                        }
-                                                                       crate::protocol::WolfRequest::Echo(msg) => {
-                                                                            let _ = swarm.behaviour_mut().req_resp.send_response(channel, crate::protocol::WolfResponse::Echo(msg));
+                                                                       WolfRequest::Echo(msg) => {
+                                                                            let _ = swarm.behaviour_mut().req_resp.send_response(channel, WolfResponse::Echo(msg));
                                                                        }
 
                                                                    }
@@ -1058,20 +1057,20 @@ impl SwarmManager {
                                                                     // Update registry
                                                                      {
                                                                          let mut registry = peer_registry_clone.lock().await;
-                                                                         let target = crate::peer::PeerId::from_libp2p(peer);
+                                                                         let target = PeerId::from_libp2p(peer);
                                                                          if let Some(info) = registry.get_mut(&target) {
-                                                                             info.metrics.messages_received += 1;
-                                                                             info.metrics.requests_success += 1;
+                                                                             info.metrics.messages_received = info.metrics.messages_received.saturating_add(1);
+                                                                             info.metrics.requests_success = info.metrics.requests_success.saturating_add(1);
                                                                              // Best effort size estimation
                                                                              if let Ok(bytes) = serde_json::to_vec(&response) {
-                                                                                 info.metrics.bytes_received += bytes.len() as u64;
+                                                                                 info.metrics.bytes_received = info.metrics.bytes_received.saturating_add(bytes.len() as u64);
                                                                              }
                                                                              info.metrics.update_health();
                                                                          }
                                                                      }
 
                                                                     match response {
-                                                                       crate::protocol::WolfResponse::KeyExchangeAck { public_key } => {
+                                                                       WolfResponse::KeyExchangeAck { public_key } => {
                                                                            let key_bytes: Result<[u8; 32], _> = public_key.try_into();
                                                                            if let Ok(bytes) = key_bytes {
                                                                                let pk = X25519PublicKey::from(bytes);
@@ -1079,7 +1078,7 @@ impl SwarmManager {
                                                                                info!("🔑 Registered public key for {} (Ack received)", peer);
                                                                            }
                                                                        }
-                                                                       crate::protocol::WolfResponse::Encrypted(encrypted) => {
+                                                                       WolfResponse::Encrypted(encrypted) => {
                                                                            match encrypted_handler.decrypt_response(&peer, &encrypted).await {
                                                                                Ok(decrypted_res) => {
                                                                                    info!("🔓 Decrypted response from {}: {:?}", peer, decrypted_res);
@@ -1097,18 +1096,18 @@ impl SwarmManager {
                                                         libp2p::request_response::Event::OutboundFailure { peer, .. } => {
                                                             warn!("Outbound request failure to {}", peer);
                                                             let mut registry = peer_registry_clone.lock().await;
-                                                            let target = crate::peer::PeerId::from_libp2p(peer);
+                                                            let target = PeerId::from_libp2p(peer);
                                                             if let Some(info) = registry.get_mut(&target) {
-                                                                info.metrics.requests_failed += 1;
+                                                                info.metrics.requests_failed = info.metrics.requests_failed.saturating_add(1);
                                                                 info.metrics.update_health();
                                                             }
                                                         }
                                                         libp2p::request_response::Event::InboundFailure { peer, .. } => {
                                                             warn!("Inbound request failure from {}", peer);
                                                             let mut registry = peer_registry_clone.lock().await;
-                                                            let target = crate::peer::PeerId::from_libp2p(peer);
+                                                            let target = PeerId::from_libp2p(peer);
                                                             if let Some(info) = registry.get_mut(&target) {
-                                                                info.metrics.requests_failed += 1;
+                                                                info.metrics.requests_failed = info.metrics.requests_failed.saturating_add(1);
                                                                 info.metrics.update_health();
                                                             }
                                                         }
@@ -1129,8 +1128,8 @@ impl SwarmManager {
                                                .unwrap_or(0);
 
                                            let mut metrics = metrics_clone.lock().await;
-                                           metrics.total_messages_sent += 1;
-                                           metrics.total_bytes_sent += msg_len;
+                                           metrics.total_messages_sent = metrics.total_messages_sent.saturating_add(1);
+                                           metrics.total_bytes_sent = metrics.total_bytes_sent.saturating_add(msg_len);
                                            metrics.last_activity = Some(Instant::now());
                                            drop(metrics); // Explicitly drop the lock
 
@@ -1138,20 +1137,20 @@ impl SwarmManager {
                                            {
                                                let mut registry = peer_registry_clone.lock().await;
                                                if !registry.contains_key(&target) {
-                                                   let entity_id = crate::peer::EntityId::create(
-                                                       crate::peer::ServiceType::Unknown,
-                                                       crate::peer::SystemType::Unknown,
+                                                   let entity_id = EntityId::create(
+                                                       ServiceType::Unknown,
+                                                       SystemType::Unknown,
                                                        "0.1.0",
                                                    );
-                                                   let mut info = crate::peer::EntityInfo::new(entity_id);
+                                                   let mut info = EntityInfo::new(entity_id);
                                                    info.entity_id.peer_id = target.clone();
                                                    registry.insert(target.clone(), info);
                                                }
 
                                                // Update peer metrics
                                                if let Some(info) = registry.get_mut(&target) {
-                                                   info.metrics.messages_sent += 1;
-                                                   info.metrics.bytes_sent += msg_len;
+                                                   info.metrics.messages_sent = info.metrics.messages_sent.saturating_add(1);
+                                                   info.metrics.bytes_sent = info.metrics.bytes_sent.saturating_add(msg_len);
                                                }
                                            }
                 // But ideally we should use RequestResponse here if applicable.
@@ -1172,7 +1171,7 @@ impl SwarmManager {
                                                serde_json::to_vec(&message).unwrap_or_default(),
                                            ) {
                                                error!("Failed to publish message: {}", e);
-                                               metrics_clone.lock().await.connection_failures += 1;
+                                               { let mut m = metrics_clone.lock().await; m.connection_failures = m.connection_failures.saturating_add(1); }
                                            }
                                        }
                                        SwarmCommand::ConsensusMessage(net_msg) => {
@@ -1182,7 +1181,7 @@ impl SwarmManager {
                                                serde_json::to_vec(&net_msg).unwrap_or_default(),
                                            ) {
                                                error!("Failed to publish consensus message: {}", e);
-                                               metrics_clone.lock().await.connection_failures += 1;
+                                               { let mut m = metrics_clone.lock().await; m.connection_failures = m.connection_failures.saturating_add(1); }
                                            }
                                        }
                                        SwarmCommand::PublishMessage { topic, message } => {
@@ -1194,8 +1193,8 @@ impl SwarmManager {
                                                .unwrap_or(0);
 
                                            let mut metrics = metrics_clone.lock().await;
-                                           metrics.total_messages_sent += 1;
-                                           metrics.total_bytes_sent += msg_len;
+                                           metrics.total_messages_sent = metrics.total_messages_sent.saturating_add(1);
+                                           metrics.total_bytes_sent = metrics.total_bytes_sent.saturating_add(msg_len);
                                            metrics.last_activity = Some(Instant::now());
                                            drop(metrics); // Explicitly drop the lock
 
@@ -1205,14 +1204,14 @@ impl SwarmManager {
                                                serde_json::to_vec(&message).unwrap_or_default(),
                                            ) {
                                                error!("Failed to publish message: {}", e);
-                                               metrics_clone.lock().await.connection_failures += 1;
+                                               { let mut m = metrics_clone.lock().await; m.connection_failures = m.connection_failures.saturating_add(1); }
                                            }
                                         }
                                         SwarmCommand::Broadcast(data) => {
                                             let topic = gossipsub::IdentTopic::new("wolf-pack/gossip/1.0.0");
                                             if let Err(e) = swarm.behaviour_mut().gossipsub.publish(topic, data) {
                                                 warn!("Failed to broadcast message: {}", e);
-                                                metrics_clone.lock().await.connection_failures += 1;
+                                                { let mut m = metrics_clone.lock().await; m.connection_failures = m.connection_failures.saturating_add(1); }
                                             }
                                         }
                                         SwarmCommand::BroadcastHowl { message } => {
@@ -1222,19 +1221,19 @@ impl SwarmManager {
                                            if let Ok(bytes) = message.to_bytes() {
                                                // Update metrics
                                                let mut metrics = metrics_clone.lock().await;
-                                               metrics.total_messages_sent += 1;
-                                               metrics.total_bytes_sent += bytes.len() as u64;
+                                               metrics.total_messages_sent = metrics.total_messages_sent.saturating_add(1);
+                                               metrics.total_bytes_sent = metrics.total_bytes_sent.saturating_add(bytes.len() as u64);
                                                metrics.last_activity = Some(Instant::now());
                                                drop(metrics);
 
                                                let topic = gossipsub::IdentTopic::new("wolf-pack/gossip/1.0.0");
                                                if let Err(e) = swarm.behaviour_mut().gossipsub.publish(topic, bytes) {
-                                                if matches!(e, libp2p::gossipsub::PublishError::InsufficientPeers) {
+                                                if matches!(e, gossipsub::PublishError::InsufficientPeers) {
                                                     warn!("📢 Howl broadcast locally only (no peers connected).");
                                                     // This is not a failure of the system, just a state of isolation.
                                                 } else {
                                                     error!("Failed to broadcast Howl: {}", e);
-                                                    metrics_clone.lock().await.connection_failures += 1;
+                                                    { let mut m = metrics_clone.lock().await; m.connection_failures = m.connection_failures.saturating_add(1); }
                                                 }
                                                }
                                            } else {
@@ -1245,7 +1244,7 @@ impl SwarmManager {
                                            info!("📞 Dialing {} at {}", peer_id, addr);
                                            if let Err(e) = swarm.dial(addr.clone()) {
                                                error!("Failed to dial {}: {}", peer_id, e);
-                                               metrics_clone.lock().await.connection_failures += 1;
+                                               { let mut m = metrics_clone.lock().await; m.connection_failures = m.connection_failures.saturating_add(1); }
                                             } else {
                                                  swarm.behaviour_mut().kad.add_address(&peer_id.as_libp2p(), addr.clone());
                                             }
@@ -1254,7 +1253,7 @@ impl SwarmManager {
                                            info!("📞 Dialing address: {}", addr);
                                            if let Err(e) = swarm.dial(addr.clone()) {
                                                error!("Failed to dial {}: {}", addr, e);
-                                               metrics_clone.lock().await.connection_failures += 1;
+                                               { let mut m = metrics_clone.lock().await; m.connection_failures = m.connection_failures.saturating_add(1); }
                                            }
                                        }
                                        SwarmCommand::GetStats { responder } => {
@@ -1307,11 +1306,11 @@ impl SwarmManager {
                                            // Update peer metrics
                                            {
                                                let mut registry = peer_registry_clone.lock().await;
-                                                // Target is already crate::peer::PeerId
+                                                // Target is already PeerId
                                                 metrics_simple::update_peer_metrics(&mut registry, &target, |info| {
-                                                   info.metrics.messages_sent += 1;
-                                                   info.metrics.requests_sent += 1;
-                                                   info.metrics.bytes_sent += msg_len;
+                                                   info.metrics.messages_sent = info.metrics.messages_sent.saturating_add(1);
+                                                   info.metrics.requests_sent = info.metrics.requests_sent.saturating_add(1);
+                                                   info.metrics.bytes_sent = info.metrics.bytes_sent.saturating_add(msg_len);
                                                });
                                            }
                                        }
@@ -1328,19 +1327,19 @@ impl SwarmManager {
                                            let peer_id = target.as_libp2p();
                                            match encrypted_handler.encrypt_request(&peer_id, &request).await {
                                                Ok(encrypted) => {
-                                                   let req = crate::protocol::WolfRequest::Encrypted(encrypted.clone());
+                                                   let req = WolfRequest::Encrypted(encrypted.clone());
                                                     let request_id = swarm.behaviour_mut().req_resp.send_request(&peer_id, req);
                                                    info!("Sent encrypted request {:?} to {}", request_id, target);
                                                    let _ = responder.send(Ok(()));
 
                                                    // Update registry message count
                                                    let mut registry = peer_registry_clone.lock().await;
-                                                    // Target is already crate::peer::PeerId
+                                                    // Target is already PeerId
                                                     metrics_simple::update_peer_metrics(&mut registry, &target, |info| {
-                                                       info.metrics.messages_sent += 1;
-                                                       info.metrics.requests_sent += 1;
+                                                       info.metrics.messages_sent = info.metrics.messages_sent.saturating_add(1);
+                                                       info.metrics.requests_sent = info.metrics.requests_sent.saturating_add(1);
                                                        // Best effort size estimation
-                                                       info.metrics.bytes_sent += 100; // Estimated
+                                                       info.metrics.bytes_sent = info.metrics.bytes_sent.saturating_add(100); // Estimated
                                                    });
                                                }
                                                Err(e) => {
@@ -1356,7 +1355,7 @@ impl SwarmManager {
                                        }
                                        SwarmCommand::GetPeerInfo { peer_id, responder } => {
                                             let registry = peer_registry_clone.lock().await;
-                                            let info = registry.get(&peer_id).cloned(); // peer_id is already crate::peer::PeerId
+                                            let info = registry.get(&peer_id).cloned(); // peer_id is already PeerId
                                             let _ = responder.send(info);
                                        }
                                        SwarmCommand::GetWolfState { responder } => {
@@ -1366,7 +1365,7 @@ impl SwarmManager {
                                            info!("👑 Omega Command: Forcing Rank of {} to {:?}", target, role);
                                            // If target is us, update local state
                                            if target == local_peer_id_clone {
-                                               if let Err(e) = hunt_sender.send(crate::wolf_pack::coordinator::CoordinatorMsg::ForceRank { target: target.clone(), new_role: role }).await {
+                                               if let Err(e) = hunt_sender.send(CoordinatorMsg::ForceRank { target: target.clone(), new_role: role }).await {
                                                    error!("Failed to send ForceRank to coordinator: {}", e);
                                                }
                                            } else {
@@ -1393,12 +1392,12 @@ impl SwarmManager {
                                        SwarmCommand::BlockIp { ip } => {
                                            if let Ok(ip_addr) = ip.parse::<std::net::IpAddr>() {
                                                let mut fw = firewall_clone.write().await;
-                                               fw.add_rule(crate::firewall::FirewallRule::new(
+                                               fw.add_rule(FirewallRule::new(
                                                    format!("Strike-{ip}"),
-                                                   crate::firewall::RuleTarget::Ip(ip_addr),
-                                                   crate::firewall::Protocol::Any,
-                                                   crate::firewall::Action::Deny,
-                                                   crate::firewall::TrafficDirection::Both,
+                                                   RuleTarget::Ip(ip_addr),
+                                                   Protocol::Any,
+                                                   Action::Deny,
+                                                   TrafficDirection::Both,
                                                ));
                                                info!("🔥 Firewall updated: Deny IP {}", ip);
                                            } else {
@@ -1592,7 +1591,7 @@ impl SwarmManager {
     ///
     /// # Errors
     /// Returns an error if the dial command cannot be sent.
-    pub async fn dial(&self, peer_id: PeerId, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
+    pub async fn dial(&self, peer_id: PeerId, addr: Multiaddr) -> anyhow::Result<()> {
         self.command_sender
             .send(SwarmCommand::Dial { peer_id, addr })
             .await?;
@@ -1603,7 +1602,7 @@ impl SwarmManager {
     ///
     /// # Errors
     /// Returns an error if the dial command cannot be sent.
-    pub async fn dial_addr(&self, addr: libp2p::Multiaddr) -> anyhow::Result<()> {
+    pub async fn dial_addr(&self, addr: Multiaddr) -> anyhow::Result<()> {
         self.command_sender
             .send(SwarmCommand::DialAddr { addr })
             .await?;
@@ -1625,7 +1624,7 @@ impl SwarmManager {
     ///
     /// # Errors
     /// Returns an error if the listeners cannot be retrieved.
-    pub async fn get_listeners(&self) -> anyhow::Result<Vec<libp2p::Multiaddr>> {
+    pub async fn get_listeners(&self) -> anyhow::Result<Vec<Multiaddr>> {
         let (tx, rx) = oneshot::channel();
         self.command_sender
             .send(SwarmCommand::GetListeners { responder: tx })
@@ -1668,7 +1667,7 @@ impl SwarmManager {
     ///
     /// # Errors
     /// Returns an error if the peer list cannot be retrieved.
-    pub async fn list_peers(&self) -> anyhow::Result<Vec<crate::peer::EntityInfo>> {
+    pub async fn list_peers(&self) -> anyhow::Result<Vec<EntityInfo>> {
         let (tx, rx) = oneshot::channel();
         self.command_sender
             .send(SwarmCommand::ListPeers { responder: tx })
@@ -1681,10 +1680,7 @@ impl SwarmManager {
     ///
     /// # Errors
     /// Returns an error if the peer info cannot be retrieved.
-    pub async fn get_peer_info(
-        &self,
-        peer_id: PeerId,
-    ) -> anyhow::Result<Option<crate::peer::EntityInfo>> {
+    pub async fn get_peer_info(&self, peer_id: PeerId) -> anyhow::Result<Option<EntityInfo>> {
         let (tx, rx) = oneshot::channel();
         self.command_sender
             .send(SwarmCommand::GetPeerInfo {
@@ -1728,7 +1724,7 @@ impl SwarmManager {
         let hunt_id = format!("hunt-{target_ip}-{}", uuid::Uuid::new_v4());
 
         self.hunt_coordinator_sender
-            .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+            .send(CoordinatorMsg::WarningHowl {
                 source: self.local_peer_id.clone(),
                 target_ip,
                 evidence,
@@ -1750,7 +1746,7 @@ impl SwarmManager {
     /// Returns an error if the report cannot be sent.
     pub async fn report_hunt(&self, hunt_id: String, confirmed: bool) -> anyhow::Result<()> {
         self.hunt_coordinator_sender
-            .send(crate::wolf_pack::coordinator::CoordinatorMsg::HuntReport {
+            .send(CoordinatorMsg::HuntReport {
                 hunt_id,
                 hunter: self.local_peer_id.clone(),
                 confirmed,
@@ -1779,9 +1775,7 @@ impl SwarmManager {
     ///
     /// # Errors
     /// Returns an error if the command cannot be sent to the swarm actor.
-    pub async fn get_wolf_state(
-        &self,
-    ) -> anyhow::Result<Arc<tokio::sync::RwLock<crate::wolf_pack::state::WolfState>>> {
+    pub async fn get_wolf_state(&self) -> anyhow::Result<Arc<RwLock<WolfState>>> {
         let (tx, rx) = oneshot::channel();
         self.command_sender
             .send(SwarmCommand::GetWolfState { responder: tx })
@@ -1791,7 +1785,7 @@ impl SwarmManager {
     }
 
     /// Extract target IP from security event
-    fn extract_target_ip(event: &crate::event::SecurityEvent) -> String {
+    fn extract_target_ip(event: &SecurityEvent) -> String {
         use lazy_static::lazy_static;
         lazy_static! {
             static ref IP_REGEX: regex::Regex = {
@@ -1823,14 +1817,11 @@ impl SwarmManager {
     ///
     /// # Errors
     /// Returns an error if `WarningHowl` cannot be sent.
-    pub async fn process_security_event(
-        &self,
-        event: crate::event::SecurityEvent,
-    ) -> anyhow::Result<()> {
+    pub async fn process_security_event(&self, event: SecurityEvent) -> anyhow::Result<()> {
         // Check severity threshold (only High and Critical trigger hunts)
         if !matches!(
             event.severity,
-            crate::event::SecuritySeverity::High | crate::event::SecuritySeverity::Critical
+            SecuritySeverity::High | SecuritySeverity::Critical
         ) {
             return Ok(());
         }
@@ -1841,8 +1832,8 @@ impl SwarmManager {
         // Robust check: Strays can't initiate, Scouts need 50 prestige,
         // but Hunters and above can always initiate for high-severity events.
         let can_initiate = match state.role {
-            crate::wolf_pack::state::WolfRole::Stray => false,
-            crate::wolf_pack::state::WolfRole::Scout => state.prestige >= 50,
+            WolfRole::Stray => false,
+            WolfRole::Scout => state.prestige >= 50,
             _ => true,
         };
 
@@ -1860,7 +1851,7 @@ impl SwarmManager {
 
         // Emit WarningHowl to initiate hunt
         self.hunt_coordinator_sender
-            .send(crate::wolf_pack::coordinator::CoordinatorMsg::WarningHowl {
+            .send(CoordinatorMsg::WarningHowl {
                 source: self.local_peer_id.clone(),
                 target_ip: target_ip.clone(),
                 evidence: event.description.clone(),

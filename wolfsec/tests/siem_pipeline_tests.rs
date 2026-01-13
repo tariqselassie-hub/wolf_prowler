@@ -3,13 +3,13 @@ use chrono::Utc;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use wolfsec::security::advanced::siem::{
+use wolfsec::observability::siem::{
     correlation_engine::WolfCorrelationEngine, event_processor::SIEMEventProcessor,
-    event_storage::EventStorage, AuthEventType, CorrelationData, EventDetails, EventSeverity,
-    EventSource, NetworkEventType, SIEMConfig, SecurityEvent, SecurityEventType, SourceType,
-    SystemContext,
+    event_storage::EventStorage, Asset, AssetCriticality, AssetStatus, AssetType, AuthEventType,
+    CorrelationData, EventDetails, EventSeverity, EventSource, MitreTactic, NetworkEventType,
+    SIEMConfig, SecurityEvent, SecurityEventType, SourceType, SystemContext,
 };
-use wolfsec::security::advanced::soar::orchestrator::IncidentOrchestrator;
+use wolfsec::observability::soar::orchestrator::IncidentOrchestrator;
 
 #[tokio::test]
 async fn test_siem_event_pipeline_processing() {

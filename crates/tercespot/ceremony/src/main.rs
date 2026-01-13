@@ -44,12 +44,13 @@ struct OfficerKey {
     public_key_hex: String,
 }
 
+#[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    println!("🔐 TersecPot Four-Eyes Vault Key Ceremony Tool");
+    tracing::info!("🔐 TersecPot Four-Eyes Vault Key Ceremony Tool");
 
     let (n, roles, usb_paths) = if let Some(config_path) = args.test_config {
-        println!("🤖 Running in TEST mode with config: {}", config_path);
+        tracing::info!("🤖 Running in TEST mode with config: {}", config_path);
         let config_str = fs::read_to_string(config_path)?;
         let config: TestConfig = serde_json::from_str(&config_str)?;
         let roles = config
@@ -64,8 +65,8 @@ fn main() -> anyhow::Result<()> {
             .collect();
         (config.n, roles, config.usb_paths)
     } else {
-        println!("⚠️  Ensure this system is air-gapped (no network connections)!");
-        println!();
+        tracing::info!("⚠️  Ensure this system is air-gapped (no network connections)!");
+        tracing::info!("---");
 
         // Prompt for number of officers
         let n: usize = Input::new()
@@ -77,15 +78,14 @@ fn main() -> anyhow::Result<()> {
                 }
             })
             .interact_text()?
-            .parse()
-            .unwrap();
+            .parse()?;
 
         // Prompt for roles for each officer
         let mut roles = Vec::new();
         let role_options = vec!["DevOps", "ComplianceManager", "SecurityOfficer"];
         for i in 1..=n {
             let selection = Select::new()
-                .with_prompt(format!("Select role for Officer {}", i))
+                .with_prompt(format!("Select role for Officer {i}"))
                 .items(&role_options)
                 .interact()?;
             let role = match selection {
@@ -102,15 +102,14 @@ fn main() -> anyhow::Result<()> {
         for i in 1..=n {
             let path: String = Input::new()
                 .with_prompt(format!(
-                    "Enter mount point for Officer {} USB (e.g., /media/officer{})",
-                    i, i
+                    "Enter mount point for Officer {i} USB (e.g., /media/officer{i})"
                 ))
                 .validate_with(|input: &String| -> Result<(), &str> {
                     if Path::new(input).exists() && Path::new(input).is_dir() {
                         // Check if writable by trying to create a temp file
-                        let test_file = format!("{}/test_write", input);
+                        let test_file = format!("{input}/test_write");
                         match fs::write(&test_file, b"test") {
-                            Ok(_) => {
+                            Ok(()) => {
                                 fs::remove_file(&test_file).ok();
                                 Ok(())
                             }
@@ -133,30 +132,35 @@ fn main() -> anyhow::Result<()> {
     );
 
     // Generate keys
-    println!("\n🔑 Generating ML-DSA-44 keypairs...");
+    tracing::info!("\n🔑 Generating ML-DSA-44 keypairs...");
     let mut private_keys = Vec::new();
     let mut public_keys = Vec::new();
-    for i in 0..n {
+    for (i, role) in roles.iter().enumerate().take(n) {
         let (pk, sk) =
-            ml_dsa_44::KG::try_keygen().map_err(|e| anyhow::anyhow!("Keygen failed: {}", e))?;
+            ml_dsa_44::KG::try_keygen().map_err(|e| anyhow::anyhow!("Keygen failed: {e}"))?;
         let pk_hex = hex::encode(pk.into_bytes());
         let sk_bytes = sk.into_bytes();
         private_keys.push(sk_bytes);
-        public_keys.push((roles[i].clone(), pk_hex));
-        println!("✓ Generated keypair for Officer {} ({:?})", i + 1, roles[i]);
+        public_keys.push((role.clone(), pk_hex));
+        tracing::info!(
+            "✓ Generated keypair for Officer {} ({:?})",
+            i.saturating_add(1),
+            role
+        );
     }
 
     // Write private keys to USBs
-    println!("\n💾 Writing private keys to USB drives...");
-    for i in 0..n {
-        let usb_path = &usb_paths[i];
-        let key_file = format!("{}/officer_key", usb_path);
-        fs::write(&key_file, &private_keys[i])?;
-        println!("✓ Private key written to {}", key_file);
+    tracing::info!("\n💾 Writing private keys to USB drives...");
+    for (i, usb_path) in usb_paths.iter().enumerate().take(n) {
+        let key_file = format!("{usb_path}/officer_key");
+        if let Some(sk) = private_keys.get(i) {
+            fs::write(&key_file, sk)?;
+            tracing::info!("✓ Private key written to {}", key_file);
+        }
     }
 
     // Create authorized_keys archive
-    println!("\n📄 Creating authorized_keys archive...");
+    tracing::info!("\n📄 Creating authorized_keys archive...");
     let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let officers = public_keys
         .into_iter()
@@ -174,32 +178,32 @@ fn main() -> anyhow::Result<()> {
     let archive_hash = sha2::Sha256::digest(json.as_bytes());
     let archive_path = "authorized_keys.json";
     fs::write(archive_path, &json)?;
-    println!("✓ Authorized keys archive created: {}", archive_path);
+    tracing::info!("✓ Authorized keys archive created: {}", archive_path);
 
     // Compute and display hashes for integrity
-    for i in 0..n {
-        let hash = sha2::Sha256::digest(&private_keys[i]);
-        println!(
+    for (i, sk) in private_keys.iter().enumerate().take(n) {
+        let hash = sha2::Sha256::digest(sk);
+        tracing::info!(
             "🔒 Officer {} private key SHA256: {}",
-            i + 1,
+            i.saturating_add(1),
             hex::encode(hash)
         );
     }
-    println!("🔒 Authorized keys SHA256: {}", hex::encode(archive_hash));
+    tracing::info!("🔒 Authorized keys SHA256: {}", hex::encode(archive_hash));
 
     // Wipe sensitive data
-    println!("\n🧹 Wiping sensitive data from memory...");
+    tracing::info!("\n🧹 Wiping sensitive data from memory...");
     for sk in &mut private_keys {
         sk.zeroize();
     }
     private_keys.clear();
 
-    println!("✅ Key ceremony completed successfully!");
-    println!("📋 Ceremony ID: {}", ceremony_id);
-    println!("🕒 Timestamp: {}", timestamp);
-    println!("🔑 Keys generated: {}", n);
-    println!("💡 Distribute USB drives to respective officers.");
-    println!("💡 Store the authorized_keys.json securely for the vault setup.");
+    tracing::info!("✅ Key ceremony completed successfully!");
+    tracing::info!("📋 Ceremony ID: {}", ceremony_id);
+    tracing::info!("🕒 Timestamp: {}", timestamp);
+    tracing::info!("🔑 Keys generated: {}", n);
+    tracing::info!("💡 Distribute USB drives to respective officers.");
+    tracing::info!("💡 Store the authorized_keys.json securely for the vault setup.");
 
     Ok(())
 }

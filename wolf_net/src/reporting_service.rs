@@ -86,9 +86,8 @@ impl ReportingService {
 
     async fn flush_batch(&self, batch: &mut Vec<TelemetryEvent>) -> Result<()> {
         let events = std::mem::take(batch);
-        let token_lock = self.auth_token.read().await;
-
-        if let Some(token) = token_lock.as_ref() {
+        let token = self.auth_token.read().await.clone();
+        if let Some(token) = token {
             let hub_url = &self.hub_url;
             let url = format!("{hub_url}/api/v1/telemetry/batch");
             let res = self

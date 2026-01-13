@@ -1,3 +1,7 @@
+//! Wolf Server
+//!
+//! The main server component for Wolf Prowler, providing the API and dashboard integration.
+
 mod api;
 mod api_middleware;
 mod tls;
@@ -11,9 +15,9 @@ use wolf_net::{wolf_node::WolfNode, WolfConfig};
 
 use crate::api::{create_router, AppState};
 use crate::tls::TlsConfig;
-use wolf_db::WolfDbStorage;
+use wolf_db::storage::WolfDbStorage;
 use wolf_net::wolf_node::WolfNodeEvent;
-use wolfsec::validation::{EventValidator, ValidatableEvent, WolfEventValidator};
+use wolf_prowler::ingress_validation::{EventValidator, ValidatableEvent, WolfEventValidator};
 use wolfsec::{WolfSecurity, WolfSecurityConfig};
 
 #[tokio::main]
@@ -29,9 +33,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Initialize WolfDb Persistence Layer
     let db_path = PathBuf::from("data/wolf_db");
-    let wolf_db = WolfDbStorage::new(&db_path)?;
+    let wolf_db = WolfDbStorage::open(db_path.to_str().unwrap())?;
     tracing::info!("💽 WolfDb persistence layer initialized at {:?}", db_path);
-    let persistence = std::sync::Arc::new(wolf_db);
+    let persistence = std::sync::Arc::new(tokio::sync::RwLock::new(wolf_db));
 
     // Initialize WolfSecurity
     let mut security_config = WolfSecurityConfig::default();

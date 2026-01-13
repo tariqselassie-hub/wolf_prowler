@@ -10,7 +10,7 @@ use std::time::Duration;
 
 #[test]
 fn visual_end_to_end_flow() {
-    println!("\n=== VISUAL TEST: Crypto Pulse (Challenge-Response) ===");
+    tracing::info!("\n=== VISUAL TEST: Crypto Pulse (Challenge-Response) ===");
 
     // 1. Setup Env and Paths
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -23,7 +23,7 @@ fn visual_end_to_end_flow() {
     let auth_keys_dir = format!("{}/authorized_keys", postbox);
     let history_file = "/tmp/sentinel_history.log";
 
-    println!("[1] Setting up test environment at {}...", test_dir);
+    tracing::info!("[1] Setting up test environment at {}...", test_dir);
     // Clean up potentially
     if Path::new(&test_dir).exists() {
         let _ = fs::remove_dir_all(&test_dir);
@@ -32,7 +32,7 @@ fn visual_end_to_end_flow() {
     let _ = fs::remove_file(history_file);
 
     // 2. Spawn Pulse Device FIRST (to generate pulse keys)
-    println!("[2] Spawning Pulse Device...");
+    tracing::info!("[2] Spawning Pulse Device...");
     let mut device = Command::new("cargo")
         .args(&["run", "-p", "submitter", "--bin", "pulse_device", "--quiet"])
         .env("TERSEC_POSTBOX", &postbox)
@@ -43,11 +43,11 @@ fn visual_end_to_end_flow() {
 
     // Wait for Pulse PK to appear
     let pk_pulse_path = format!("{}/pulse_pk", postbox);
-    println!("Waiting for Pulse PK at {}...", pk_pulse_path);
+    tracing::info!("Waiting for Pulse PK at {}...", pk_pulse_path);
     let mut loaded = false;
     for _ in 0..10 {
         if Path::new(&pk_pulse_path).exists() {
-            println!("[SETUP] Pulse PK found.");
+            tracing::info!("[SETUP] Pulse PK found.");
             loaded = true;
             break;
         }
@@ -59,7 +59,7 @@ fn visual_end_to_end_flow() {
     }
 
     // 3. Spawn Sentinel (PULSE_MODE=CRYPTO)
-    println!("[3] Spawning Sentinel (Crypto Mode)...");
+    tracing::info!("[3] Spawning Sentinel (Crypto Mode)...");
     let mut sentinel = Command::new("cargo")
         .args(&["run", "-p", "sentinel", "--quiet"])
         .env("TERSEC_POSTBOX", &postbox)
@@ -74,10 +74,10 @@ fn visual_end_to_end_flow() {
     thread::sleep(Duration::from_secs(2));
 
     // 4. Run Submitter Workflow (M=1)
-    println!("[4] Running Submitter Workflow...");
+    tracing::info!("[4] Running Submitter Workflow...");
 
     // 4a. Keygen
-    println!("  [4a] Generating Keys...");
+    tracing::info!("  [4a] Generating Keys...");
     let keygen_status = Command::new("cargo")
         .args(&[
             "run",
@@ -94,7 +94,7 @@ fn visual_end_to_end_flow() {
     assert!(keygen_status.success(), "Keygen failed");
 
     // 4a-2. MANUALLY CREATE authorized_keys.json (Daemon expects this, Submitter creates dir)
-    println!("  [4a-2] Creating authorized_keys.json for Daemon...");
+    tracing::info!("  [4a-2] Creating authorized_keys.json for Daemon...");
     let client_key_path = format!("{}/authorized_keys/client_key", postbox);
     let pk_bytes = fs::read(&client_key_path).expect("Failed to read client key");
     let pk_hex: String = pk_bytes.iter().map(|b| format!("{:02x}", b)).collect();
@@ -121,7 +121,7 @@ fn visual_end_to_end_flow() {
     fs::write(&auth_json_path, json_content).expect("Failed to write authorized_keys.json");
 
     // 4b. Create Partial
-    println!("  [4b] Creating Partial Command...");
+    tracing::info!("  [4b] Creating Partial Command...");
     let cmd_str = "echo test_execution";
     let partial_path = format!("{}/cmd.partial", test_dir);
 
@@ -147,7 +147,7 @@ fn visual_end_to_end_flow() {
     assert!(partial_cmd.success(), "Create partial failed");
 
     // 4c. Sign (Append)
-    println!("  [4c] Signing Command...");
+    tracing::info!("  [4c] Signing Command...");
     let sign_cmd = Command::new("cargo")
         .args(&[
             "run",
@@ -168,7 +168,7 @@ fn visual_end_to_end_flow() {
     assert!(sign_cmd.success(), "Signing failed");
 
     // 4d. Submit
-    println!("  [4d] Submitting Command...");
+    tracing::info!("  [4d] Submitting Command...");
     let submit_cmd = Command::new("cargo")
         .args(&[
             "run",
@@ -188,8 +188,8 @@ fn visual_end_to_end_flow() {
 
     // Copy generated key to auth keys (submitter saves to authorized_keys/client_key)
     // Wait for authorization and execution
-    println!("[5] Waiting for Challenge-Response Execution...");
-    
+    tracing::info!("[5] Waiting for Challenge-Response Execution...");
+
     // Poll for the history file instead of fixed sleep
     let mut executed = false;
     for _ in 0..30 {
@@ -208,10 +208,10 @@ fn visual_end_to_end_flow() {
     // 5. Verify Execution
     if Path::new(history_file).exists() {
         let output = fs::read_to_string(history_file).unwrap();
-        println!(">>> SUCCESS: System executed command! Output captured:");
-        println!("{}", output);
+        tracing::info!(">>> SUCCESS: System executed command! Output captured:");
+        tracing::info!("{}", output);
     } else {
-        println!(">>> FAILURE: Execution history file not found.");
+        tracing::info!(">>> FAILURE: Execution history file not found.");
         sentinel.kill().unwrap();
         device.kill().unwrap();
         panic!("Test failed: Execution did not occur.");
@@ -220,5 +220,5 @@ fn visual_end_to_end_flow() {
     // Teardown
     sentinel.kill().unwrap();
     device.kill().unwrap();
-    println!("=== Test Complete ===\n");
+    tracing::info!("=== Test Complete ===\n");
 }

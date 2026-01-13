@@ -105,7 +105,7 @@ pub struct ActiveScanDiscovery {
 impl ActiveScanDiscovery {
     /// Creates a new `ActiveScanDiscovery` instance.
     #[must_use]
-    pub fn new(enabled: bool, ports: Vec<u16>) -> Self {
+    pub const fn new(enabled: bool, ports: Vec<u16>) -> Self {
         Self { enabled, ports }
     }
 }
@@ -152,9 +152,9 @@ impl DiscoveryService {
                 config,
                 known_peers: Arc::new(RwLock::new(HashMap::new())),
                 methods,
+                shutdown_tx: None,
                 running: false,
                 event_tx: tx,
-                shutdown_tx: None,
             },
             rx,
         ))
@@ -200,15 +200,15 @@ impl DiscoveryService {
                                         known_peers.insert(peer_id, peer.clone());
 
                                         // Notify listeners
-                                        if let Err(_) = event_tx.send(peer).await {
-                                            debug!("No listeners for peer discovery event");
+                                        if (event_tx.send(peer).await).is_err() {
+                                            error!("Failed to send discovery event to channel");
                                         }
                                     }
 
                                     // Enforce maximum peer limit
                                     if known_peers.len() > config.max_peers {
                                         // Remove oldest peers (simplified)
-                                        let excess = known_peers.len() - config.max_peers;
+                                        let excess = known_peers.len().saturating_sub(config.max_peers);
                                         let keys_to_remove: Vec<PeerId> =
                                             known_peers.keys().take(excess).cloned().collect();
 
@@ -224,27 +224,31 @@ impl DiscoveryService {
                         }
 
                         // Cleanup stale peers
-                        let mut known_peers = known_peers.write().await;
-                        let now = chrono::Utc::now();
-                        let mut stale_peers = Vec::new();
+                        {
+                            let mut known_peers_guard = known_peers.write().await;
+                            let now = chrono::Utc::now();
+                            let mut stale_peers = Vec::new();
 
-                        for (peer_id, peer_info) in known_peers.iter() {
-                            if now.signed_duration_since(peer_info.last_seen)
-                                > chrono::Duration::from_std(Duration::from_secs(config.peer_timeout_secs))
-                                    .unwrap()
-                            {
-                                stale_peers.push(peer_id.clone());
+                            for (peer_id, peer_info) in known_peers_guard.iter() {
+                                let timeout = Duration::from_secs(config.peer_timeout_secs);
+                                let chrono_timeout = chrono::Duration::from_std(timeout)
+                                    .unwrap_or_else(|_| chrono::Duration::try_seconds(i64::try_from(config.peer_timeout_secs).unwrap_or(3600)).unwrap_or_else(|| chrono::Duration::seconds(3600)));
+                                if now.signed_duration_since(peer_info.last_seen) > chrono_timeout
+                                {
+                                    stale_peers.push(peer_id.clone());
+                                }
                             }
-                        }
 
-                        for peer_id in stale_peers {
-                            known_peers.remove(&peer_id);
-                            debug!("Removed stale peer: {}", peer_id);
+                            for peer_id in stale_peers {
+                                known_peers_guard.remove(&peer_id);
+                                debug!("Removed stale peer: {}", peer_id);
+                            }
+                            drop(known_peers_guard);
                         }
 
                         info!(
                             "Discovery cycle complete. {} known peers",
-                            known_peers.len()
+                            known_peers.read().await.len()
                         );
                     }
                     _ = shutdown_rx.recv() => {
@@ -311,9 +315,23 @@ impl DiscoveryService {
 }
 
 impl From<DiscoveryConfig> for DiscoveryService {
+    #[allow(clippy::expect_used)]
     fn from(config: DiscoveryConfig) -> Self {
         let (service, _) = Self::new(config).expect("Failed to create DiscoveryService");
         service
+    }
+}
+
+impl DiscoveryService {
+    #[allow(clippy::expect_used)]
+    pub fn run_daemon(config: DiscoveryConfig) -> anyhow::Result<()> {
+        let (mut service, _rx) = Self::new(config)?;
+        service.start()?;
+        info!("Discovery Service running in background thread...");
+        // In a real daemon, you'd likely have a way to keep the service running
+        // and handle shutdown signals. For this example, we'll just return Ok.
+        // The spawned task will continue running until explicitly stopped or the process exits.
+        Ok(())
     }
 }
 

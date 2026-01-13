@@ -67,7 +67,10 @@ impl HsmProvider {
             return Err(anyhow::anyhow!("Invalid hardware-wrapped key format"));
         }
 
-        let unwrapped = wrapped_key[2..].to_vec();
+        let unwrapped = wrapped_key
+            .get(2..)
+            .ok_or_else(|| anyhow::anyhow!("Invalid hardware-wrapped key length"))?
+            .to_vec();
 
         session.logout()?;
         Ok(unwrapped)
@@ -80,11 +83,17 @@ pub struct MockHsm;
 impl MockHsm {
     /// Simulates key wrapping
     #[must_use]
+    #[allow(clippy::arithmetic_side_effects)]
     pub fn wrap(password: &str, key: &[u8]) -> Vec<u8> {
         let mut out = vec![b'H', b'W'];
         for (i, b) in key.iter().enumerate() {
-            let p_byte = password.as_bytes()[i % password.len()];
-            out.push(b ^ p_byte);
+            let p_bytes = password.as_bytes();
+            if p_bytes.is_empty() {
+                out.push(*b);
+            } else {
+                let p_byte = p_bytes.get(i % p_bytes.len()).copied().unwrap_or(0);
+                out.push(b ^ p_byte);
+            }
         }
         out
     }
@@ -94,14 +103,25 @@ impl MockHsm {
     /// # Errors
     ///
     /// Returns an error if the wrapped key format is invalid.
+    #[allow(clippy::arithmetic_side_effects)]
     pub fn unwrap(password: &str, wrapped: &[u8]) -> Result<Vec<u8>> {
         if !wrapped.starts_with(b"HW") {
             return Err(anyhow::anyhow!("Not a hardware-wrapped key"));
         }
         let mut out = Vec::new();
-        for (i, b) in wrapped[2..].iter().enumerate() {
-            let p_byte = password.as_bytes()[i % password.len()];
-            out.push(b ^ p_byte);
+        for (i, b) in wrapped
+            .get(2..)
+            .ok_or_else(|| anyhow::anyhow!("Invalid length"))?
+            .iter()
+            .enumerate()
+        {
+            let p_bytes = password.as_bytes();
+            if p_bytes.is_empty() {
+                out.push(*b);
+            } else {
+                let p_byte = p_bytes.get(i % p_bytes.len()).copied().unwrap_or(0);
+                out.push(b ^ p_byte);
+            }
         }
         Ok(out)
     }

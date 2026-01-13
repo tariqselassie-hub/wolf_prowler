@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::dashboard::api::ApiError;
 use crate::dashboard::state::AppState;
-use wolfsec::security::advanced::iam::{
+use wolfsec::identity::iam::{
     AuthenticationRequest, AuthenticationResult, ClientInfo, SessionRequest,
     SessionValidationResult,
 };
@@ -67,6 +67,7 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/logout", post(logout_handler))
         .route("/validate-session", get(validate_session_handler))
         .route("/validate-api-key", get(validate_api_key_handler))
+        .route("/status", get(get_auth_status_handler))
         .with_state(state)
 }
 
@@ -255,7 +256,7 @@ async fn validate_api_key_handler(
     };
 
     let auth_manager = state.auth_manager.lock().await;
-    let validation_result: wolfsec::security::advanced::iam::ApiKeyValidationResult = auth_manager
+    let validation_result: wolfsec::identity::iam::ApiKeyValidationResult = auth_manager
         .validate_api_key(api_key)
         .await
         .map_err(|e| ApiError::InternalError(format!("API key validation failed: {}", e)))?;
@@ -280,4 +281,28 @@ async fn validate_api_key_handler(
         "permissions": validation_result.permissions,
         "message": "API key is valid"
     })))
+}
+/// Get authentication analytics and session counts
+async fn get_auth_status_handler(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    state.increment_request_count().await;
+
+    let mut auth_status = serde_json::json!({
+        "active_sessions": 0,
+        "total_users": 0,
+        "auth_failures": 0,
+        "mfa_usage": 0.0,
+        "system_health": "good"
+    });
+
+    if let Some(wolf_security_arc) = state.get_wolf_security() {
+        let security = wolf_security_arc.read().await;
+        let status = security.get_status().await;
+        let auth = &status.authentication;
+
+        auth_status["active_sessions"] = serde_json::json!(auth.active_sessions);
+        auth_status["total_users"] = serde_json::json!(auth.total_users);
+        auth_status["auth_failures"] = serde_json::json!(auth.auth_failures);
+    }
+
+    Json(auth_status)
 }

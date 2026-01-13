@@ -2,7 +2,6 @@
 use crate::globals::{PROWLER, SECURITY_ENGINE, SSO_MANAGER, SWARM_MANAGER};
 use crate::types::*;
 use chrono::Utc;
-use dioxus::prelude::*;
 use dioxus_fullstack::prelude::*;
 use lock_prowler::headless::HeadlessStatus;
 use lock_prowler::headless::HeadlessWolfProwler;
@@ -11,12 +10,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::MutexGuard;
 use wolf_net::SwarmManager;
-#[cfg(feature = "server")]
-use wolfsec::security::advanced::iam::sso::{
-    SSOAuthenticationRequest, SSOCallbackRequest, SSOProvider,
-};
-#[cfg(feature = "server")]
-use wolfsec::security::advanced::iam::{ClientInfo, SSOIntegrationManager};
+use wolfsec::identity::iam::sso::{SSOAuthenticationRequest, SSOCallbackRequest};
+use wolfsec::identity::iam::{ClientInfo, SSOIntegrationManager, SSOProvider};
 use wolfsec::WolfSecurity;
 
 #[server]
@@ -143,6 +138,67 @@ pub async fn get_wolfpack_data() -> Result<WolfPackTelemetry, ServerFnError> {
             .map_err(|e: anyhow::Error| ServerFnError::new(e.to_string()))?;
         let state = wolf_state.read().await;
 
+        let security_lock = SECURITY_ENGINE.lock().await;
+
+        let mut peer_statuses = Vec::new();
+        let mut reputation_stats = ReputationStats::default();
+
+        if let Some(sec) = security_lock.as_ref() {
+            reputation_stats.average_score =
+                sec.threat_detector.reputation.average_reputation().await;
+            reputation_stats.trusted_count =
+                sec.threat_detector.reputation.trusted_peer_count().await;
+            reputation_stats.suspicious_count =
+                sec.threat_detector.reputation.suspicious_peer_count().await;
+            // Note: highly_trusted and malicious don't have direct helpers yet,
+            // but we can export state or just keep it simple for now as it's a demo/alpha.
+
+            let peers = swarm
+                .list_peers()
+                .await
+                .map_err(|e: anyhow::Error| ServerFnError::new(e.to_string()))?;
+
+            for p in peers {
+                let peer_id_str = p.entity_id.peer_id.to_string();
+                let rep = sec
+                    .threat_detector
+                    .reputation
+                    .get_reputation(&peer_id_str)
+                    .await;
+
+                let (score, tier) = if let Some(r) = rep {
+                    (r.total_score, format!("{:?}", r.tier()))
+                } else {
+                    (0.5, "Neutral".to_string())
+                };
+
+                peer_statuses.push(PeerStatus {
+                    id: peer_id_str,
+                    status: format!("{:?}", p.status),
+                    role: "Unknown".to_string(),
+                    rtt_ms: p.metrics.latency_ms,
+                    reputation: score,
+                    reputation_tier: tier,
+                });
+            }
+        } else {
+            // Fallback for peers if security is offline
+            peer_statuses = swarm
+                .list_peers()
+                .await
+                .map_err(|e: anyhow::Error| ServerFnError::new(e.to_string()))?
+                .into_iter()
+                .map(|p| PeerStatus {
+                    id: p.entity_id.peer_id.to_string(),
+                    status: format!("{:?}", p.status),
+                    role: "Unknown".to_string(),
+                    rtt_ms: p.metrics.latency_ms,
+                    reputation: 0.5,
+                    reputation_tier: "Neutral".to_string(),
+                })
+                .collect();
+        }
+
         let active_hunts = state
             .active_hunts
             .iter()
@@ -155,30 +211,18 @@ pub async fn get_wolfpack_data() -> Result<WolfPackTelemetry, ServerFnError> {
             })
             .collect();
 
-        let peers = swarm
-            .list_peers()
-            .await
-            .map_err(|e: anyhow::Error| ServerFnError::new(e.to_string()))?
-            .into_iter()
-            .map(|p| PeerStatus {
-                id: p.entity_id.peer_id.to_string(),
-                status: format!("{:?}", p.status),
-                role: "Unknown".to_string(),
-                rtt_ms: p.metrics.latency_ms,
-            })
-            .collect();
-
         Ok(WolfPackTelemetry {
             node_id: swarm.local_peer_id.to_string(),
             raft_state: state.election_state.clone(),
             term: state.election_term,
             commit_index: 0,
             last_heartbeat: Utc::now().format("%H:%M:%S").to_string(),
-            peers,
+            peers: peer_statuses,
             network_health: 0.95,
             active_hunts,
             role: format!("{:?}", state.role),
             prestige: state.prestige,
+            reputation_stats,
         })
     } else {
         Ok(WolfPackTelemetry {
@@ -192,6 +236,7 @@ pub async fn get_wolfpack_data() -> Result<WolfPackTelemetry, ServerFnError> {
             active_hunts: vec![],
             role: "Alpha".to_string(),
             prestige: 9999,
+            reputation_stats: ReputationStats::default(),
         })
     }
 }

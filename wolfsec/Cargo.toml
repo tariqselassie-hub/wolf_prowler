@@ -110,6 +110,7 @@ threat-detection = []
 authentication = []
 key-management = []
 monitoring = []
+subtle = []
 
 # Advanced cryptographic features
 advanced-crypto = ["ed25519-dalek", "aes-gcm-siv", "zeroize"]

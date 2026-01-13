@@ -110,19 +110,17 @@ impl HubOrchestration {
                 Ok(expires_in) => {
                     // Refresh 60 seconds before expiration, or default to 1 hour if 0
                     let refresh_secs = if expires_in > 60 {
-                        expires_in - 60
+                        expires_in.saturating_sub(60)
                     } else {
                         3600
                     };
-                    println!(
+                    tracing::info!(
                         "Hub authentication successful. Token expires in {expires_in}s. Refreshing in {refresh_secs}s."
                     );
                     tokio::time::sleep(tokio::time::Duration::from_secs(refresh_secs)).await;
                 }
                 Err(e) => {
-                    eprintln!(
-                        "Hub authentication failed: {e}. Retrying in 30 seconds..."
-                    );
+                    tracing::info!("Hub authentication failed: {e}. Retrying in 30 seconds...");
                     // Retry delay
                     tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
                 }

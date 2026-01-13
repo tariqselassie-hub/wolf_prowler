@@ -53,7 +53,7 @@ struct OfficerKey {
 struct PendingSignature {
     key_hex: String,
     #[allow(dead_code)]
-    signature: [u8; shared::SIG_SIZE],
+    signature: [u8; SIG_SIZE],
     #[allow(dead_code)]
     timestamp: u64,
 }
@@ -80,7 +80,7 @@ struct PendingCommand {
 pub fn load_authorized_keys<P: AsRef<std::path::Path>>(
     path: P,
 ) -> std::io::Result<(Vec<ml_dsa_44::PublicKey>, HashMap<String, Vec<String>>)> {
-    let content = std::fs::read_to_string(path)?;
+    let content = fs::read_to_string(path)?;
     let auth_keys: AuthorizedKeys = serde_json::from_str(&content)?;
     let mut keys = Vec::new();
     let mut role_mappings = HashMap::new();
@@ -100,7 +100,7 @@ pub fn load_authorized_keys<P: AsRef<std::path::Path>>(
 }
 
 /// Parses the wire format: [Count] || [Sig1] || ... || [Body]
-#[must_use] 
+#[must_use]
 pub fn parse_wire_format(data: &[u8]) -> Option<(Vec<[u8; SIG_SIZE]>, Vec<u8>)> {
     if data.is_empty() {
         return None;
@@ -135,7 +135,7 @@ pub fn parse_wire_format(data: &[u8]) -> Option<(Vec<[u8; SIG_SIZE]>, Vec<u8>)> 
 ///
 /// # Returns
 /// true if the signature is valid, false otherwise
-#[must_use] 
+#[must_use]
 pub fn verify_signature(
     body: &[u8],
     sig: &[u8; SIG_SIZE],
@@ -145,7 +145,7 @@ pub fn verify_signature(
 }
 
 /// Parses the plaintext into (Seq, Ts, Command).
-#[must_use] 
+#[must_use]
 pub fn parse_plaintext(data: &[u8]) -> Option<(u64, u64, String)> {
     if data.len() < SEQ_SIZE + TS_SIZE {
         return None;
@@ -265,11 +265,11 @@ fn check_policy_threshold(
     policy_config: &PolicyConfig,
 ) -> Result<bool, String> {
     // Count how many verified keys have the required roles
-    let mut authorized_count = 0;
+    let mut authorized_count: usize = 0;
     for key_hex in verified_keys {
         if let Some(roles) = policy_config.role_mappings.get(key_hex) {
             if roles.iter().any(|r| policy.roles.contains(r)) {
-                authorized_count += 1;
+                authorized_count = authorized_count.saturating_add(1);
             }
         }
     }
@@ -290,12 +290,8 @@ fn check_policy_conditions(
                 // This would need additional context about approvals
                 // For now, assume satisfied
             }
-            PolicyCondition::MaxFrequency(_) => {
-                // Would need to track operation frequency
-                // For now, assume satisfied
-            }
-            PolicyCondition::IpWhitelist(_) => {
-                // Would need client IP context
+            PolicyCondition::MaxFrequency(_) | PolicyCondition::IpWhitelist(_) => {
+                // Would need to track operation frequency or client IP context
                 // For now, assume satisfied
             }
             PolicyCondition::TimeBound(window) => {
@@ -343,32 +339,30 @@ fn check_time_window(window: &TimeWindow) -> bool {
 
     // 2. Check Time
     // Parse "HH:MM"
-    fn parse_hhmm(s: &str) -> Option<(u32, u32)> {
-        let parts: Vec<&str> = s.split(':').collect();
-        if parts.len() != 2 {
-            return None;
-        }
-        let h = parts[0].parse().ok()?;
-        let m = parts[1].parse().ok()?;
-        Some((h, m))
-    }
-
-    let (start_h, start_m) = match parse_hhmm(&window.start_time) {
-        Some(t) => t,
-        None => return false,
+    let Some((start_h, start_m)) = parse_hhmm(&window.start_time) else {
+        return false;
     };
-    let (end_h, end_m) = match parse_hhmm(&window.end_time) {
-        Some(t) => t,
-        None => return false,
+    let Some((end_h, end_m)) = parse_hhmm(&window.end_time) else {
+        return false;
     };
 
     let now_h = now.hour();
     let now_m = now.minute();
-    let now_mins = now_h * 60 + now_m;
-    let start_mins = start_h * 60 + start_m;
-    let end_mins = end_h * 60 + end_m;
+    let now_mins = now_h.saturating_mul(60).saturating_add(now_m);
+    let start_mins = start_h.saturating_mul(60).saturating_add(start_m);
+    let end_mins = end_h.saturating_mul(60).saturating_add(end_m);
 
     now_mins >= start_mins && now_mins <= end_mins
+}
+
+fn parse_hhmm(s: &str) -> Option<(u32, u32)> {
+    let parts: Vec<&str> = s.split(':').collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    let h = parts.get(0)?.parse().ok()?;
+    let m = parts.get(1)?.parse().ok()?;
+    Some((h, m))
 }
 
 // =========================================================================
@@ -382,6 +376,9 @@ fn check_time_window(window: &TimeWindow) -> bool {
 ///
 /// # Returns
 /// An IO result indicating success or failure
+/// # Errors
+/// Returns an error if the daemon fails to start or encounters an IO error.
+#[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 pub async fn start_sentinel() -> std::io::Result<()> {
     let postbox = postbox_path();
     let auth_keys_path = format!("{postbox}/authorized_keys.json");
@@ -393,8 +390,13 @@ pub async fn start_sentinel() -> std::io::Result<()> {
 
     // Ensure Audit Key exists (In real world, Auditor provides this. We generate for demo)
     if !std::path::Path::new(&audit_key_path).exists() {
-        println!("[SENTINEL] Generating new Auditor Identity (Demo Mode)...");
-        let (pk, sk) = ml_kem_1024::KG::try_keygen().expect("Audit Keygen failed");
+        tracing::info!("[SENTINEL] Generating new Auditor Identity (Demo Mode)...");
+        let (pk, sk) = ml_kem_1024::KG::try_keygen().map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Audit Keygen failed: {e}"),
+            )
+        })?;
 
         // Save Public Key for Daemon to use
         fs::write(&audit_key_path, pk.into_bytes())?;
@@ -402,7 +404,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
         // Save Private Key for verification scripts (In real world, this stays with Auditor)
         let audit_sk_path = format!("{postbox}/audit_key.priv");
         fs::write(&audit_sk_path, sk.into_bytes())?;
-        println!("[SENTINEL] Auditor Keys saved to {postbox}");
+        tracing::info!("[SENTINEL] Auditor Keys saved to {postbox}");
     }
 
     // Initialize privacy audit logger
@@ -435,19 +437,19 @@ pub async fn start_sentinel() -> std::io::Result<()> {
     {
         match load_authorized_keys(&auth_keys_path) {
             Ok((keys, mappings)) => {
-                println!(
+                tracing::info!(
                     "[SENTINEL] Loaded {} authorized keys with roles",
                     keys.len()
                 );
                 (keys, mappings)
             }
             Err(e) => {
-                println!("[SENTINEL] Warning: Failed to load authorized keys: {e}");
+                tracing::info!("[SENTINEL] Warning: Failed to load authorized keys: {e}");
                 (Vec::new(), HashMap::new())
             }
         }
     } else {
-        println!("[SENTINEL] No authorized_keys.json found, waiting...");
+        tracing::info!("[SENTINEL] No authorized_keys.json found, waiting...");
         (Vec::new(), HashMap::new())
     };
 
@@ -459,23 +461,21 @@ pub async fn start_sentinel() -> std::io::Result<()> {
                 for (key, roles) in role_mappings {
                     config.role_mappings.insert(key, roles);
                 }
-                println!("[SENTINEL] Loaded {} policies", config.policies.len());
+                tracing::info!("[SENTINEL] Loaded {} policies", config.policies.len());
                 Some(config)
             }
             Err(e) => {
-                println!("[SENTINEL] Warning: Failed to load policies: {e}");
+                tracing::info!("[SENTINEL] Warning: Failed to load policies: {e}");
                 None
             }
         }
     } else {
-        println!("[SENTINEL] No policy file found, using legacy mode");
+        tracing::info!("[SENTINEL] No policy file found, using legacy mode");
         None
     };
 
     // 1. Load Authorized Signing Keys (Poll until at least 1? or M?)
-    println!(
-        "[SENTINEL] Threshold: {threshold_m} Signature(s) Required"
-    );
+    tracing::info!("[SENTINEL] Threshold: {threshold_m} Signature(s) Required");
 
     // Map to hold pending commands: seq -> PendingCommand
     let mut pending_commands: HashMap<u64, PendingCommand> = HashMap::new();
@@ -483,28 +483,33 @@ pub async fn start_sentinel() -> std::io::Result<()> {
     // Create key_hexes for lookup
     let mut key_hexes: Vec<String> = authorized_keys
         .iter()
-        .map(|pk| hex::encode(pk.clone().into_bytes()))
+        .map(|pk: &ml_dsa_44::PublicKey| hex::encode(pk.clone().into_bytes()))
         .collect();
 
     // 2. Load or Generate Daemon's KEM Private Key
     let kem_sk = if std::path::Path::new(&kem_sk_path).exists() {
-        use std::io::Read;
         let mut file = fs::File::open(&kem_sk_path)?;
         let mut bytes = [0u8; KEM_SK_SIZE];
-        file.read_exact(&mut bytes)?;
-        ml_kem_1024::DecapsKey::try_from_bytes(bytes).expect("Invalid KEM private key")
+        std::io::Read::read_exact(&mut file, &mut bytes)?;
+        ml_kem_1024::DecapsKey::try_from_bytes(bytes).map_err(|e| {
+            std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Invalid KEM private key: {e}"),
+            )
+        })?
     } else {
-        println!("[SENTINEL] Generating new KEM Identity...");
-        let (pk, sk) = ml_kem_1024::KG::try_keygen().expect("KEM Keygen failed");
+        tracing::info!("[SENTINEL] Generating new KEM Identity...");
+        let (pk, sk) = ml_kem_1024::KG::try_keygen().map_err(|e| {
+            std::io::Error::new(std::io::ErrorKind::Other, format!("KEM Keygen failed: {e}"))
+        })?;
 
-        use std::io::Write;
-        let mut f_sk = fs::File::create(&kem_sk_path)?;
-        f_sk.write_all(&sk.clone().into_bytes())?;
+        let mut secret_key_file = fs::File::create(&kem_sk_path)?;
+        std::io::Write::write_all(&mut secret_key_file, &sk.clone().into_bytes())?;
 
-        let mut f_pk = fs::File::create(&kem_pk_path)?;
-        f_pk.write_all(&pk.into_bytes())?;
+        let mut public_key_file = fs::File::create(&kem_pk_path)?;
+        std::io::Write::write_all(&mut public_key_file, &pk.into_bytes())?;
 
-        println!("[SENTINEL] KEM Keys saved to {postbox}");
+        tracing::info!("[SENTINEL] KEM Keys saved to {postbox}");
         sk
     };
 
@@ -512,7 +517,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
     let pulse_method = PulseMethod::from_env();
     let state_path = format!("{postbox}/.sentinel_state");
 
-    println!(
+    tracing::info!(
         "[SENTINEL] Protecting root. Algorithm: Sig(ML-DSA-44) + Enc(ML-KEM-1024 + AES-256-GCM)"
     );
 
@@ -530,11 +535,12 @@ pub async fn start_sentinel() -> std::io::Result<()> {
 
     // Start the file watcher
     if let Err(e) = watcher.start() {
-        eprintln!("[SENTINEL] Failed to start file watcher: {e}");
+        tracing::info!("[SENTINEL] Failed to start file watcher: {e}");
         return Err(std::io::Error::other(e));
     }
 
     // Main event loop
+    #[allow(clippy::infinite_loop)]
     loop {
         // Reload authorized keys if file changed (simple check)
         if std::path::Path::new(&auth_keys_path).exists() && authorized_keys.is_empty() {
@@ -544,24 +550,24 @@ pub async fn start_sentinel() -> std::io::Result<()> {
                     role_mappings = mappings;
                     key_hexes = authorized_keys
                         .iter()
-                        .map(|pk| hex::encode(pk.clone().into_bytes()))
+                        .map(|pk: &ml_dsa_44::PublicKey| hex::encode(pk.clone().into_bytes()))
                         .collect();
                     if let Some(ref mut config) = policy_config {
-                        config.role_mappings = role_mappings.clone();
+                        config.role_mappings.clone_from(&role_mappings);
                     }
-                    println!(
+                    tracing::info!(
                         "[SENTINEL] Reloaded {} authorized keys",
                         authorized_keys.len()
                     );
                 }
                 Err(e) => {
-                    println!("[SENTINEL] Failed to reload keys: {e}");
+                    tracing::info!("[SENTINEL] Failed to reload keys: {e}");
                 }
             }
         }
 
-       // Allow running even without auth keys initially, but warn
-       // (Removed the block loop for better embedding experience)
+        // Allow running even without auth keys initially, but warn
+        // (Removed the block loop for better embedding experience)
         // if authorized_keys.is_empty() {
         //     sleep(Duration::from_secs(1)).await;
         //     continue;
@@ -570,9 +576,8 @@ pub async fn start_sentinel() -> std::io::Result<()> {
         // Load Last Seen Sequence
         let mut last_seq = 0u64;
         if let Ok(mut file) = fs::File::open(&state_path) {
-            use std::io::Read;
             let mut bytes = [0u8; 8];
-            if file.read_exact(&mut bytes).is_ok() {
+            if std::io::Read::read_exact(&mut file, &mut bytes).is_ok() {
                 last_seq = u64::from_le_bytes(bytes);
             }
         }
@@ -581,7 +586,8 @@ pub async fn start_sentinel() -> std::io::Result<()> {
         // Use try_recv loop to process current batch, then sleep small amount
         while let Ok(event) = event_receiver.try_recv() {
             match event {
-                file_watcher::FileSystemEvent::Created(file_name) => {
+                file_watcher::FileSystemEvent::Created(file_name)
+                | file_watcher::FileSystemEvent::Modified(file_name) => {
                     let file_path = format!("{postbox}/{file_name}");
                     process_file(
                         &file_path,
@@ -591,25 +597,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
                         &mut pending_commands,
                         &mut last_seq,
                         &state_path,
-                        &policy_config,
-                        &privacy_logger,
-                        &privacy_validator,
-                        &pulse_method,
-                        threshold_m,
-                    )
-                    .await;
-                }
-                file_watcher::FileSystemEvent::Modified(file_name) => {
-                    let file_path = format!("{postbox}/{file_name}");
-                    process_file(
-                        &file_path,
-                        &kem_sk,
-                        &authorized_keys,
-                        &key_hexes,
-                        &mut pending_commands,
-                        &mut last_seq,
-                        &state_path,
-                        &policy_config,
+                        policy_config.as_ref(),
                         &privacy_logger,
                         &privacy_validator,
                         &pulse_method,
@@ -618,10 +606,10 @@ pub async fn start_sentinel() -> std::io::Result<()> {
                     .await;
                 }
                 file_watcher::FileSystemEvent::Deleted(file_name) => {
-                    println!("[SENTINEL] File deleted: {file_name}");
+                    tracing::info!("[SENTINEL] File deleted: {file_name}");
                 }
                 file_watcher::FileSystemEvent::Error(error_msg) => {
-                    eprintln!("[SENTINEL] File watcher error: {error_msg}");
+                    tracing::info!("[SENTINEL] File watcher error: {error_msg}");
                 }
             }
         }
@@ -630,29 +618,33 @@ pub async fn start_sentinel() -> std::io::Result<()> {
     }
 }
 
+#[allow(
+    clippy::cognitive_complexity,
+    clippy::too_many_arguments,
+    clippy::too_many_lines
+)]
 async fn process_file(
     file_path: &str,
     kem_sk: &ml_kem_1024::DecapsKey,
-    authorized_keys: &[fips204::ml_dsa_44::PublicKey],
+    authorized_keys: &[ml_dsa_44::PublicKey],
     key_hexes: &[String],
-    pending_commands: &mut std::collections::HashMap<u64, PendingCommand>,
+    pending_commands: &mut HashMap<u64, PendingCommand>,
     last_seq: &mut u64,
     state_path: &str,
-    policy_config: &Option<PolicyConfig>,
+    policy_config: Option<&PolicyConfig>,
     privacy_logger: &PrivacyAuditLogger,
     privacy_validator: &PrivacyValidator,
     pulse_method: &PulseMethod,
     threshold_m: usize,
 ) {
-    let data = match fs::read(file_path) {
-        Ok(d) => d,
-        Err(_) => return,
+    let Ok(data) = fs::read(file_path) else {
+        return;
     };
 
     // 1. Parse Wire Format -> Get Signatures & Ciphertext
     if let Some((signatures, ciphertext)) = parse_wire_format(&data) {
         if signatures.is_empty() {
-            println!("[DROP] No signatures found");
+            tracing::info!("[DROP] No signatures found");
             let _ = fs::remove_file(file_path);
             return;
         }
@@ -662,10 +654,12 @@ async fn process_file(
         for sig in &signatures {
             for (idx, pk) in authorized_keys.iter().enumerate() {
                 if verify_signature(&ciphertext, sig, pk) {
-                    let key_hex = key_hexes[idx].clone();
-                    // Avoid duplicates in this batch
-                    if !verified_sigs.iter().any(|(k, _)| *k == key_hex) {
-                        verified_sigs.push((key_hex, *sig));
+                    if let Some(key_hex) = key_hexes.get(idx) {
+                        let key_hex = key_hex.clone();
+                        // Avoid duplicates in this batch
+                        if !verified_sigs.iter().any(|(k, _)| *k == key_hex) {
+                            verified_sigs.push((key_hex, *sig));
+                        }
                     }
                     break;
                 }
@@ -673,9 +667,9 @@ async fn process_file(
         }
 
         if verified_sigs.is_empty() {
-            println!("[DROP] No valid signatures found in package");
+            tracing::info!("[DROP] No valid signatures found in package");
         } else {
-            println!(
+            tracing::info!(
                 "[AUTH] Verified {} signature(s) from package",
                 verified_sigs.len()
             );
@@ -685,7 +679,7 @@ async fn process_file(
                 // 4. Parse plaintext
                 if let Some((seq, ts, cmd)) = parse_plaintext(&plaintext) {
                     if seq <= *last_seq {
-                        println!("[DROP] Replay: Seq {seq} <= {last_seq}");
+                        tracing::info!("[DROP] Replay: Seq {seq} <= {last_seq}");
                         let _ = fs::remove_file(file_path);
                         return;
                     }
@@ -705,12 +699,12 @@ async fn process_file(
                     let mut added_new = false;
                     for (key_hex, sig) in verified_sigs {
                         if pending.signatures.iter().any(|s| s.key_hex == key_hex) {
-                            println!(
+                            tracing::info!(
                                 "[INFO] Duplicate signature from key {} ignored",
                                 &key_hex[..8]
                             );
                         } else {
-                            println!("[COLLECT] Added signature from key {}", &key_hex[..8]);
+                            tracing::info!("[COLLECT] Added signature from key {}", &key_hex[..8]);
                             pending.signatures.push(PendingSignature {
                                 key_hex,
                                 signature: sig,
@@ -721,7 +715,7 @@ async fn process_file(
                     }
 
                     if added_new {
-                        println!(
+                        tracing::info!(
                             "[COLLECT] Seq {}: {}/{} signatures collected",
                             seq,
                             pending.signatures.len(),
@@ -731,7 +725,7 @@ async fn process_file(
                         // Check if we have enough signatures
                         if pending.signatures.len() >= threshold_m {
                             // Evaluate static policies
-                            let policy_static_ok = if let Some(ref config) = policy_config {
+                            let policy_static_ok = if let Some(config) = policy_config {
                                 let verified_key_hexes: Vec<String> = pending
                                     .signatures
                                     .iter()
@@ -746,13 +740,13 @@ async fn process_file(
                                     None,
                                 ) {
                                     Ok(()) => {
-                                        println!(
+                                        tracing::info!(
                                             "[POLICY] Static Authorization granted for seq {seq}"
                                         );
                                         true
                                     }
                                     Err(e) => {
-                                        println!(
+                                        tracing::info!(
                                             "[POLICY] Static Authorization denied for seq {seq}: {e}"
                                         );
                                         false
@@ -763,7 +757,7 @@ async fn process_file(
                             };
 
                             if policy_static_ok {
-                                println!(
+                                tracing::info!(
                                     "[AUTHORIZED M={}/{}] New Command: {} (Seq: {}). Awaiting Pulse...",
                                     pending.signatures.len(),
                                     threshold_m,
@@ -775,7 +769,7 @@ async fn process_file(
                                 if let Some(pulse_metadata) = pulse_method.wait_for_pulse() {
                                     // Second pass: Dynamic checks (GeoFence with pulse metadata)
                                     let mut dynamic_ok = true;
-                                    if let Some(ref config) = policy_config {
+                                    if let Some(config) = policy_config {
                                         let verified_key_hexes: Vec<String> = pending
                                             .signatures
                                             .iter()
@@ -787,7 +781,7 @@ async fn process_file(
                                             config,
                                             Some(&pulse_metadata),
                                         ) {
-                                            println!(
+                                            tracing::info!(
                                                 "[POLICY] Dynamic (Geo) Authorization denied: {e}"
                                             );
                                             dynamic_ok = false;
@@ -799,7 +793,7 @@ async fn process_file(
                                         if let Err(e) =
                                             privacy_validator.validate_privacy(&pending.cmd)
                                         {
-                                            println!(
+                                            tracing::info!(
                                                 "[PRIVACY] Command blocked by PII check: {e}"
                                             );
                                             let _ = privacy_logger
@@ -828,10 +822,7 @@ async fn process_file(
                                         .await;
                                         // Update State
                                         *last_seq = seq;
-                                        if let Ok(mut f) = fs::File::create(state_path) {
-                                            use std::io::Write;
-                                            let _ = f.write_all(&last_seq.to_le_bytes());
-                                        }
+                                        let _ = save_state(state_path, *last_seq);
                                         // Remove from pending
                                         pending_commands.remove(&seq);
                                     }
@@ -840,20 +831,20 @@ async fn process_file(
                         }
                     }
                 } else {
-                    println!("[DROP] Malformed Plaintext");
+                    tracing::info!("[DROP] Malformed Plaintext");
                 }
             } else {
-                println!("[DROP] Decryption Failed");
+                tracing::info!("[DROP] Decryption Failed");
             }
         }
     } else {
-        println!("[DROP] Invalid Wire Format");
+        tracing::info!("[DROP] Invalid Wire Format");
     }
     let _ = fs::remove_file(file_path);
 }
 
 async fn execute_as_root(cmd: &str, privacy_logger: &PrivacyAuditLogger, emergency_mode: bool) {
-    println!("[EXEC] Running: {cmd}");
+    tracing::info!("[EXEC] Running: {cmd}");
     let output = Command::new("sh").arg("-c").arg(cmd).output();
     let _ = fs::write("/tmp/sentinel_history.log", format!("{output:?}"));
 
@@ -873,7 +864,7 @@ async fn execute_as_root(cmd: &str, privacy_logger: &PrivacyAuditLogger, emergen
         .log_command_execution(cmd, status, emergency_mode)
         .await
     {
-        eprintln!("Failed to log command execution: {e}");
+        tracing::info!("Failed to log command execution: {e}");
     }
 }
 
@@ -1013,7 +1004,6 @@ mod tests {
 
     #[test]
     fn test_evaluate_policies() {
-        use shared::{CommandMetadata, PolicyCondition, TimeWindow};
         use std::collections::HashMap;
 
         let policy_config = PolicyConfig {
@@ -1044,7 +1034,7 @@ mod tests {
     fn test_evaluate_policies_no_match() {
         let policy_config = PolicyConfig {
             policies: vec![],
-            role_mappings: std::collections::HashMap::new(),
+            role_mappings: HashMap::new(),
         };
 
         let cmd = "systemctl restart apache2";
@@ -1068,7 +1058,7 @@ mod tests {
             approval_expression: None,
         };
 
-        let mut role_mappings = std::collections::HashMap::new();
+        let mut role_mappings = HashMap::new();
         role_mappings.insert("pk1".to_string(), vec!["admin".to_string()]);
         role_mappings.insert("pk2".to_string(), vec!["admin".to_string()]);
 
@@ -1110,4 +1100,8 @@ mod tests {
         };
         assert!(!check_time_window(&invalid_window));
     }
+}
+fn save_state(path: &str, seq: u64) -> std::io::Result<()> {
+    let mut f = fs::File::create(path)?;
+    std::io::Write::write_all(&mut f, &seq.to_le_bytes())
 }

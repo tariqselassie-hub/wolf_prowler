@@ -1,0 +1,171 @@
+    Checking shared v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/shared)
+    Checking wolf_db v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/WolfDb)
+    Checking wolf_den v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_den)
+    Checking airgap v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/airgap)
+error: infinite loop detected
+   --> crates/tercespot/airgap/src/pulse.rs:121:9
+    |
+121 | /         loop {
+122 | |             // Scan for devices
+123 | |             match DeviceScanner::scan_devices().await {
+124 | |                 Ok(scanned_devices) => {
+...   |
+161 | |             sleep(Duration::from_secs(1)).await;
+162 | |         }
+    | |_________^
+    |
+    = help: if this is not intended, try adding a `break` or `return` condition in the loop
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#infinite_loop
+    = note: `-D clippy::infinite-loop` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::infinite_loop)]`
+
+error: temporary with significant `Drop` can be early dropped
+   --> crates/tercespot/airgap/src/pulse.rs:169:13
+    |
+168 |       ) {
+    |  _______-
+169 | |         let devices = connected_devices.read().await;
+    | |             ^^^^^^^
+...   |
+193 | |     }
+    | |_____- temporary `devices` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+    = note: `-D clippy::significant-drop-tightening` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::significant_drop_tightening)]`
+help: drop the temporary after the end of its last usage
+    |
+182 ~         });
+183 +         drop(devices);
+    |
+
+error: use Option::map_or_else instead of an if let/else
+   --> crates/tercespot/airgap/src/pulse.rs:202:9
+    |
+202 | /         if let Some(device) = devices.get(serial) {
+203 | |             if device.device_type == PulseDeviceType::IdentityPort
+204 | |                 && device.status == PulseDeviceStatus::Connected
+...   |
+221 | |             ))
+222 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#option_if_let_else
+    = note: `-D clippy::option-if-let-else` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::option_if_let_else)]`
+help: try
+    |
+202 ~         devices.get(serial).map_or_else(|| Err(AirGapError::PermissionDenied(
+203 +                 "Identity token not found".to_string(),
+204 +             )), |device| if device.device_type == PulseDeviceType::IdentityPort
+205 +                 && device.status == PulseDeviceStatus::Connected
+206 +             {
+207 +                 // In a real implementation, this would:
+208 +                 // 1. Read challenge from data port
+209 +                 // 2. Send challenge to identity token
+210 +                 // 3. Verify response with stored credentials
+211 + 
+212 ~                 println!("✅ Identity token {serial} validated");
+213 +                 Ok(())
+214 +             } else {
+215 +                 Err(AirGapError::PermissionDenied(
+216 +                     "Device is not an identity port or not connected".to_string(),
+217 +                 ))
+218 +             })
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> crates/tercespot/airgap/src/pulse.rs:260:13
+    |
+259 |       pub async fn is_execution_ready(&self) -> bool {
+    |  ____________________________________________________-
+260 | |         let devices = self.connected_devices.read().await;
+    | |             ^^^^^^^
+261 | |
+262 | |         let has_data_port = devices.values().any(|d| {
+...   |
+276 | |         has_data_port && has_identity_port && has_biometric
+277 | |     }
+    | |_____- temporary `devices` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: drop the temporary after the end of its last usage
+    |
+274 ~         });
+275 +         drop(devices);
+    |
+
+error: variables can be used directly in the `format!` string
+   --> crates/tercespot/airgap/src/pulse.rs:366:30
+    |
+366 |                 devices.push(format!("{}/{}", dev_dir, name_str));
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+    = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+    |
+366 -                 devices.push(format!("{}/{}", dev_dir, name_str));
+366 +                 devices.push(format!("{dev_dir}/{name_str}"));
+    |
+
+error: infinite loop detected
+  --> crates/tercespot/airgap/src/udev.rs:65:9
+   |
+65 | /         loop {
+66 | |             // Check for new USB devices every 2 seconds
+67 | |             // Optimization: Run blocking IO in spawn_blocking to avoid blocking the async runtime
+68 | |             let devices_result = task::spawn_blocking(Self::get_usb_devices).await;
+...  |
+84 | |             tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+85 | |         }
+   | |_________^
+   |
+   = help: if this is not intended, try adding a `break` or `return` condition in the loop
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#infinite_loop
+
+error: infinite loop detected
+   --> crates/tercespot/airgap/src/udev.rs:185:9
+    |
+185 | /         loop {
+186 | |             // Poll for USB events
+187 | |             let events = Self::poll_usb_events();
+188 | |             for event in events {
+...   |
+192 | |             tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+193 | |         }
+    | |_________^
+    |
+    = help: if this is not intended, try adding a `break` or `return` condition in the loop
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#infinite_loop
+
+error: infinite loop detected
+   --> crates/tercespot/airgap/src/lib.rs:158:9
+    |
+158 | /         loop {
+159 | |             if let Some(usb_device) = self.detect_usb_insertion() {
+160 | |                 println!("USB device detected: {usb_device}");
+...   |
+168 | |             sleep(Duration::from_secs(2)).await;
+169 | |         }
+    | |_________^
+    |
+    = help: if this is not intended, try adding a `break` or `return` condition in the loop
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#infinite_loop
+
+error: unused `self` argument
+   --> crates/tercespot/airgap/src/lib.rs:265:26
+    |
+265 |     fn scan_for_packages(&self, mount_point: &str) -> io::Result<Vec<PathBuf>> {
+    |                          ^^^^^
+    |
+    = help: consider refactoring to an associated function
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unused_self
+    = note: `-D clippy::unused-self` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unused_self)]`
+
+error: could not compile `airgap` (lib) due to 9 previous errors
+warning: build failed, waiting for other jobs to finish...

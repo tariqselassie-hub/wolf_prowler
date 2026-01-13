@@ -1,9 +1,9 @@
 use aes_gcm::{
-    Aes256Gcm, Nonce,
     aead::{Aead, KeyInit},
+    Aes256Gcm, Nonce,
 };
 use anyhow::Result;
-use rand::{RngCore, thread_rng};
+use rand::{thread_rng, RngCore};
 
 /// Encrypts data using AES-256-GCM with a random nonce
 ///

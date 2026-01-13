@@ -191,8 +191,7 @@ impl WolfStateMachine {
     /// # Errors
     /// Returns Ok(()), Result reserved for future validation.
     pub fn fail_hunt(state: &mut WolfState, hunt_id: &str) -> Result<()> {
-        if let Some(pos) = state.active_hunts.iter().position(|h| h.hunt_id == hunt_id) {
-            let hunt = &mut state.active_hunts[pos];
+        if let Some(hunt) = state.active_hunts.iter_mut().find(|h| h.hunt_id == hunt_id) {
             if hunt.status == HuntStatus::Stalk || hunt.status == HuntStatus::Scent {
                 hunt.status = HuntStatus::Failed;
             }

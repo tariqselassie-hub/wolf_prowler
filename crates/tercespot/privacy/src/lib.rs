@@ -140,8 +140,8 @@ impl PrivacyAuditLogger {
         let config_clone = config.clone();
         tokio::spawn(async move {
             while let Some(entry) = rx.recv().await {
-                if let Err(e) = Self::process_audit_entry(entry, &config_clone) {
-                    eprintln!("Failed to process audit entry: {e}");
+                if let Err(e) = Self::process_audit_entry(&entry, &config_clone) {
+                    tracing::error!("Failed to process audit entry: {e}");
                 }
             }
         });
@@ -194,15 +194,15 @@ impl PrivacyAuditLogger {
 
         // Send to audit processing
         if let Err(e) = self.audit_channel.send(entry) {
-            eprintln!("Failed to send audit entry: {e:?}");
+            tracing::error!("Failed to send audit entry: {e:?}");
         }
 
         // If emergency mode, send alerts
         if emergency_mode {
             // Send alerts synchronously for now
-            self.send_sms_alert(command);
-            self.send_email_alert(command);
-            self.send_pagerduty_alert(command);
+            Self::send_sms_alert(command);
+            Self::send_email_alert(command);
+            Self::send_pagerduty_alert(command);
         }
 
         Ok(())
@@ -219,14 +219,14 @@ impl PrivacyAuditLogger {
     /// Decryption should be done by the Auditor tool.
     ///
     /// Process audit entry and ship to syslog
-    fn process_audit_entry(entry: EncryptedAuditEntry, config: &PrivacyConfig) -> io::Result<()> {
+    fn process_audit_entry(entry: &EncryptedAuditEntry, config: &PrivacyConfig) -> io::Result<()> {
         // Serialize entry
         let serialized = serde_json::to_string(&entry)
             .map_err(|e| io::Error::other(format!("Serialization failed: {e}")))?;
 
         // Ship to syslog server (ignore error to ensure local audit persists)
         if let Err(e) = Self::ship_to_syslog(&serialized, &config.syslog_endpoint) {
-            eprintln!("Syslog shipment failed: {e}");
+            tracing::error!("Syslog shipment failed: {e}");
         }
 
         // Also write to local audit log
@@ -283,35 +283,32 @@ impl PrivacyAuditLogger {
     fn send_emergency_alerts(&self, command: &str) {
         for channel in &self.config.alert_channels {
             match channel.as_str() {
-                "sms" => self.send_sms_alert(command),
-                "email" => self.send_email_alert(command),
-                "pagerduty" => self.send_pagerduty_alert(command),
+                "sms" => Self::send_sms_alert(command),
+                "email" => Self::send_email_alert(command),
+                "pagerduty" => Self::send_pagerduty_alert(command),
                 _ => {
-                    eprintln!("Unknown alert channel: {channel}");
+                    tracing::warn!("Unknown alert channel: {channel}");
                 }
             }
         }
     }
 
     /// Send SMS alert (mock implementation)
-    #[allow(clippy::unused_self)]
-    fn send_sms_alert(&self, command: &str) {
-        println!("🚨 EMERGENCY: Break-glass command executed: {command}");
-        println!("🚨 Alert sent via SMS to all stakeholders");
+    fn send_sms_alert(command: &str) {
+        tracing::info!("🚨 EMERGENCY: Break-glass command executed: {command}");
+        tracing::info!("🚨 Alert sent via SMS to all stakeholders");
     }
 
     /// Send email alert (mock implementation)
-    #[allow(clippy::unused_self)]
-    fn send_email_alert(&self, command: &str) {
-        println!("📧 EMERGENCY: Break-glass command executed: {command}");
-        println!("📧 Alert sent via email to all stakeholders");
+    fn send_email_alert(command: &str) {
+        tracing::info!("📧 EMERGENCY: Break-glass command executed: {command}");
+        tracing::info!("📧 Alert sent via email to all stakeholders");
     }
 
     /// Send `PagerDuty` alert (mock implementation)
-    #[allow(clippy::unused_self)]
-    fn send_pagerduty_alert(&self, command: &str) {
-        println!("🚨 EMERGENCY: Break-glass command executed: {command}");
-        println!("🚨 PagerDuty alert triggered for all on-call personnel");
+    fn send_pagerduty_alert(command: &str) {
+        tracing::info!("🚨 EMERGENCY: Break-glass command executed: {command}");
+        tracing::info!("🚨 PagerDuty alert triggered for all on-call personnel");
     }
 
     /// Calculate SHA-256 hash of data
@@ -354,7 +351,10 @@ impl PrivacyValidator {
 
         for (i, pattern) in self.pii_patterns.iter().enumerate() {
             if pattern.is_match(command) {
-                detected_pii.push(format!("PII pattern {} detected in command", i + 1));
+                detected_pii.push(format!(
+                    "PII pattern {} detected in command",
+                    i.saturating_add(1)
+                ));
             }
         }
 

@@ -143,9 +143,11 @@ impl HmacMac {
         let mut ipad = vec![0x36; block_size];
         let mut opad = vec![0x5C; block_size];
 
-        for (i, &k) in key.iter().enumerate() {
-            ipad[i] ^= k;
-            opad[i] ^= k;
+        for (i, &k) in ipad.iter_mut().zip(key.iter()) {
+            *i ^= k;
+        }
+        for (o, &k) in opad.iter_mut().zip(key.iter()) {
+            *o ^= k;
         }
 
         // Compute inner hash
@@ -227,8 +229,8 @@ impl Poly1305Mac {
     ///
     /// Returns an error if Poly1305 computation fails.
     pub fn compute(&self, data: &[u8]) -> Result<Vec<u8>> {
-        use poly1305::Poly1305;
         use poly1305::universal_hash::generic_array::GenericArray;
+        use poly1305::Poly1305;
 
         const BLOCK_SIZE: usize = 16;
         let key = GenericArray::from_slice(self.key.as_slice());
@@ -240,7 +242,9 @@ impl Poly1305Mac {
                 mac.update(std::slice::from_ref(block));
             } else {
                 let mut block_data = [0u8; BLOCK_SIZE];
-                block_data[..chunk.len()].copy_from_slice(chunk);
+                if let Some(target) = block_data.get_mut(..chunk.len()) {
+                    target.copy_from_slice(chunk);
+                }
                 let block = GenericArray::from_slice(&block_data);
                 mac.update(std::slice::from_ref(block));
             }
@@ -286,8 +290,6 @@ impl Poly1305Mac {
         self.mac_count.load(std::sync::atomic::Ordering::Relaxed)
     }
 }
-
-
 
 /// Create a MAC instance
 ///
@@ -492,8 +494,6 @@ mod tests {
     async fn test_mac_type_default() {
         assert_eq!(MacType::default(), MacType::Hmac);
     }
-
-
 
     #[tokio::test]
     #[allow(clippy::unwrap_used)]

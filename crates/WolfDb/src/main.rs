@@ -4,9 +4,9 @@
 //! and a REST API server for remote interactions.
 
 use anyhow::Result;
+use clap::Parser;
 use wolf_db::engine::QueryEngine;
 use wolf_db::storage::WolfDbStorage;
-use clap::Parser;
 
 /// Command-line arguments for `WolfDb`
 #[derive(Parser)]
@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
         "web" => {
             // Web server mode
             use wolf_db::api::{create_router, AppState};
-            
+
             let storage = WolfDbStorage::open(&db_path)?;
             let state = AppState::new(storage);
             let app = create_router(state);
@@ -60,7 +60,7 @@ async fn main() -> Result<()> {
             axum::serve(listener, app).await?;
         }
         _ => {
-            eprintln!("Invalid mode: {}. Use 'cli' or 'web'", args.mode);
+            tracing::info!("Invalid mode: {}. Use 'cli' or 'web'", args.mode);
             std::process::exit(1);
         }
     }

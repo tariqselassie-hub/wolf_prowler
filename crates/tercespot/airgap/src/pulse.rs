@@ -114,10 +114,12 @@ impl PulseManager {
     }
 
     /// Monitor pulse devices
+    #[tracing::instrument(skip(tx, connected_devices))]
     async fn monitor_pulse_devices(
         tx: broadcast::Sender<PulseEvent>,
         connected_devices: Arc<tokio::sync::RwLock<HashMap<String, PulseDevice>>>,
     ) {
+        #[allow(clippy::infinite_loop)]
         loop {
             // Scan for devices
             match DeviceScanner::scan_devices().await {
@@ -151,7 +153,7 @@ impl PulseManager {
                     }
                 }
                 Err(e) => {
-                    eprintln!("Error scanning pulse devices: {e}");
+                    tracing::error!("Error scanning pulse devices: {e}");
                 }
             }
 
@@ -183,13 +185,9 @@ impl PulseManager {
 
         if has_data_port && has_identity_port && has_biometric {
             // Both devices present, ready for execution
-            // println!("✅ All required devices connected - system ready");
-        } else {
-            // println!("⚠️  Missing required devices:");
-            // if !has_data_port { println!(" - Data Port"); }
-            // if !has_identity_port { println!(" - Identity Port"); }
-            // if !has_biometric { println!(" - Biometric Scanner"); }
+            // tracing::info!("✅ All required devices connected - system ready");
         }
+        drop(devices);
     }
 
     /// Validate identity token
@@ -199,27 +197,30 @@ impl PulseManager {
     pub async fn validate_identity_token(&self, serial: &str) -> Result<()> {
         let devices = self.connected_devices.read().await;
 
-        if let Some(device) = devices.get(serial) {
-            if device.device_type == PulseDeviceType::IdentityPort
-                && device.status == PulseDeviceStatus::Connected
-            {
-                // In a real implementation, this would:
-                // 1. Read challenge from data port
-                // 2. Send challenge to identity token
-                // 3. Verify response with stored credentials
-
-                println!("✅ Identity token {serial} validated");
-                Ok(())
-            } else {
+        devices.get(serial).map_or_else(
+            || {
                 Err(AirGapError::PermissionDenied(
-                    "Device is not an identity port or not connected".to_string(),
+                    "Identity token not found".to_string(),
                 ))
-            }
-        } else {
-            Err(AirGapError::PermissionDenied(
-                "Identity token not found".to_string(),
-            ))
-        }
+            },
+            |device| {
+                if device.device_type == PulseDeviceType::IdentityPort
+                    && device.status == PulseDeviceStatus::Connected
+                {
+                    // In a real implementation, this would:
+                    // 1. Read challenge from data port
+                    // 2. Send challenge to identity token
+                    // 3. Verify response with stored credentials
+
+                    tracing::info!("✅ Identity token {serial} validated");
+                    Ok(())
+                } else {
+                    Err(AirGapError::PermissionDenied(
+                        "Device is not an identity port or not connected".to_string(),
+                    ))
+                }
+            },
+        )
     }
 
     /// Validate biometric scan
@@ -241,7 +242,7 @@ impl PulseManager {
                 // Simulate processing delay
                 sleep(Duration::from_millis(500)).await;
 
-                println!("✅ Biometric scan verified for device {serial}");
+                tracing::info!("✅ Biometric scan verified for device {serial}");
                 Ok(())
             } else {
                 Err(AirGapError::PermissionDenied(
@@ -273,6 +274,8 @@ impl PulseManager {
                 && d.status == PulseDeviceStatus::Connected
         });
 
+        drop(devices);
+
         has_data_port && has_identity_port && has_biometric
     }
 }
@@ -286,7 +289,7 @@ impl UsbPortController {
     /// # Errors
     /// Returns an error if the operation fails.
     pub fn power_off_port(port: &str) -> io::Result<()> {
-        println!("Powering off USB port: {port}");
+        tracing::info!("Powering off USB port: {port}");
 
         // In a real implementation, this would use:
         // 1. sysfs interface: /sys/bus/usb/devices/usbX/power/level
@@ -302,7 +305,7 @@ impl UsbPortController {
     /// # Errors
     /// Returns an error if the operation fails.
     pub fn power_on_port(port: &str) -> io::Result<()> {
-        println!("Powering on USB port: {port}");
+        tracing::info!("Powering on USB port: {port}");
 
         // Simulated operation
         Ok(())
@@ -363,7 +366,7 @@ impl DeviceScanner {
             let name = entry.file_name();
             let name_str = name.to_string_lossy();
             if name_str.starts_with("ttyUSB") {
-                devices.push(format!("{}/{}", dev_dir, name_str));
+                devices.push(format!("{dev_dir}/{name_str}"));
             }
         }
 
@@ -500,7 +503,7 @@ mod tests {
         // 5. Wait for devices to be detected
         // PulseManager scans every 1s. We wait for 3 connection events.
         let mut connected_count = 0;
-        let timeout = tokio::time::sleep(Duration::from_secs(5));
+        let timeout = sleep(Duration::from_secs(5));
         tokio::pin!(timeout);
 
         loop {
@@ -537,7 +540,7 @@ mod tests {
         std::fs::remove_file(dir.path().join("ttyUSB1")).unwrap();
 
         // Wait for disconnection event
-        let timeout = tokio::time::sleep(Duration::from_secs(5));
+        let timeout = sleep(Duration::from_secs(5));
         tokio::pin!(timeout);
         let mut disconnected = false;
 

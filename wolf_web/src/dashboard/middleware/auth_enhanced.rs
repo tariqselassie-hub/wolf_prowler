@@ -16,10 +16,10 @@ use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
 use crate::dashboard::state::AppState;
-use wolfsec::security::advanced::iam::{
+use wolfsec::identity::iam::{
     AuthenticationManager, AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
     JWTAuthenticationManager, JWTValidationResult, MFAManager, MFAmethod, RBACManager, RBACQuery,
-    RBACQuery, SSOIntegrationManager, SessionManager, SessionValidationResult, UserStatus,
+    SSOIntegrationManager, SessionManager, SessionValidationResult, UserStatus,
 };
 
 /// Authentication context
@@ -116,7 +116,7 @@ pub async fn auth_middleware(
             AuthError::InternalError
         })?;
 
-    if access_decision.decision != wolfsec::security::advanced::iam::AccessDecisionType::Allow {
+    if access_decision.decision != wolfsec::identity::iam::AccessDecisionType::Allow {
         return Err(AuthError::AccessDenied);
     }
 
@@ -318,42 +318,42 @@ fn extract_api_key_from_request(request: &Request) -> Option<String> {
 /// Extract resource type from request
 fn extract_resource_from_request(
     request: &Request,
-) -> wolfsec::security::advanced::iam::ResourceType {
+) -> wolfsec::identity::iam::ResourceType {
     let path = request.uri().path();
 
     if path.starts_with("/api/v1/dashboard") {
-        wolfsec::security::advanced::iam::ResourceType::Dashboard
+        wolfsec::identity::iam::ResourceType::Dashboard
     } else if path.starts_with("/api/v1/network") {
-        wolfsec::security::advanced::iam::ResourceType::Network
+        wolfsec::identity::iam::ResourceType::Network
     } else if path.starts_with("/api/v1/security") {
-        wolfsec::security::advanced::iam::ResourceType::Security
+        wolfsec::identity::iam::ResourceType::Security
     } else if path.starts_with("/api/v1/system") {
-        wolfsec::security::advanced::iam::ResourceType::System
+        wolfsec::identity::iam::ResourceType::System
     } else if path.starts_with("/api/v1/users") {
-        wolfsec::security::advanced::iam::ResourceType::UserManagement
+        wolfsec::identity::iam::ResourceType::UserManagement
     } else if path.starts_with("/api/v1/audit") {
-        wolfsec::security::advanced::iam::ResourceType::Audit
+        wolfsec::identity::iam::ResourceType::Audit
     } else {
-        wolfsec::security::advanced::iam::ResourceType::Custom("unknown".to_string())
+        wolfsec::identity::iam::ResourceType::Custom("unknown".to_string())
     }
 }
 
 /// Extract action from request method
 fn extract_action_from_request(
     request: &Request,
-) -> wolfsec::security::advanced::iam::ResourceAction {
+) -> wolfsec::identity::iam::ResourceAction {
     match request.method().as_str() {
-        "GET" => wolfsec::security::advanced::iam::ResourceAction::Read,
-        "POST" => wolfsec::security::advanced::iam::ResourceAction::Write,
-        "PUT" | "PATCH" => wolfsec::security::advanced::iam::ResourceAction::Write,
-        "DELETE" => wolfsec::security::advanced::iam::ResourceAction::Delete,
-        "ADMIN" => wolfsec::security::advanced::iam::ResourceAction::Admin,
-        _ => wolfsec::security::advanced::iam::ResourceAction::Custom("unknown".to_string()),
+        "GET" => wolfsec::identity::iam::ResourceAction::Read,
+        "POST" => wolfsec::identity::iam::ResourceAction::Write,
+        "PUT" | "PATCH" => wolfsec::identity::iam::ResourceAction::Write,
+        "DELETE" => wolfsec::identity::iam::ResourceAction::Delete,
+        "ADMIN" => wolfsec::identity::iam::ResourceAction::Admin,
+        _ => wolfsec::identity::iam::ResourceAction::Custom("unknown".to_string()),
     }
 }
 
 /// Check if MFA is required for the user/operation
-fn is_mfa_required(claims: &wolfsec::security::advanced::iam::JWTCustomClaims) -> bool {
+fn is_mfa_required(claims: &wolfsec::identity::iam::JWTCustomClaims) -> bool {
     // In production, this would check user roles, operation sensitivity, etc.
     claims.roles.iter().any(|role| role.contains("admin"))
         || claims.permissions.iter().any(|perm| perm.contains("admin"))

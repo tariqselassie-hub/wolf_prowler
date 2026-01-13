@@ -29,7 +29,6 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 dotenv = "0.15"
 futures = "0.3"
-sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "json", "macros"] }
 ipnetwork = "0.20"
 
 
@@ -297,6 +296,8 @@ members = [
 [workspace.lints.rust]
 unsafe_code = "deny"
 missing_docs = "deny"
+unreachable_pub = "warn"
+unused_qualifications = "warn"
 
 [workspace.lints.clippy]
 # Groups
@@ -306,26 +307,35 @@ nursery = { level = "warn", priority = -1 }
 perf = { level = "warn", priority = -1 }
 cargo = { level = "warn", priority = -1 }
 
-# Specific Security/Correctness Lints
+# Security Lints (Restriction Group)
+arithmetic_side_effects = "warn" # Find potential overflows
+indexing_slicing = "warn"         # Encourage using .get()
 unwrap_used = "warn"
 expect_used = "warn"
-panic = "warn"
+
+# Production Readiness (Restriction Group)
+dbg_macro = "warn"               # Prevent forgotten dbg! calls
+print_stdout = "warn"            # Encourage using tracing/logging
+print_stderr = "warn"            # Encourage using tracing/logging
 todo = "warn"
 unimplemented = "warn"
-undocumented_unsafe_blocks = "warn"
-    multiple_crate_versions = "allow"
-infinite_loop = "warn"
 
-# Type Strictness
+# Consistency & Style
+multiple_crate_versions = "allow"
+undocumented_unsafe_blocks = "warn"
+infinite_loop = "warn"
 cast_possible_truncation = "deny"
 cast_possible_wrap = "deny"
 cast_sign_loss = "deny"
 cast_precision_loss = "deny"
 float_cmp = "deny"
-
-# Complexity
 cognitive_complexity = "deny"
 too_many_lines = "deny"
+
+# Noisy Lints
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+must_use_candidate = "allow"
 
 [profile.release]
 lto = true

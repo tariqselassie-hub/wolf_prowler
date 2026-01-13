@@ -1,0 +1,441 @@
+warning: unnecessary qualification
+   --> wolfsec/src/lib.rs:577:25
+    |
+577 |     pub authentication: auth::AuthConfig,
+    |                         ^^^^^^^^^^^^^^^^
+    |
+    = note: requested on the command line with `-W unused-qualifications`
+help: remove the unnecessary path segments
+    |
+577 -     pub authentication: auth::AuthConfig,
+577 +     pub authentication: AuthConfig,
+    |
+
+warning: field `key_store` is never read
+  --> wolfsec/src/identity/crypto.rs:97:5
+   |
+91 | pub struct WolfCrypto {
+   |            ---------- field in this struct
+...
+97 |     key_store: Arc<RwLock<HashMap<String, CryptoKey>>>,
+   |     ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `username` is never read
+  --> wolfsec/src/identity/iam/authentication.rs:80:5
+   |
+76 | struct UserCredential {
+   |        -------------- field in this struct
+...
+80 |     username: String,
+   |     ^^^^^^^^
+   |
+   = note: `UserCredential` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Inactive`, `Locked`, and `Suspended` are never constructed
+  --> wolfsec/src/identity/iam/authentication.rs:95:5
+   |
+91 | enum UserStatus {
+   |      ---------- variants in this enum
+...
+95 |     Inactive,
+   |     ^^^^^^^^
+96 |     /// Account is temporarily locked due to failed login attempts
+97 |     Locked,
+   |     ^^^^^^
+98 |     /// Account is suspended due to security violations
+99 |     Suspended,
+   |     ^^^^^^^^^
+   |
+   = note: `UserStatus` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `config` is never read
+  --> wolfsec/src/identity/iam/jwt_auth.rs:72:5
+   |
+66 | pub struct JWTAuthenticationManager {
+   |            ------------------------ field in this struct
+...
+72 |     config: IAMConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+   --> wolfsec/src/identity/iam/mfa.rs:290:5
+    |
+282 | pub struct MFAManager {
+    |            ---------- field in this struct
+...
+290 |     config: IAMConfig,
+    |     ^^^^^^
+
+warning: field `config` is never read
+   --> wolfsec/src/identity/iam/pqc.rs:472:5
+    |
+462 | pub struct PQCManager {
+    |            ---------- field in this struct
+...
+472 |     config: IAMConfig,
+    |     ^^^^^^
+
+warning: field `config` is never read
+   --> wolfsec/src/identity/iam/rbac.rs:190:5
+    |
+182 | pub struct RBACManager {
+    |            ----------- field in this struct
+...
+190 |     config: IAMConfig,
+    |     ^^^^^^
+
+warning: field `config` is never read
+   --> wolfsec/src/identity/iam/sso.rs:170:5
+    |
+164 | pub struct SSOIntegrationManager {
+    |            --------------------- field in this struct
+...
+170 |     config: IAMConfig,
+    |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/observability/predictive_analytics/mod.rs:29:5
+   |
+19 | pub struct PredictiveAnalyticsEngine {
+   |            ------------------------- field in this struct
+...
+29 |     config: PredictiveAnalyticsConfig,
+   |     ^^^^^^
+
+warning: fields `identity_federation`, `network_security`, `data_protection`, and `config` are never read
+  --> wolfsec/src/protection/cloud_security/mod.rs:39:5
+   |
+31 | pub struct CloudSecurityManager {
+   |            -------------------- fields in this struct
+...
+39 |     identity_federation: CloudIdentityFederationManager,
+   |     ^^^^^^^^^^^^^^^^^^^
+40 |     /// Network security
+41 |     network_security: CloudNetworkSecurityManager,
+   |     ^^^^^^^^^^^^^^^^
+42 |     /// Data protection
+43 |     data_protection: CloudDataProtectionManager,
+   |     ^^^^^^^^^^^^^^^
+...
+47 |     config: CloudSecurityConfig,
+   |     ^^^^^^
+
+warning: fields `orchestration_security` and `config` are never read
+  --> wolfsec/src/protection/container_security/mod.rs:82:5
+   |
+76 | pub struct ContainerSecurityManager {
+   |            ------------------------ fields in this struct
+...
+82 |     orchestration_security: OrchestrationSecurityManager,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+...
+90 |     config: ContainerSecurityConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/container_security/resource_limits.rs:11:5
+   |
+10 | pub struct ContainerResourceLimitManager {
+   |            ----------------------------- field in this struct
+11 |     config: ContainerSecurityConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/devsecops/mod.rs:66:5
+   |
+52 | pub struct DevSecOpsManager {
+   |            ---------------- field in this struct
+...
+66 |     config: DevSecOpsConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/devsecops/cicd_security.rs:11:5
+   |
+10 | pub struct CICDSecurityManager {
+   |            ------------------- field in this struct
+11 |     config: DevSecOpsConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/infrastructure_security/mod.rs:43:5
+   |
+29 | pub struct InfrastructureSecurityManager {
+   |            ----------------------------- field in this struct
+...
+43 |     config: InfrastructureSecurityConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/ml_security/data_pipeline.rs:70:5
+   |
+69 | pub struct FeatureExtractor {
+   |            ---------------- field in this struct
+70 |     config: FeatureConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/ml_security/patterns.rs:14:5
+   |
+13 | pub struct PatternAnalyzer {
+   |            --------------- field in this struct
+14 |     config: MLSecurityConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/ml_security/training.rs:12:5
+   |
+11 | pub struct TrainingPipeline {
+   |            ---------------- field in this struct
+12 |     config: MLSecurityConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/risk_assessment/mod.rs:40:5
+   |
+28 | pub struct RiskAssessmentManager {
+   |            --------------------- field in this struct
+...
+40 |     config: RiskAssessmentConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/risk_assessment/gap_analysis.rs:12:5
+   |
+10 | pub struct ComplianceGapAnalyzer {
+   |            --------------------- field in this struct
+11 |     /// Configuration
+12 |     config: GapAnalysisConfig,
+   |     ^^^^^^
+
+warning: `wolfsec` (lib) generated 21 warnings (run `cargo fix --lib -p wolfsec` to apply 1 suggestion)
+warning: method `generate_peer_key` is never used
+   --> src/core/security_simple.rs:483:8
+    |
+196 | impl SecurityManager {
+    | -------------------- method in this implementation
+...
+483 |     fn generate_peer_key(&self, peer_id: &str) -> Result<Vec<u8>> {
+    |        ^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `wolf_prowler` (lib) generated 1 warning
+    Checking wolf_server v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_server)
+warning: unused import: `Serialize`
+ --> wolf_server/src/api.rs:9:26
+  |
+9 | use serde::{Deserialize, Serialize};
+  |                          ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `ActiveHunt`
+  --> wolf_server/src/api.rs:19:34
+   |
+19 | use wolf_net::wolf_pack::state::{ActiveHunt, WolfState};
+   |                                  ^^^^^^^^^^
+
+warning: unused imports: `HeaderMap`, `Response`, and `Uri`
+  --> wolf_server/src/api_middleware.rs:8:20
+   |
+ 8 |     http::{header, HeaderMap, Method, StatusCode, Uri},
+   |                    ^^^^^^^^^                      ^^^
+ 9 |     middleware::Next,
+10 |     response::{IntoResponse, Response},
+   |                              ^^^^^^^^
+
+warning: unused import: `info`
+  --> wolf_server/src/api_middleware.rs:15:29
+   |
+15 | use tracing::{debug, error, info, warn};
+   |                             ^^^^
+
+warning: unused import: `wolf_db::storage::WolfDbStorage`
+ --> wolf_server/src/wolfsec_integration.rs:9:5
+  |
+9 | use wolf_db::storage::WolfDbStorage;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the trait bound `wolf_net::PeerId: From<tokio::sync::mpsc::Sender<NodeCommand>>` is not satisfied
+  --> wolf_server/src/api.rs:94:54
+   |
+94 |         authorizer: state.control.command_tx.clone().into(), // Conceptual: use local PeerId
+   |                                                      ^^^^ the trait `From<tokio::sync::mpsc::Sender<NodeCommand>>` is not implemented for `wolf_net::PeerId`
+   |
+   = note: required for `tokio::sync::mpsc::Sender<NodeCommand>` to implement `Into<wolf_net::PeerId>`
+help: consider removing this method call, as the receiver has type `tokio::sync::mpsc::Sender<NodeCommand>` and `tokio::sync::mpsc::Sender<NodeCommand>: From<tokio::sync::mpsc::Sender<NodeCommand>>` trivially holds
+   |
+94 -         authorizer: state.control.command_tx.clone().into(), // Conceptual: use local PeerId
+94 +         authorizer: state.control.command_tx.into(), // Conceptual: use local PeerId
+   |
+
+error[E0308]: `match` arms have incompatible types
+   --> wolf_server/src/api.rs:104:19
+    |
+ 99 |       match state.control.send_coordinator_msg(msg).await {
+    |       --------------------------------------------------- `match` arms have incompatible types
+100 |           Ok(_) => (
+    |  __________________-
+101 | |             StatusCode::ACCEPTED,
+102 | |             Json(ApiResponse::success("Hunt triggered")),
+103 | |         ),
+    | |_________- this is found to be of type `(axum::http::StatusCode, axum::Json<wolf_net::api::ApiResponse<&str>>)`
+104 |           Err(e) => (
+    |  ___________________^
+105 | |             StatusCode::INTERNAL_SERVER_ERROR,
+106 | |             Json(ApiResponse::<()>::error(e.to_string())),
+107 | |         ),
+    | |_________^ expected `(StatusCode, Json<ApiResponse<&str>>)`, found `(StatusCode, Json<ApiResponse<()>>)`
+    |
+    = note: expected tuple `(axum::http::StatusCode, axum::Json<wolf_net::api::ApiResponse<&str>>)`
+               found tuple `(axum::http::StatusCode, axum::Json<wolf_net::api::ApiResponse<()>>)`
+help: you could change the return type to be a boxed trait object
+    |
+ 89 - ) -> impl IntoResponse {
+ 89 + ) -> Box<dyn IntoResponse> {
+    |
+help: if you change the return type to expect trait objects, box the returned expressions
+    |
+100 ~         Ok(_) => Box::new((
+101 |             StatusCode::ACCEPTED,
+102 |             Json(ApiResponse::success("Hunt triggered")),
+103 ~         )),
+104 ~         Err(e) => Box::new((
+105 |             StatusCode::INTERNAL_SERVER_ERROR,
+106 |             Json(ApiResponse::<()>::error(e.to_string())),
+107 ~         )),
+    |
+
+error[E0308]: mismatched types
+   --> wolf_server/src/api.rs:127:50
+    |
+127 |     let repository = WolfDbThreatRepository::new(storage);
+    |                      --------------------------- ^^^^^^^ expected `Arc<RwLock<WolfDbStorage>>`, found `Arc<WolfDbStorage>`
+    |                      |
+    |                      arguments to this function are incorrect
+    |
+    = note: expected struct `Arc<tokio::sync::RwLock<WolfDbStorage>>`
+               found struct `Arc<WolfDbStorage>`
+note: associated function defined here
+   --> /home/t4riq/Desktop/Rust/wolf_prowler/wolfsec/src/infrastructure/persistence/wolf_db_threat_repository.rs:25:12
+    |
+ 25 |     pub fn new(storage: Arc<RwLock<WolfDbStorage>>) -> Self {
+    |            ^^^
+
+error[E0599]: no method named `get_recent_alerts` found for struct `wolfsec::infrastructure::persistence::wolf_db_threat_repository::WolfDbThreatRepository` in the current scope
+   --> wolf_server/src/api.rs:130:22
+    |
+130 |     match repository.get_recent_alerts(limit).await {
+    |                      ^^^^^^^^^^^^^^^^^ method not found in `wolfsec::infrastructure::persistence::wolf_db_threat_repository::WolfDbThreatRepository`
+
+error[E0282]: type annotations needed
+   --> wolf_server/src/api.rs:134:43
+    |
+134 |             Json(ApiResponse::<()>::error(e.to_string())),
+    |                                           ^ cannot infer type
+
+error[E0308]: mismatched types
+  --> wolf_server/src/wolfsec_integration.rs:25:59
+   |
+25 |     let repository = Arc::new(WolfDbThreatRepository::new(storage));
+   |                               --------------------------- ^^^^^^^ expected `Arc<RwLock<WolfDbStorage>>`, found `Arc<WolfDbStorage>`
+   |                               |
+   |                               arguments to this function are incorrect
+   |
+   = note: expected struct `Arc<tokio::sync::RwLock<WolfDbStorage>>`
+              found struct `Arc<WolfDbStorage>`
+note: associated function defined here
+  --> /home/t4riq/Desktop/Rust/wolf_prowler/wolfsec/src/infrastructure/persistence/wolf_db_threat_repository.rs:25:12
+   |
+25 |     pub fn new(storage: Arc<RwLock<WolfDbStorage>>) -> Self {
+   |            ^^^
+
+error[E0308]: mismatched types
+  --> wolf_server/src/wolfsec_integration.rs:59:19
+   |
+59 |         severity: format!("{:?}", event.severity),
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `AlertSeverity`, found `String`
+   |
+   = note: this error originates in the macro `format` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0560]: struct `wolfsec::alerts::SecurityAlert` has no field named `description`
+  --> wolf_server/src/wolfsec_integration.rs:61:9
+   |
+61 |         description: event.description.clone(),
+   |         ^^^^^^^^^^^ `wolfsec::alerts::SecurityAlert` does not have this field
+   |
+   = note: available fields are: `status`, `message`, `category`, `escalation_level`, `acknowledged_by` ... and 3 others
+
+error[E0599]: no method named `save_alert` found for reference `&wolfsec::infrastructure::persistence::wolf_db_threat_repository::WolfDbThreatRepository` in the current scope
+  --> wolf_server/src/wolfsec_integration.rs:69:32
+   |
+69 |     if let Err(e) = repository.save_alert(&alert).await {
+   |                                ^^^^^^^^^^ method not found in `&wolfsec::infrastructure::persistence::wolf_db_threat_repository::WolfDbThreatRepository`
+
+error[E0277]: the trait bound `fn(State<...>, ...) -> ... {connect_peer_handler}: Handler<_, _>` is not satisfied
+   --> wolf_server/src/api.rs:220:46
+    |
+220 |         .route("/api/v1/peers/connect", post(connect_peer_handler))
+    |                                         ---- ^^^^^^^^^^^^^^^^^^^^ the trait `Handler<_, _>` is not implemented for fn item `fn(State<WolfNodeControl>, Json<...>) -> ... {connect_peer_handler}`
+    |                                         |
+    |                                         required by a bound introduced by this call
+    |
+    = note: Consider using `#[axum::debug_handler]` to improve the error message
+    = help: the following other types implement trait `Handler<T, S>`:
+              `MethodRouter<S>` implements `Handler<(), S>`
+              `axum::handler::Layered<L, H, T, S>` implements `Handler<T, S>`
+note: required by a bound in `post`
+   --> /home/t4riq/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/method_routing.rs:443:1
+    |
+443 | top_level_handler_fn!(post, POST);
+    | ^^^^^^^^^^^^^^^^^^^^^^----^^^^^^^
+    | |                     |
+    | |                     required by a bound in this function
+    | required by this bound in `post`
+    = note: the full name for the type has been written to '/home/t4riq/Desktop/Rust/wolf_prowler/target/debug/deps/wolf_server-bf1c2c37c7c575fd.long-type-11154753684893813224.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+    = note: this error originates in the macro `top_level_handler_fn` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `fn(State<...>, ...) -> ... {broadcast_handler}: Handler<_, _>` is not satisfied
+   --> wolf_server/src/api.rs:221:51
+    |
+221 |         .route("/api/v1/messages/broadcast", post(broadcast_handler))
+    |                                              ---- ^^^^^^^^^^^^^^^^^ the trait `Handler<_, _>` is not implemented for fn item `fn(State<WolfNodeControl>, Json<...>) -> ... {broadcast_handler}`
+    |                                              |
+    |                                              required by a bound introduced by this call
+    |
+    = note: Consider using `#[axum::debug_handler]` to improve the error message
+    = help: the following other types implement trait `Handler<T, S>`:
+              `MethodRouter<S>` implements `Handler<(), S>`
+              `axum::handler::Layered<L, H, T, S>` implements `Handler<T, S>`
+note: required by a bound in `post`
+   --> /home/t4riq/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/method_routing.rs:443:1
+    |
+443 | top_level_handler_fn!(post, POST);
+    | ^^^^^^^^^^^^^^^^^^^^^^----^^^^^^^
+    | |                     |
+    | |                     required by a bound in this function
+    | required by this bound in `post`
+    = note: the full name for the type has been written to '/home/t4riq/Desktop/Rust/wolf_prowler/target/debug/deps/wolf_server-bf1c2c37c7c575fd.long-type-15538597107032204360.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+    = note: this error originates in the macro `top_level_handler_fn` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: no function or associated item named `new` found for struct `WolfDbStorage` in the current scope
+  --> wolf_server/src/main.rs:32:34
+   |
+32 |     let wolf_db = WolfDbStorage::new(&db_path)?;
+   |                                  ^^^ function or associated item not found in `WolfDbStorage`
+   |
+note: if you're trying to build a new `WolfDbStorage`, consider using `WolfDbStorage::open` which returns `Result<WolfDbStorage, WolfDbError>`
+  --> /home/t4riq/Desktop/Rust/wolf_prowler/crates/WolfDb/src/storage/mod.rs:70:5
+   |
+70 |     pub fn open(path: &str) -> Result<Self> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some errors have detailed explanations: E0277, E0282, E0308, E0560, E0599.
+For more information about an error, try `rustc --explain E0277`.
+warning: `wolf_server` (bin "wolf_server") generated 5 warnings
+error: could not compile `wolf_server` (bin "wolf_server") due to 12 previous errors; 5 warnings emitted

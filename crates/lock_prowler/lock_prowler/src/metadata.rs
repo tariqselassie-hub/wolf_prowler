@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 
 pub const FVE_SIGNATURE: &[u8; 8] = b"-FVE-FS-";
 

@@ -110,6 +110,7 @@ pub struct BehavioralAnalyzer {
     /// Peer behavior patterns
     behavior_patterns: HashMap<String, BehaviorPattern>,
     /// Analysis window
+    #[allow(dead_code)]
     analysis_window: Duration,
     /// Pattern matching algorithms
     pattern_matchers: Vec<Box<dyn PatternMatcher>>,
@@ -185,6 +186,7 @@ pub struct AnomalyDetector {
     /// Statistical models for each peer
     statistical_models: HashMap<String, StatisticalModel>,
     /// Global baseline statistics
+    #[allow(dead_code)]
     global_baseline: GlobalBaseline,
     /// Detection algorithms
     algorithms: Vec<Box<dyn AnomalyAlgorithm>>,
@@ -253,8 +255,10 @@ pub struct ReputationSystem {
     /// Peer reputation scores
     reputation_scores: HashMap<String, ReputationScore>,
     /// Reputation factors
+    #[allow(dead_code)]
     factors: Vec<Box<dyn ReputationFactor>>,
     /// Decay rate for reputation
+    #[allow(dead_code)]
     decay_rate: f64,
 }
 
@@ -410,8 +414,10 @@ pub struct ThreatIntelligenceDB {
     /// Known threat indicators
     threat_indicators: HashMap<String, ThreatIndicator>,
     /// Threat signatures
+    #[allow(dead_code)]
     threat_signatures: HashMap<String, ThreatSignature>,
     /// Peer threat history
+    #[allow(dead_code)]
     peer_threat_history: HashMap<String, Vec<ThreatEvent>>,
     /// Global threat feeds
     threat_feeds: Vec<Box<dyn ThreatFeed>>,

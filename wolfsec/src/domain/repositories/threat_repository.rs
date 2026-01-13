@@ -11,4 +11,7 @@ pub trait ThreatRepository: Send + Sync {
 
     /// Finds a threat by its unique ID.
     async fn find_by_id(&self, id: &Uuid) -> Result<Option<Threat>, DomainError>;
+
+    /// Gets recent threats.
+    async fn get_recent_threats(&self, limit: usize) -> Result<Vec<Threat>, DomainError>;
 }

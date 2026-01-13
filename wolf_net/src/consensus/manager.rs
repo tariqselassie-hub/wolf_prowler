@@ -61,7 +61,7 @@ impl ConsensusManager {
                     Some(cmd) = command_rx.recv() => {
                         match cmd {
                             ConsensusCommand::Propose(proposal) => {
-                                if let Err(e) = engine.propose(proposal) {
+                                if let Err(e) = engine.propose(&proposal) {
                                     error!("Proposal failed: {}", e);
                                 }
                             }

@@ -1,8 +1,8 @@
 // /home/t4riq/Desktop/Rust/wolf_prowler/wolfsec/src/application/commands/threat/analyze_event.rs
 use crate::application::error::ApplicationError;
+use crate::application::services::ThreatDetectionService;
 use crate::domain::entities::monitoring::SecurityEvent;
 use crate::domain::repositories::ThreatRepository;
-use crate::application::services::ThreatDetectionService;
 use anyhow::Context;
 use std::sync::Arc;
 use uuid::Uuid;

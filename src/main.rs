@@ -26,10 +26,10 @@ use wolf_web::dashboard::state::AppState; // For ID generation in bridge
 
 // Use wolfsec types for consistency
 use wolfsec::network_security::SecurityManager as NetworkSecurityManager;
-use wolfsec::security::advanced::container_security::{
+use wolfsec::protection::container_security::{
     ContainerSecurityConfig, ContainerSecurityManager,
 };
-use wolfsec::security::advanced::iam::{AuthenticationManager, IAMConfig};
+use wolfsec::identity::iam::{AuthenticationManager, IAMConfig};
 use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetectionConfig, ThreatDetector};
 use wolfsec::WolfSecurity;
 
@@ -174,7 +174,7 @@ async fn main() -> Result<()> {
 
     // Persistence
     // WolfDb (PQC-Secured) local storage
-    let persistence = PersistenceManager::new("wolf_data/wolf_prowler.db")
+    let persistence = PersistenceManager::new(settings.database.path.to_str().unwrap_or("wolf_data/wolf_prowler.db"))
         .await
         .ok() // Fail gracefully
         .map(Arc::new);
@@ -237,13 +237,13 @@ async fn main() -> Result<()> {
         ThreatDetector::new(
             ThreatDetectionConfig::default(),
             Arc::new(
-                wolfsec::infrastructure::persistence::WolfDbThreatRepository::new(
+                wolfsec::infrastructure::persistence::wolf_db_threat_repository::WolfDbThreatRepository::new(
                     if let Some(pm) = &persistence {
                         pm.get_storage()
                     } else {
                         // Fallback if persistence manager failed to load, though this will likely fail too if lock is issue
                         Arc::new(RwLock::new(
-                            WolfDbStorage::open("wolf_data/wolf_prowler.db")
+                            WolfDbStorage::open(settings.database.path.to_str().unwrap_or("wolf_data/wolf_prowler.db"))
                                 .expect("Failed to open WolfDb for ThreatDetector"),
                         ))
                     },

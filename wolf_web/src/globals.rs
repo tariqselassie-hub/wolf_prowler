@@ -12,7 +12,7 @@ use crate::dashboard::state::AppState;
 #[cfg(feature = "server")]
 use lock_prowler::headless::HeadlessWolfProwler;
 #[cfg(feature = "server")]
-use wolfsec::security::advanced::iam::SSOIntegrationManager;
+use wolfsec::identity::iam::SSOIntegrationManager;
 
 // Global state variables
 // These are lazy-initialized static mutexes that hold the application state.

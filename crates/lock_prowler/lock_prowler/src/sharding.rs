@@ -5,15 +5,18 @@ use serde::{Deserialize, Serialize};
 mod hex_serde {
     use serde::{Deserialize, Deserializer, Serializer};
 
-    pub fn serialize<S>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let hex_string = data.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+        let hex_string = data
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect::<String>();
         serializer.serialize_str(&hex_string)
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -27,7 +30,6 @@ mod hex_serde {
             .collect();
         data
     }
-
 }
 
 /// A shard of a recovery key.
@@ -294,12 +296,9 @@ impl ShardManager {
     ) -> Result<()> {
         for shard in shards {
             let data_hex: String = shard.data.iter().map(|b| format!("{:02x}", b)).collect();
-            store.save_key_shard(
-                &shard.shard_id,
-                secret_id,
-                shard.index,
-                &data_hex,
-            ).await?;
+            store
+                .save_key_shard(&shard.shard_id, secret_id, shard.index, &data_hex)
+                .await?;
         }
         Ok(())
     }
@@ -310,26 +309,29 @@ impl ShardManager {
         secret_id: &str,
     ) -> Result<Vec<KeyShard>> {
         let records = store.find_shards_for_secret(secret_id).await?;
-        
+
         let mut shards: Vec<KeyShard> = records
             .into_iter()
             .map(|record| {
-                let data_hex = record.get("data_hex")
+                let data_hex = record
+                    .get("data_hex")
                     .ok_or_else(|| anyhow::anyhow!("Missing data_hex in shard record"))?;
                 let data: Vec<u8> = (0..data_hex.len())
                     .step_by(2)
                     .map(|i| {
-                        u8::from_str_radix(&data_hex[i..i+2], 16)
+                        u8::from_str_radix(&data_hex[i..i + 2], 16)
                             .map_err(|_| anyhow::anyhow!("Invalid hex in shard data"))
                     })
                     .collect::<Result<Vec<u8>, _>>()?;
-                
+
                 Ok(KeyShard {
-                    shard_id: record.get("shard_id")
+                    shard_id: record
+                        .get("shard_id")
                         .ok_or_else(|| anyhow::anyhow!("Missing shard_id"))?
                         .clone(),
                     secret_id: secret_id.to_string(),
-                    index: record.get("index")
+                    index: record
+                        .get("index")
                         .ok_or_else(|| anyhow::anyhow!("Missing index"))?
                         .parse()
                         .map_err(|_| anyhow::anyhow!("Invalid index format"))?,
@@ -337,10 +339,10 @@ impl ShardManager {
                 })
             })
             .collect::<Result<Vec<KeyShard>, anyhow::Error>>()?;
-        
+
         // Sort by index
         shards.sort_by(|a, b| a.index.cmp(&b.index));
-        
+
         Ok(shards)
     }
 
@@ -348,7 +350,7 @@ impl ShardManager {
     pub fn check_reconstruction_status(shards: &[KeyShard], threshold: u8) -> ShardStatus {
         let total = shards.len() as u8;
         let needed = threshold.saturating_sub(total);
-        
+
         ShardStatus {
             total_shards: total,
             threshold,

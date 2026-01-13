@@ -27,3 +27,6 @@ path = "src/fuzz_net.rs"
 [[bin]]
 name = "fuzz_security"
 path = "src/fuzz_security.rs"
+
+[lints]
+workspace = true

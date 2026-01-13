@@ -1,26 +1,23 @@
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-use tokio::sync::Barrier;
-use wolf_prowler::core::threat_detection::{
-    AnomalyDetector,
-    BehavioralAnalyzer,
-    ThreatDetectionEngine,
-};
-use wolf_web::dashboard::{
-    api::create_api_router,
-    state::AppState,
-};
-use wolfsec::security::advanced::iam::{AuthenticationManager, IAMConfig};
 use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use tower::ServiceExt; // for oneshot
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::Barrier;
+use tower::ServiceExt;
+use wolf_web::dashboard::api::create_api_router;
+use wolf_web::dashboard::state::AppState;
+use wolfsec::identity::iam::{AuthenticationManager, IAMConfig};
 
 // Helper to create app state
 async fn create_test_state() -> Arc<AppState> {
     let threat_repo = Arc::new(crate::MockThreatRepository);
     let config = wolfsec::threat_detection::ThreatDetectionConfig::default();
+
+    let auth_manager: AuthenticationManager = AuthenticationManager::new(IAMConfig::default())
+        .await
+        .unwrap();
 
     Arc::new(AppState::new(
         wolfsec::threat_detection::ThreatDetector::new(config, threat_repo),
@@ -29,9 +26,7 @@ async fn create_test_state() -> Arc<AppState> {
             deviation_threshold: 2.0,
             patterns_detected: 0,
         },
-        AuthenticationManager::new(IAMConfig::default())
-            .await
-            .unwrap(),
+        auth_manager,
     ))
 }
 
@@ -48,8 +43,10 @@ impl wolfsec::domain::repositories::ThreatRepository for MockThreatRepository {
     async fn find_by_id(
         &self,
         _id: &uuid::Uuid,
-    ) -> anyhow::Result<Option<wolfsec::domain::entities::Threat>, wolfsec::domain::error::DomainError>
-    {
+    ) -> anyhow::Result<
+        Option<wolfsec::domain::entities::Threat>,
+        wolfsec::domain::error::DomainError,
+    > {
         Ok(None)
     }
 }
@@ -59,24 +56,27 @@ async fn stress_test_concurrent_request_spikes() {
     // 1. Setup System
     let state = create_test_state().await;
     let app = create_api_router(state.clone());
-    
+
     // 2. Configuration
     let concurrency_levels = vec![10, 100, 500, 1000]; // Increasing load
     let requests_per_client = 10;
 
     for clients in concurrency_levels {
-        println!("\n=== Starting Stress Test: {} Concurrent Clients ===", clients);
+        println!(
+            "\n=== Starting Stress Test: {} Concurrent Clients ===",
+            clients
+        );
         let barrier = Arc::new(Barrier::new(clients));
         let start_time = Instant::now();
         let mut handles = vec![];
 
-        for i in 0..clients {
+        for _i in 0..clients {
             let c_barrier = barrier.clone();
             let c_app = app.clone();
-            
+
             handles.push(tokio::spawn(async move {
                 c_barrier.wait().await; // Synchronize start
-                
+
                 let mut successes = 0;
                 let mut failures = 0;
 
@@ -89,7 +89,7 @@ async fn stress_test_concurrent_request_spikes() {
 
                     // We clone the router service for each request to simulate fresh connections/handling
                     let response = c_app.clone().oneshot(req).await;
-                    
+
                     match response {
                         Ok(res) => {
                             if res.status() == StatusCode::OK {
@@ -108,7 +108,7 @@ async fn stress_test_concurrent_request_spikes() {
         // Aggregate results
         let mut total_success = 0;
         let mut total_fail = 0;
-        
+
         for h in handles {
             let (ok, err) = h.await.unwrap();
             total_success += ok;
@@ -141,9 +141,9 @@ async fn stress_test_payload_exhaustion() {
 
     // Generate huge payload (10MB)
     let huge_payload = "A".repeat(10 * 1024 * 1024);
-    
+
     let start_time = Instant::now();
-    
+
     // Try to send it to an endpoint (e.g. login)
     let req = Request::builder()
         .uri("/auth/login")
@@ -152,21 +152,24 @@ async fn stress_test_payload_exhaustion() {
         .body(Body::from(huge_payload))
         .unwrap();
 
-    let response = app.oneshot(req).await.unwrap();
-    
+    let response: axum::response::Response = app.oneshot(req).await.unwrap();
+
     println!("Payload Size: 10MB");
     println!("Status Code: {}", response.status());
     println!("Time: {:.2?}", start_time.elapsed());
 
     // We expect 413 Payload Too Large or timeout, but mostly we check it doesn't crash
-    assert!(response.status().as_u16() != 500, "Server crashed on large payload");
+    assert!(
+        response.status().as_u16() != 500,
+        "Server crashed on large payload"
+    );
 }
 
 #[tokio::test]
 async fn stress_test_connection_flood() {
     println!("\n=== Starting Stress Test: Connection Flood ===");
-    use wolf_net::{SwarmConfig, SwarmManager, SwarmCommand};
-    
+    use wolf_net::{SwarmConfig, SwarmManager};
+
     // 1. Setup Victim
     let mut victim_config = SwarmConfig::default();
     victim_config.listen_addresses = vec!["/ip4/127.0.0.1/tcp/0".parse().unwrap()];
@@ -177,7 +180,7 @@ async fn stress_test_connection_flood() {
 
     let mut victim_swarm = SwarmManager::new(victim_config).unwrap();
     victim_swarm.start().unwrap();
-    
+
     // Wait for listener to be active
     let mut victim_addr = None;
     for _ in 0..10 {
@@ -190,7 +193,7 @@ async fn stress_test_connection_flood() {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
     let victim_addr = victim_addr.expect("Victim failed to start listening");
-    
+
     println!("Victim listening on: {}", victim_addr);
 
     // 2. Spawn Attackers
@@ -201,7 +204,7 @@ async fn stress_test_connection_flood() {
     for i in 0..attacker_count {
         let v_addr = victim_addr.clone();
         let c_barrier = barrier.clone();
-        
+
         handles.push(tokio::spawn(async move {
             let mut attacker_config = SwarmConfig::default();
             attacker_config.listen_addresses = vec!["/ip4/127.0.0.1/tcp/0".parse().unwrap()];
@@ -211,12 +214,12 @@ async fn stress_test_connection_flood() {
 
             let mut attacker = SwarmManager::new(attacker_config).unwrap();
             attacker.start().unwrap();
-            
+
             c_barrier.wait().await; // Synchronize attack
-            
+
             // Dial
             let _ = attacker.dial_addr(v_addr).await;
-            
+
             // Hold connection for a bit
             tokio::time::sleep(Duration::from_secs(2)).await;
             attacker.stop().await.ok();
@@ -230,7 +233,7 @@ async fn stress_test_connection_flood() {
 
     let stats = victim_swarm.get_stats().await.unwrap();
     println!("Victim Stats: {:?}", stats);
-    
+
     // Victim should be alive
     assert!(stats.metrics.connection_attempts > 0);
     victim_swarm.stop().await.unwrap();
@@ -240,9 +243,9 @@ async fn stress_test_connection_flood() {
 #[tokio::test]
 async fn stress_test_protocol_anomaly() {
     println!("\n=== Starting Stress Test: Protocol Anomaly Injection ===");
-    use wolf_net::{SwarmConfig, SwarmManager};
     use tokio::io::AsyncWriteExt;
     use tokio::net::TcpStream;
+    use wolf_net::{SwarmConfig, SwarmManager};
 
     // 1. Setup Victim
     let mut victim_config = SwarmConfig::default();
@@ -253,7 +256,7 @@ async fn stress_test_protocol_anomaly() {
 
     let mut victim_swarm = SwarmManager::new(victim_config).unwrap();
     victim_swarm.start().unwrap();
-    
+
     // Wait for listener to be active
     let mut victim_addr = None;
     for _ in 0..10 {
@@ -266,7 +269,7 @@ async fn stress_test_protocol_anomaly() {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
     let victim_addr = victim_addr.expect("Victim failed to start listening");
-    
+
     // Extract port from multiaddr (assuming /ip4/127.0.0.1/tcp/PORT)
     let addr_str = victim_addr.to_string();
     let parts: Vec<&str> = addr_str.split('/').collect();
@@ -285,21 +288,24 @@ async fn stress_test_protocol_anomaly() {
     // 3. Attack: Partial Handshake
     println!("  Sending partial handshake...");
     let mut stream = TcpStream::connect(&target).await.unwrap();
-    stream.write_all(b"Noise_XX_25519_ChaChaPoly_SHA256").await.unwrap(); // Valid preamble
-    // ... but nothing else
+    stream
+        .write_all(b"Noise_XX_25519_ChaChaPoly_SHA256")
+        .await
+        .unwrap(); // Valid preamble
+                   // ... but nothing else
     tokio::time::sleep(Duration::from_millis(500)).await;
     drop(stream);
 
     // 4. Verify Liveness
     tokio::time::sleep(Duration::from_secs(1)).await;
     let stats = victim_swarm.get_stats().await;
-    
+
     if stats.is_err() {
         panic!("Victim crashed after anomaly injection!");
     } else {
         println!("Victim stats: {:?}", stats.unwrap());
         println!("✅ Victim survived protocol anomalies");
     }
-    
+
     victim_swarm.stop().await.unwrap();
 }

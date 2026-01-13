@@ -27,6 +27,7 @@ impl PeerId {
     }
 
     /// Create from string
+    #[allow(clippy::missing_const_for_fn)]
     pub fn from_string(id: String) -> Self {
         Self(id)
     }
@@ -47,6 +48,9 @@ impl PeerId {
     }
 
     /// Convert to libp2p PeerId
+    /// # Panics
+    /// Panics if the inner string is not a valid `Libp2pPeerId`.
+    #[allow(clippy::expect_used)]
     pub fn as_libp2p(&self) -> Libp2pPeerId {
         // Parse from Base58 (which is what we store in self.0)
         self.0.parse().expect("Invalid PeerId format")
@@ -88,10 +92,11 @@ impl DeviceId {
 
     /// Create from hardware identifier (MAC address, etc.)
     pub fn from_hardware(hardware_id: &str) -> Self {
-        Self(format!("device_hw_{}", hardware_id))
+        Self(format!("device_hw_{hardware_id}"))
     }
 
     /// Create from string
+    #[allow(clippy::missing_const_for_fn)]
     pub fn from_string(id: String) -> Self {
         Self(id)
     }
@@ -156,7 +161,11 @@ impl ServiceId {
             return Err(anyhow::anyhow!("Invalid service ID format"));
         }
 
-        let service_type = ServiceType::from_prefix(parts[1])?;
+        let service_type = parts
+            .get(1)
+            .map(|&p| ServiceType::from_prefix(p))
+            .transpose()?
+            .ok_or_else(|| anyhow::anyhow!("Missing service type"))?;
         let instance = parts.last().unwrap_or(&"0").parse::<u32>()?;
 
         Ok(Self {
@@ -172,12 +181,12 @@ impl ServiceId {
     }
 
     /// Get service type
-    pub fn service_type(&self) -> ServiceType {
+    pub const fn service_type(&self) -> ServiceType {
         self.service_type
     }
 
     /// Get instance number
-    pub fn instance(&self) -> u32 {
+    pub const fn instance(&self) -> u32 {
         self.instance
     }
 }
@@ -233,7 +242,7 @@ pub enum ServiceType {
 
 impl ServiceType {
     /// Get prefix for this service type
-    pub fn prefix(&self) -> &'static str {
+    pub const fn prefix(&self) -> &'static str {
         match self {
             Self::Unknown => "unknown",
             Self::Router => "router",
@@ -273,12 +282,12 @@ impl ServiceType {
             "firewall" => Ok(Self::Firewall),
             "proxy" => Ok(Self::Proxy),
             "cache" => Ok(Self::Cache),
-            _ => Err(anyhow::anyhow!("Unknown service type prefix: {}", prefix)),
+            _ => Err(anyhow::anyhow!("Unknown service type prefix: {prefix}")),
         }
     }
 
     /// Get human-readable name
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         match self {
             Self::Unknown => "Unknown Service",
             Self::Router => "Router",
@@ -334,8 +343,11 @@ impl SystemId {
             return Err(anyhow::anyhow!("Invalid system ID format"));
         }
 
-        let system_type = SystemType::from_prefix(parts[1])?;
-        let version = parts[2].to_string();
+        let system_type_prefix = parts
+            .get(1)
+            .ok_or_else(|| anyhow::anyhow!("Missing system type prefix"))?;
+        let system_type = SystemType::from_prefix(system_type_prefix)?;
+        let version = parts.get(2).map(|&v| v.to_string()).unwrap_or_default();
 
         Ok(Self {
             id,
@@ -351,7 +363,7 @@ impl SystemId {
     }
 
     /// Get system type
-    pub fn system_type(&self) -> SystemType {
+    pub const fn system_type(&self) -> SystemType {
         self.system_type
     }
 
@@ -361,7 +373,7 @@ impl SystemId {
     }
 
     /// Get creation time
-    pub fn created_at(&self) -> DateTime<Utc> {
+    pub const fn created_at(&self) -> DateTime<Utc> {
         self.created_at
     }
 }
@@ -403,11 +415,19 @@ pub enum SystemType {
     Distributed,
     /// Standalone environment.
     Standalone,
+    /// Relay system.
+    Relay,
+    /// Validator system.
+    Validator,
+    /// Archive system.
+    Archive,
+    /// Seed system.
+    Seed,
 }
 
 impl SystemType {
     /// Get prefix for this system type
-    pub fn prefix(&self) -> &'static str {
+    pub const fn prefix(&self) -> &'static str {
         match self {
             Self::Unknown => "unknown",
             Self::Development => "dev",
@@ -420,6 +440,10 @@ impl SystemType {
             Self::Hybrid => "hybrid",
             Self::Distributed => "dist",
             Self::Standalone => "standalone",
+            Self::Relay => "relay",
+            Self::Validator => "validator",
+            Self::Archive => "archive",
+            Self::Seed => "seed",
         }
     }
 
@@ -437,24 +461,32 @@ impl SystemType {
             "hybrid" => Ok(Self::Hybrid),
             "dist" => Ok(Self::Distributed),
             "standalone" => Ok(Self::Standalone),
-            _ => Err(anyhow::anyhow!("Unknown system type prefix: {}", prefix)),
+            "relay" => Ok(Self::Relay),
+            "validator" => Ok(Self::Validator),
+            "archive" => Ok(Self::Archive),
+            "seed" => Ok(Self::Seed),
+            _ => Err(anyhow::anyhow!("Unknown system type prefix: {prefix}")),
         }
     }
 
     /// Get human-readable name
-    pub fn name(&self) -> &'static str {
+    pub const fn name(&self) -> &'static str {
         match self {
             Self::Unknown => "Unknown System",
             Self::Development => "Development System",
-            Self::Production => "Production System",
-            Self::Testing => "Testing System",
             Self::Staging => "Staging System",
-            Self::Local => "Local System",
-            Self::Cloud => "Cloud System",
+            Self::Production => "Production System",
             Self::Edge => "Edge System",
+            Self::Relay => "Relay System",
+            Self::Validator => "Validator System",
+            Self::Archive => "Archive System",
+            Self::Seed => "Seed System",
             Self::Hybrid => "Hybrid System",
             Self::Distributed => "Distributed System",
             Self::Standalone => "Standalone System",
+            Self::Testing => "Testing System", // Added missing cases
+            Self::Local => "Local System",     // Added missing cases
+            Self::Cloud => "Cloud System",     // Added missing cases
         }
     }
 }
@@ -559,7 +591,7 @@ impl EntityId {
 
     /// Get entity age
     pub fn age(&self) -> chrono::Duration {
-        Utc::now() - self.created_at
+        Utc::now().signed_duration_since(self.created_at)
     }
 }
 
@@ -639,7 +671,7 @@ impl EntityInfo {
     }
 
     /// Check if entity is online
-    pub fn is_online(&self) -> bool {
+    pub const fn is_online(&self) -> bool {
         matches!(self.status, EntityStatus::Online)
     }
 
@@ -739,9 +771,7 @@ impl EntityMetrics {
     /// Calculate and update network health score
     pub fn update_health(&mut self) {
         // Simple health score calculation based on latency and request success rate
-        let latency_score = if self.latency_ms == 0 {
-            1.0
-        } else if self.latency_ms < 50 {
+        let latency_score = if self.latency_ms < 50 {
             1.0
         } else if self.latency_ms < 200 {
             0.8
@@ -751,11 +781,15 @@ impl EntityMetrics {
             0.2
         };
 
-        let total_requests = self.requests_success + self.requests_failed;
+        let total_requests = self.requests_success.saturating_add(self.requests_failed);
         let success_score = if total_requests == 0 {
             1.0
         } else {
-            self.requests_success as f64 / total_requests as f64
+            #[allow(clippy::cast_precision_loss)]
+            let success = self.requests_success as f64;
+            #[allow(clippy::cast_precision_loss)]
+            let total = total_requests as f64;
+            success / total
         };
 
         // Weighted average: 40% latency, 60% success rate
@@ -837,7 +871,7 @@ impl PeerInfo {
     }
 
     /// Get trust score
-    pub fn trust_score(&self) -> f64 {
+    pub const fn trust_score(&self) -> f64 {
         self.trust_score
     }
 

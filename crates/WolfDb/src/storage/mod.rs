@@ -855,6 +855,7 @@ impl WolfDbStorage {
     /// # Errors
     ///
     /// Returns an error if the database is locked or if backup generation fails.
+    #[allow(clippy::too_many_lines)]
     pub fn generate_recovery_backup(&self, recovery_password: &str) -> Result<String> {
         use argon2::PasswordHasher;
         let kem_secret_key = self
@@ -878,7 +879,9 @@ impl WolfDbStorage {
             .ok_or(WolfDbError::Crypto("Hash failed".to_string()))?;
         let hash_bytes = hash_output.as_bytes();
         let mut master_key = Zeroizing::new([0u8; 32]);
-        master_key.copy_from_slice(&hash_bytes[..32]);
+        if let Some(src) = hash_bytes.get(..32) {
+            master_key.copy_from_slice(src);
+        }
 
         let keys_to_backup = serde_json::json!({
             "kem_sk": general_purpose::STANDARD.encode(kem_secret_key.as_slice()),
@@ -915,6 +918,7 @@ impl WolfDbStorage {
     /// # Errors
     ///
     /// Returns an error if the recovery blob is invalid or if decryption fails.
+    #[allow(clippy::too_many_lines)]
     pub fn recover_from_backup(
         &mut self,
         blob_b64: &str,
@@ -937,33 +941,38 @@ impl WolfDbStorage {
             )))
         })?;
 
-        let encrypted_keys_str = json["encrypted_keys"]
-            .as_str()
-            .ok_or(WolfDbError::Import("Missing encrypted_keys".to_string()))?;
+        let encrypted_keys_str = json
+            .get("encrypted_keys")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| WolfDbError::Import("Missing encrypted_keys".to_string()))?;
         let encrypted_keys = general_purpose::STANDARD
             .decode(encrypted_keys_str)
             .map_err(|e| WolfDbError::Import(e.to_string()))?;
 
-        let salt_str = json["salt"]
-            .as_str()
-            .ok_or(WolfDbError::Import("Missing salt".to_string()))?;
-        let nonce_str = json["nonce"]
-            .as_str()
-            .ok_or(WolfDbError::Import("Missing nonce".to_string()))?;
+        let salt_str = json
+            .get("salt")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| WolfDbError::Import("Missing salt".to_string()))?;
+        let nonce_str = json
+            .get("nonce")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| WolfDbError::Import("Missing nonce".to_string()))?;
         let nonce_vec = general_purpose::STANDARD
             .decode(nonce_str)
             .map_err(|e| WolfDbError::Import(e.to_string()))?;
 
-        let kem_public_key_b64 = json["kem_pk"]
-            .as_str()
-            .ok_or(WolfDbError::Import("Missing kem_pk".to_string()))?;
+        let kem_public_key_b64 = json
+            .get("kem_pk")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| WolfDbError::Import("Missing kem_pk".to_string()))?;
         let kem_public_key_raw = general_purpose::STANDARD
             .decode(kem_public_key_b64)
             .map_err(|e| WolfDbError::Import(e.to_string()))?;
 
-        let dsa_public_key_b64 = json["dsa_pk"]
-            .as_str()
-            .ok_or(WolfDbError::Import("Missing dsa_pk".to_string()))?;
+        let dsa_public_key_b64 = json
+            .get("dsa_pk")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| WolfDbError::Import("Missing dsa_pk".to_string()))?;
         let dsa_public_key_raw = general_purpose::STANDARD
             .decode(dsa_public_key_b64)
             .map_err(|e| WolfDbError::Import(e.to_string()))?;
@@ -983,7 +992,9 @@ impl WolfDbStorage {
             .ok_or(WolfDbError::Crypto("Hash failed".to_string()))?;
         let hash_bytes = hash_output.as_bytes();
         let mut master_key = Zeroizing::new([0u8; 32]);
-        master_key.copy_from_slice(&hash_bytes[..32]);
+        if let Some(src) = hash_bytes.get(..32) {
+            master_key.copy_from_slice(src);
+        }
 
         let decrypted_keys_bin = crate::crypto::aes::decrypt(&encrypted_keys, &master_key, &nonce)
             .map_err(|e| WolfDbError::Crypto(e.to_string()))?;
@@ -995,16 +1006,18 @@ impl WolfDbStorage {
                 )))
             })?;
 
-        let kem_secret_key_b64 = keys_json["kem_sk"]
-            .as_str()
-            .ok_or(WolfDbError::Import("Missing kem_sk".to_string()))?;
+        let kem_secret_key_b64 = keys_json
+            .get("kem_sk")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| WolfDbError::Import("Missing kem_sk".to_string()))?;
         let kem_secret_key_raw = general_purpose::STANDARD
             .decode(kem_secret_key_b64)
             .map_err(|e| WolfDbError::Import(e.to_string()))?;
 
-        let dsa_secret_key_b64 = keys_json["dsa_sk"]
-            .as_str()
-            .ok_or(WolfDbError::Import("Missing dsa_sk".to_string()))?;
+        let dsa_secret_key_b64 = keys_json
+            .get("dsa_sk")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| WolfDbError::Import("Missing dsa_sk".to_string()))?;
         let dsa_secret_key_raw = general_purpose::STANDARD
             .decode(dsa_secret_key_b64)
             .map_err(|e| WolfDbError::Import(e.to_string()))?;
@@ -1043,15 +1056,15 @@ impl WolfDbStorage {
     ///
     /// Returns an error if indexing statistics cannot be retrieved.
     pub fn get_info(&self) -> Result<serde_json::Value> {
-        let mut total_v_count = 0;
-        let mut total_v_index_size = 0;
-        let mut total_v_deleted = 0;
+        let mut total_v_count: usize = 0;
+        let mut total_v_index_size: usize = 0;
+        let mut total_v_deleted: usize = 0;
 
         for index in self.vector_indices.values() {
             let (v_count, v_index_size, v_deleted) = index.get_stats();
-            total_v_count += v_count;
-            total_v_index_size += v_index_size;
-            total_v_deleted += v_deleted;
+            total_v_count = total_v_count.saturating_add(v_count);
+            total_v_index_size = total_v_index_size.saturating_add(v_index_size);
+            total_v_deleted = total_v_deleted.saturating_add(v_deleted);
         }
 
         Ok(serde_json::json!({

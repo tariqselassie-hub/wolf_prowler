@@ -24,7 +24,7 @@ use uuid::Uuid;
 use wolfsec::domain::entities::Threat;
 use wolfsec::domain::error::DomainError;
 use wolfsec::domain::repositories::ThreatRepository;
-use wolfsec::security::advanced::iam::{AuthenticationManager, IAMConfig};
+use wolfsec::identity::iam::{AuthenticationManager, IAMConfig};
 use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetectionConfig, ThreatDetector};
 
 /// Mock Threat Repository for dashboard initialization
@@ -38,6 +38,10 @@ impl ThreatRepository for MockThreatRepository {
 
     async fn find_by_id(&self, _id: &Uuid) -> Result<Option<Threat>, DomainError> {
         Ok(None)
+    }
+
+    async fn get_recent_threats(&self, _limit: usize) -> Result<Vec<Threat>, DomainError> {
+        Ok(Vec::new())
     }
 }
 
@@ -120,14 +124,14 @@ pub async fn init() -> DashboardState {
         .await
         .unwrap();
 
-    let app_state = crate::dashboard::state::AppState::new(
+    let app_state = AppState::new(
         dashboard_state.threat_engine.as_ref().clone(),
         dashboard_state.behavioral_engine.as_ref().clone(),
         auth_manager,
     );
 
     // Start WebSocket system monitoring task with real system components
-    crate::dashboard::websocket::start_system_monitoring_task(
+    websocket::start_system_monitoring_task(
         app_state.websocket_state.tx.clone(),
         app_state.wolf_security.clone(),
         app_state.swarm_manager.clone(),
@@ -138,7 +142,7 @@ pub async fn init() -> DashboardState {
 
 /// Create dashboard API router
 pub async fn create_router(state: DashboardState) -> Router {
-    let app_state = crate::dashboard::state::AppState::new(
+    let app_state = AppState::new(
         state.threat_engine.as_ref().clone(),
         state.behavioral_engine.as_ref().clone(),
         AuthenticationManager::new(IAMConfig::default())
@@ -147,8 +151,8 @@ pub async fn create_router(state: DashboardState) -> Router {
     );
 
     // Combine API and WebSocket routers
-    let api_router = crate::dashboard::api::create_api_router(Arc::new(app_state.clone()));
-    let ws_router = crate::dashboard::websocket::create_websocket_router(Arc::new(app_state));
+    let api_router = api::create_api_router(Arc::new(app_state.clone()));
+    let ws_router = websocket::create_websocket_router(Arc::new(app_state));
 
     Router::new().nest("/v1", api_router).nest("/ws", ws_router)
 }
@@ -156,9 +160,8 @@ pub async fn create_router(state: DashboardState) -> Router {
 /// Create dashboard API router with provided app state
 pub async fn create_router_with_state(app_state: AppState) -> Router {
     // Combine API and WebSocket routers
-    let api_router =
-        crate::dashboard::api::create_api_router_with_state(Arc::new(app_state.clone()));
-    let ws_router = crate::dashboard::websocket::create_websocket_router(Arc::new(app_state));
+    let api_router = api::create_api_router_with_state(Arc::new(app_state.clone()));
+    let ws_router = websocket::create_websocket_router(Arc::new(app_state));
 
     Router::new().nest("/v1", api_router).nest("/ws", ws_router)
 }

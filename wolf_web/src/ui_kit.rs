@@ -53,7 +53,11 @@ pub struct BadgeProps {
 pub fn Badge(props: BadgeProps) -> Element {
     let (bg, text, border) = match props.color.as_str() {
         "red" => ("bg-red-900/20", "text-red-400", "border-red-500/30"),
-        "yellow" => ("bg-yellow-900/20", "text-yellow-400", "border-yellow-500/30"),
+        "yellow" => (
+            "bg-yellow-900/20",
+            "text-yellow-400",
+            "border-yellow-500/30",
+        ),
         "blue" => ("bg-blue-900/20", "text-blue-400", "border-blue-500/30"),
         _ => ("bg-green-900/20", "text-green-400", "border-green-500/30"),
     };
@@ -87,11 +91,17 @@ pub fn Sparkline(props: SparklineProps) -> Element {
     let range = max - min;
     let step = props.width / (props.data.len() - 1) as f32;
 
-    let points = props.data.iter().enumerate().map(|(i, &d)| {
-        let x = i as f32 * step;
-        let y = props.height - ((d - min) / range * props.height);
-        format!("{},{}", x, y)
-    }).collect::<Vec<_>>().join(" ");
+    let points = props
+        .data
+        .iter()
+        .enumerate()
+        .map(|(i, &d)| {
+            let x = i as f32 * step;
+            let y = props.height - ((d - min) / range * props.height);
+            format!("{},{}", x, y)
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
 
     let stroke = match props.color.as_str() {
         "red" => "#ef4444",

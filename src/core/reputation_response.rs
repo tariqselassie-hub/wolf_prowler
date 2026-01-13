@@ -258,6 +258,7 @@ pub struct NetworkContributionFactor {
     /// Weight for this factor
     weight: f64,
     /// Contribution metrics
+    #[allow(dead_code)]
     contribution_metrics: HashMap<String, f64>,
 }
 

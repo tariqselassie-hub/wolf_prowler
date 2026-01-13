@@ -1,7 +1,7 @@
 // /home/t4riq/Desktop/Rust/wolf_prowler/wolfsec/src/infrastructure/services/wolf_den_cryptography_provider.rs
+use crate::application::services::CryptographyProvider;
 use crate::domain::entities::crypto::{EncryptedData, HashedData, SecretKey};
 use crate::domain::error::DomainError;
-use crate::application::services::CryptographyProvider;
 use aes_gcm_siv::{
     aead::{Aead, KeyInit},
     Aes256GcmSiv, Nonce,
@@ -104,10 +104,10 @@ impl CryptographyProvider for WolfDenCryptographyProvider {
     }
 
     async fn hash(&self, data: &[u8]) -> Result<HashedData, DomainError> {
-        let hash =
-            self.engine.hash(data).map_err(|e| {
-                DomainError::CryptoOperationFailed(format!("Hashing failed: {}", e))
-            })?;
+        let hash = self
+            .engine
+            .hash(data)
+            .map_err(|e| DomainError::CryptoOperationFailed(format!("Hashing failed: {}", e)))?;
 
         Ok(HashedData {
             hash,
@@ -117,7 +117,7 @@ impl CryptographyProvider for WolfDenCryptographyProvider {
 
     async fn verify_hash(&self, data: &[u8], hashed: &HashedData) -> Result<bool, DomainError> {
         let new_hash = self.hash(data).await?;
-        Ok(crate::crypto::constant_time_eq(
+        Ok(crate::identity::crypto::constant_time_eq(
             &new_hash.hash,
             &hashed.hash,
         ))

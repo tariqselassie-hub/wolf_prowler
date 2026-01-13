@@ -94,12 +94,15 @@ pub fn load_public_key<P: AsRef<Path>>(path: P) -> std::io::Result<ml_dsa_44::Pu
     }
 
     // Try to deserialize
-    let array: [u8; PK_SIZE] = bytes[..PK_SIZE].try_into().map_err(|_| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "Invalid public key content",
-        )
-    })?;
+    let array: [u8; PK_SIZE] = bytes
+        .get(..PK_SIZE)
+        .and_then(|s| s.try_into().ok())
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Invalid public key content",
+            )
+        })?;
     ml_dsa_44::PublicKey::try_from_bytes(array).map_err(|_| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
@@ -155,7 +158,11 @@ pub fn encrypt_for_sentinel(data: &[u8], sentinel_pk: &ml_kem_1024::EncapsKey) -
 
     // 5. Pack: CT (1568) || Nonce (12) || AES_CT (N+16)
     let ct_bytes = ct.into_bytes();
-    let mut output = Vec::with_capacity(ct_bytes.len() + NONCE_SIZE + aes_ct.len());
+    let capacity = ct_bytes
+        .len()
+        .saturating_add(NONCE_SIZE)
+        .saturating_add(aes_ct.len());
+    let mut output = Vec::with_capacity(capacity);
     output.extend_from_slice(&ct_bytes);
     output.extend_from_slice(nonce.as_slice());
     output.extend_from_slice(&aes_ct);
@@ -220,9 +227,9 @@ pub struct TimeWindow {
     /// Start time in HH:MM format
     pub start_time: String, // HH:MM (24-hour format)
     /// End time in HH:MM format
-    pub end_time: String,   // HH:MM
+    pub end_time: String, // HH:MM
     /// List of allowed days (e.g., Monday, Tuesday)
-    pub days: Vec<String>,  // Monday, Tuesday, etc.
+    pub days: Vec<String>, // Monday, Tuesday, etc.
 }
 
 /// Defines a security policy
@@ -243,7 +250,7 @@ pub struct Policy {
     /// Optional time windows
     pub time_windows: Option<Vec<TimeWindow>>, // Added field for time windows
     /// Optional approval logic expression
-    pub approval_expression: Option<String>,   // e.g., "Role:DevOps AND Role:ComplianceManager"
+    pub approval_expression: Option<String>, // e.g., "Role:DevOps AND Role:ComplianceManager"
 }
 
 /// Defines geographic restrictions
@@ -261,7 +268,7 @@ pub struct PulseMetadata {
     /// Location source
     pub location: String, // "US-East", "Local", "WebLog"
     /// verification method
-    pub method: String,   // "USB", "WEB", "TCP"
+    pub method: String, // "USB", "WEB", "TCP"
 }
 
 /// Conditions that must be met for a policy
@@ -270,7 +277,7 @@ pub enum PolicyCondition {
     /// Requires specific role approval
     RequireApproval(String), // Role name
     /// Rate limiting
-    MaxFrequency(u32),       // Max operations per hour
+    MaxFrequency(u32), // Max operations per hour
     /// IP address whitelist
     IpWhitelist(Vec<String>),
     /// Time restrictions
@@ -355,7 +362,11 @@ pub fn is_partial_complete(partial: &PartialCommand) -> bool {
 pub fn package_payload(signatures: &[[u8; 2420]], body: &[u8]) -> Vec<u8> {
     let count = signatures.len() as u8;
     let sig_size = 2420;
-    let mut data = Vec::with_capacity(1 + (count as usize * sig_size) + body.len());
+    let capacity = (signatures.len())
+        .saturating_mul(sig_size)
+        .saturating_add(body.len())
+        .saturating_add(1);
+    let mut data = Vec::with_capacity(capacity);
 
     data.push(count);
     for sig in signatures {
@@ -371,20 +382,20 @@ pub fn parse_command_metadata(cmd: &str) -> Option<CommandMetadata> {
     // Parse JSON metadata from command (e.g., embedded as comment or prefix)
     // Format: #TERSEC_META:{"role":"admin","operation":"restart","resource":"service"}
     let start = cmd.find("#TERSEC_META:")?;
-    let json_start = start + "#TERSEC_META:".len();
+    let json_start = start.saturating_add("#TERSEC_META:".len());
 
     // Find the end of the JSON object by looking for the closing brace
-    let mut brace_count = 0;
+    let mut brace_count: i32 = 0;
     let mut json_end = json_start;
     let mut found_json = false;
 
     for (i, ch) in cmd[json_start..].chars().enumerate() {
         if ch == '{' {
-            brace_count += 1;
+            brace_count = brace_count.saturating_add(1);
         } else if ch == '}' {
-            brace_count -= 1;
+            brace_count = brace_count.saturating_sub(1);
             if brace_count == 0 {
-                json_end = json_start + i + 1;
+                json_end = json_start.saturating_add(i).saturating_add(1);
                 found_json = true;
                 break;
             }
@@ -446,10 +457,7 @@ fn parse_expr(input: &str) -> IResult<&str, Expr> {
         nom::character::complete::char(')'),
     );
 
-    let (input, left) = nom::branch::alt((
-        parenthesized,
-        nom::combinator::map(parse_role, Expr::Role),
-    ))(input)?;
+    let (input, left) = alt((parenthesized, nom::combinator::map(parse_role, Expr::Role)))(input)?;
 
     let (input, rest) = nom::combinator::opt(tuple((
         space0,

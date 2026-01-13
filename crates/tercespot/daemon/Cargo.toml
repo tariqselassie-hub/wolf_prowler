@@ -11,6 +11,7 @@ categories = ["network-programming", "cryptography"]
 
 
 [dependencies]
+tracing = "0.1"
 aes-gcm = "0.10.3"
 fips203 = "0.4.3"
 fips204 = "0.4.6"

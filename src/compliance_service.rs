@@ -1,9 +1,8 @@
 use chrono::{DateTime, Duration, Utc};
 use serde::Serialize;
-use sqlx::{Error, PgPool};
 use std::collections::HashMap;
 
-#[derive(Serialize, Clone, Debug, sqlx::FromRow)]
+#[derive(Serialize, Clone, Debug)]
 pub struct ComplianceHistoryEntry {
     pub date: DateTime<Utc>,
     pub score: f64,
@@ -93,34 +92,5 @@ impl ComplianceService {
             recent_findings,
             history,
         }
-    }
-
-    #[cfg(feature = "advanced_reporting")]
-    pub async fn save_status(pool: &PgPool, status: &ComplianceStatus) -> Result<(), Error> {
-        let raw_data = serde_json::to_value(status).unwrap();
-
-        sqlx::query(
-            "INSERT INTO compliance_snapshots (timestamp, overall_score, critical_findings, total_findings, raw_data) VALUES ($1, $2, $3, $4, $5)"
-        )
-        .bind(status.timestamp)
-        .bind(status.overall_score)
-        .bind(status.critical_findings as i32)
-        .bind(status.total_findings as i32)
-        .bind(raw_data)
-        .execute(pool)
-        .await?;
-
-        Ok(())
-    }
-
-    #[cfg(feature = "advanced_reporting")]
-    pub async fn fetch_history_from_db(
-        pool: &PgPool,
-    ) -> Result<Vec<ComplianceHistoryEntry>, Error> {
-        sqlx::query_as::<_, ComplianceHistoryEntry>(
-            "SELECT timestamp as date, overall_score as score FROM compliance_snapshots ORDER BY timestamp ASC LIMIT 30"
-        )
-        .fetch_all(pool)
-        .await
     }
 }

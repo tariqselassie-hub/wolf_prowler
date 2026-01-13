@@ -19,6 +19,7 @@ tempfile = "3.0"
 hex = "0.4"
 thiserror = "1.0"
 chrono = "0.4"
+tracing = "0.1"
 
 [lints]
 workspace = true

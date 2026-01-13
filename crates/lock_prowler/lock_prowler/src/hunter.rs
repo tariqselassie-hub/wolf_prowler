@@ -1,5 +1,5 @@
-use crate::vault::SecretType;
 use crate::storage::WolfStore;
+use crate::vault::SecretType;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use regex::Regex;
@@ -34,9 +34,13 @@ impl Hunter {
     }
 
     /// Saves a scan result to the database
-    pub async fn save_scan_result(&mut self, store: &mut WolfStore, result: &DiscoveredSecret) -> Result<()> {
+    pub async fn save_scan_result(
+        &mut self,
+        store: &mut WolfStore,
+        result: &DiscoveredSecret,
+    ) -> Result<()> {
         let scan_result = ScanResult {
-            id: format!("scan_{}", chrono::Utc::now().timestamp_millis()),
+            id: format!("scan_{}", Utc::now().timestamp_millis()),
             path: result.path.to_string_lossy().to_string(),
             secret_type: format!("{:?}", result.distinct_type),
             confidence: result.confidence,
@@ -44,39 +48,52 @@ impl Hunter {
             scanned_at: Utc::now(),
             metadata: HashMap::new(),
         };
-        
+
         // Save to database
-        store.save_session(&scan_result.id, scan_result.metadata.clone()).await
+        store
+            .save_session(&scan_result.id, scan_result.metadata.clone())
+            .await
             .context("Failed to save scan result")?;
-        
+
         // Add to local history
         self.scan_history.push(scan_result);
-        
-        println!("[Hunter] Saved scan result: {}", result.path.to_string_lossy());
+
+        println!(
+            "[Hunter] Saved scan result: {}",
+            result.path.to_string_lossy()
+        );
         Ok(())
     }
 
     /// Saves multiple scan results to the database
-    pub async fn save_scan_results(&mut self, store: &mut WolfStore, results: &[DiscoveredSecret]) -> Result<usize> {
+    pub async fn save_scan_results(
+        &mut self,
+        store: &mut WolfStore,
+        results: &[DiscoveredSecret],
+    ) -> Result<usize> {
         let mut saved_count = 0;
-        
+
         for result in results {
             if self.save_scan_result(store, result).await.is_ok() {
                 saved_count += 1;
             }
         }
-        
-        println!("[Hunter] Saved {}/{} scan results to database", saved_count, results.len());
+
+        println!(
+            "[Hunter] Saved {}/{} scan results to database",
+            saved_count,
+            results.len()
+        );
         Ok(saved_count)
     }
 
     /// Loads scan history from the database
     pub async fn load_scan_history(&mut self, _store: &mut WolfStore) -> Result<()> {
         println!("[Hunter] Loading scan history from database");
-        
+
         // This would load all session records from the forensics table
         // For now, we keep the scan_history in memory
-        
+
         Ok(())
     }
 

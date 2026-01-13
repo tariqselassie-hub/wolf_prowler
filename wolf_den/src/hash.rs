@@ -7,6 +7,7 @@
 //! - SHA-3 family (SHA3-256, SHA3-512)
 
 use crate::error::{Error, Result};
+use crate::SecurityLevel;
 use std::fmt;
 
 /// Hash function types
@@ -38,13 +39,13 @@ impl fmt::Display for HashFunction {
 }
 
 /// Trait for common hash algorithm operations
-pub trait HashAlgorithm: Send + Sync + std::fmt::Debug {
+pub trait HashAlgorithm: Send + Sync + fmt::Debug {
     /// Creates a new instance of the hash algorithm.
     ///
     /// # Errors
     ///
     /// Returns an error if initialization fails.
-    fn new(security_level: crate::SecurityLevel) -> Result<Self>
+    fn new(security_level: SecurityLevel) -> Result<Self>
     where
         Self: Sized;
 
@@ -59,7 +60,7 @@ pub trait HashAlgorithm: Send + Sync + std::fmt::Debug {
     fn block_size(&self) -> usize;
 
     /// Returns the security level configured for this hasher.
-    fn security_level(&self) -> crate::SecurityLevel;
+    fn security_level(&self) -> SecurityLevel;
 
     /// Returns the `HashFunction` enum variant corresponding to this hasher.
     fn as_hash_function(&self) -> HashFunction;
@@ -160,7 +161,7 @@ impl HasherEnum {
 
     /// Get security level
     #[must_use]
-    pub const fn security_level(&self) -> crate::SecurityLevel {
+    pub const fn security_level(&self) -> SecurityLevel {
         match self {
             Self::Blake3(h) => h.security_level(),
             Self::Sha256(h) => h.security_level(),
@@ -234,22 +235,22 @@ impl HasherEnum {
 ///
 /// Returns an error if hasher creation fails.
 pub fn create_hasher(
-    hash_function: crate::HashFunction,
-    security_level: crate::SecurityLevel,
+    hash_function: HashFunction,
+    security_level: SecurityLevel,
 ) -> Result<HasherEnum> {
     match hash_function {
-        crate::HashFunction::Blake3 => Ok(Blake3Hasher::new(security_level)?.into()),
-        crate::HashFunction::Sha256 => Ok(Sha256Hasher::new(security_level)?.into()),
-        crate::HashFunction::Sha512 => Ok(Sha512Hasher::new(security_level)?.into()),
-        crate::HashFunction::Sha3_256 => Ok(Sha3_256Hasher::new(security_level)?.into()),
-        crate::HashFunction::Sha3_512 => Ok(Sha3_512Hasher::new(security_level)?.into()),
+        HashFunction::Blake3 => Ok(Blake3Hasher::new(security_level)?.into()),
+        HashFunction::Sha256 => Ok(Sha256Hasher::new(security_level)?.into()),
+        HashFunction::Sha512 => Ok(Sha512Hasher::new(security_level)?.into()),
+        HashFunction::Sha3_256 => Ok(Sha3_256Hasher::new(security_level)?.into()),
+        HashFunction::Sha3_512 => Ok(Sha3_512Hasher::new(security_level)?.into()),
     }
 }
 
 /// BLAKE3 hasher implementation
 #[derive(Debug)]
 pub struct Blake3Hasher {
-    security_level: crate::SecurityLevel,
+    security_level: SecurityLevel,
     hash_count: std::sync::atomic::AtomicU64,
 }
 
@@ -311,7 +312,7 @@ impl Blake3Hasher {
 
     /// Get security level
     #[must_use]
-    pub const fn security_level(&self) -> crate::SecurityLevel {
+    pub const fn security_level(&self) -> SecurityLevel {
         self.security_level
     }
 
@@ -323,7 +324,7 @@ impl Blake3Hasher {
 }
 
 impl HashAlgorithm for Blake3Hasher {
-    fn new(security_level: crate::SecurityLevel) -> Result<Self> {
+    fn new(security_level: SecurityLevel) -> Result<Self> {
         Ok(Self {
             security_level,
             hash_count: std::sync::atomic::AtomicU64::new(0),
@@ -338,7 +339,7 @@ impl HashAlgorithm for Blake3Hasher {
     fn block_size(&self) -> usize {
         64
     }
-    fn security_level(&self) -> crate::SecurityLevel {
+    fn security_level(&self) -> SecurityLevel {
         self.security_level
     }
     fn as_hash_function(&self) -> HashFunction {
@@ -349,7 +350,7 @@ impl HashAlgorithm for Blake3Hasher {
 /// SHA-256 hasher implementation
 #[derive(Debug)]
 pub struct Sha256Hasher {
-    security_level: crate::SecurityLevel,
+    security_level: SecurityLevel,
     hash_count: std::sync::atomic::AtomicU64,
 }
 
@@ -411,7 +412,7 @@ impl Sha256Hasher {
 
     /// Get security level
     #[must_use]
-    pub const fn security_level(&self) -> crate::SecurityLevel {
+    pub const fn security_level(&self) -> SecurityLevel {
         self.security_level
     }
 
@@ -423,7 +424,7 @@ impl Sha256Hasher {
 }
 
 impl HashAlgorithm for Sha256Hasher {
-    fn new(security_level: crate::SecurityLevel) -> Result<Self> {
+    fn new(security_level: SecurityLevel) -> Result<Self> {
         Ok(Self {
             security_level,
             hash_count: std::sync::atomic::AtomicU64::new(0),
@@ -438,7 +439,7 @@ impl HashAlgorithm for Sha256Hasher {
     fn block_size(&self) -> usize {
         64
     }
-    fn security_level(&self) -> crate::SecurityLevel {
+    fn security_level(&self) -> SecurityLevel {
         self.security_level
     }
     fn as_hash_function(&self) -> HashFunction {
@@ -449,7 +450,7 @@ impl HashAlgorithm for Sha256Hasher {
 /// SHA-512 hasher implementation
 #[derive(Debug)]
 pub struct Sha512Hasher {
-    security_level: crate::SecurityLevel,
+    security_level: SecurityLevel,
     hash_count: std::sync::atomic::AtomicU64,
 }
 
@@ -511,7 +512,7 @@ impl Sha512Hasher {
 
     /// Get security level
     #[must_use]
-    pub const fn security_level(&self) -> crate::SecurityLevel {
+    pub const fn security_level(&self) -> SecurityLevel {
         self.security_level
     }
 
@@ -523,7 +524,7 @@ impl Sha512Hasher {
 }
 
 impl HashAlgorithm for Sha512Hasher {
-    fn new(security_level: crate::SecurityLevel) -> Result<Self> {
+    fn new(security_level: SecurityLevel) -> Result<Self> {
         Ok(Self {
             security_level,
             hash_count: std::sync::atomic::AtomicU64::new(0),
@@ -538,7 +539,7 @@ impl HashAlgorithm for Sha512Hasher {
     fn block_size(&self) -> usize {
         128
     }
-    fn security_level(&self) -> crate::SecurityLevel {
+    fn security_level(&self) -> SecurityLevel {
         self.security_level
     }
     fn as_hash_function(&self) -> HashFunction {
@@ -549,7 +550,7 @@ impl HashAlgorithm for Sha512Hasher {
 /// SHA3-256 hasher implementation
 #[derive(Debug)]
 pub struct Sha3_256Hasher {
-    security_level: crate::SecurityLevel,
+    security_level: SecurityLevel,
     hash_count: std::sync::atomic::AtomicU64,
 }
 
@@ -611,7 +612,7 @@ impl Sha3_256Hasher {
 
     /// Get security level
     #[must_use]
-    pub const fn security_level(&self) -> crate::SecurityLevel {
+    pub const fn security_level(&self) -> SecurityLevel {
         self.security_level
     }
 
@@ -623,7 +624,7 @@ impl Sha3_256Hasher {
 }
 
 impl HashAlgorithm for Sha3_256Hasher {
-    fn new(security_level: crate::SecurityLevel) -> Result<Self> {
+    fn new(security_level: SecurityLevel) -> Result<Self> {
         Ok(Self {
             security_level,
             hash_count: std::sync::atomic::AtomicU64::new(0),
@@ -638,7 +639,7 @@ impl HashAlgorithm for Sha3_256Hasher {
     fn block_size(&self) -> usize {
         136
     }
-    fn security_level(&self) -> crate::SecurityLevel {
+    fn security_level(&self) -> SecurityLevel {
         self.security_level
     }
     fn as_hash_function(&self) -> HashFunction {
@@ -649,7 +650,7 @@ impl HashAlgorithm for Sha3_256Hasher {
 /// SHA3-512 hasher implementation
 #[derive(Debug)]
 pub struct Sha3_512Hasher {
-    security_level: crate::SecurityLevel,
+    security_level: SecurityLevel,
     hash_count: std::sync::atomic::AtomicU64,
 }
 
@@ -711,7 +712,7 @@ impl Sha3_512Hasher {
 
     /// Get security level
     #[must_use]
-    pub const fn security_level(&self) -> crate::SecurityLevel {
+    pub const fn security_level(&self) -> SecurityLevel {
         self.security_level
     }
 
@@ -723,7 +724,7 @@ impl Sha3_512Hasher {
 }
 
 impl HashAlgorithm for Sha3_512Hasher {
-    fn new(security_level: crate::SecurityLevel) -> Result<Self> {
+    fn new(security_level: SecurityLevel) -> Result<Self> {
         Ok(Self {
             security_level,
             hash_count: std::sync::atomic::AtomicU64::new(0),
@@ -738,7 +739,7 @@ impl HashAlgorithm for Sha3_512Hasher {
     fn block_size(&self) -> usize {
         72
     }
-    fn security_level(&self) -> crate::SecurityLevel {
+    fn security_level(&self) -> SecurityLevel {
         self.security_level
     }
     fn as_hash_function(&self) -> HashFunction {
@@ -753,7 +754,7 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_blake3_hasher() {
-        let hasher = Blake3Hasher::new(crate::SecurityLevel::Maximum).unwrap();
+        let hasher = Blake3Hasher::new(SecurityLevel::Maximum).unwrap();
         let data = b"Hello, BLAKE3!";
 
         let hash = hasher.digest(data).unwrap();
@@ -766,7 +767,7 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_blake3_custom_length() {
-        let hasher = Blake3Hasher::new(crate::SecurityLevel::Maximum).unwrap();
+        let hasher = Blake3Hasher::new(SecurityLevel::Maximum).unwrap();
         let data = b"Hello, BLAKE3!";
 
         let hash = hasher.digest_with_length(data, 64).unwrap();
@@ -776,7 +777,7 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_sha256_hasher() {
-        let hasher = Sha256Hasher::new(crate::SecurityLevel::Maximum).unwrap();
+        let hasher = Sha256Hasher::new(SecurityLevel::Maximum).unwrap();
         let data = b"Hello, SHA-256!";
 
         let hash = hasher.digest(data).unwrap();
@@ -789,7 +790,7 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_sha512_hasher() {
-        let hasher = Sha512Hasher::new(crate::SecurityLevel::Maximum).unwrap();
+        let hasher = Sha512Hasher::new(SecurityLevel::Maximum).unwrap();
         let data = b"Hello, SHA-512!";
 
         let hash = hasher.digest(data).unwrap();
@@ -802,7 +803,7 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_sha3_256_hasher() {
-        let hasher = Sha3_256Hasher::new(crate::SecurityLevel::Maximum).unwrap();
+        let hasher = Sha3_256Hasher::new(SecurityLevel::Maximum).unwrap();
         let data = b"Hello, SHA3-256!";
 
         let hash = hasher.digest(data).unwrap();
@@ -815,7 +816,7 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_sha3_512_hasher() {
-        let hasher = Sha3_512Hasher::new(crate::SecurityLevel::Maximum).unwrap();
+        let hasher = Sha3_512Hasher::new(SecurityLevel::Maximum).unwrap();
         let data = b"Hello, SHA3-512!";
 
         let hash = hasher.digest(data).unwrap();
@@ -828,26 +829,26 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_create_hasher() {
-        let hasher = create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum).unwrap();
+        let hasher = create_hasher(HashFunction::Blake3, SecurityLevel::Maximum).unwrap();
         assert_eq!(hasher.name(), "BLAKE3");
 
-        let hasher = create_hasher(crate::HashFunction::Sha256, crate::SecurityLevel::Maximum).unwrap();
+        let hasher = create_hasher(HashFunction::Sha256, SecurityLevel::Maximum).unwrap();
         assert_eq!(hasher.name(), "SHA-256");
 
-        let hasher = create_hasher(crate::HashFunction::Sha512, crate::SecurityLevel::Maximum).unwrap();
+        let hasher = create_hasher(HashFunction::Sha512, SecurityLevel::Maximum).unwrap();
         assert_eq!(hasher.name(), "SHA-512");
 
-        let hasher = create_hasher(crate::HashFunction::Sha3_256, crate::SecurityLevel::Maximum).unwrap();
+        let hasher = create_hasher(HashFunction::Sha3_256, SecurityLevel::Maximum).unwrap();
         assert_eq!(hasher.name(), "SHA3-256");
 
-        let hasher = create_hasher(crate::HashFunction::Sha3_512, crate::SecurityLevel::Maximum).unwrap();
+        let hasher = create_hasher(HashFunction::Sha3_512, SecurityLevel::Maximum).unwrap();
         assert_eq!(hasher.name(), "SHA3-512");
     }
 
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_hasher_counts() {
-        let hasher = Blake3Hasher::new(crate::SecurityLevel::Maximum).unwrap();
+        let hasher = Blake3Hasher::new(SecurityLevel::Maximum).unwrap();
         let data = b"Hello, World!";
 
         assert_eq!(hasher.hash_count(), 0);
@@ -862,7 +863,7 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_hasher_new_hasher() {
-        let hasher = create_hasher(crate::HashFunction::Blake3, crate::SecurityLevel::Maximum).unwrap();
+        let hasher = create_hasher(crate::HashFunction::Blake3, SecurityLevel::Maximum).unwrap();
         let new_hasher = hasher.new_hasher().unwrap();
 
         assert_eq!(hasher.name(), new_hasher.name());
@@ -873,7 +874,7 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_hash_consistency() {
-        let hasher = Blake3Hasher::new(crate::SecurityLevel::Maximum).unwrap();
+        let hasher = Blake3Hasher::new(SecurityLevel::Maximum).unwrap();
         let data = b"Hello, World!";
 
         let hash1 = hasher.digest(data).unwrap();
@@ -887,8 +888,8 @@ mod tests {
     fn test_different_hashers_different_outputs() {
         let data = b"Hello, World!";
 
-        let blake3 = Blake3Hasher::new(crate::SecurityLevel::Maximum).unwrap();
-        let sha256 = Sha256Hasher::new(crate::SecurityLevel::Maximum).unwrap();
+        let blake3 = Blake3Hasher::new(SecurityLevel::Maximum).unwrap();
+        let sha256 = Sha256Hasher::new(SecurityLevel::Maximum).unwrap();
 
         let blake3_hash = blake3.digest(data).unwrap();
         let sha256_hash = sha256.digest(data).unwrap();
@@ -899,7 +900,7 @@ mod tests {
     #[test]
     #[allow(clippy::unwrap_used)]
     fn test_custom_length_error() {
-        let hasher = Sha256Hasher::new(crate::SecurityLevel::Maximum).unwrap();
+        let hasher = Sha256Hasher::new(SecurityLevel::Maximum).unwrap();
         let data = b"Hello, World!";
 
         let result = hasher.digest_with_length(data, 64);

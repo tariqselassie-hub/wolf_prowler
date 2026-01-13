@@ -1,7 +1,7 @@
 // /home/t4riq/Desktop/Rust/wolf_prowler/wolfsec/src/application/commands/network/update_config.rs
 use crate::application::error::ApplicationError;
-use crate::domain::entities::network::NetworkSecurityConfig;
 use crate::application::services::NetworkSecurityService;
+use crate::domain::entities::network::NetworkSecurityConfig;
 use anyhow::Context;
 use std::sync::Arc;
 

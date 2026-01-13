@@ -178,7 +178,9 @@ impl GeoIPService {
             .filter(|c| c.cached_at.elapsed() >= self.config.cache_duration)
             .count();
 
-        (total, expired)
+        let res = (total, expired);
+        drop(cache);
+        res
     }
 
     /// Clear expired cache entries
@@ -237,7 +239,7 @@ mod tests {
                 assert_eq!(total, 1);
             }
             Err(e) => {
-                eprintln!("Skipping test_cache due to network error: {}", e);
+                tracing::info!("Skipping test_cache due to network error: {}", e);
             }
         }
     }

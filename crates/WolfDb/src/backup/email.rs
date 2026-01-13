@@ -12,6 +12,7 @@ impl EmailBackup {
     /// # Errors
     ///
     /// Returns an error if the email message cannot be built, if SMTP transport fails, or if address parsing fails.
+    #[allow(clippy::cognitive_complexity)]
     pub async fn send_recovery_key(
         email: &str,
         encrypted_blob_b64: &str,
@@ -40,18 +41,18 @@ impl EmailBackup {
                     .credentials(creds)
                     .build();
             transport.send(email_msg).await?;
-            println!("{}", "✔ Recovery email sent via SMTP.".bright_green());
+            tracing::info!("{}", "✔ Recovery email sent via SMTP.".bright_green());
         } else {
             // Simulation Mode
-            println!(
+            tracing::info!(
                 "\n{}",
                 "--- EMAIL SIMULATION MODE ---".bright_yellow().bold()
             );
-            println!("To: {}", email.bright_white());
-            println!("Subject: WolfDb PQC Recovery Key");
-            println!("Body: \n{body}");
-            println!("{}\n", "--- END OF SIMULATION ---".bright_yellow().bold());
-            println!(
+            tracing::info!("To: {}", email.bright_white());
+            tracing::info!("Subject: WolfDb PQC Recovery Key");
+            tracing::info!("Body: \n{body}");
+            tracing::info!("{}", "--- END OF SIMULATION ---".bright_yellow().bold());
+            tracing::info!(
                 "{}",
                 "✔ Recovery email generated (Simulation Mode).".bright_green()
             );

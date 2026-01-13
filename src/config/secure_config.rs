@@ -69,7 +69,7 @@ pub struct SecurityConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseConfig {
-    pub url: String,
+    pub path: PathBuf,
 }
 
 impl SecureAppSettings {
@@ -139,8 +139,8 @@ impl SecureAppSettings {
                     .context("Invalid THREAT_THRESHOLD")?;
             }
 
-            if let Ok(db_url) = std::env::var("DATABASE_URL") {
-                settings.database.url = db_url;
+            if let Ok(db_path) = std::env::var("DATABASE_PATH") {
+                settings.database.path = PathBuf::from(db_path);
             }
 
             if let Ok(node_id) = std::env::var("NODE_ID") {
@@ -251,8 +251,7 @@ impl SecureAppSettings {
                 auto_mitigation_enabled: true,
             },
             database: DatabaseConfig {
-                url: "postgres://wolf_admin:wolf_secure_pass_2024@localhost/wolf_prowler"
-                    .to_string(),
+                path: PathBuf::from("wolf_data/wolf_prowler.db"),
             },
         }
     }

@@ -18,9 +18,9 @@ use x25519_dalek::PublicKey;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EncryptedProtocolMessage {
     /// Plaintext key exchange (not encrypted)
-    KeyExchange { 
+    KeyExchange {
         /// The public key for X25519 key exchange.
-        public_key: Vec<u8> 
+        public_key: Vec<u8>,
     },
     /// Encrypted request
     EncryptedRequest(EncryptedMessage),
@@ -76,9 +76,10 @@ impl EncryptedMessageHandler {
 
     /// Remove a peer's key (e.g., on disconnect)
     pub async fn remove_peer_key(&self, peer_id: &PeerId) {
-        let mut keys = self.peer_keys.write().await;
-        keys.remove(&peer_id.to_string());
-
+        {
+            let mut keys = self.peer_keys.write().await;
+            keys.remove(&peer_id.to_string());
+        }
         // Also clear encryption session
         self.encryption.clear_session(&peer_id.to_string()).await;
     }

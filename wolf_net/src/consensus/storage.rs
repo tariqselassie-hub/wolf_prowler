@@ -26,6 +26,7 @@ pub struct SledStorage {
     snapshot: Arc<StdRwLock<Snapshot>>,
 }
 
+#[allow(clippy::expect_used)]
 impl SledStorage {
     /// Create new Sled storage
     ///
@@ -36,21 +37,21 @@ impl SledStorage {
 
         // Load or initialize hard state
         let hard_state = if let Some(data) = db.get(KEY_HARD_STATE)? {
-            <HardState as prost::Message>::decode(&data[..])?
+            <HardState as Message>::decode(&data[..])?
         } else {
             HardState::default()
         };
 
         // Load or initialize conf state
         let conf_state = if let Some(data) = db.get(KEY_CONF_STATE)? {
-            <ConfState as prost::Message>::decode(&data[..])?
+            <ConfState as Message>::decode(&data[..])?
         } else {
             ConfState::default()
         };
 
         // Load or initialize snapshot
         let snapshot = if let Some(data) = db.get(KEY_SNAPSHOT)? {
-            <Snapshot as prost::Message>::decode(&data[..])?
+            <Snapshot as Message>::decode(&data[..])?
         } else {
             Snapshot::default()
         };
@@ -87,7 +88,7 @@ impl SledStorage {
         for entry in entries {
             let key = Self::entry_key(entry.index);
             let mut data = Vec::new();
-            <Entry as prost::Message>::encode(entry, &mut data)?;
+            <Entry as Message>::encode(entry, &mut data)?;
             self.db.insert(key, data)?;
         }
         self.db.flush()?;
@@ -103,9 +104,9 @@ impl SledStorage {
     /// Panics if the `hard_state` write lock is poisoned.
     pub fn set_hard_state(&self, hs: &HardState) -> Result<()> {
         let mut data = Vec::new();
-        <HardState as prost::Message>::encode(hs, &mut data)?;
+        <HardState as Message>::encode(hs, &mut data)?;
         self.db.insert(KEY_HARD_STATE, data)?;
-        *self.hard_state.write().expect("Lock poisoned") = hs.clone();
+        *self.hard_state.write().expect("hard_state lock poisoned") = hs.clone();
         self.db.flush()?;
         Ok(())
     }
@@ -119,9 +120,9 @@ impl SledStorage {
     /// Panics if the `conf_state` write lock is poisoned.
     pub fn set_conf_state(&self, cs: &ConfState) -> Result<()> {
         let mut data = Vec::new();
-        <ConfState as prost::Message>::encode(cs, &mut data)?;
+        <ConfState as Message>::encode(cs, &mut data)?;
         self.db.insert(KEY_CONF_STATE, data)?;
-        *self.conf_state.write().expect("Lock poisoned") = cs.clone();
+        *self.conf_state.write().expect("conf_state lock poisoned") = cs.clone();
         self.db.flush()?;
         Ok(())
     }
@@ -134,9 +135,9 @@ impl SledStorage {
     /// # Panics
     /// Panics if the internal `RwLock`s are poisoned.
     pub fn apply_snapshot(&self, snapshot: &Snapshot) -> Result<(), raft::Error> {
-        let mut hs = self.hard_state.write().expect("Lock poisoned");
-        let mut cs = self.conf_state.write().expect("Lock poisoned");
-        let mut snap = self.snapshot.write().expect("Lock poisoned");
+        let mut hs = self.hard_state.write().expect("hard_state lock poisoned");
+        let mut cs = self.conf_state.write().expect("conf_state lock poisoned");
+        let mut snap = self.snapshot.write().expect("snapshot lock poisoned");
 
         let metadata = snapshot.get_metadata();
         *hs = HardState {
@@ -151,6 +152,7 @@ impl SledStorage {
         let mut data = Vec::new();
         hs.encode(&mut data)
             .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?;
+        drop(hs);
         self.db
             .insert(KEY_HARD_STATE, data.clone())
             .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?;
@@ -158,6 +160,7 @@ impl SledStorage {
         data.clear();
         cs.encode(&mut data)
             .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?;
+        drop(cs);
         self.db
             .insert(KEY_CONF_STATE, data.clone())
             .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?;
@@ -165,6 +168,7 @@ impl SledStorage {
         data.clear();
         snap.encode(&mut data)
             .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?;
+        drop(snap);
         self.db
             .insert(KEY_SNAPSHOT, data)
             .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?;
@@ -173,11 +177,20 @@ impl SledStorage {
     }
 }
 
+#[allow(clippy::expect_used)]
 impl Storage for SledStorage {
     fn initial_state(&self) -> raft::Result<RaftState> {
         Ok(RaftState {
-            hard_state: self.hard_state.read().expect("Lock poisoned").clone(),
-            conf_state: self.conf_state.read().expect("Lock poisoned").clone(),
+            hard_state: self
+                .hard_state
+                .read()
+                .expect("hard_state lock poisoned")
+                .clone(),
+            conf_state: self
+                .conf_state
+                .read()
+                .expect("conf_state lock poisoned")
+                .clone(),
         })
     }
 
@@ -200,18 +213,18 @@ impl Storage for SledStorage {
                 .get(&key)
                 .map_err(|e| StorageError::Other(Box::new(e)))?
             {
-                let entry: Entry = <Entry as prost::Message>::decode(&data[..])
+                let entry: Entry = <Entry as Message>::decode(&data[..])
                     .map_err(|e| StorageError::Other(Box::new(e)))?;
 
                 let entry_size = entry.data.len() as u64;
 
                 if let Some(max) = max_size {
-                    if total_size + entry_size > max && !entries.is_empty() {
+                    if total_size.saturating_add(entry_size) > max && !entries.is_empty() {
                         break;
                     }
                 }
 
-                total_size += entry_size;
+                total_size = total_size.saturating_add(entry_size);
                 entries.push(entry);
             } else {
                 return Err(raft::Error::Store(StorageError::Unavailable));
@@ -222,7 +235,7 @@ impl Storage for SledStorage {
     }
 
     fn term(&self, idx: u64) -> raft::Result<u64> {
-        let snapshot = self.snapshot.read().expect("Lock poisoned");
+        let snapshot = self.snapshot.read().expect("snapshot lock poisoned");
         if idx == snapshot.get_metadata().index {
             return Ok(snapshot.get_metadata().term);
         }
@@ -235,7 +248,7 @@ impl Storage for SledStorage {
             .get(&key)
             .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?
         {
-            let entry: Entry = <Entry as prost::Message>::decode(&data[..])
+            let entry: Entry = <Entry as Message>::decode(&data[..])
                 .map_err(|e| raft::Error::Store(StorageError::Other(Box::new(e))))?;
             Ok(entry.term)
         } else {
@@ -244,19 +257,19 @@ impl Storage for SledStorage {
     }
 
     fn first_index(&self) -> raft::Result<u64> {
-        let snapshot = self.snapshot.read().expect("Lock poisoned");
-        Ok(snapshot.get_metadata().index + 1)
+        let snapshot = self.snapshot.read().expect("snapshot lock poisoned");
+        Ok(snapshot.get_metadata().index.saturating_add(1))
     }
 
     fn last_index(&self) -> raft::Result<u64> {
         // Scan for last entry
-        let mut last_idx = self.first_index()? - 1;
+        let mut last_idx = self.first_index()?.saturating_sub(1);
 
         for (key, _) in self.db.scan_prefix(PREFIX_ENTRY).flatten() {
-            if key.len() >= PREFIX_ENTRY.len() + 8 {
-                let idx_bytes: [u8; 8] = key[PREFIX_ENTRY.len()..PREFIX_ENTRY.len() + 8]
-                    .try_into()
-                    .expect("Slice length correct");
+            let start = PREFIX_ENTRY.len();
+            let end = start.saturating_add(8);
+            if let Some(idx_bytes_slice) = key.get(start..end) {
+                let idx_bytes: [u8; 8] = idx_bytes_slice.try_into().expect("Slice length correct");
                 let idx = u64::from_le_bytes(idx_bytes);
                 if idx > last_idx {
                     last_idx = idx;
@@ -268,7 +281,11 @@ impl Storage for SledStorage {
     }
 
     fn snapshot(&self, _request_index: u64, _to: u64) -> raft::Result<Snapshot> {
-        Ok(self.snapshot.read().expect("Lock poisoned").clone())
+        Ok(self
+            .snapshot
+            .read()
+            .expect("snapshot lock poisoned")
+            .clone())
     }
 }
 

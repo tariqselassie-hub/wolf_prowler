@@ -6,4 +6,4 @@
 
 pub mod vault;
 
-pub use vault::{EncryptedSecret, SecretMetadata, SecretsVault, VaultConfig, VaultError};
+pub use vault::{SecretsVault, VaultConfig};

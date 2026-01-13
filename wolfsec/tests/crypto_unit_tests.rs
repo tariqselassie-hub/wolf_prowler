@@ -175,7 +175,9 @@ mod tests {
         assert!(!hash.is_empty());
 
         // Test minimum key derivation size (Argon2 has minimum requirements)
-        let result = crypto.derive_key(b"password", b"salt_must_be_long_enough", 32).await;
+        let result = crypto
+            .derive_key(b"password", b"salt_must_be_long_enough", 32)
+            .await;
         // This should work with minimum size
         assert!(result.is_ok(), "Failed to derive key: {:?}", result.err());
     }

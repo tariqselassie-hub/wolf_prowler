@@ -5,14 +5,14 @@
 
 use axum::{
     extract::Request,
-    http::{header, HeaderMap, Method, StatusCode, Uri},
+    http::{header, Method, StatusCode},
     middleware::Next,
-    response::{IntoResponse, Response},
+    response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 
 /// Standard API response wrapper
 #[derive(Debug, Serialize, Deserialize)]

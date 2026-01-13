@@ -21,7 +21,6 @@ pub enum WolfRole {
     Omega,
 }
 
-
 /// Unique identifier for a Hunt operation.
 pub type HuntId = String;
 
@@ -120,7 +119,7 @@ impl WolfState {
         // Natural decay over time.
         // 1 point loss per tick (handled by coordinator).
         if self.prestige > 0 {
-            self.prestige -= 1;
+            self.prestige = self.prestige.saturating_sub(1);
             // Decay can trigger devoluation if you fall below threshold
             self.devolve();
         }

@@ -15,12 +15,14 @@ async fn api_status() -> String {
 pub mod auth;
 pub mod behavioral;
 pub mod compliance;
+pub mod containers;
 pub mod crypto;
 pub mod intelligence;
 pub mod metrics;
 pub mod network;
 pub mod peers;
 pub mod security;
+pub mod soar;
 pub mod system;
 pub mod threats;
 
@@ -37,6 +39,8 @@ pub fn create_v1_router(state: Arc<AppState>) -> Router {
         .nest("/system", system::create_router(state.clone()))
         .nest("/threats", threats::create_router(state.clone()))
         .nest("/security", security::create_router(state.clone()))
+        .nest("/soar", soar::create_router(state.clone()))
+        .nest("/containers", containers::create_router(state.clone()))
         .nest("/metrics", metrics::create_router(state.clone()))
         .route("/status", get(api_status))
 }

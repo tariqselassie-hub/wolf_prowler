@@ -1,0 +1,214 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+    Checking wolfsec v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolfsec)
+warning: field `key_store` is never read
+  --> wolfsec/src/identity/crypto.rs:97:5
+   |
+91 | pub struct WolfCrypto {
+   |            ---------- field in this struct
+...
+97 |     key_store: Arc<RwLock<HashMap<String, CryptoKey>>>,
+   |     ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `username` is never read
+  --> wolfsec/src/identity/iam/authentication.rs:80:5
+   |
+76 | struct UserCredential {
+   |        -------------- field in this struct
+...
+80 |     username: String,
+   |     ^^^^^^^^
+   |
+   = note: `UserCredential` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: variants `Inactive`, `Locked`, and `Suspended` are never constructed
+  --> wolfsec/src/identity/iam/authentication.rs:95:5
+   |
+91 | enum UserStatus {
+   |      ---------- variants in this enum
+...
+95 |     Inactive,
+   |     ^^^^^^^^
+96 |     /// Account is temporarily locked due to failed login attempts
+97 |     Locked,
+   |     ^^^^^^
+98 |     /// Account is suspended due to security violations
+99 |     Suspended,
+   |     ^^^^^^^^^
+   |
+   = note: `UserStatus` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `config` is never read
+  --> wolfsec/src/identity/iam/jwt_auth.rs:72:5
+   |
+66 | pub struct JWTAuthenticationManager {
+   |            ------------------------ field in this struct
+...
+72 |     config: IAMConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+   --> wolfsec/src/identity/iam/mfa.rs:290:5
+    |
+282 | pub struct MFAManager {
+    |            ---------- field in this struct
+...
+290 |     config: IAMConfig,
+    |     ^^^^^^
+
+warning: field `config` is never read
+   --> wolfsec/src/identity/iam/pqc.rs:472:5
+    |
+462 | pub struct PQCManager {
+    |            ---------- field in this struct
+...
+472 |     config: IAMConfig,
+    |     ^^^^^^
+
+warning: field `config` is never read
+   --> wolfsec/src/identity/iam/rbac.rs:190:5
+    |
+182 | pub struct RBACManager {
+    |            ----------- field in this struct
+...
+190 |     config: IAMConfig,
+    |     ^^^^^^
+
+warning: field `config` is never read
+   --> wolfsec/src/identity/iam/sso.rs:170:5
+    |
+164 | pub struct SSOIntegrationManager {
+    |            --------------------- field in this struct
+...
+170 |     config: IAMConfig,
+    |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/observability/predictive_analytics/mod.rs:29:5
+   |
+19 | pub struct PredictiveAnalyticsEngine {
+   |            ------------------------- field in this struct
+...
+29 |     config: PredictiveAnalyticsConfig,
+   |     ^^^^^^
+
+warning: fields `identity_federation`, `network_security`, `data_protection`, and `config` are never read
+  --> wolfsec/src/protection/cloud_security/mod.rs:39:5
+   |
+31 | pub struct CloudSecurityManager {
+   |            -------------------- fields in this struct
+...
+39 |     identity_federation: CloudIdentityFederationManager,
+   |     ^^^^^^^^^^^^^^^^^^^
+40 |     /// Network security
+41 |     network_security: CloudNetworkSecurityManager,
+   |     ^^^^^^^^^^^^^^^^
+42 |     /// Data protection
+43 |     data_protection: CloudDataProtectionManager,
+   |     ^^^^^^^^^^^^^^^
+...
+47 |     config: CloudSecurityConfig,
+   |     ^^^^^^
+
+warning: fields `orchestration_security` and `config` are never read
+  --> wolfsec/src/protection/container_security/mod.rs:82:5
+   |
+76 | pub struct ContainerSecurityManager {
+   |            ------------------------ fields in this struct
+...
+82 |     orchestration_security: OrchestrationSecurityManager,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+...
+90 |     config: ContainerSecurityConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/container_security/resource_limits.rs:11:5
+   |
+10 | pub struct ContainerResourceLimitManager {
+   |            ----------------------------- field in this struct
+11 |     config: ContainerSecurityConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/devsecops/mod.rs:66:5
+   |
+52 | pub struct DevSecOpsManager {
+   |            ---------------- field in this struct
+...
+66 |     config: DevSecOpsConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/devsecops/cicd_security.rs:11:5
+   |
+10 | pub struct CICDSecurityManager {
+   |            ------------------- field in this struct
+11 |     config: DevSecOpsConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/infrastructure_security/mod.rs:43:5
+   |
+29 | pub struct InfrastructureSecurityManager {
+   |            ----------------------------- field in this struct
+...
+43 |     config: InfrastructureSecurityConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/ml_security/data_pipeline.rs:70:5
+   |
+69 | pub struct FeatureExtractor {
+   |            ---------------- field in this struct
+70 |     config: FeatureConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/ml_security/patterns.rs:14:5
+   |
+13 | pub struct PatternAnalyzer {
+   |            --------------- field in this struct
+14 |     config: MLSecurityConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/ml_security/training.rs:12:5
+   |
+11 | pub struct TrainingPipeline {
+   |            ---------------- field in this struct
+12 |     config: MLSecurityConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/risk_assessment/mod.rs:40:5
+   |
+28 | pub struct RiskAssessmentManager {
+   |            --------------------- field in this struct
+...
+40 |     config: RiskAssessmentConfig,
+   |     ^^^^^^
+
+warning: field `config` is never read
+  --> wolfsec/src/protection/risk_assessment/gap_analysis.rs:12:5
+   |
+10 | pub struct ComplianceGapAnalyzer {
+   |            --------------------- field in this struct
+11 |     /// Configuration
+12 |     config: GapAnalysisConfig,
+   |     ^^^^^^
+
+warning: `wolfsec` (lib) generated 20 warnings
+    Checking wolf_web v0.1.0 (/home/t4riq/Desktop/Rust/wolf_prowler/wolf_web)
+error[E0046]: not all trait items implemented, missing: `get_recent_threats`
+  --> wolf_web/src/dashboard/mod.rs:34:1
+   |
+34 | impl ThreatRepository for MockThreatRepository {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `get_recent_threats` in implementation
+   |
+   = help: implement the missing item: `fn get_recent_threats<'life0: 'async_trait, 'async_trait>(&'life0 self, _: usize) -> Pin<Box<(dyn futures::Future<Output = Result<Vec<wolfsec::domain::entities::Threat>, DomainError>> + std::marker::Send + 'async_trait)>> { todo!() }`
+
+For more information about this error, try `rustc --explain E0046`.
+error: could not compile `wolf_web` (lib) due to 1 previous error

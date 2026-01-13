@@ -1,6 +1,7 @@
 use notify::{
     Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Result as NotifyResult, Watcher,
 };
+use std::collections::HashSet;
 use std::path::Path;
 use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::sync::{Arc, Mutex};
@@ -54,18 +55,18 @@ pub struct FileWatcher {
     /// Channel to send shutdown signal
     shutdown_sender: Arc<Mutex<Option<Sender<()>>>>,
     /// Internal state to track recent events for debouncing
-    recent_events: Arc<Mutex<std::collections::HashSet<String>>>,
+    recent_events: Arc<Mutex<HashSet<String>>>,
 }
 
 impl FileWatcher {
     /// Create a new file watcher with the given configuration
-    #[must_use] 
+    #[must_use]
     pub fn new(config: WatchConfig, event_sender: UnboundedSender<FileSystemEvent>) -> Self {
         Self {
             config,
             event_sender,
             shutdown_sender: Arc::new(Mutex::new(None)),
-            recent_events: Arc::new(Mutex::new(std::collections::HashSet::new())),
+            recent_events: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 
@@ -136,7 +137,7 @@ impl FileWatcher {
         shutdown_rx: Receiver<()>,
         config: WatchConfig,
         event_sender: UnboundedSender<FileSystemEvent>,
-        recent_events: Arc<Mutex<std::collections::HashSet<String>>>,
+        recent_events: Arc<Mutex<HashSet<String>>>,
         runtime_handle: tokio::runtime::Handle,
     ) {
         loop {
@@ -155,12 +156,12 @@ impl FileWatcher {
                         &recent_events,
                         &runtime_handle,
                     ) {
-                        eprintln!("Error handling file system event: {e}");
+                        tracing::info!("Error handling file system event: {e}");
                         let _ = event_sender.send(FileSystemEvent::Error(e.to_string()));
                     }
                 }
                 Ok(Err(e)) => {
-                    eprintln!("Watch error: {e:?}");
+                    tracing::info!("Watch error: {e:?}");
                 }
                 Err(TryRecvError::Empty) => {
                     // No events available, sleep briefly
@@ -178,7 +179,7 @@ impl FileWatcher {
         event: Event,
         config: &WatchConfig,
         event_sender: &UnboundedSender<FileSystemEvent>,
-        recent_events: &Arc<Mutex<std::collections::HashSet<String>>>,
+        recent_events: &Arc<Mutex<HashSet<String>>>,
         runtime_handle: &tokio::runtime::Handle,
     ) -> NotifyResult<()> {
         match event.kind {
@@ -241,7 +242,7 @@ impl FileWatcher {
     fn send_event_with_debounce(
         event: FileSystemEvent,
         event_sender: &UnboundedSender<FileSystemEvent>,
-        recent_events: &Arc<Mutex<std::collections::HashSet<String>>>,
+        recent_events: &Arc<Mutex<HashSet<String>>>,
         runtime_handle: &tokio::runtime::Handle,
     ) -> NotifyResult<()> {
         let mut recent_guard = recent_events.lock().unwrap();

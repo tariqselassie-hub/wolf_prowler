@@ -1,7 +1,7 @@
 // /home/t4riq/Desktop/Rust/wolf_prowler/wolfsec/src/application/commands/crypto/encrypt_data.rs
 use crate::application::error::ApplicationError;
-use crate::domain::entities::crypto::{EncryptedData, SecretKey};
 use crate::application::services::CryptographyProvider;
+use crate::domain::entities::crypto::{EncryptedData, SecretKey};
 use anyhow::Context;
 use std::sync::Arc;
 

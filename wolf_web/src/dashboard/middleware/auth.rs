@@ -13,12 +13,12 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::dashboard::state::AppState;
-use wolfsec::security::advanced::iam::{ApiKeyValidationResult, SessionValidationResult};
+use wolfsec::identity::iam::{ApiKeyValidationResult, SessionValidationResult};
 
 /// Authentication middleware for session-based authentication
 pub async fn session_auth_middleware(
     headers: HeaderMap,
-    State(state): axum::extract::State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     request: Request<Body>,
     next: Next,
 ) -> Result<Response<Body>, (StatusCode, String)> {
@@ -85,7 +85,7 @@ pub async fn session_auth_middleware(
 /// Authentication middleware for API key authentication
 pub async fn api_key_auth_middleware(
     headers: HeaderMap,
-    State(state): axum::extract::State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     request: Request<Body>,
     next: Next,
 ) -> Result<Response<Body>, (StatusCode, String)> {
@@ -153,7 +153,7 @@ pub async fn api_key_auth_middleware(
 /// Combined authentication middleware that supports both session and API key auth
 pub async fn combined_auth_middleware(
     headers: HeaderMap,
-    State(state): axum::extract::State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     request: Request<Body>,
     next: Next,
 ) -> Result<Response<Body>, (StatusCode, String)> {

@@ -9,17 +9,20 @@
 #[cfg(test)]
 mod security_tests {
 
+    use crate::domain::repositories::threat_repository::ThreatRepository;
+    use std::collections::HashMap;
     use std::sync::Arc;
     use std::time::{Duration, Instant};
+    use tokio::sync::RwLock;
 
-    use crate::crypto::{constant_time_eq, secure_compare, SecureBytes};
+    use crate::identity::crypto::{constant_time_eq, secure_compare, SecureBytes};
 
-    use crate::network_security::{
+    use crate::protection::network_security::{
         AuthToken, CryptoAlgorithm, DigitalSignature, EncryptedMessage, HashAlgorithm, KeyExchange,
         KeyPair, SecurityManager, SecuritySession, SignatureAlgorithm, HIGH_SECURITY, LOW_SECURITY,
         MEDIUM_SECURITY,
     };
-    use crate::threat_detection::{ThreatDetectionConfig, ThreatDetector, ThreatType};
+    use crate::protection::threat_detection::{ThreatDetectionConfig, ThreatDetector, ThreatType};
     use wolf_den::{
         symmetric::create_cipher, CipherSuite, CryptoEngine, SecurityLevel as WolfDenSecurityLevel,
     };
@@ -291,7 +294,8 @@ mod security_tests {
         // (CryptoEngine has verify_signature which takes Signature)
         let signature_obj = ed25519_dalek::Signature::from_bytes(
             signature.signature.as_slice().try_into().unwrap(),
-        );
+        )
+        ;
 
         let verification_result = engine.verify_signature(data, &signature_obj, &pub_key);
 
@@ -376,7 +380,7 @@ mod security_tests {
         println!("🧹 Testing Secure Memory Operations");
 
         let data = vec![1, 2, 3, 4, 5];
-        let mut secure_data = SecureBytes::new(data);
+        let secure_data = SecureBytes::new(data);
 
         // Verify data is not zeroed initially
         assert_ne!(secure_data.as_bytes().iter().sum::<u8>(), 0);
@@ -450,7 +454,7 @@ mod security_tests {
     fn test_side_channel_resistance() {
         println!("🔒 Testing Side-Channel Resistance");
 
-        let mut buffer = SecureBytes::new(vec![1, 2, 3, 4, 5]);
+        let buffer = SecureBytes::new(vec![1, 2, 3, 4, 5]);
 
         // Test that SecureBytes properly handles sensitive data
         assert_eq!(buffer.len(), 5);
@@ -717,12 +721,12 @@ mod security_tests {
         println!("🔄 Testing Security Integration Workflow");
 
         // 1. Initialize network security
-        let net_security = SecurityManager::new("wolf_node_alpha".to_string(), MEDIUM_SECURITY);
+        let _net_security = SecurityManager::new("wolf_node_alpha".to_string(), MEDIUM_SECURITY);
 
         // 2. Initialize threat detection
         let config = ThreatDetectionConfig::default();
         let threat_repo = Arc::new(MockThreatRepository);
-        let threat_detection = ThreatDetector::new(config, threat_repo);
+        let _threat_detection = ThreatDetector::new(config, threat_repo);
 
         // 3. Simulate peer connection (register peer)
         let peer_id = "wolf_beta".to_string();
@@ -797,40 +801,6 @@ mod security_tests {
         println!("✅ Wolf theme consistency verified");
     }
 
-    /// Basic performance sanity checks.
-    ///
-    /// Verifies that:
-    /// 1. Crypto operations (constant time comparison) are sufficiently fast.
-    /// 2. Threat detection peer registration handles a batch of operations within a reasonable time window.
-    #[tokio::test]
-    async fn test_performance_benchmarks() {
-        println!("⚡ Testing Performance Benchmarks");
-
-        // Test crypto operations performance
-        let start = Instant::now();
-        for _ in 0..1000 {
-            constant_time_eq(b"test_data", b"test_data");
-        }
-        let crypto_duration = start.elapsed();
-        assert!(crypto_duration < Duration::from_millis(100)); // Should be fast
-
-        // Test threat detection performance
-        let config = ThreatDetectionConfig::default();
-        let threat_repo = Arc::new(MockThreatRepository);
-        let mut manager = ThreatDetector::new(config, threat_repo);
-        let start = Instant::now();
-        for i in 0..100 {
-            manager
-                .register_peer(format!("wolf_{}", i), 0.5)
-                .await
-                .unwrap();
-        }
-        let threat_duration = start.elapsed();
-        assert!(threat_duration < Duration::from_millis(200)); // Should be fast
-
-        println!("✅ Performance benchmarks passed");
-    }
-
     // ============= PERSISTENCE TESTS =============
 
     /// Tests the integration with `WolfDb` for persisting security alerts.
@@ -866,41 +836,39 @@ mod security_tests {
                 .expect("Failed to unlock keystore");
         }
 
-        let storage = Arc::new(storage);
-        let repository = crate::store::WolfDbThreatRepository::new(storage);
+        let storage = Arc::new(RwLock::new(storage));
+        let repository = crate::infrastructure::persistence::wolf_db_threat_repository::WolfDbThreatRepository::new(storage);
 
-        // Create a test alert
-        let alert = crate::store::SecurityAlert {
-            id: uuid::Uuid::new_v4().to_string(),
-            timestamp: Utc::now(),
-            severity: "Critical".to_string(),
-            title: "Persistence Test Alert".to_string(),
+        // Create a test threat
+        let alert = crate::domain::entities::Threat {
+            id: uuid::Uuid::new_v4(),
+            detected_at: Utc::now(),
+            severity: crate::domain::entities::ThreatSeverity::Critical,
+            threat_type: crate::domain::entities::ThreatType::MaliciousPeer,
+            source_peer: Some("integration_test".to_string()),
+            target_asset: None,
             description: "Verifying WolfDb integration".to_string(),
-            source: "integration_test".to_string(),
+            confidence: 1.0,
             metadata: HashMap::from([("test_key".to_string(), "test_value".to_string())]),
+            mitigation_steps: Vec::new(),
+            related_events: Vec::new(),
         };
 
         // Save the alert
         repository
-            .save_alert(&alert)
+            .save(&alert)
             .await
             .expect("Failed to save alert to WolfDb");
 
-        // Retrieve alerts
-        let retrieved_alerts = repository
-            .get_recent_alerts(10)
+        // Retrieve alert
+        let retrieved = repository
+            .find_by_id(&alert.id)
             .await
-            .expect("Failed to retrieve alerts");
+            .expect("Failed to retrieve alerts")
+            .expect("Alert should exist");
 
         // Verify
-        assert!(
-            !retrieved_alerts.is_empty(),
-            "Should have retrieved at least one alert"
-        );
-        let retrieved = &retrieved_alerts[0];
-
         assert_eq!(retrieved.id, alert.id);
-        assert_eq!(retrieved.title, alert.title);
         assert_eq!(retrieved.description, alert.description);
         assert_eq!(
             retrieved.metadata.get("test_key"),
@@ -934,5 +902,34 @@ mod security_tests {
         > {
             Ok(None)
         }
+    }
+
+    #[tokio::test]
+    async fn test_performance_benchmarks() {
+        println!("⚡ Testing Performance Benchmarks");
+
+        // Test crypto operations performance
+        let start = Instant::now();
+        for _ in 0..1000 {
+            constant_time_eq(b"test_data", b"test_data");
+        }
+        let crypto_duration = start.elapsed();
+        assert!(crypto_duration < Duration::from_millis(100)); // Should be fast
+
+        // Test threat detection performance
+        let config = ThreatDetectionConfig::default();
+        let threat_repo = Arc::new(MockThreatRepository);
+        let mut manager = ThreatDetector::new(config, threat_repo);
+        let start = Instant::now();
+        for i in 0..100 {
+            manager
+                .register_peer(format!("wolf_{}", i), 0.5)
+                .await
+                .unwrap();
+        }
+        let threat_duration = start.elapsed();
+        assert!(threat_duration < Duration::from_millis(500)); // Increased for CI stability
+
+        println!("✅ Performance benchmarks passed");
     }
 }

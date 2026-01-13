@@ -9,5 +9,5 @@ pub struct Record {
     /// Metadata/relational fields stored as key-value pairs
     pub data: HashMap<String, String>, // Simple relational data
     /// Optional high-dimensional vector for similarity search
-    pub vector: Option<Vec<f32>>,      // Optional vector for similarity search
+    pub vector: Option<Vec<f32>>, // Optional vector for similarity search
 }

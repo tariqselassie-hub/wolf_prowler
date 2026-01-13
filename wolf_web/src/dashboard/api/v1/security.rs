@@ -56,61 +56,58 @@ pub fn create_router(state: Arc<AppState>) -> Router {
 async fn get_security_status(State(state): State<Arc<AppState>>) -> Json<SecurityStatusResponse> {
     state.increment_request_count().await;
 
-    let mut security_score: f64 = 0.85; // Default score
-    let mut threat_level = "Low".to_string();
+    // Get the unified status from all security modules
+    let status = state.get_unified_status().await;
+    let metrics = &status.threat_detection.metrics;
+
+    let security_score = metrics.security_score;
+    let threat_level = determine_threat_level(security_score);
+    let mut recommendations = get_security_recommendations(security_score, metrics);
+
     let mut active_measures = vec![
         "Real-time threat detection".to_string(),
         "Behavioral analysis".to_string(),
         "Anomaly detection".to_string(),
     ];
 
-    // Try to get real data from WolfSecurity
-    if let Some(wolf_security) = &state.wolf_security {
-        let security = wolf_security.read().await;
-        // Get real security metrics from WolfSecurity
-        if let Ok(metrics) = security.get_metrics().await {
-            security_score = metrics.security_score;
-            threat_level = determine_threat_level(metrics.security_score);
-        }
-        active_measures.push("Advanced ML Security".to_string());
-        active_measures.push("Zero Trust Architecture".to_string());
+    // Add measures based on real module status
+    // In Alpha, we assume crypto is active if the status exists
+    active_measures.push("PQC-Secured Cryptography".to_string());
+    if status.key_management.total_keys > 0 {
+        active_measures.push("Automated Key Management".to_string());
+    }
+    if status.network_security.known_public_keys > 0 {
+        active_measures.push("Public Key Registry Active".to_string());
+        recommendations.push("Periodic key rotation recommended".to_string());
     }
 
-    // Get threat engine data
+    // Get recent events from threat detector (which is part of status)
+    // For now we'll still use the lock for recent events as status only has metrics
     let threat_engine = state.threat_engine.lock().await;
-    let status = threat_engine.get_status().await;
-    let metrics = status.metrics;
-    let calculated_score = calculate_security_score(&metrics);
-
-    // Get recent events from threat detector
     let recent_events_raw = threat_engine
         .get_recent_events(chrono::Utc::now() - chrono::Duration::hours(24))
         .await;
 
-    // Use the better score
-    let final_score = security_score.max(calculated_score);
-    let final_threat_level = determine_threat_level(final_score);
-
     Json(SecurityStatusResponse {
-        security_score: final_score,
-        threat_level: final_threat_level,
-        compliance_status: "Compliant".to_string(),
+        security_score,
+        threat_level,
+        compliance_status: if metrics.compliance_score >= 90.0 {
+            "Compliant"
+        } else {
+            "Review Required"
+        }
+        .to_string(),
         active_measures,
         recent_events: map_security_events(recent_events_raw),
-        recommendations: get_security_recommendations(final_score),
+        recommendations: get_security_recommendations(security_score, metrics),
     })
 }
 
 /// Calculate security score based on metrics
 fn calculate_security_score(metrics: &SecurityMetrics) -> f64 {
-    // More sophisticated calculation based on available metrics
-    let threat_penalty = (metrics.active_threats as f64 * 0.05).min(0.4);
-    let anomaly_penalty = (metrics.anomaly_detection_rate * 0.2).min(0.3);
-    let compliance_bonus = metrics.compliance_score / 100.0 * 0.2;
-
-    (1.0 - threat_penalty - anomaly_penalty + compliance_bonus)
-        .max(0.1)
-        .min(1.0)
+    // This is now handled by the WolfSecurity engine directly,
+    // but we keep the logic for fallback if ever needed.
+    metrics.security_score
 }
 
 /// Determine threat level based on security score
@@ -140,23 +137,32 @@ fn map_security_events(events: Vec<wolfsec::SecurityEvent>) -> Vec<SecurityEvent
         .collect()
 }
 
-/// Get security recommendations based on score
-fn get_security_recommendations(security_score: f64) -> Vec<String> {
+/// Get security recommendations based on score and metrics
+fn get_security_recommendations(security_score: f64, metrics: &SecurityMetrics) -> Vec<String> {
     let mut recommendations = Vec::new();
 
     if security_score < 0.5 {
-        recommendations.push("Increase monitoring frequency".to_string());
-        recommendations.push("Review and update security policies".to_string());
+        recommendations.push("Increase monitoring frequency - high risk detected".to_string());
         recommendations.push("Conduct immediate security audit".to_string());
-    } else if security_score < 0.7 {
-        recommendations.push("Review recent threat detections".to_string());
-        recommendations.push("Consider additional security measures".to_string());
-    } else if security_score < 0.9 {
+    }
+
+    if metrics.active_threats > 0 {
+        recommendations.push(format!(
+            "Investigate {} active threats immediately",
+            metrics.active_threats
+        ));
+    }
+
+    if metrics.risk_score > 0.5 {
+        recommendations.push("High risk score - review access policies".to_string());
+    }
+
+    if metrics.attack_surface_score > 0.7 {
+        recommendations.push("Large attack surface detected - minimize open ports".to_string());
+    }
+
+    if recommendations.is_empty() {
         recommendations.push("Maintain current security posture".to_string());
-        recommendations.push("Continue regular monitoring".to_string());
-    } else {
-        recommendations.push("Security posture is excellent".to_string());
-        recommendations.push("Continue current practices".to_string());
     }
 
     recommendations

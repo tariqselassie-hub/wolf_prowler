@@ -17,7 +17,6 @@
 
 /// API for external control and status.
 pub mod api;
-/// Custom network behaviours.
 pub mod behavior;
 /// Node and network configuration.
 pub mod config;
@@ -41,6 +40,7 @@ pub mod handshake;
 pub mod hub_orchestration;
 /// Network message definitions.
 pub mod message;
+/// Custom network behaviours.
 /// Basic metrics collection.
 pub mod metrics_simple;
 /// P2P network behavior.
@@ -118,9 +118,9 @@ pub fn create_entity_info(
     service_type: ServiceType,
     system_type: SystemType,
     version: &str,
-) -> crate::peer::EntityInfo {
+) -> EntityInfo {
     let entity_id = EntityId::create(service_type, system_type, version);
-    crate::peer::EntityInfo::new(entity_id)
+    EntityInfo::new(entity_id)
 }
 
 #[cfg(test)]

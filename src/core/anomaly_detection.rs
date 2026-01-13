@@ -15,6 +15,7 @@ pub struct ZScoreAnomalyDetector {
     /// Z-score threshold for anomaly detection
     z_threshold: f64,
     /// Minimum sample size for reliable statistics
+    #[allow(dead_code)]
     min_sample_size: usize,
 }
 
@@ -148,8 +149,10 @@ impl AnomalyAlgorithm for ZScoreAnomalyDetector {
 /// Isolation Forest based anomaly detector
 pub struct IsolationForestAnomalyDetector {
     /// Number of trees in the forest
+    #[allow(dead_code)]
     n_trees: usize,
     /// Sample size for each tree
+    #[allow(dead_code)]
     sample_size: usize,
     /// Anomaly score threshold
     anomaly_threshold: f64,
@@ -240,8 +243,10 @@ impl AnomalyAlgorithm for IsolationForestAnomalyDetector {
 /// Time series anomaly detector
 pub struct TimeSeriesAnomalyDetector {
     /// Time window for analysis
+    #[allow(dead_code)]
     time_window: Duration,
     /// Seasonality period
+    #[allow(dead_code)]
     seasonality_period: Duration,
     /// Trend threshold
     trend_threshold: f64,
@@ -380,6 +385,7 @@ impl AnomalyAlgorithm for TimeSeriesAnomalyDetector {
 /// Clustering-based anomaly detector
 pub struct ClusteringAnomalyDetector {
     /// Number of clusters
+    #[allow(dead_code)]
     n_clusters: usize,
     /// Distance threshold for anomaly
     distance_threshold: f64,

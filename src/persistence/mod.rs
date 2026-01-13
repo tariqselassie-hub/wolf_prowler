@@ -279,10 +279,32 @@ impl PersistenceManager {
     }
 
     pub async fn get_active_peers(&self, org_id: Uuid) -> Result<Vec<DbPeer>> {
-        // This requires filtering by org_id AND status. WolfDb basic find is one key.
-        // We filter in memory after fetching by org_id
         let all = self.get_all_peers(org_id).await?;
         Ok(all.into_iter().filter(|p| p.status == "online").collect())
+    }
+
+    pub async fn get_all_active_peers(&self) -> Result<Vec<DbPeer>> {
+        let storage = self.storage.read().await;
+        let sk = storage.get_active_sk().context("Database locked")?;
+
+        let keys = storage.list_keys(TABLE_PEERS.to_string()).await?;
+
+        let mut peers = Vec::new();
+        for key in keys {
+            if let Some(record) = storage
+                .get_record(TABLE_PEERS.to_string(), key, sk.to_vec())
+                .await?
+            {
+                if let Some(json) = record.data.get("json") {
+                    if let Ok(peer) = serde_json::from_str::<DbPeer>(json) {
+                        if peer.status == "online" {
+                            peers.push(peer);
+                        }
+                    }
+                }
+            }
+        }
+        Ok(peers)
     }
 
     pub async fn save_peer_metrics(&self, metrics: &DbPeerMetrics) -> Result<()> {
@@ -332,9 +354,33 @@ impl PersistenceManager {
             .await
     }
 
+    pub async fn get_recent_alerts(&self, limit: usize) -> Result<Vec<DbSecurityAlert>> {
+        let storage = self.storage.read().await;
+        let sk = storage.get_active_sk().context("Database locked")?;
+
+        let keys = storage.list_keys(TABLE_SECURITY_ALERTS.to_string()).await?;
+
+        let mut alerts = Vec::new();
+        for key in keys {
+            if let Some(record) = storage
+                .get_record(TABLE_SECURITY_ALERTS.to_string(), key, sk.to_vec())
+                .await?
+            {
+                if let Some(json) = record.data.get("json") {
+                    if let Ok(alert) = serde_json::from_str::<DbSecurityAlert>(json) {
+                        alerts.push(alert);
+                    }
+                }
+            }
+        }
+        // Sort by timestamp if available, descending
+        alerts.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        Ok(alerts.into_iter().take(limit).collect())
+    }
+
     pub async fn store_siem_event(
         &self,
-        event: &wolfsec::security::advanced::siem::SecurityEvent,
+        event: &wolfsec::observability::siem::SecurityEvent,
     ) -> Result<()> {
         let db_event = DbSecurityEvent::from_siem_event(event);
         self.save_security_event(&db_event).await
@@ -352,6 +398,30 @@ impl PersistenceManager {
         }
         self.insert_struct(TABLE_AUDIT_LOGS, &id, log, Some(meta))
             .await
+    }
+
+    pub async fn get_recent_logs(&self, limit: usize) -> Result<Vec<DbSystemLog>> {
+        let storage = self.storage.read().await;
+        let sk = storage.get_active_sk().context("Database locked")?;
+
+        let keys = storage.list_keys(TABLE_SYSTEM_LOGS.to_string()).await?;
+
+        let mut logs = Vec::new();
+        for key in keys {
+            if let Some(record) = storage
+                .get_record(TABLE_SYSTEM_LOGS.to_string(), key, sk.to_vec())
+                .await?
+            {
+                if let Some(json) = record.data.get("json") {
+                    if let Ok(log) = serde_json::from_str::<DbSystemLog>(json) {
+                        logs.push(log);
+                    }
+                }
+            }
+        }
+        // Sort by timestamp descending
+        logs.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        Ok(logs.into_iter().take(limit).collect())
     }
 
     // ========================================================================

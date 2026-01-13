@@ -1,17 +1,23 @@
 #![allow(missing_docs)]
 #![allow(missing_docs)]
-use wolfsec::security::advanced::ml_security::{MLSecurityEngine, MLSecurityConfig};
-use wolfsec::security::advanced::siem::{WolfSIEMManager, SIEMConfig, SecurityEvent, SecurityEventType, EventSeverity, AuthEventType, EventSource, SourceType, EventDetails, CorrelationData, MitreTactic};
-use wolfsec::security::advanced::soar::PlaybookEngine; // Removed unused
 use chrono::Utc;
 use std::collections::HashMap;
 use uuid::Uuid;
+use wolfsec::identity::advanced::ml_security::{MLSecurityConfig, MLSecurityEngine};
+use wolfsec::identity::advanced::siem::{
+    AuthEventType, CorrelationData, EventDetails, EventSeverity, EventSource, MitreTactic,
+    SIEMConfig, SecurityEvent, SecurityEventType, SourceType, WolfSIEMManager,
+};
+use wolfsec::identity::advanced::soar::PlaybookEngine; // Removed unused
 
 async fn create_test_pipeline() -> (MLSecurityEngine, WolfSIEMManager, PlaybookEngine) {
     let ml_config = MLSecurityConfig::default();
     let mut ml_engine = MLSecurityEngine::new(ml_config).expect("Failed to create ML Engine");
     // Force classical ML backend for tests
-    ml_engine.initialize_models().await.expect("Failed to init models");
+    ml_engine
+        .initialize_models()
+        .await
+        .expect("Failed to init models");
 
     let siem_config = SIEMConfig::default();
     let siem_engine = WolfSIEMManager::new(siem_config).expect("Failed to create SIEM Manager");
@@ -25,7 +31,7 @@ fn create_auth_failure_event(source_ip: &str, count: i32) -> SecurityEvent {
     let mut details = HashMap::new();
     details.insert("username".to_string(), "admin".to_string());
     details.insert("source_ip".to_string(), source_ip.to_string());
-    
+
     SecurityEvent {
         event_id: Uuid::new_v4(),
         timestamp: Utc::now(),
@@ -41,7 +47,10 @@ fn create_auth_failure_event(source_ip: &str, count: i32) -> SecurityEvent {
         details: EventDetails {
             title: format!("Login Failure #{}", count),
             description: "Failed login attempt".to_string(),
-            technical_details: details.into_iter().map(|(k,v)| (k, serde_json::Value::String(v))).collect(),
+            technical_details: details
+                .into_iter()
+                .map(|(k, v)| (k, serde_json::Value::String(v)))
+                .collect(),
             user_context: None,
             system_context: None,
         },
@@ -83,9 +92,9 @@ async fn test_end_to_end_brute_force_response() {
         // Convert SecurityEvent to MLInputData (simplified mapping for test)
         let mut features = HashMap::new();
         features.insert("failed_attempts".to_string(), serde_json::Value::from(1.0));
-        
+
         // Use full path to avoid import issues if not imported
-        let ml_input = wolfsec::security::advanced::ml_security::MLInputData {
+        let ml_input = wolfsec::identity::advanced::ml_security::MLInputData {
             id: event.event_id,
             source: event.source.source_id.clone(),
             data_type: "auth".to_string(),
@@ -96,7 +105,7 @@ async fn test_end_to_end_brute_force_response() {
         let ml_results = ml_engine.run_inference(&ml_input).await.unwrap();
         // Check if average risk is increasing or high (heuristics might flag it immediately)
         let max_risk = ml_results.iter().map(|r| r.risk_score).fold(0.0, f64::max);
-        
+
         // B. SIEM Processing (Enrichment, Correlation, Alerting, Response)
         let response_actions = siem_engine.process_event(event.clone()).await.unwrap();
 
@@ -107,16 +116,24 @@ async fn test_end_to_end_brute_force_response() {
 
         // If ResponseActions are generated, it implies Correlation -> Alert -> Response
         if !response_actions.is_empty() {
-             incident_triggered = true;
-             // Check if we have RequireMFA (standard for Auth alerts) or BlockNetwork (Critical)
-             if response_actions.contains(&wolfsec::security::advanced::siem::ResponseAction::RequireMFA) {
-                 triggered_playbook_id = "brute_force_response".to_string(); 
-             }
+            incident_triggered = true;
+            // Check if we have RequireMFA (standard for Auth alerts) or BlockNetwork (Critical)
+            if response_actions
+                .contains(&wolfsec::identity::advanced::siem::ResponseAction::RequireMFA)
+            {
+                triggered_playbook_id = "brute_force_response".to_string();
+            }
         }
     }
 
     // 4. Verification
     // assert!(high_risk_detected, "ML Detection failed to flag high risk"); // Heuristics might vary
-    assert!(incident_triggered, "SIEM failed to trigger response on brute force attack");
-    assert_eq!(triggered_playbook_id, "brute_force_response", "Expected RequireMFA response action");
+    assert!(
+        incident_triggered,
+        "SIEM failed to trigger response on brute force attack"
+    );
+    assert_eq!(
+        triggered_playbook_id, "brute_force_response",
+        "Expected RequireMFA response action"
+    );
 }

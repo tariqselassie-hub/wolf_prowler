@@ -44,7 +44,7 @@ async fn test_forensic_logger() {
         file_path: "/test/file.tersec".to_string(),
     };
 
-    logger.log_rejected_file(entry).unwrap();
+    logger.log_rejected_file(&entry).unwrap();
 
     // Check that log file was created
     let log_file = format!("{}/forensic_log.txt", worm_path);

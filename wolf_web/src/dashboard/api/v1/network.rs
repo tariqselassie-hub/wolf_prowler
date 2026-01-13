@@ -23,8 +23,10 @@ pub struct NetworkStatusResponse {
     pub average_latency: f64,
     /// Data transfer (MB)
     pub data_transfer: f64,
-    /// Transfer rate (MB/s)
-    pub transfer_rate: f64,
+    /// Active sessions (encrypted)
+    pub active_sessions: usize,
+    /// Total security rules/keys
+    pub security_key_count: usize,
     /// HyperPulse status
     pub hyperpulse_status: String,
     /// Active streams
@@ -81,11 +83,20 @@ async fn get_network_status(State(state): State<Arc<AppState>>) -> Json<NetworkS
         network_latency: 0.0,
         average_latency: 0.0,
         data_transfer: 0.0,
-        transfer_rate: 0.0,
+        active_sessions: 0,
+        security_key_count: 0,
         hyperpulse_status: "Initializing".to_string(),
         active_streams: 0,
         network_health: 50.0,
     };
+
+    // Try to get real security data from WolfSecurity
+    if let Some(wolf_security_arc) = state.get_wolf_security() {
+        let security = wolf_security_arc.read().await;
+        let stats = security.network_security.get_stats().await;
+        response.active_sessions = stats.active_sessions;
+        response.security_key_count = stats.total_keypairs;
+    }
 
     // Try to get real data from SwarmManager
     if let Some(swarm_manager) = &state.swarm_manager {
@@ -96,7 +107,6 @@ async fn get_network_status(State(state): State<Arc<AppState>>) -> Json<NetworkS
         response.network_latency = metrics.average_latency;
         response.average_latency = metrics.average_latency;
         response.data_transfer = metrics.total_data_transferred as f64;
-        response.transfer_rate = metrics.transfer_rate;
         response.hyperpulse_status = "Active".to_string();
         response.active_streams = metrics.active_streams;
         response.network_health = metrics.network_health;

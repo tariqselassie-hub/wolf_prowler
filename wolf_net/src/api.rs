@@ -39,6 +39,7 @@ impl<T> ApiResponse<T> {
 // --- Status DTOs ---
 
 /// Current status of the node
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeStatus {
     /// The node's unique peer identifier.
     pub peer_id: String,
@@ -53,6 +54,7 @@ pub struct NodeStatus {
 }
 
 /// Information about a peer
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PeerInfo {
     /// The unique identifier of the peer.
     pub peer_id: String,
@@ -65,12 +67,14 @@ pub struct PeerInfo {
 // --- Request DTOs ---
 
 /// Request to connect to a new peer
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectPeerRequest {
     /// The multi-address of the target peer.
     pub multiaddr: String,
 }
 
 /// Request to send a direct message
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SendMessageRequest {
     /// The target peer identifier.
     pub peer_id: String,
@@ -79,6 +83,7 @@ pub struct SendMessageRequest {
 }
 
 /// Request to broadcast a message to the network
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BroadcastRequest {
     /// The message content to broadcast.
     pub message: String,
@@ -114,11 +119,11 @@ pub enum NodeCommand {
     /// Broadcast data to the entire network.
     Broadcast(Vec<u8>),
     /// Send data directly to a specific peer.
-    SendDirect { 
+    SendDirect {
         /// Target peer identifier.
-        peer_id: String, 
+        peer_id: String,
         /// Raw data to send.
-        data: Vec<u8> 
+        data: Vec<u8>,
     },
     /// Update internal firewall configuration.
     UpdateFirewall(FirewallUpdateRequest),
@@ -136,12 +141,8 @@ pub struct WolfNodeControl {
 impl WolfNodeControl {
     /// Creates a new `WolfNodeControl` handle.
     #[must_use]
-    pub const fn new(
-        command_tx: mpsc::Sender<NodeCommand>,
-    ) -> Self {
-        Self {
-            command_tx,
-        }
+    pub const fn new(command_tx: mpsc::Sender<NodeCommand>) -> Self {
+        Self { command_tx }
     }
 
     /// Requests a graceful shutdown of the node.

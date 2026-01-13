@@ -1,4 +1,4 @@
-use crate::protocol::WolfCodec;
+use crate::protocol::{WolfCodec, WolfProtocol};
 use libp2p::{
     gossipsub,
     identify,
@@ -101,9 +101,8 @@ impl WolfBehavior {
         let peer_id = local_key.public().to_peer_id();
 
         // Ping
-        let ping_config =
-            libp2p::ping::Config::new().with_interval(std::time::Duration::from_secs(2));
-        let ping = libp2p::ping::Behaviour::new(ping_config);
+        let ping_config = ping::Config::new().with_interval(std::time::Duration::from_secs(2));
+        let ping = ping::Behaviour::new(ping_config);
 
         // Kademlia
         let store = kad::store::MemoryStore::new(peer_id);
@@ -111,29 +110,24 @@ impl WolfBehavior {
         let kad = kad::Behaviour::with_config(peer_id, store, kad_config);
 
         // Gossipsub
-        let gossipsub_config = libp2p::gossipsub::ConfigBuilder::default()
+        let gossipsub_config = gossipsub::ConfigBuilder::default()
             .max_transmit_size(262_144)
             .build()
             .map_err(|e| anyhow::anyhow!("Failed to build gossipsub config: {e}"))?;
 
-        let message_authenticity =
-            libp2p::gossipsub::MessageAuthenticity::Signed(local_key.clone());
-        let gossipsub =
-            libp2p::gossipsub::Behaviour::new(message_authenticity, gossipsub_config)
-                .map_err(|e| anyhow::anyhow!("Failed to create gossipsub behaviour: {e}"))?;
+        let message_authenticity = gossipsub::MessageAuthenticity::Signed(local_key.clone());
+        let gossipsub = gossipsub::Behaviour::new(message_authenticity, gossipsub_config)
+            .map_err(|e| anyhow::anyhow!("Failed to create gossipsub behaviour: {e}"))?;
 
         // Request-Response
         let req_resp = request_response::Behaviour::with_codec(
-            crate::protocol::WolfCodec,
-            [(
-                crate::protocol::WolfProtocol,
-                request_response::ProtocolSupport::Full,
-            )],
+            WolfCodec,
+            [(WolfProtocol, request_response::ProtocolSupport::Full)],
             request_response::Config::default(),
         );
 
         // Identify
-        let identify = libp2p::identify::Behaviour::new(libp2p::identify::Config::new(
+        let identify = identify::Behaviour::new(identify::Config::new(
             "/wolf-net/1.0.0".to_string(),
             local_key.public(),
         ));
@@ -143,7 +137,7 @@ impl WolfBehavior {
             tracing::info!("Enable mDNS for peer discovery");
         }
 
-        let mdns = libp2p::mdns::tokio::Behaviour::new(libp2p::mdns::Config::default(), peer_id)?;
+        let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), peer_id)?;
 
         Ok(Self {
             ping,

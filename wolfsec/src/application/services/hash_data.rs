@@ -1,7 +1,7 @@
 // /home/t4riq/Desktop/Rust/wolf_prowler/wolfsec/src/application/queries/crypto/hash_data.rs
 use crate::application::error::ApplicationError;
-use crate::domain::entities::crypto::HashedData;
 use crate::application::services::CryptographyProvider;
+use crate::domain::entities::crypto::HashedData;
 use anyhow::Context;
 use std::sync::Arc;
 

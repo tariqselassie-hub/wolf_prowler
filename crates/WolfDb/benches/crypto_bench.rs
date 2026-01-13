@@ -4,7 +4,7 @@
 use wolf_db::crypto::aes;
 mod criterion_config;
 use crate::criterion_config::wolf_db_bench_config;
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use wolf_db::crypto::kem;
 use wolf_db::crypto::signature;
 
@@ -31,8 +31,8 @@ fn bench_dilithium(c: &mut Criterion) {
 
     c.bench_function("dilithium_sign", |b| {
         b.iter(|| {
-             let keys = signature::reconstruct_keypair(black_box(&sk), black_box(&pk)).unwrap();
-             let _ = signature::sign_with_keypair(black_box(&keys), black_box(msg));
+            let keys = signature::reconstruct_keypair(black_box(&sk), black_box(&pk)).unwrap();
+            let _ = signature::sign_with_keypair(black_box(&keys), black_box(msg));
         });
     });
 

@@ -54,6 +54,7 @@ async fn main() -> Result<()> {
         metadata: Some(serde_json::json!({"node_name": "CAP", "region": "us-east"})),
         created_at: Some(chrono::Utc::now()),
         updated_at: Some(chrono::Utc::now()),
+        org_id: None,
     };
 
     persistence.save_peer(&peer).await?;
@@ -78,6 +79,7 @@ async fn main() -> Result<()> {
         resolved: Some(false),
         resolved_at: None,
         resolved_by: None,
+        org_id: None,
     };
 
     persistence.save_security_event(&event).await?;
@@ -105,6 +107,7 @@ async fn main() -> Result<()> {
             "time_window": "1 minute",
             "source_ip": "10.0.0.50"
         }),
+        org_id: None,
     };
 
     persistence.save_security_alert(&alert).await?;
@@ -126,6 +129,7 @@ async fn main() -> Result<()> {
         }),
         ip_address: None,
         user_agent: None,
+        org_id: None,
     };
 
     persistence.save_audit_log(&audit_log).await?;
@@ -146,7 +150,7 @@ async fn main() -> Result<()> {
     println!("🔍 Querying saved data...\n");
 
     // Get active peers
-    let active_peers = persistence.get_active_peers().await?;
+    let active_peers = persistence.get_all_active_peers().await?;
     println!("📊 Active Peers: {}", active_peers.len());
     for peer in &active_peers {
         println!("  - {} ({})", peer.peer_id, peer.status);

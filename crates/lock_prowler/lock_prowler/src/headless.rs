@@ -340,7 +340,7 @@ impl HeadlessWolfProwler {
         &self,
         table: &str,
         id: &str,
-        data: std::collections::HashMap<String, String>,
+        data: HashMap<String, String>,
     ) -> Result<()> {
         let mut store = self.store.lock().await;
         store.generic_insert(table, id, data).await

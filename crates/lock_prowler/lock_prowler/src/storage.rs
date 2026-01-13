@@ -788,7 +788,7 @@ impl WolfStore {
     pub async fn list_table_records(
         &self,
         table: &str,
-    ) -> Result<Vec<wolf_db::storage::model::Record>> {
+    ) -> Result<Vec<Record>> {
         let sk = self
             .storage
             .get_active_sk()

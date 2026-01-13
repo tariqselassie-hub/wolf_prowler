@@ -106,7 +106,7 @@ async fn get_system_status(State(state): State<Arc<AppState>>) -> Json<SystemSta
 
     // Get real system data from threat engine
     let threat_engine = state.threat_engine.lock().await;
-    let status = threat_engine.get_status().await;
+    let _status = threat_engine.get_status().await;
 
     // Get pack hierarchy data from reputation system
     let reputation_system = threat_engine.reputation_system();

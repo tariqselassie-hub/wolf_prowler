@@ -62,6 +62,7 @@ impl UdevListener {
         // This is a simplified implementation
         // In production, you would use a proper udev library or direct netlink socket
 
+        #[allow(clippy::infinite_loop)]
         loop {
             // Check for new USB devices every 2 seconds
             // Optimization: Run blocking IO in spawn_blocking to avoid blocking the async runtime
@@ -113,20 +114,20 @@ impl UdevListener {
         // Example lsusb output: "Bus 001 Device 002: ID 8087:0024 Intel Corp. Integrated Rate Matching Hub"
         let parts: Vec<&str> = line.split_whitespace().collect();
 
-        if parts.len() >= 6 && parts[2] == "Device" {
+        if parts.len() >= 7 && parts.get(2) == Some(&"Device") {
             let device_path = format!(
                 "/dev/bus/usb/{}/{}",
-                parts[1],
-                parts[3].trim_end_matches(':')
+                parts.get(1).copied().unwrap_or(""),
+                parts.get(3).map_or("", |s| s.trim_end_matches(':'))
             );
-            let device_name = parts[6..].join(" ");
+            let device_name = parts.get(6..).map(|p| p.join(" ")).unwrap_or_default();
 
             // Extract vendor:product ID
-            let id_part = parts[5];
+            let id_part = parts.get(5).copied().unwrap_or("");
             let id_parts: Vec<&str> = id_part.split(':').collect();
 
-            let vendor_id = id_parts.first().map(std::string::ToString::to_string);
-            let product_id = id_parts.get(1).map(std::string::ToString::to_string);
+            let vendor_id = id_parts.first().map(ToString::to_string);
+            let product_id = id_parts.get(1).map(ToString::to_string);
 
             Some(UsbDevice {
                 path: device_path,
@@ -182,6 +183,7 @@ impl NetlinkUdevListener {
         // This would require the netlink-proto crate or similar
         // For now, we'll use a simplified polling approach
 
+        #[allow(clippy::infinite_loop)]
         loop {
             // Poll for USB events
             let events = Self::poll_usb_events();

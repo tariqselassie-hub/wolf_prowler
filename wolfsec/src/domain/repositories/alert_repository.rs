@@ -11,4 +11,7 @@ pub trait AlertRepository: Send + Sync {
 
     /// Finds an alert by its unique ID.
     async fn find_by_id(&self, id: &Uuid) -> Result<Option<Alert>, DomainError>;
+
+    /// Gets recent alerts.
+    async fn get_recent_alerts(&self, limit: usize) -> Result<Vec<Alert>, DomainError>;
 }

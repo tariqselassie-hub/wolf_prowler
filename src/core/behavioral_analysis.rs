@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 /// Burst connection pattern matcher
 pub struct BurstPatternMatcher {
     /// Maximum normal burst size
+    #[allow(dead_code)]
     max_burst_size: u32,
     /// Burst time window
     burst_window: Duration,
@@ -88,6 +89,7 @@ pub struct TimingAnomalyMatcher {
     /// Expected regularity threshold
     regularity_threshold: f64,
     /// Peak hour deviation tolerance
+    #[allow(dead_code)]
     peak_hour_tolerance: u8,
 }
 
@@ -313,6 +315,7 @@ impl PatternMatcher for ContentAnomalyMatcher {
 /// Sybil attack pattern matcher
 pub struct SybilAttackMatcher {
     /// Minimum peer count for Sybil detection
+    #[allow(dead_code)]
     min_peer_threshold: u32,
     /// Similarity threshold for peer behavior
     similarity_threshold: f64,
@@ -435,6 +438,7 @@ pub struct MessageFloodingMatcher {
     /// Maximum normal message frequency
     max_frequency: f64,
     /// Flood time window
+    #[allow(dead_code)]
     flood_window: Duration,
 }
 

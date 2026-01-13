@@ -22,9 +22,9 @@ impl From<&MessageType> for MessageTypeKey {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MessageType {
     /// Simple chat message
-    Chat { 
+    Chat {
         /// The content of the chat message
-        content: String 
+        content: String,
     },
     /// Data transfer
     Data {
@@ -99,8 +99,7 @@ pub enum MessageType {
 }
 
 /// Message priority levels
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub enum MessagePriority {
     /// Low priority - may be delayed
     Low = 0,
@@ -112,7 +111,6 @@ pub enum MessagePriority {
     /// Critical priority - immediate attention required
     Critical = 3,
 }
-
 
 /// Network message structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -162,7 +160,6 @@ impl Message {
             routing_path: Vec::new(),
         }
     }
-
     /// Create a message for a specific target
     pub fn to_peer(from: PeerId, to: PeerId, message_type: MessageType) -> Self {
         let mut msg = Self::new(from, message_type);
@@ -200,19 +197,18 @@ impl Message {
 
     /// Check if message is expired
     pub fn is_expired(&self) -> bool {
-        if let Some(ttl) = self.ttl {
-            Utc::now() > self.timestamp + ttl
-        } else {
-            false
-        }
+        self.ttl.is_some_and(|ttl| {
+            self.timestamp
+                .checked_add_signed(ttl)
+                .is_some_and(|expiry| Utc::now() > expiry)
+        })
     }
 
     /// Check if message is for local peer
     pub fn is_for_local(&self, local_peer_id: &PeerId) -> bool {
-        match &self.to {
-            Some(target) => target == local_peer_id,
-            None => true, // Broadcast
-        }
+        self.to
+            .as_ref()
+            .map_or(true, |target| target == local_peer_id)
     }
 
     /// Get message size estimate (in bytes)
@@ -318,15 +314,15 @@ impl MessageHandler {
     }
 
     /// Register a callback for a message type
-    pub fn register_callback(&mut self, message_type: MessageType, callback: MessageCallback) {
+    pub fn register_callback(&mut self, message_type: &MessageType, callback: MessageCallback) {
         self.callbacks
-            .entry((&message_type).into())
+            .entry(message_type.into())
             .or_default()
             .push(callback);
     }
 
     /// Process an incoming message
-    pub fn process_message(&self, message: Message) -> anyhow::Result<()> {
+    pub fn process_message(&self, message: &Message) -> anyhow::Result<()> {
         // Check if message is expired
         if message.is_expired() {
             tracing::warn!("Expired message received: {}", message.id);
@@ -336,7 +332,7 @@ impl MessageHandler {
         // Find and execute callbacks
         if let Some(callbacks) = self.callbacks.get(&(&message.message_type).into()) {
             for callback in callbacks {
-                if let Err(e) = callback(&message) {
+                if let Err(e) = callback(message) {
                     tracing::error!("Message callback error: {}", e);
                 }
             }
@@ -359,7 +355,7 @@ mod tests {
 
     #[test]
     fn test_message_creation() {
-        let peer_id = crate::peer::PeerId::random();
+        let peer_id = PeerId::random();
         let message = Message::chat(peer_id.clone(), "Hello".to_string());
 
         assert_eq!(message.from, peer_id);
@@ -369,7 +365,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_message_expiration() {
-        let peer_id = crate::peer::PeerId::random();
+        let peer_id = PeerId::random();
         let mut message = Message::chat(peer_id, "Test".to_string());
 
         // Message should not be expired initially

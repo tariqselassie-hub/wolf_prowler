@@ -56,9 +56,9 @@ pub fn SecurityPage() -> Element {
                                     div { class: "text-xs uppercase text-gray-500", "Active Rules" }
                                     div { class: "font-bold text-blue-400", "{stats.firewall.active_rules}" }
                                 }
-                                div { class: "text-center p-2 bg-gray-900/50 rounded",
+                                div { class: "text-center p-2 bg-gray-900/50 rounded border border-red-900/10",
                                     div { class: "text-xs uppercase text-gray-500", "Blocked Events" }
-                                    div { class: "font-bold text-red-400", "{stats.firewall.blocked_count}" }
+                                    div { class: "font-bold text-red-500 animate-pulse", "{stats.firewall.blocked_count}" }
                                 }
                             }
 
@@ -95,18 +95,22 @@ pub fn SecurityPage() -> Element {
                             }
 
                             // Event Log
-                            h4 { class: "text-xs font-bold uppercase mb-2 text-gray-500", "Firewall Events" }
-                            div { class: "bg-black p-2 border border-green-900 font-mono text-xs max-h-32 overflow-y-auto space-y-1",
+                            h4 { class: "text-xs font-bold uppercase mb-2 text-gray-500 flex items-center gap-2",
+                                i { class: "lucide-terminal w-3 h-3" } "Intercept Log"
+                            }
+                            div { class: "bg-black p-4 border border-green-900/30 font-mono text-xs max-h-48 overflow-y-auto space-y-2 custom-scrollbar",
                                 for event in &stats.firewall.recent_events {
-                                    div {
-                                        span { class: "text-gray-500", "[{event.timestamp}]" }
-                                        span { class: "ml-2 text-yellow-500", "{event.source}" }
-                                        span { class: "ml-2 text-red-400", "{event.action}" }
-                                        span { class: "ml-2 text-gray-400", "({event.reason})" }
+                                    div { class: "flex gap-3 border-l-2 border-red-900/50 pl-2 py-1 bg-red-900/5",
+                                        span { class: "text-gray-500 whitespace-nowrap", "{event.timestamp}" }
+                                        span { class: "text-red-500 font-bold", "DENIED" }
+                                        span { class: "text-yellow-500/80", "{event.source}" }
+                                        span { class: "text-gray-400 italic", "Reason: {event.reason}" }
                                     }
                                 }
                                 if stats.firewall.recent_events.is_empty() {
-                                    div { class: "text-gray-600 italic", "No recent firewall events." }
+                                    div { class: "text-gray-600 italic flex items-center gap-2",
+                                        i { class: "lucide-shield-check w-4 h-4 opacity-50" } "Perimeter secure. No intrusions detected."
+                                    }
                                 }
                             }
                         }

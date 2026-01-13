@@ -13,18 +13,18 @@ pub enum HowlPriority {
     /// Warning message
     Warning = 1,
     /// Critical alert (Highest priority)
-    Alert = 2, 
+    Alert = 2,
 }
 
 /// The payload content of a Howl message
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum HowlPayload {
     /// A Scout reporting a threat
-    WarningHowl { 
+    WarningHowl {
         /// Detected target IP
-        target_ip: String, 
+        target_ip: String,
         /// Evidence string
-        evidence: String 
+        evidence: String,
     },
     /// An Alpha or Beta requesting a hunt
     HuntRequest {
@@ -83,11 +83,11 @@ pub enum HowlPayload {
         granted: bool,
     },
     /// Periodic heartbeat from the Alpha to maintain authority
-    AlphaHeartbeat { 
+    AlphaHeartbeat {
         /// Current term
-        term: u64, 
+        term: u64,
         /// Leader Peer ID
-        leader_id: PeerId 
+        leader_id: PeerId,
     },
 }
 

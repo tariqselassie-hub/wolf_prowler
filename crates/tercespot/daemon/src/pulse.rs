@@ -1,6 +1,6 @@
+use crate::check_pulse;
 use fips204::ml_dsa_44; // For verifying signature
 use fips204::traits::{SerDes, Verifier};
-use crate::check_pulse;
 use shared::postbox_path;
 use std::fs;
 use std::io::{BufReader, Seek, SeekFrom};
@@ -24,7 +24,7 @@ impl PulseMethod {
     /// Creates a `PulseMethod` from environment variables `TERSEC_PULSE_MODE` and `TERSEC_PULSE_ARG`
     ///
     /// Supported modes: USB, WEB, TCP, CRYPTO. Defaults to WEB if not specified.
-    #[must_use] 
+    #[must_use]
     pub fn from_env() -> Self {
         let mode = std::env::var("TERSEC_PULSE_MODE").unwrap_or_else(|_| "WEB".to_string());
         let arg = std::env::var("TERSEC_PULSE_ARG").unwrap_or_else(|_| String::new());
@@ -59,7 +59,7 @@ impl PulseMethod {
     ///
     /// # Returns
     /// `PulseMetadata` if pulse is detected within timeout, None otherwise
-    #[must_use] 
+    #[must_use]
     pub fn wait_for_pulse(&self) -> Option<shared::PulseMetadata> {
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -116,7 +116,7 @@ impl PulseMethod {
 }
 
 fn wait_for_usb(path_str: &str) -> bool {
-    println!("[PULSE] Waiting for USB key file at: {path_str}");
+    tracing::info!("[PULSE] Waiting for USB key file at: {path_str}");
     for _ in 0..30 {
         if Path::new(path_str).exists() {
             return true;
@@ -127,7 +127,7 @@ fn wait_for_usb(path_str: &str) -> bool {
 }
 
 fn wait_for_web_log(path: &str) -> bool {
-    println!("[PULSE] Scanning Web Log at: {path}");
+    tracing::info!("[PULSE] Scanning Web Log at: {path}");
     // Start at current end (or 0 if missing)
     let mut current_pos = match fs::File::open(path) {
         Ok(f) => f.metadata().map(|m| m.len()).unwrap_or(0),
@@ -153,11 +153,11 @@ fn wait_for_web_log(path: &str) -> bool {
 }
 
 fn wait_for_tcp(port: u16) -> bool {
-    println!("[PULSE] Waiting for TCP connection on port {port}...");
+    tracing::info!("[PULSE] Waiting for TCP connection on port {port}...");
     let listener = match TcpListener::bind(format!("0.0.0.0:{port}")) {
         Ok(l) => l,
         Err(e) => {
-            println!("Failed to bind TCP: {e}");
+            tracing::info!("Failed to bind TCP: {e}");
             return false;
         }
     };
@@ -171,7 +171,7 @@ fn wait_for_tcp(port: u16) -> bool {
                 continue;
             }
             Err(e) => {
-                println!("TCP Accept Error: {e}");
+                tracing::info!("TCP Accept Error: {e}");
                 return false;
             }
         }
@@ -180,7 +180,7 @@ fn wait_for_tcp(port: u16) -> bool {
 }
 
 fn wait_for_crypto() -> bool {
-    println!("[PULSE] Active Challenge-Response (Crypto Mode)...");
+    tracing::info!("[PULSE] Active Challenge-Response (Crypto Mode)...");
 
     let postbox = postbox_path();
     let challenge_path = format!("{postbox}/pulse_challenge.bin");
@@ -188,16 +188,22 @@ fn wait_for_crypto() -> bool {
     let pk_path = format!("{postbox}/pulse_pk");
 
     // 1. Load Pulse Public Key (Trusted)
-    let pk_bytes = if let Ok(b) = fs::read(&pk_path) { b } else {
-        println!("[PULSE] Error: pulse_pk not found in postbox.");
+    let pk_bytes = if let Ok(b) = fs::read(&pk_path) {
+        b
+    } else {
+        tracing::info!("[PULSE] Error: pulse_pk not found in postbox.");
         return false;
     };
-    let pk_array: [u8; 1312] = if let Ok(a) = pk_bytes.try_into() { a } else {
-        println!("[PULSE] Error: Invalid pulse_pk size.");
+    let pk_array: [u8; 1312] = if let Ok(a) = pk_bytes.try_into() {
+        a
+    } else {
+        tracing::info!("[PULSE] Error: Invalid pulse_pk size.");
         return false;
     };
-    let pk = if let Ok(k) = ml_dsa_44::PublicKey::try_from_bytes(pk_array) { k } else {
-        println!("[PULSE] Error: Invalid pulse_pk format.");
+    let pk = if let Ok(k) = ml_dsa_44::PublicKey::try_from_bytes(pk_array) {
+        k
+    } else {
+        tracing::info!("[PULSE] Error: Invalid pulse_pk format.");
         return false;
     };
 
@@ -213,18 +219,20 @@ fn wait_for_crypto() -> bool {
 
     // Write Challenge
     if let Err(e) = fs::write(&challenge_path, challenge) {
-        println!("[PULSE] Failed to write challenge: {e}");
+        tracing::info!("[PULSE] Failed to write challenge: {e}");
         return false;
     }
 
-    println!("[PULSE] Challenge Issued. Waiting for signature on response...");
+    tracing::info!("[PULSE] Challenge Issued. Waiting for signature on response...");
 
     // 3. Poll for Response
     for _ in 0..30 {
         if Path::new(&response_path).exists() {
             // Read Response (Should be Signature)
             // Sig size is 2420
-            let sig_bytes = if let Ok(b) = fs::read(&response_path) { b } else {
+            let sig_bytes = if let Ok(b) = fs::read(&response_path) {
+                b
+            } else {
                 std::thread::sleep(Duration::from_millis(500));
                 continue;
             };
@@ -232,18 +240,18 @@ fn wait_for_crypto() -> bool {
             if sig_bytes.len() == 2420 {
                 let sig_array: [u8; 2420] = sig_bytes.try_into().unwrap();
                 if pk.verify(challenge, &sig_array, b"tersec_pulse") {
-                    println!("[PULSE] VALID RESPONSE! Pulse Confirmed.");
+                    tracing::info!("[PULSE] VALID RESPONSE! Pulse Confirmed.");
                     let _ = fs::remove_file(&challenge_path);
                     let _ = fs::remove_file(&response_path);
                     return true;
                 }
-                println!("[PULSE] Invalid Signature on Response.");
+                tracing::info!("[PULSE] Invalid Signature on Response.");
             }
         }
         std::thread::sleep(Duration::from_secs(1));
     }
 
-    println!("[PULSE] Timeout waiting for crypto response.");
+    tracing::info!("[PULSE] Timeout waiting for crypto response.");
     let _ = fs::remove_file(&challenge_path);
     false
 }

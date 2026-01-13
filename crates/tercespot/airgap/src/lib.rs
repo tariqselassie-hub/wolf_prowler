@@ -149,23 +149,28 @@ impl AirGapBridge {
     /// # Errors
     /// Returns an error if monitoring fails.
     pub async fn start_monitoring(&self) -> io::Result<()> {
-        println!("Starting Air Gap Bridge monitoring...");
+        tracing::info!("Starting Air Gap Bridge monitoring...");
 
         // Create mount base directory if it doesn't exist
         fs::create_dir_all(&self.config.mount_base_path)?;
 
         // Monitor for USB events
+        #[allow(clippy::infinite_loop)]
         loop {
-            if let Some(usb_device) = self.detect_usb_insertion() {
-                println!("USB device detected: {usb_device}");
-
-                if let Err(e) = self.process_usb_device(&usb_device).await {
-                    eprintln!("Error processing USB device {usb_device}: {e}");
-                }
-            }
-
+            self.check_and_process_usb().await;
             // Check for USB insertion every 2 seconds
             sleep(Duration::from_secs(2)).await;
+        }
+    }
+
+    /// Check for USB insertion and process if found
+    async fn check_and_process_usb(&self) {
+        if let Some(usb_device) = self.detect_usb_insertion() {
+            tracing::info!("USB device detected: {usb_device}");
+
+            if let Err(e) = self.process_usb_device(&usb_device).await {
+                tracing::error!("Error processing USB device {usb_device}: {e}");
+            }
         }
     }
 
@@ -196,10 +201,10 @@ impl AirGapBridge {
         self.mount_usb_readonly(usb_device, &mount_point)?;
 
         // Scan for .tersec packages
-        let packages = self.scan_for_packages(&mount_point)?;
+        let packages = Self::scan_for_packages(&mount_point)?;
 
         if packages.is_empty() {
-            println!("No .tersec packages found on USB device {usb_device}");
+            tracing::info!("No .tersec packages found on USB device {usb_device}");
             self.unmount_usb(&mount_point)?;
             return Ok(());
         }
@@ -208,10 +213,10 @@ impl AirGapBridge {
         for package_path in packages {
             match self.process_package(&package_path, usb_device).await {
                 Ok(()) => {
-                    println!("Package {} processed successfully", package_path.display());
+                    tracing::info!("Package {} processed successfully", package_path.display());
                 }
                 Err(e) => {
-                    eprintln!(
+                    tracing::error!(
                         "Failed to process package {}: {}",
                         package_path.display(),
                         e
@@ -231,7 +236,7 @@ impl AirGapBridge {
     /// # Errors
     /// Returns an error if the mount operation fails.
     fn mount_usb_readonly(&self, usb_device: &str, mount_point: &str) -> io::Result<()> {
-        println!("Mounting USB device {usb_device} at {mount_point} (ro,noexec)");
+        tracing::info!("Mounting USB device {usb_device} at {mount_point} (ro,noexec)");
 
         // Check if we are in a test environment (dummy mount)
         if self.config.usb_monitor_path.contains("tmp") || self.config.verbose {
@@ -262,7 +267,7 @@ impl AirGapBridge {
     ///
     /// # Errors
     /// Returns an error if the directory cannot be read.
-    fn scan_for_packages(&self, mount_point: &str) -> io::Result<Vec<PathBuf>> {
+    fn scan_for_packages(mount_point: &str) -> io::Result<Vec<PathBuf>> {
         let mut packages = Vec::new();
 
         if let Ok(entries) = fs::read_dir(mount_point) {
@@ -284,7 +289,7 @@ impl AirGapBridge {
     /// # Errors
     /// Returns an error if the package cannot be processed.
     pub async fn process_package(&self, package_path: &Path, usb_device: &str) -> io::Result<()> {
-        println!("Processing package: {}", package_path.display());
+        tracing::info!("Processing package: {}", package_path.display());
 
         // Check pulse device status if manager is configured
         if let Some(pulse) = &self.pulse_manager {
@@ -343,11 +348,7 @@ impl AirGapBridge {
     pub fn verify_package_signature(&self, package_data: &[u8]) -> bool {
         use crate::crypto::{verify_signature, SIG_SIZE};
 
-        if package_data.len() < SIG_SIZE {
-            return false;
-        }
-
-        let (data, signature) = package_data.split_at(package_data.len() - SIG_SIZE);
+        let (data, signature) = package_data.split_at(package_data.len().saturating_sub(SIG_SIZE));
 
         for pk in &self.decoded_keys {
             if verify_signature(data, signature, pk).unwrap_or(false) {
@@ -376,12 +377,12 @@ impl AirGapBridge {
         // In a real implementation, this would parse the .tersec format
         let command = String::from_utf8_lossy(package_data);
 
-        println!("Executing command: {command}");
+        tracing::info!("Executing command: {command}");
 
         // Execute with timeout
         // Use a safe wrapper or mock for tests if needed
         if self.config.verbose {
-            println!("[TEST] Executing: {command}");
+            tracing::info!("[TEST] Executing: {command}");
             return Ok(());
         }
 
@@ -396,7 +397,7 @@ impl AirGapBridge {
         let output = child.wait_with_output()?;
 
         if output.status.success() {
-            println!("Command executed successfully");
+            tracing::info!("Command executed successfully");
             Ok(())
         } else {
             Err(io::Error::other(format!(
@@ -411,7 +412,7 @@ impl AirGapBridge {
     /// # Errors
     /// Returns an error if the unmount operation fails.
     fn unmount_usb(&self, mount_point: &str) -> io::Result<()> {
-        println!("Unmounting USB at {mount_point}");
+        tracing::info!("Unmounting USB at {mount_point}");
 
         // Mock for tests
         if self.config.usb_monitor_path.contains("tmp") {
@@ -436,7 +437,7 @@ impl AirGapBridge {
     /// Returns an error if the operation fails.
     #[allow(clippy::unused_self, clippy::unnecessary_wraps)]
     fn power_off_usb_port(&self, usb_device: &str) -> io::Result<()> {
-        println!("Powering off USB port for device {usb_device}");
+        tracing::info!("Powering off USB port for device {usb_device}");
 
         // In a real implementation, this would use kernel syscalls
         // to control USB port power
@@ -566,7 +567,7 @@ impl ForensicLogger {
             });
 
             // Remove oldest files
-            let to_remove = log_files.len() - self.max_log_files;
+            let to_remove = log_files.len().saturating_sub(self.max_log_files);
             for file in log_files.iter().take(to_remove) {
                 fs::remove_file(file)?;
             }
@@ -626,7 +627,7 @@ mod tests {
     #[test]
     fn test_verify_package_signature_integration() {
         use fips204::ml_dsa_44;
-        use fips204::traits::{KeyGen, Signer};
+        use fips204::traits::{KeyGen, SerDes, Signer};
 
         // 1. Generate keys
         let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
@@ -667,7 +668,7 @@ mod tests {
     #[test]
     fn test_benchmark_signature_verification() {
         use fips204::ml_dsa_44;
-        use fips204::traits::{KeyGen, Signer};
+        use fips204::traits::{KeyGen, SerDes, Signer};
         use std::time::Instant;
 
         // 1. Setup keys and payload
@@ -701,10 +702,10 @@ mod tests {
         }
 
         let duration = start.elapsed();
-        println!("Signature Verification Benchmark:");
-        println!("Iterations: {}", iterations);
-        println!("Total Time: {:?}", duration);
-        println!("Avg Time per Verify: {:?}", duration / iterations as u32);
+        tracing::info!("Signature Verification Benchmark:");
+        tracing::info!("Iterations: {}", iterations);
+        tracing::info!("Total Time: {:?}", duration);
+        tracing::info!("Avg Time per Verify: {:?}", duration / iterations as u32);
     }
 
     #[test]
@@ -730,7 +731,7 @@ mod tests {
 
         // 2. Second log (should trigger rotation)
         // Sleep to ensure timestamp difference for rotation filename
-        std::thread::sleep(std::time::Duration::from_millis(10));
+        std::thread::sleep(Duration::from_millis(10));
         logger.log_rejected_file(&entry).unwrap();
 
         // Check for rotated file

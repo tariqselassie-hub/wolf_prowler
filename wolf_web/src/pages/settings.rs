@@ -1,7 +1,7 @@
+use crate::ui_kit::{Button, Card};
+use crate::Route;
 use dioxus::prelude::*;
 use dioxus_fullstack::prelude::*;
-use crate::ui_kit::{Card, Button};
-use crate::Route;
 
 #[server]
 async fn save_node_config(node_name: String, debug_mode: bool) -> Result<(), ServerFnError> {

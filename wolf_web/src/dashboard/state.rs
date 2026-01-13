@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 use crate::dashboard::websocket::WebSocketState;
 use tokio::sync::RwLock;
 use wolf_net::SwarmManager;
-use wolfsec::security::advanced::iam::AuthenticationManager;
+use wolfsec::identity::iam::AuthenticationManager;
 use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetector};
 use wolfsec::WolfSecurity;
 
@@ -72,6 +72,43 @@ impl AppState {
             auth_manager: Arc::new(Mutex::new(auth_manager)),
             wolf_security: Some(wolf_security),
             swarm_manager: Some(swarm_manager),
+        }
+    }
+
+    /// Get the real WolfSecurity instance if available
+    pub fn get_wolf_security(&self) -> Option<Arc<RwLock<WolfSecurity>>> {
+        self.wolf_security.clone()
+    }
+
+    /// Get the swarm manager instance if available
+    pub fn get_swarm_manager(&self) -> Option<Arc<SwarmManager>> {
+        self.swarm_manager.clone()
+    }
+
+    /// Get a unified security status from the real engine if available,
+    /// otherwise fall back to the standalone threat engine.
+    pub async fn get_unified_status(&self) -> wolfsec::WolfSecurityStatus {
+        if let Some(wolf_sec) = &self.wolf_security {
+            let security = wolf_sec.read().await;
+            security.get_status().await
+        } else {
+            // Fallback status constructed from available engines
+            let threat_lock = self.threat_engine.lock().await;
+            let threat_status = threat_lock.get_status().await;
+
+            // Construct a partial status
+            wolfsec::WolfSecurityStatus {
+                network_security: wolfsec::protection::network_security::SecurityStats::default(),
+                crypto: wolfsec::identity::crypto::CryptoStatus::default(),
+                threat_detection: threat_status,
+                authentication: wolfsec::auth::AuthStatus {
+                    active_sessions: 0,
+                    total_users: 0,
+                    auth_failures: 0,
+                },
+                key_management: wolfsec::identity::key_management::KeyManagementStatus::default(),
+                monitoring: wolfsec::observability::monitoring::MonitoringStatus::default(),
+            }
         }
     }
 

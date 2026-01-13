@@ -15,6 +15,7 @@ use crate::consensus::storage::SledStorage;
 use anyhow::Result;
 use raft::{Config as RaftConfig, RawNode, StateRole, Storage};
 use serde::{Deserialize, Serialize};
+use slog::Drain;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -64,7 +65,6 @@ impl ConsensusEngine {
         let storage = Arc::new(SledStorage::new(storage_path)?);
 
         // Setup logger
-        use slog::Drain;
         let decorator = slog_term::TermDecorator::new().build();
         let drain = slog_term::FullFormat::new(decorator).build().fuse();
         let drain = slog_async::Async::new(drain).build().fuse();
@@ -80,8 +80,10 @@ impl ConsensusEngine {
         // Bootstrap configuration if empty
         if storage.initial_state()?.conf_state.voters.is_empty() && !peers.is_empty() {
             tracing::info!("Bootstrapping Raft configuration with peers: {:?}", peers);
-            let mut conf_state = raft::eraftpb::ConfState::default();
-            conf_state.voters = peers.clone();
+            let conf_state = raft::eraftpb::ConfState {
+                voters: peers.clone(),
+                ..Default::default()
+            };
             storage.set_conf_state(&conf_state)?;
         }
 
@@ -98,7 +100,7 @@ impl ConsensusEngine {
     ///
     /// # Errors
     /// Returns an error if not the leader, or if serialization or proposal fails.
-    pub fn propose(&mut self, proposal: Proposal) -> Result<()> {
+    pub fn propose(&mut self, proposal: &Proposal) -> Result<()> {
         if !self.is_leader() {
             anyhow::bail!("Only leader can propose changes");
         }

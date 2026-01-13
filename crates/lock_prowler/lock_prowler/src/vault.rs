@@ -1,10 +1,9 @@
 use aes_gcm::{
-    Aes256Gcm, Key, Nonce,
     aead::{Aead, AeadCore, KeyInit, OsRng},
+    Aes256Gcm, Key, Nonce,
 };
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-
 
 /// Database-backed vault with persistent storage
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -138,13 +137,15 @@ impl Vault {
         println!("[Vault] Saving {} entries to database", self.entries.len());
 
         for entry in &self.entries {
-            store.save_vault_entry(
-                &entry.id,
-                &format!("{:?}", entry.secret_type),
-                &entry.description,
-                &hex::encode(&entry.ciphertext),
-                &hex::encode(&entry.nonce),
-            ).await?;
+            store
+                .save_vault_entry(
+                    &entry.id,
+                    &format!("{:?}", entry.secret_type),
+                    &entry.description,
+                    &hex::encode(&entry.ciphertext),
+                    &hex::encode(&entry.nonce),
+                )
+                .await?;
             println!("[Vault] Saved entry: {}", entry.id);
         }
 
@@ -157,18 +158,17 @@ impl Vault {
         println!("[Vault] Loading entries from database");
 
         let entry_ids = store.list_vault_entries().await?;
-        
+
         let mut vault = Self::new();
-        
+
         for entry_id in entry_ids {
             if let Some(metadata) = store.find_vault_entry(&entry_id).await? {
-                let ciphertext_hex = metadata.get("ciphertext_hex")
+                let ciphertext_hex = metadata
+                    .get("ciphertext_hex")
                     .context("Missing ciphertext")?;
-                let nonce_hex = metadata.get("nonce_hex")
-                    .context("Missing nonce")?;
-                let secret_type_str = metadata.get("secret_type")
-                    .context("Missing secret_type")?;
-                
+                let nonce_hex = metadata.get("nonce_hex").context("Missing nonce")?;
+                let secret_type_str = metadata.get("secret_type").context("Missing secret_type")?;
+
                 let secret_type = match secret_type_str.as_str() {
                     "BitLocker" => SecretType::BitLocker,
                     "SSH" => SecretType::SSH,
@@ -180,7 +180,8 @@ impl Vault {
 
                 let entry = VaultEntry {
                     id: entry_id.clone(),
-                    description: metadata.get("description")
+                    description: metadata
+                        .get("description")
                         .unwrap_or(&"Unknown".to_string())
                         .clone(),
                     secret_type,
@@ -195,7 +196,10 @@ impl Vault {
             }
         }
 
-        println!("[Vault] Loaded {} entries from database", vault.entries.len());
+        println!(
+            "[Vault] Loaded {} entries from database",
+            vault.entries.len()
+        );
         Ok(vault)
     }
 
@@ -217,14 +221,14 @@ impl Vault {
 mod hex_serde {
     use serde::{Deserialize, Deserializer, Serializer};
 
-    pub fn serialize<S>(bytes: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
+    pub(crate) fn serialize<S>(bytes: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         serializer.serialize_str(&hex::encode(bytes))
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -274,12 +278,14 @@ mod tests {
     fn test_serialization_roundtrip() {
         let mut vault = Vault::new();
         let master_key = [0x42u8; 32];
-        
-        vault.add_secret(&master_key, "test", SecretType::SSH, b"secret data").unwrap();
-        
+
+        vault
+            .add_secret(&master_key, "test", SecretType::SSH, b"secret data")
+            .unwrap();
+
         let json = vault.serialize().unwrap();
         let restored = Vault::deserialize(&json).unwrap();
-        
+
         assert_eq!(vault.entries.len(), restored.entries.len());
         assert_eq!(vault.entries[0].id, restored.entries[0].id);
     }

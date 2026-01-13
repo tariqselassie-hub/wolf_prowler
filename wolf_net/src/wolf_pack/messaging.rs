@@ -300,15 +300,22 @@ impl Codec for WolfCodec {
             ));
         }
 
-        let len = u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]) as usize;
-        if buf.len() < 4 + len {
+        let len = u32::from_be_bytes([
+            *buf.first().unwrap_or(&0),
+            *buf.get(1).unwrap_or(&0),
+            *buf.get(2).unwrap_or(&0),
+            *buf.get(3).unwrap_or(&0),
+        ]) as usize;
+        if buf.len() < 4usize.saturating_add(len) {
             return Err(io::Error::new(
                 io::ErrorKind::UnexpectedEof,
                 "Incomplete message",
             ));
         }
 
-        let message_data = &buf[4..4 + len];
+        let message_data = buf
+            .get(4..4usize.saturating_add(len))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Invalid message bounds"))?;
         serde_json::from_slice(message_data)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
@@ -331,15 +338,22 @@ impl Codec for WolfCodec {
             ));
         }
 
-        let len = u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]) as usize;
-        if buf.len() < 4 + len {
+        let len = u32::from_be_bytes([
+            *buf.first().unwrap_or(&0),
+            *buf.get(1).unwrap_or(&0),
+            *buf.get(2).unwrap_or(&0),
+            *buf.get(3).unwrap_or(&0),
+        ]) as usize;
+        if buf.len() < 4usize.saturating_add(len) {
             return Err(io::Error::new(
                 io::ErrorKind::UnexpectedEof,
                 "Incomplete response",
             ));
         }
 
-        let response_data = &buf[4..4 + len];
+        let response_data = buf
+            .get(4..4usize.saturating_add(len))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Invalid response bounds"))?;
         serde_json::from_slice(response_data)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }

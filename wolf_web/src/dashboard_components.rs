@@ -1,6 +1,6 @@
-use wolf_web::types::SystemStats;
 use crate::ui_kit::Card;
 use dioxus::prelude::*;
+use wolf_web::types::SystemStats;
 
 #[component]
 pub fn NetworkBanner(stats: SystemStats) -> Element {
@@ -19,9 +19,9 @@ pub fn NetworkBanner(stats: SystemStats) -> Element {
         Card {
             // Dynamic Background Grid
             div { class: "absolute inset-0 bg-[linear-gradient(rgba(0,255,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,0,0.03)_1px,transparent_1px)] bg-[size:20px_20px] opacity-20" }
-            
+
             h3 { class: "text-lg font-bold mb-4 uppercase flex items-center gap-2 border-b border-green-800/50 pb-2 relative z-10",
-                 i { class: "lucide-network text-green-400 animate-pulse" } 
+                 i { class: "lucide-network text-green-400 animate-pulse" }
                  span { class: "tracking-widest", "WolfNet Status" }
             }
             div { class: "space-y-4 relative z-10",
@@ -34,7 +34,7 @@ pub fn NetworkBanner(stats: SystemStats) -> Element {
                     span { class: "font-mono font-bold {nodes_color} text-2xl drop-shadow-[0_0_8px_rgba(74,222,128,0.3)]", "{stats.active_nodes}" }
                 }
             }
-            
+
             // Decorative Data Stream
             if stats.active_nodes > 0 {
                 div { class: "absolute bottom-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity",
@@ -48,9 +48,21 @@ pub fn NetworkBanner(stats: SystemStats) -> Element {
 #[component]
 pub fn SecurityBanner(stats: SystemStats) -> Element {
     let (color, icon, glow_class) = match stats.threat_level.as_str() {
-        "LOW" => ("text-green-400", "lucide-shield-check", "shadow-[0_0_15px_rgba(74,222,128,0.2)]"),
-        "ELEVATED" => ("text-yellow-400", "lucide-shield-alert", "shadow-[0_0_15px_rgba(250,204,21,0.2)]"),
-        "CRITICAL" => ("text-red-500", "lucide-siren", "shadow-[0_0_20px_rgba(239,68,68,0.4)]"),
+        "LOW" => (
+            "text-green-400",
+            "lucide-shield-check",
+            "shadow-[0_0_15px_rgba(74,222,128,0.2)]",
+        ),
+        "ELEVATED" => (
+            "text-yellow-400",
+            "lucide-shield-alert",
+            "shadow-[0_0_15px_rgba(250,204,21,0.2)]",
+        ),
+        "CRITICAL" => (
+            "text-red-500",
+            "lucide-siren",
+            "shadow-[0_0_20px_rgba(239,68,68,0.4)]",
+        ),
         _ => ("text-gray-400", "lucide-shield", ""),
     };
 
@@ -60,7 +72,7 @@ pub fn SecurityBanner(stats: SystemStats) -> Element {
             div { class: "absolute inset-0 bg-repeat-y opacity-5 pointer-events-none bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAADCAYAAABS3WWCAAAAE0lEQVQIW2NkQAKrVq36zwjjAwAltoH/h0OBxQAAAABJRU5ErkJggg==')]" }
 
             h3 { class: "text-lg font-bold mb-4 uppercase flex items-center gap-2 border-b border-green-800/50 pb-2 relative z-10",
-                 i { class: "{icon} {color}" } 
+                 i { class: "{icon} {color}" }
                  span { class: "tracking-widest", "Security Level" }
             }
             div { class: "flex items-center justify-between relative z-10",
@@ -88,7 +100,7 @@ pub fn ScannerBanner(stats: SystemStats) -> Element {
              div { class: "absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-green-500/50 to-transparent opacity-50" }
 
             h3 { class: "text-lg font-bold mb-4 uppercase flex items-center gap-2 border-b border-green-800/50 pb-2",
-                 i { class: "lucide-scan-eye text-green-400" } 
+                 i { class: "lucide-scan-eye text-green-400" }
                  span { class: "tracking-widest", "Scanner Status" }
             }
             div { class: "space-y-4 font-mono text-sm",

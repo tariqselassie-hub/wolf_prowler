@@ -12,7 +12,7 @@ pub enum WolfRequest {
     /// Initiates a key exchange, providing the public key.
     KeyExchange {
         /// The public key for the exchange.
-        public_key: Vec<u8>
+        public_key: Vec<u8>,
     },
     /// Sends an encrypted message using the Wolf encryption scheme.
     Encrypted(EncryptedMessage),
@@ -29,7 +29,7 @@ pub enum WolfResponse {
     /// Acknowledges a key exchange, returning the peer's public key.
     KeyExchangeAck {
         /// The public key received from the peer.
-        public_key: Vec<u8>
+        public_key: Vec<u8>,
     },
     /// Sends an encrypted response.
     Encrypted(EncryptedMessage),
@@ -132,7 +132,7 @@ async fn write_length_prefixed<T>(io: &mut T, data: &[u8]) -> io::Result<()>
 where
     T: AsyncWrite + Unpin + Send,
 {
-    let len = data.len() as u32;
+    let len = u32::try_from(data.len()).unwrap_or(u32::MAX);
     io.write_all(&len.to_be_bytes()).await?;
     io.write_all(data).await?;
     Ok(())

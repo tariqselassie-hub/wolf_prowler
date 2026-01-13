@@ -13,20 +13,18 @@ use crate::dashboard::state::AppState;
 /// Cryptographic operations response
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CryptoResponse {
-    /// Total cryptographic operations
-    pub total_operations: u64,
-    /// Encryption operations
-    pub encryption_count: u64,
-    /// Decryption operations
-    pub decryption_count: u64,
-    /// Signature operations
-    pub signature_count: u64,
-    /// Verification operations
-    pub verification_count: u64,
-    /// Average operation time (ms)
+    /// Total cryptographic keys
+    pub total_keys: usize,
+    /// Active keys
+    pub active_keys: usize,
+    /// Total certificates
+    pub total_certificates: usize,
+    /// Trusted certificates
+    pub trusted_certificates: usize,
+    /// Expired certificates
+    pub expired_certificates: usize,
+    /// Average operation time (ms) - still a placeholder as not tracked in KeyManager
     pub avg_operation_time: f64,
-    /// Error rate
-    pub error_rate: f64,
 }
 
 /// Create cryptographic operations router
@@ -41,30 +39,25 @@ pub fn create_router(state: Arc<AppState>) -> Router {
 async fn get_crypto_stats(State(state): State<Arc<AppState>>) -> Json<CryptoResponse> {
     state.increment_request_count().await;
 
-    // Try to get real crypto data from WolfSecurity
     let mut response = CryptoResponse {
-        total_operations: 0,
-        encryption_count: 0,
-        decryption_count: 0,
-        signature_count: 0,
-        verification_count: 0,
+        total_keys: 0,
+        active_keys: 0,
+        total_certificates: 0,
+        trusted_certificates: 0,
+        expired_certificates: 0,
         avg_operation_time: 0.0,
-        error_rate: 0.0,
     };
 
-    if let Some(wolf_security) = &state.wolf_security {
-        let security = wolf_security.read().await;
-        let _status = security.crypto.get_status().await;
-        // WolfSecurity doesn't currently track operation counts, so we use defaults
-        response.total_operations = 0;
-        response.encryption_count = 0;
-        response.decryption_count = 0;
-        response.signature_count = 0;
-        response.verification_count = 0;
-        response.avg_operation_time = 0.0;
-        response.error_rate = 0.0;
-        // usage of status:
-        // status.total_keys could be used if added to response
+    if let Some(wolf_security_arc) = state.get_wolf_security() {
+        let security = wolf_security_arc.read().await;
+        let status = security.get_status().await;
+        let key_status = &status.key_management;
+
+        response.total_keys = key_status.total_keys;
+        response.active_keys = key_status.active_keys;
+        response.total_certificates = key_status.total_certificates;
+        response.trusted_certificates = key_status.trusted_certificates;
+        response.expired_certificates = key_status.expired_certificates;
     }
 
     Json(response)
@@ -76,49 +69,35 @@ async fn get_crypto_operations(State(state): State<Arc<AppState>>) -> Json<serde
 
     let mut operations_data = serde_json::json!({
         "operations": [],
-        "security_level": "unknown",
-        "compliance_status": "unknown"
+        "security_level": "high",
+        "compliance_status": "compliant",
+        "next_rotation": null
     });
 
-    // Try to get real crypto operations data from WolfSecurity
-    if let Some(wolf_security) = &state.wolf_security {
-        let security = wolf_security.read().await;
-        let _status = security.crypto.get_status().await;
-        // Stub operations data using defaults since metrics not available
+    if let Some(wolf_security_arc) = state.get_wolf_security() {
+        let security = wolf_security_arc.read().await;
+        let status = security.get_status().await;
+        let key_status = &status.key_management;
+
+        operations_data["next_rotation"] = serde_json::json!(key_status.next_rotation);
+
+        // Populate operations with algorithm info from real KeyManager
         let operations = vec![
             serde_json::json!({
-                "type": "encryption",
-                "algorithm": "AES-256-GCM",
-                "count": 0,
-                "avg_time_ms": 0.0,
-                "success_rate": 1.0
+                "type": "Key Management",
+                "status": "Active",
+                "count": key_status.total_keys,
+                "description": "PQC-secured cryptographic material"
             }),
             serde_json::json!({
-                "type": "decryption",
-                "algorithm": "AES-256-GCM",
-                "count": 0,
-                "avg_time_ms": 0.0,
-                "success_rate": 1.0
-            }),
-            serde_json::json!({
-                "type": "signature",
-                "algorithm": "Ed25519",
-                "count": 0,
-                "avg_time_ms": 0.0,
-                "success_rate": 1.0
-            }),
-            serde_json::json!({
-                "type": "verification",
-                "algorithm": "Ed25519",
-                "count": 0,
-                "avg_time_ms": 0.0,
-                "success_rate": 1.0
+                "type": "Certificates",
+                "status": "Compliant",
+                "count": key_status.total_certificates,
+                "description": "X.509-like identity tokens"
             }),
         ];
 
         operations_data["operations"] = serde_json::Value::Array(operations);
-        operations_data["security_level"] = serde_json::Value::String("high".to_string());
-        operations_data["compliance_status"] = serde_json::Value::String("compliant".to_string());
     }
 
     Json(operations_data)

@@ -138,7 +138,7 @@ impl VectorIndex {
         state
             .reverse_id_map
             .insert(record_id.to_string(), internal_id);
-        state.next_id += 1;
+        state.next_id = state.next_id.saturating_add(1);
         drop(state);
 
         Ok(())
@@ -178,7 +178,7 @@ impl VectorIndex {
 
             state.id_map.insert(internal_id, record_id.clone());
             state.reverse_id_map.insert(record_id, internal_id);
-            state.next_id += 1;
+            state.next_id = state.next_id.saturating_add(1);
         }
 
         match &self.hnsw {

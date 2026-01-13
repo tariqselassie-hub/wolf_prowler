@@ -224,7 +224,7 @@ async fn get_automated_reports(State(state): State<Arc<AppState>>) -> Json<Vec<A
     // Get real report data from threat engine
     let threat_engine = state.threat_engine.lock().await;
     let status = threat_engine.get_status().await;
-    let metrics = status.metrics;
+    let _metrics = status.metrics;
 
     let automated_reports = vec![
         AutomatedReport {

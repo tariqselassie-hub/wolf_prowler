@@ -1,10 +1,10 @@
 use crate::crypto::aes;
 use anyhow::{Context, Result};
 use argon2::{
-    Argon2,
     password_hash::{PasswordHasher, SaltString},
+    Argon2,
 };
-use base64::{Engine as _, engine::general_purpose};
+use base64::{engine::general_purpose, Engine as _};
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -18,13 +18,13 @@ pub type UnlockedKeys = (Zeroizing<Vec<u8>>, Option<Zeroizing<Vec<u8>>>);
 #[derive(Serialize, Deserialize)]
 pub struct Keystore {
     /// Base64 encoded encrypted KEM secret key
-    pub encrypted_sk: String,     // KEM (B64)
+    pub encrypted_sk: String, // KEM (B64)
     /// Raw KEM public key bytes
-    pub pk: Vec<u8>,              // KEM
+    pub pk: Vec<u8>, // KEM
     /// Optional Base64 encoded encrypted DSA secret key
     pub encrypted_dsa_sk: Option<String>, // DSA (B64)
     /// Optional raw DSA public key bytes
-    pub dsa_pk: Option<Vec<u8>>,          // DSA
+    pub dsa_pk: Option<Vec<u8>>, // DSA
     /// Salt used for password-based key derivation (Argon2)
     pub salt: String,
     #[serde(alias = "nonce")]
@@ -61,7 +61,11 @@ impl Keystore {
         let hash_output = password_hash.hash.context("No hash output")?;
         let hash_bytes = hash_output.as_bytes();
         let mut master_key = Zeroizing::new([0u8; 32]);
-        master_key.copy_from_slice(&hash_bytes[..32]);
+        master_key.copy_from_slice(
+            hash_bytes
+                .get(..32)
+                .ok_or_else(|| anyhow::anyhow!("Hash output too short"))?,
+        );
 
         // Encrypt KEM secret key
         let (encrypted_kem, kem_nonce) = aes::encrypt(kem_secret_key, &master_key)?;
@@ -87,10 +91,7 @@ impl Keystore {
     /// # Errors
     ///
     /// Returns an error if password hashing fails, if salt is invalid, or if decryption fails.
-    pub fn unlock_keys(
-        &self,
-        password: &str,
-    ) -> Result<UnlockedKeys> {
+    pub fn unlock_keys(&self, password: &str) -> Result<UnlockedKeys> {
         let salt = SaltString::from_b64(&self.salt)
             .map_err(|e| anyhow::anyhow!("Invalid salt in keystore: {e}"))?;
         let argon2 = Argon2::default();
@@ -102,7 +103,11 @@ impl Keystore {
         let hash_output = password_hash.hash.context("No hash output")?;
         let hash_bytes = hash_output.as_bytes();
         let mut master_key = Zeroizing::new([0u8; 32]);
-        master_key.copy_from_slice(&hash_bytes[..32]);
+        master_key.copy_from_slice(
+            hash_bytes
+                .get(..32)
+                .ok_or_else(|| anyhow::anyhow!("Hash output too short"))?,
+        );
 
         let encrypted_kem_bin = general_purpose::STANDARD.decode(&self.encrypted_sk)?;
         let kem_nonce_bin = general_purpose::STANDARD.decode(&self.kem_nonce)?;
@@ -112,16 +117,17 @@ impl Keystore {
         let kem_secret_key_raw = aes::decrypt(&encrypted_kem_bin, &master_key, &kem_nonce)?;
         let kem_secret_key = Zeroizing::new(kem_secret_key_raw);
 
-        let dsa_secret_key = if let (Some(enc_dsa), Some(dsa_n)) = (&self.encrypted_dsa_sk, &self.dsa_nonce) {
-             let encrypted_dsa_bin = general_purpose::STANDARD.decode(enc_dsa)?;
-             let dsa_nonce_bin = general_purpose::STANDARD.decode(dsa_n)?;
-             let mut dsa_nonce = [0u8; 12];
-             dsa_nonce.copy_from_slice(&dsa_nonce_bin);
-             let dsa_sk_raw = aes::decrypt(&encrypted_dsa_bin, &master_key, &dsa_nonce)?;
-             Some(Zeroizing::new(dsa_sk_raw))
-        } else {
-            None
-        };
+        let dsa_secret_key =
+            if let (Some(enc_dsa), Some(dsa_n)) = (&self.encrypted_dsa_sk, &self.dsa_nonce) {
+                let encrypted_dsa_bin = general_purpose::STANDARD.decode(enc_dsa)?;
+                let dsa_nonce_bin = general_purpose::STANDARD.decode(dsa_n)?;
+                let mut dsa_nonce = [0u8; 12];
+                dsa_nonce.copy_from_slice(&dsa_nonce_bin);
+                let dsa_sk_raw = aes::decrypt(&encrypted_dsa_bin, &master_key, &dsa_nonce)?;
+                Some(Zeroizing::new(dsa_sk_raw))
+            } else {
+                None
+            };
 
         Ok((kem_secret_key, dsa_secret_key))
     }
@@ -165,8 +171,14 @@ mod tests {
         let dsa_public = vec![4u8; 32];
         let password = "WolfPassword123";
 
-        let keystore = Keystore::create_encrypted(&kem_secret, &kem_public, &dsa_secret, &dsa_public, password)
-            .expect("Keystore creation failed");
+        let keystore = Keystore::create_encrypted(
+            &kem_secret,
+            &kem_public,
+            &dsa_secret,
+            &dsa_public,
+            password,
+        )
+        .expect("Keystore creation failed");
 
         assert_eq!(keystore.pk, kem_public);
         assert_eq!(keystore.dsa_pk, Some(dsa_public));
@@ -187,8 +199,14 @@ mod tests {
         let dsa_public = vec![4u8; 32];
         let password = "WolfPassword123";
 
-        let keystore = Keystore::create_encrypted(&kem_secret, &kem_public, &dsa_secret, &dsa_public, password)
-            .expect("Keystore creation failed");
+        let keystore = Keystore::create_encrypted(
+            &kem_secret,
+            &kem_public,
+            &dsa_secret,
+            &dsa_public,
+            password,
+        )
+        .expect("Keystore creation failed");
 
         let result = keystore.unlock_keys("WrongPassword");
         assert!(result.is_err());

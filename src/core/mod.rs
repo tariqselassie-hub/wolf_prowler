@@ -20,17 +20,17 @@ pub mod types;
 // Cloud features disabled - requires optional AWS dependencies
 // #[cfg(feature = "cloud_security")]
 // pub mod cloud;
+pub mod reporting;
 pub mod security_policy;
 pub mod settings;
-pub mod reporting;
 
 // Re-exports
 pub use crypto_wolf_den_simple::CryptoEngine;
 pub use p2p_simple::P2PNetwork;
+pub use reporting::ReportingService;
 pub use security_simple::SecurityManager;
 pub use settings::{AppSettings, WolfRole};
 pub use threat_detection::ThreatDetectionEngine;
-pub use reporting::ReportingService;
 
 /// Main Wolf Prowler core system
 pub struct WolfProwlerCore {

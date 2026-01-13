@@ -49,21 +49,21 @@ enum Commands {
         #[arg(long, default_value = "2")]
         signers: usize,
 
-        /// Role for signature (DevOps, ComplianceManager, SecurityOfficer)
+        /// Role for signature (`DevOps`, `ComplianceManager`, `SecurityOfficer`)
         #[arg(long)]
         role: Option<String>,
 
-        /// Private key file path (default: postbox/private_key)
+        /// Private key file path (default: `postbox/private_key`)
         #[arg(long)]
         key: Option<String>,
 
-        /// Public key file path for verification (default: postbox/authorized_keys/client_key)
+        /// Public key file path for verification (default: `postbox/authorized_keys/client_key`)
         #[arg(long)]
         pubkey: Option<String>,
     },
     /// Generate a new keypair
     Keygen {
-        /// Output path for private key (default: postbox/private_key)
+        /// Output path for private key (default: `postbox/private_key`)
         #[arg(long)]
         out: Option<String>,
     },
@@ -93,14 +93,14 @@ fn main() -> std::io::Result<()> {
             } else if let Some(signed_file) = submit {
                 handle_submit(&postbox, &signed_file)?;
             } else {
-                eprintln!("Error: Must specify --partial, --append, or --submit");
+                tracing::info!("Error: Must specify --partial, --append, or --submit");
                 std::process::exit(1);
             }
         }
         Commands::Keygen { out } => {
             let postbox = postbox_path();
             ensure_postbox(&postbox)?;
-            let key_path = out.unwrap_or_else(|| format!("{}/private_key", postbox));
+            let key_path = out.unwrap_or_else(|| format!("{postbox}/private_key"));
             handle_keygen(&postbox, &key_path)?;
         }
     }
@@ -110,35 +110,39 @@ fn main() -> std::io::Result<()> {
 
 fn ensure_postbox(postbox: &str) -> std::io::Result<()> {
     if !Path::new(postbox).exists() {
-        std::fs::create_dir_all(postbox)?;
+        fs::create_dir_all(postbox)?;
     }
     Ok(())
 }
 
+#[allow(clippy::cognitive_complexity)]
 fn handle_partial(
     postbox: &str,
     command: &str,
     signers: usize,
     output: Option<String>,
 ) -> std::io::Result<()> {
-    println!("[CLIENT] Creating partial command for: {}", command);
+    tracing::info!("[CLIENT] Creating partial command for: {}", command);
 
     // Load KEM public key
-    let kem_pk_path = format!("{}/kem_public_key", postbox);
+    let kem_pk_path = format!("{postbox}/kem_public_key");
     let kem_pk = load_kem_public_key_wait(&kem_pk_path)?;
 
     // Load and increment sequence - RESERVING it now
-    let seq_path = format!("{}/.client_seq", postbox);
-    let mut seq = load_sequence(&seq_path);
-    seq += 1;
+    let seq_path = format!("{postbox}/.client_seq");
+    let mut seq = load_sequence(&seq_path)?;
+    seq = seq.saturating_add(1);
 
     // Write reserved sequence back immediately
-    let mut f_seq = File::create(&seq_path)?;
-    f_seq.write_all(&seq.to_le_bytes())?;
+    let mut priv_key_file = File::create(&seq_path)?;
+    priv_key_file.write_all(&seq.to_le_bytes())?;
 
     let ts = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
+        .unwrap_or_else(|_| {
+            tracing::error!("Time went backwards");
+            Duration::from_secs(0)
+        })
         .as_secs();
 
     // Construct plaintext
@@ -159,9 +163,9 @@ fn handle_partial(
     save_partial_command(&output_file, &partial)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
-    println!("Partial command saved to: {}", output_file);
-    println!("Required signatures: {}", signers);
-    println!("Reserved Sequence: {}", seq);
+    tracing::info!("Partial command saved to: {}", output_file);
+    tracing::info!("Required signatures: {}", signers);
+    tracing::info!("Reserved Sequence: {}", seq);
 
     Ok(())
 }
@@ -173,7 +177,7 @@ fn handle_append(
     key_path: Option<String>,
     pubkey_path: Option<String>,
 ) -> std::io::Result<()> {
-    println!("[CLIENT] Appending signature to: {}", partial_file);
+    tracing::info!("[CLIENT] Appending signature to: {}", partial_file);
 
     // Load partial
     let mut partial = load_partial_command(partial_file)
@@ -187,7 +191,7 @@ fn handle_append(
     };
 
     // Load private key
-    let key_file = key_path.unwrap_or_else(|| format!("{}/private_key", postbox));
+    let key_file = key_path.unwrap_or_else(|| format!("{postbox}/private_key"));
     let signing_key = load_private_key(&key_file)?;
 
     // Sign
@@ -198,7 +202,7 @@ fn handle_append(
 
     // Public key for verification
     let pubkey_file =
-        pubkey_path.unwrap_or_else(|| format!("{}/authorized_keys/client_key", postbox));
+        pubkey_path.unwrap_or_else(|| format!("{postbox}/authorized_keys/client_key"));
 
     // Append
     partial = append_signature_to_partial(partial, sig, role, &pubkey_file)
@@ -208,28 +212,28 @@ fn handle_append(
     save_partial_command(partial_file, &partial)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
-    println!(
+    tracing::info!(
         "Signature appended. Current signatures: {}/{}",
         partial.signatures.iter().filter(|s| s.is_some()).count(),
         partial.required_signers
     );
 
     if is_partial_complete(&partial) {
-        println!("Command is now fully signed. Use --submit to submit.");
+        tracing::info!("Command is now fully signed. Use --submit to submit.");
     }
 
     Ok(())
 }
 
 fn handle_submit(postbox: &str, signed_file: &str) -> std::io::Result<()> {
-    println!("[CLIENT] Submitting signed command: {}", signed_file);
+    tracing::info!("[CLIENT] Submitting signed command: {}", signed_file);
 
     // Load partial
     let partial = load_partial_command(signed_file)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
     if !is_partial_complete(&partial) {
-        eprintln!("Error: Command is not fully signed");
+        tracing::info!("Error: Command is not fully signed");
         std::process::exit(1);
     }
 
@@ -240,39 +244,41 @@ fn handle_submit(postbox: &str, signed_file: &str) -> std::io::Result<()> {
     // Use Timestamp for unique filename to avoid ordering confusion
     let ts = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .expect("Time errors")
+        .unwrap_or_else(|_| {
+            tracing::error!("Time errors");
+            Duration::from_millis(0)
+        })
         .as_millis();
 
     // Write to postbox
-    let filename = format!("{}/cmd_{}.bin", postbox, ts);
+    let filename = format!("{postbox}/cmd_{ts}.bin");
     let mut file = File::create(&filename)?;
     file.write_all(&signed_data)?;
 
-    println!("Command submitted successfully to {}", filename);
+    tracing::info!("Command submitted successfully to {}", filename);
 
     Ok(())
 }
 
 fn load_kem_public_key_wait(path: &str) -> std::io::Result<ml_kem_1024::EncapsKey> {
     loop {
-        match load_kem_public_key(path) {
-            Ok(k) => return Ok(k),
-            Err(_) => {
-                println!("[CLIENT] Waiting for Sentinel Identity (KEM Key)...");
-                thread::sleep(Duration::from_secs(2));
-            }
+        if let Ok(k) = load_kem_public_key(path) {
+            return Ok(k);
         }
+        tracing::info!("[CLIENT] Waiting for Sentinel Identity (KEM Key)...");
+        thread::sleep(Duration::from_secs(2));
     }
 }
 
-fn load_sequence(seq_path: &str) -> u64 {
+fn load_sequence(seq_path: &str) -> std::io::Result<u64> {
     if Path::new(seq_path).exists() {
-        let mut file = File::open(seq_path).unwrap();
+        let mut file = File::open(seq_path).map_err(|e| std::io::Error::other(e.to_string()))?;
         let mut bytes = [0u8; 8];
-        file.read_exact(&mut bytes).unwrap();
-        u64::from_le_bytes(bytes)
+        file.read_exact(&mut bytes)
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
+        Ok(u64::from_le_bytes(bytes))
     } else {
-        0
+        Ok(0)
     }
 }
 
@@ -296,11 +302,12 @@ fn parse_role(role_str: &str) -> std::io::Result<Role> {
     }
 }
 
+#[allow(clippy::cognitive_complexity)]
 fn prompt_role() -> std::io::Result<Role> {
-    println!("Select role:");
-    println!("1. DevOps");
-    println!("2. ComplianceManager");
-    println!("3. SecurityOfficer");
+    tracing::info!("Select role:");
+    tracing::info!("1. DevOps");
+    tracing::info!("2. ComplianceManager");
+    tracing::info!("3. SecurityOfficer");
 
     let mut input = String::new();
     std::io::stdin().read_line(&mut input)?;
@@ -321,27 +328,27 @@ fn prompt_role() -> std::io::Result<Role> {
 }
 
 fn handle_keygen(postbox: &str, sk_path: &str) -> std::io::Result<()> {
-    println!("[CLIENT] Generating new ML-DSA-44 Keypair...");
+    tracing::info!("[CLIENT] Generating new ML-DSA-44 Keypair...");
 
     // Generate
-    let (pk, sk) = ml_dsa_44::KG::try_keygen()
-        .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "Keygen failed"))?;
+    let (pk, sk) =
+        ml_dsa_44::KG::try_keygen().map_err(|_| std::io::Error::other("Keygen failed"))?;
 
     // Save Private Key
-    let mut f_sk = File::create(sk_path)?;
-    f_sk.write_all(&sk.into_bytes())?;
-    println!("Private Key saved to: {}", sk_path);
+    let mut private_key_file = File::create(sk_path)?;
+    private_key_file.write_all(&sk.into_bytes())?;
+    tracing::info!("Private Key saved to: {}", sk_path);
 
     // Save Public Key (to authorized_keys/client_key for test convenience)
-    let auth_dir = format!("{}/authorized_keys", postbox);
+    let auth_dir = format!("{postbox}/authorized_keys");
     fs::create_dir_all(&auth_dir)?;
-    let pk_path = format!("{}/client_key", auth_dir);
+    let pk_path = format!("{auth_dir}/client_key");
 
     // We need to save the PK in a way Sentinel can read. Sentinel loads all files in authorized_keys dir.
     // Sentinel expects raw bytes of the pubkey.
-    let mut f_pk = File::create(&pk_path)?;
-    f_pk.write_all(&pk.into_bytes())?;
-    println!("Public Key saved to: {}", pk_path);
+    let mut public_key_output = File::create(&pk_path)?;
+    public_key_output.write_all(&pk.into_bytes())?;
+    tracing::info!("Public Key saved to: {}", pk_path);
 
     Ok(())
 }

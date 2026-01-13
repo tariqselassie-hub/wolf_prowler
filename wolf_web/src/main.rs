@@ -1,39 +1,21 @@
 #![allow(non_snake_case)]
 #![allow(missing_docs)]
 
+use axum::Router;
+use chrono::Utc;
 use dioxus::prelude::*;
 use dioxus_fullstack::prelude::*;
-use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex as AsyncMutex;
-#[cfg(feature = "server")]
-use tower_http::cors::CorsLayer;
-// Use imports from lock_prowler crate (now in crates/lock_prowler)
-#[cfg(feature = "server")]
-use axum::Router;
-use chrono::Utc; // Import Utc explicitly
 use lock_prowler::headless::HeadlessConfig;
-use lock_prowler::headless::HeadlessStatus;
-#[cfg(feature = "server")]
-use lock_prowler::headless::HeadlessWolfProwler;
-use once_cell::sync::Lazy; // Import Router explicitly
-use std::collections::HashMap;
-
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tokio::sync::MutexGuard;
 use tokio::sync::RwLock;
-use wolf_net::SwarmManager;
+use tower_http::cors::CorsLayer;
 #[cfg(feature = "server")]
 use wolf_web::dashboard;
 #[cfg(feature = "server")]
 use wolf_web::dashboard::state::AppState;
-use wolfsec::security::advanced::iam::sso::{SSOAuthenticationRequest, SSOCallbackRequest};
-use wolfsec::security::advanced::iam::ClientInfo;
-use wolfsec::security::advanced::iam::{
-    AuthenticationManager, IAMConfig, SSOIntegrationManager, SSOProvider,
-};
 use wolfsec::threat_detection::BehavioralAnalyzer;
-use wolfsec::WolfSecurity;
 
 mod vault_components;
 use crate::vault_components::*;
@@ -61,10 +43,10 @@ use wolf_web::types::*;
 // Global state simulation
 // Global state is now in crate::globals
 use wolf_web::dashboard::api::server_fns::{
-    add_record, delete_record, get_fullstack_stats, get_prowler_logs, get_prowler_status,
-    get_records, get_sso_auth_url, get_wolfpack_data, handle_sso_callback, run_prowler_scan,
+    add_record, delete_record, get_fullstack_stats, get_prowler_logs, get_records,
+    get_sso_auth_url, handle_sso_callback, run_prowler_scan,
 };
-use wolf_web::globals::{APP_STATE, PROWLER, SECURITY_ENGINE, SSO_MANAGER, SWARM_MANAGER};
+use wolf_web::globals::{PROWLER, SECURITY_ENGINE, SSO_MANAGER, SWARM_MANAGER};
 
 // --- Server Functions (Dioxus 0.6 RPC) ---
 

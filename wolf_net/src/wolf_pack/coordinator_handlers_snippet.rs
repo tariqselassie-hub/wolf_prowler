@@ -1,4 +1,3 @@
-
 async fn handle_hunt_request(
     &mut self,
     hunt_id: HuntId,
@@ -33,7 +32,9 @@ async fn handle_hunt_request(
     // Use timeout mechanism
     self.timeouts.insert(
         hunt_id.clone(),
-        std::time::SystemTime::now() + std::time::Duration::from_secs(60),
+        std::time::SystemTime::now()
+            .checked_add(std::time::Duration::from_secs(60))
+            .unwrap_or_else(std::time::SystemTime::now),
     );
 
     info!("✅ Hunt {} initiated from request", hunt_id);

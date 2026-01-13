@@ -17,7 +17,7 @@ pub enum Proposal {
         /// ID of the node proposing the threat.
         proposer: u64,
     },
-    
+
     /// Add a firewall rule to be synchronized across all nodes.
     AddFirewallRule {
         /// The firewall rule details.
@@ -25,7 +25,7 @@ pub enum Proposal {
         /// ID of the node proposing the rule.
         proposer: u64,
     },
-    
+
     /// Update peer trust score.
     UpdateTrustScore {
         /// ID of the peer whose score is being updated.
@@ -35,7 +35,7 @@ pub enum Proposal {
         /// ID of the node proposing the update.
         proposer: u64,
     },
-    
+
     /// Add discovered device to territory map.
     AddDevice {
         /// Discovered device information.
@@ -43,7 +43,7 @@ pub enum Proposal {
         /// ID of the node proposing the addition.
         proposer: u64,
     },
-    
+
     /// Remove a threat from the distributed database.
     RemoveThreat {
         /// Unique identifier of the threat to remove.

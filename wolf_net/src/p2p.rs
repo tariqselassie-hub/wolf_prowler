@@ -2,17 +2,14 @@
 
 use async_trait::async_trait;
 use futures::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use libp2p::{gossipsub, identify, mdns, request_response, swarm::NetworkBehaviour};
-use serde::{Deserialize, Serialize};
+use libp2p::{gossipsub, identify, mdns, swarm::NetworkBehaviour};
 use sha2::{Digest, Sha256};
-use std::io;
 use std::time::Duration;
 
-/// Alias for the libp2p PeerId type to avoid naming conflicts.
-pub type Libp2pPeerId = libp2p::PeerId;
-
 /// Message priority for routing
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 /// Priority levels for messages, influencing routing and handling.
 pub enum MessagePriority {
     /// Low priority messages.
@@ -47,7 +44,12 @@ pub enum WolfNetBehaviorEvent {
     /// Event from the identify behaviour.
     Identify(identify::Event),
     /// Event from the request/response behaviour.
-    RequestResponse(request_response::Event<crate::protocol::WolfRequest, crate::protocol::WolfResponse>),
+    RequestResponse(
+        libp2p::request_response::Event<
+            crate::protocol::WolfRequest,
+            crate::protocol::WolfResponse,
+        >,
+    ),
 }
 
 impl From<gossipsub::Event> for WolfNetBehaviorEvent {
@@ -68,8 +70,20 @@ impl From<identify::Event> for WolfNetBehaviorEvent {
     }
 }
 
-impl From<request_response::Event<crate::protocol::WolfRequest, crate::protocol::WolfResponse>> for WolfNetBehaviorEvent {
-    fn from(event: request_response::Event<crate::protocol::WolfRequest, crate::protocol::WolfResponse>) -> Self {
+impl
+    From<
+        libp2p::request_response::Event<
+            crate::protocol::WolfRequest,
+            crate::protocol::WolfResponse,
+        >,
+    > for WolfNetBehaviorEvent
+{
+    fn from(
+        event: libp2p::request_response::Event<
+            crate::protocol::WolfRequest,
+            crate::protocol::WolfResponse,
+        >,
+    ) -> Self {
         Self::RequestResponse(event)
     }
 }
@@ -86,12 +100,18 @@ pub struct WolfNetBehavior {
     /// Identify protocol behaviour for peer information exchange.
     pub identify: identify::Behaviour,
     /// Request/Response behaviour using the Wolf protocol codec.
-    pub request_response: request_response::Behaviour<crate::protocol::WolfCodec>,
+    pub request_response: libp2p::request_response::Behaviour<crate::protocol::WolfCodec>,
 }
 
 /// Returns an optimized gossipsub configuration
 #[must_use]
+/// Returns an optimized configuration for Gossipsub.
+///
+/// # Panics
+///
+/// Panics if the configuration building fails (e.g., invalid parameters).
 pub fn optimized_gossipsub_config() -> gossipsub::Config {
+    #[allow(clippy::expect_used)]
     gossipsub::ConfigBuilder::default()
         .heartbeat_interval(Duration::from_secs(1))
         .validation_mode(gossipsub::ValidationMode::Strict)
@@ -123,15 +143,15 @@ impl AsRef<str> for WolfNetProtocol {
 pub struct WolfNetCodec;
 
 /// Generic request wrapper (legacy, consider using crate::protocol::WolfRequest)
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct WolfNetRequest(pub Vec<u8>);
 
 /// Generic response wrapper (legacy, consider using crate::protocol::WolfResponse)
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct WolfNetResponse(pub Vec<u8>);
 
 #[async_trait]
-impl request_response::Codec for WolfNetCodec {
+impl libp2p::request_response::Codec for WolfNetCodec {
     type Protocol = WolfNetProtocol;
     type Request = WolfNetRequest;
     type Response = WolfNetResponse;
@@ -140,7 +160,7 @@ impl request_response::Codec for WolfNetCodec {
         &mut self,
         _: &WolfNetProtocol,
         io: &mut T,
-    ) -> io::Result<Self::Request>
+    ) -> std::io::Result<Self::Request>
     where
         T: AsyncRead + Unpin + Send,
     {
@@ -152,7 +172,7 @@ impl request_response::Codec for WolfNetCodec {
         &mut self,
         _: &WolfNetProtocol,
         io: &mut T,
-    ) -> io::Result<Self::Response>
+    ) -> std::io::Result<Self::Response>
     where
         T: AsyncRead + Unpin + Send,
     {
@@ -165,7 +185,7 @@ impl request_response::Codec for WolfNetCodec {
         _: &WolfNetProtocol,
         io: &mut T,
         req: Self::Request,
-    ) -> io::Result<()>
+    ) -> std::io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
@@ -177,7 +197,7 @@ impl request_response::Codec for WolfNetCodec {
         _: &WolfNetProtocol,
         io: &mut T,
         res: Self::Response,
-    ) -> io::Result<()>
+    ) -> std::io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
@@ -186,7 +206,7 @@ impl request_response::Codec for WolfNetCodec {
 }
 
 /// Helper to read length-prefixed data
-async fn read_length_prefixed<T>(io: &mut T) -> io::Result<Vec<u8>>
+async fn read_length_prefixed<T>(io: &mut T) -> std::io::Result<Vec<u8>>
 where
     T: AsyncRead + Unpin + Send,
 {
@@ -195,8 +215,8 @@ where
     let len = u32::from_be_bytes(len_buf) as usize;
 
     if len > 10_485_760 {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
             "Message too large",
         ));
     }
@@ -207,11 +227,11 @@ where
 }
 
 /// Helper to write length-prefixed data
-async fn write_length_prefixed<T>(io: &mut T, data: &[u8]) -> io::Result<()>
+async fn write_length_prefixed<T>(io: &mut T, data: &[u8]) -> std::io::Result<()>
 where
     T: AsyncWrite + Unpin + Send,
 {
-    let len = data.len() as u32;
+    let len = u32::try_from(data.len()).unwrap_or(u32::MAX);
     io.write_all(&len.to_be_bytes()).await?;
     io.write_all(data).await?;
     Ok(())

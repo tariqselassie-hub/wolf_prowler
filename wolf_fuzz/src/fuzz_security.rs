@@ -3,6 +3,7 @@
 use rand::{thread_rng, Rng};
 use wolfsec::{SecurityEvent, SecurityEventType, SecuritySeverity};
 
+/// Main entry point for the security policy fuzzer.
 pub fn main() {
     let args: Vec<String> = std::env::args().collect();
     let iterations = if args.len() > 1 {
