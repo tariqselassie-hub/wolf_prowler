@@ -32,6 +32,7 @@ use std::{fs, process::Command, thread, time::Duration};
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::mpsc::unbounded_channel;
 use tokio::time::sleep;
+use zeroize::Zeroize;
 
 /// Pulse authentication methods for physical presence verification
 pub mod pulse;
@@ -696,9 +697,19 @@ async fn process_file(
             );
 
             // 3. Decrypt
-            if let Some(plaintext) = decrypt_from_client(&ciphertext, kem_sk) {
+            if let Some(mut plaintext) = decrypt_from_client(&ciphertext, kem_sk) {
                 // 4. Parse plaintext
                 if let Some((seq, ts, cmd)) = parse_plaintext(&plaintext) {
+                    // 4.5 Zeroize plaintext after parsing (contains sensitive command data)
+                    plaintext.zeroize();
+
+                    // 4.6 Validate command for security issues
+                    if let Err(e) = shared::validation::validate_command(&cmd) {
+                        tracing::warn!("[VALIDATION] Command rejected for seq {}: {}", seq, e);
+                        let _ = fs::remove_file(file_path);
+                        return;
+                    }
+
                     if seq <= *last_seq {
                         tracing::info!("[DROP] Replay: Seq {seq} <= {last_seq}");
                         let _ = fs::remove_file(file_path);
@@ -866,7 +877,14 @@ async fn process_file(
 
 async fn execute_as_root(cmd: &str, privacy_logger: &PrivacyAuditLogger, emergency_mode: bool) {
     tracing::info!("[EXEC] Running: {cmd}");
-    let output = Command::new("sh").arg("-c").arg(cmd).output();
+
+    // Clone command for execution (we'll zeroize the clone after)
+    let mut cmd_copy = cmd.to_string();
+    let output = Command::new("sh").arg("-c").arg(&cmd_copy).output();
+
+    // Zeroize command copy after execution
+    cmd_copy.zeroize();
+
     let _ = fs::write("/tmp/sentinel_history.log", format!("{output:?}"));
 
     // Log to privacy audit system

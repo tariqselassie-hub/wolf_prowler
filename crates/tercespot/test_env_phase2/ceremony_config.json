@@ -1,5 +1,5 @@
 {
   "n": 2,
   "roles": ["DevOps", "ComplianceManager"],
-  "usb_paths": ["/home/t4riq/Project1/TersecPot/tercespot/test_env_phase2/usb/officer_1", "/home/t4riq/Project1/TersecPot/tercespot/test_env_phase2/usb/officer_2"]
+  "usb_paths": ["/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/test_env_phase2/usb/officer_1", "/home/t4riq/Desktop/Rust/wolf_prowler/crates/tercespot/test_env_phase2/usb/officer_2"]
 }

@@ -3,6 +3,11 @@
 //! This crate provides common data structures, constants, and utility functions
 //! used across the `TersecPot` ecosystem, including the `AirGap` bridge and `WolfDb`.
 
+pub mod error;
+pub use error::{Result, TersecError};
+
+pub mod validation;
+
 use fips204::ml_dsa_87; // ML-DSA-87 is the chosen parameter set via fips204
 use fips204::traits::SerDes;
 use std::env;
@@ -332,11 +337,11 @@ pub fn create_partial_command(
     command: String,
     encrypted_payload: Vec<u8>,
     required_signers: usize,
-) -> Result<PartialCommand, String> {
+) -> Result<PartialCommand> {
     let seq = 0; // Will be set when submitting
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
+        .map_err(|e| TersecError::Internal(e.to_string()))?
         .as_secs();
 
     Ok(PartialCommand {
@@ -504,7 +509,7 @@ pub fn evaluate_expression<S: ::std::hash::BuildHasher>(
 pub fn parse_and_evaluate<S: ::std::hash::BuildHasher>(
     expression: &str,
     roles: &std::collections::HashSet<Role, S>,
-) -> Result<bool, String> {
+) -> std::result::Result<bool, String> {
     match parse_expr(expression) {
         Ok((remaining, expr)) => {
             // Check if there's any unparsed content remaining

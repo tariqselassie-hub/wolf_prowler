@@ -11151,6 +11151,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+ "tracing-subscriber",
  "zeroize",
 ]
 
@@ -11525,8 +11526,11 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "thiserror 1.0.69",
  "toml",
  "tracing",
+ "tracing-subscriber",
+ "zeroize",
 ]
 
 [[package]]
