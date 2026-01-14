@@ -113,7 +113,7 @@ All source files should include appropriate license headers:
 ```rust
 // MIT License
 //
-// Copyright (c) 2026 TersecPot Contributors
+// Copyright (c) 2025 TersecPot Contributors
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal

@@ -6,9 +6,30 @@ Thank you for your interest in contributing to **Wolf Prowler**. This project is
 
 By contributing to this repository, you acknowledge and agree to the following terms:
 
-1.  **Ownership**: This project is the sole intellectual property of the Administrator. It is to be treated as intellectual property software ("my child"), regardless of any open-source components used or added.
+1.  **Ownership Of Thought**: This project is the sole intellectual property of the Administrator. It is to be treated as intellectual property software ("my child"), regardless of any open-source components used or added.
 2.  **Rights Assignment**: All contributions, modifications, and code submitted to this project become part of the Wolf Prowler system. You hereby assign all rights, title, and interest in your contributions to the Administrator of this project.
 3.  **Source Availability**: The source code is made available to Cybersecurity Analysts to assist in their professional duties.
+
+## 🇺🇸 Export Control Compliance
+
+**IMPORTANT**: This software contains cryptographic technology and is subject to US export control regulations.
+
+### US Person Requirement
+
+All contributors must be **US persons** as defined by US export control regulations:
+- US citizens
+- US permanent residents (green card holders)  
+- US-based organizations
+
+### Certification
+
+By contributing, you certify that:
+- You are a US person
+- You understand this software contains post-quantum cryptography (ML-DSA-87, ML-KEM-1024)
+- You will not export or transfer this software to non-US persons
+- You have read and agree to the terms in [EXPORT_CONTROL.md](EXPORT_CONTROL.md)
+
+**See [EXPORT_CONTROL.md](EXPORT_CONTROL.md) for complete details.**
 
 ## How to Contribute
 
@@ -29,7 +50,7 @@ We welcome technical contributions that improve the security and functionality o
 
 ## 🐺 Donators & Supporters
 
-**NO DONATIONS ARE REQUIRED.** The tiers below are optional ways to support the project.
+**NO DONATIONS ARE REQUIRED.** 
 
 > [!TIP]
 > **We are actively searching for at least 2 Rust enthusiasts** to help develop and maintain this system. If you are passionate about cybersecurity and Rust, join the pack!
@@ -37,7 +58,9 @@ We welcome technical contributions that improve the security and functionality o
 Support the development of Wolf Prowler and join the pack. Your contributions ensure the project remains active and secure for everyone.
 
 # If You Decide to Donate
+
 Cash App: GMBGudda
+
 PayPal: Tariqselassie@gmail.com
 
 ***DISCLAIMER***

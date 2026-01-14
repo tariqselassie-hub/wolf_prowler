@@ -263,4 +263,4 @@ This project complies with all third-party license requirements. All dependencie
 
 For questions about licensing, please contact the TersecPot maintainers.
 
-**Last Updated**: 2026-01-14
+**Last Updated**: 2025-01-14
