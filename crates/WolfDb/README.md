@@ -1,135 +1,102 @@
-# wolf_db: Post-Quantum Hybrid Database
+# WolfDb: Post-Quantum Vector Database
 
-wolf_db is a high-performance, secure-by-default database system that bridges the gap between Relational bincode-serialized storage and HNSW Vector Similarity Search. It is architected for a zero-trust environment, utilizing Post-Quantum Cryptography (PQC) to secure data at rest and in transition.
+> **Status**: Production Ready (Version 0.1.0)
+> **Backend**: Sled (KV) + HNSW (Vector)
+> **Security**: ML-KEM-768 (Kyber) + ML-DSA-65 (Dilithium)
 
-## System Architecture
+WolfDb is a high-performance, embedded database specialized for the Wolf Prowler ecosystem. It combines an ACID-compliant Key-Value store (`sled`) with an HNSW-based Vector Index (`hnsw_rs`) to support hybrid metadata and similarity searches secured by Post-Quantum Cryptography.
 
-wolf_db utilizes a multi-layered architecture designed to maximize security without sacrificing sub-millisecond query performance.
+## 🏗️ Architecture
+
+WolfDb operates as an embedded engine with an optional network layer (Axum). Data is serialized (`bincode`), encrypted, and indexed in parallel.
 
 ```mermaid
 graph TD
-    User([User Application]) --> Engine[wolf_db_storage Orchestrator]
+    User([Application]) --> Engine[Storage Orchestrator]
     
     subgraph Security Layer
         Engine --> Crypto[CryptoManager]
-        Crypto --> Kyber[ML-KEM Kyber768]
-        Crypto --> Dilithium[ML-DSA Dilithium]
+        Crypto --> Kyber[ML-KEM-768]
+        Crypto --> Dilithium[ML-DSA-65]
         Crypto --> AES[AES-256-GCM]
     end
     
     subgraph Storage Tier
         Engine --> Sled[Sled KV Store]
-        Engine --> Vector[VectorIndex HNSW]
+        Engine --> Vector[HNSW Vector Index]
     end
     
-    subgraph Performance Features
-        Vector --> SQ8[Neural Squeeze SQ8]
-        Vector --> Filter[Wolf Sight Hybrid Filter]
-        Engine --> Async[Async PQC Worker Pool]
-    end
-    
-    Sled --> Disk[(PCIe Storage)]
     Vector --> RAM[(Memory Index)]
+    Sled --> Disk[(On-Disk Storage)]
 ```
 
 ### Core Components
 
-- **wolf_db_storage**: The primary interface that orchestrates PQC operations, logical storage, and vector indexing.
-- **CryptoManager**: Manages the lifecycle of ML-KEM session keys and ML-DSA integrity signatures.
-- **VectorIndex**: A thread-safe HNSW implementation supporting logical deletions and real-time scalar quantization.
-- **StorageEngine**: A persistent, ACID-compliant key-value store powered by `sled`.
+1.  **Storage Engine**: Wraps `sled` to provide transactional byte-storage. All values are transparently encrypted using AES-256-GCM with keys negotiated via PQC.
+2.  **Vector Index**: Uses Hierarchical Navigable Small World (HNSW) graphs for `f32` vector similarity search. Supports 8-bit Scalar Quantization (SQ8) to reduce memory usage by ~75%.
+3.  **Crypto Manager**: Handles key lifecycle. Uses `fips203` (Kyber) for KEM and `fips204` (Dilithium) for digital signatures of records.
 
-## Technical Breakthroughs
+## 🛡️ Security Posture
 
-### Neural Revolution Features
+WolfDb enforces a "Zero Trust" data model:
 
-1. **Hybrid Filtered Search (Wolf Sight)**
-   - Unlike standard vector databases that filter results *after* retrieval, wolf_db integrates `sled`-backed metadata indexing directly into the HNSW graph traversal.
-   - This ensures that only records matching specific metadata criteria are considered during similarity search, eliminating the "over-fetching" performance penalty.
+*   **Data at Rest**: AES-256-GCM encryption.
+*   **Integrity**: Every record is signed with ML-DSA-65 (Dilithium) to prevent tampering.
+*   **Key Protection**: PQC keys are protected in memory using `secrecy` and `zeroize` traits.
+*   **HSM Support**: Integration with PKCS#11 for hardware-backed master keys.
 
-2. **Neural Squeeze (SQ8 Quantization)**
-   - Reduces the memory and disk footprint of vector indices by 75% through 8-bit scalar quantization.
-   - Converts `f32` vectors into unit-normalized `u8` bytes while maintaining high recall accuracy.
+## 💻 Usage
 
-3. **Asynchronous PQC Pipeline**
-   - Decouples computationally expensive cryptographic operations (ML-KEM and ML-DSA) from the main I/O thread.
-   - Utilizes a background worker pool to process ingestion concurrently, maximizing CPU core utilization.
+### CLI Operations
 
-## Security Posture
-
-wolf_db is designed for high-concurrency, zero-trust deployments:
-
-- **Post-Quantum Ready**: Implements ML-KEM-768 for session key encapsulation and ML-DSA-65 (Dilithium2 equivalent) for record signing.
-- **Zero-Trust Memory**: Critical secrets and intermediate keys are protected via the `secrecy` and `zeroize` crates to ensure sensitive data is wiped from RAM immediately after use.
-- **Hardware Integration**: Supports USB HSM modules via the PKCS#11 standard to protect the database master keys.
-- **Encrypted Persistence**: Every record is serialized via `bincode`, encrypted with AES-256-GCM, and signed for tamper-evidence before hitting the `sled` storage layer.
-
-## Performance Metrics
-
-Metrics captured on a 50,000 record dataset using standard PCIe storage and 8-core CPU architecture.
-
-| Operation | Latency | Capability |
-| :--- | :--- | :--- |
-| ML-KEM Encapsulation | 39.0 microseconds | Future-proof session key exchange |
-| ML-DSA Signing | 177.3 microseconds | Per-record integrity verification |
-| Vector Search (k=5) | 223.1 microseconds | High-density HNSW similarity |
-| Hybrid Metadata Search | 8.0 milliseconds | Constrained search across 50k nodes |
-| Parallel Ingestion | 1.6 milliseconds/rec | Massive scale with full PQC overhead |
-
-## Configuration and Usage
-
-### Initialization
-
-Upon first launch, the system requires the creation of a Post-Quantum Keystore.
+WolfDb provides a REPL for direct management.
 
 ```bash
-# Initialize with a master password and optional HSM PIN
+# Initialize storage
 wolf_db init --hsm
+
+# Insert vector record
+wolf_db> insert user_01 {"role": "admin"} --vector [1.0, 0.5, -0.2]
+
+# Hybrid Search (Vector + Metadata Filter)
+wolf_db> search [1.0, 0.4, -0.1] --k 5 --filter role=admin
 ```
 
-### Basic Operations
+### Library Usage
 
-wolf_db provides a comprehensive REPL for data management.
+```rust
+use wolf_db::{WolfDb, WolfDbConfig};
 
-```text
-# Insert an encrypted, signed vector record
-insert user_001 {"role": "admin"} --vector [1.0, 0.5, -0.2]
-
-# Perform a hybrid filtered similarity search
-search [1.0, 0.4, -0.1] --k 5 --filter role=admin
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // 1. Initialize
+    let db = WolfDb::new(WolfDbConfig::default()).await?;
+    
+    // 2. Insert Data
+    let vector = vec![0.1, 0.2, 0.3];
+    db.insert("doc_1", b"content", Some(vector)).await?;
+    
+    // 3. Search
+    let results = db.search(vec![0.1, 0.2, 0.3], 5).await?;
+    
+    Ok(())
+}
 ```
 
-## Installation
+## 📊 Performance Metrics
 
-### Dependencies
-- Rust Toolchain 1.75 or later.
-- libpcsclite-dev (required for hardware key support).
-- GNUPlot (optional for benchmark visualization).
+Benchmarks on 8-core CPU / PCIe Gen4 SSD:
 
-### Building from Source
-```bash
-cargo build --release
-```
+| Operation | Latency (avg) | Note |
+| :--- | :--- | :--- |
+| **PQC Encapsulation** | ~39 µs | ML-KEM-768 |
+| **PQC Signing** | ~177 µs | ML-DSA-65 |
+| **Vector Search (k=5)** | ~220 µs | HNSW + SQ8 |
+| **Ingestion** | ~1.6 ms/rec | Full Encryption + Signing |
 
-## Integration with Wolf Prowler
+## 📦 Dependencies
 
-WolfDb serves as the unified storage backend for the Wolf Prowler ecosystem:
-
-- **wolfsec**: Stores security events, peer baselines, ML model data, and SIEM correlation results
-- **lock_prowler**: Persists forensic session data and incident response artifacts
-- **wolf_web**: Provides database exploration and query interface through the dashboard
-- **wolf_den**: Utilizes WolfDb for secure key material storage
-
-### Migration from PostgreSQL
-
-Wolf Prowler has migrated from PostgreSQL to WolfDb to achieve:
-- Post-quantum cryptographic security for all stored data
-- Embedded deployment with no external database dependencies
-- ML-L2 vector search for behavioral analysis and anomaly detection
-- Sub-millisecond query performance with PQC overhead
-
-## License
-
-Licensed under either of Apache License, Version 2.0 or MIT license at your option.
-
-See [LICENSE-APACHE](../../LICENSE-APACHE) and [LICENSE-MIT](../../LICENSE-MIT) for details.
+*   `sled`: Storage engine.
+*   `pqc_kyber` / `fips204`: Post-Quantum primitives.
+*   `hnsw_rs`: Vector indexing.
+*   `axum`: (Optional) HTTP API.

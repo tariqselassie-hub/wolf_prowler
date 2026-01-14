@@ -76,7 +76,7 @@ pub struct PendingCommand {
 #[derive(Debug, Clone)]
 pub struct PendingSignature {
     pub key_hex: String,
-    pub signature: [u8; 2420], // ML-DSA-44 signature size
+    pub signature: [u8; 4627], // ML-DSA-87 signature size
     pub timestamp: u64,
 }
 

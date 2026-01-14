@@ -2,13 +2,13 @@
 //!
 //! This module tests the post-quantum cryptography verification logic.
 
-use fips204::ml_dsa_44; // FIPS 204 crate
+use fips204::ml_dsa_87; // FIPS 204 crate
 use fips204::traits::{KeyGen, Signer};
 use sentinel::{parse_wire_format, verify_signature}; // Use new API
 
 #[test]
 fn test_valid_signature_verification() {
-    let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+    let (pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
     let command = "sudo reboot";
     let seq = 42u64;
     let ts = 100u64;
@@ -36,8 +36,8 @@ fn test_valid_signature_verification() {
 
 #[test]
 fn test_invalid_signature_verification() {
-    let (pk, _sk) = ml_dsa_44::KG::try_keygen().unwrap();
-    let (_pk_bad, sk_bad) = ml_dsa_44::KG::try_keygen().unwrap();
+    let (pk, _sk) = ml_dsa_87::KG::try_keygen().unwrap();
+    let (_pk_bad, sk_bad) = ml_dsa_87::KG::try_keygen().unwrap();
 
     let payload = b"data";
     let sig_bad = sk_bad.try_sign(payload, b"tersec").unwrap();

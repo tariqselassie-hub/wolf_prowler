@@ -51,7 +51,7 @@ pub async fn session_auth_middleware(
         .map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Session validation failed: {}", e),
+                format!("Session validation failed: {e}"),
             )
         })?;
 
@@ -108,7 +108,7 @@ pub async fn api_key_auth_middleware(
         auth_manager.validate_api_key(api_key).await.map_err(|e| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("API key validation failed: {}", e),
+                format!("API key validation failed: {e}"),
             )
         })?;
 
@@ -170,7 +170,7 @@ pub async fn combined_auth_middleware(
             .map_err(|e| {
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Session validation failed: {}", e),
+                    format!("Session validation failed: {e}"),
                 )
             })?;
 
@@ -199,7 +199,7 @@ pub async fn combined_auth_middleware(
             auth_manager.validate_api_key(api_key).await.map_err(|e| {
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("API key validation failed: {}", e),
+                    format!("API key validation failed: {e}"),
                 )
             })?;
 

@@ -1,143 +1,160 @@
-# Wolfsec - Wolf Prowler Security Module
+# Wolfsec: Security & Threat Orchestration
 
-**Production-ready security orchestration for distributed systems with wolf pack coordination.**
+> **Status**: Production Ready (Version 0.1.0)
+> **Architecture**: Hexagonal + Domain-Driven Design
+> **Key Tech**: Post-Quantum Crypto, ONNX ML Threat Detection, Wolf Pack Consensus
 
-## 🎯 Overview
+Wolfsec is the comprehensive security orchestration module for the Wolf Prowler ecosystem. It combines traditional cybersecurity controls (Firewall, IAM, RBAC) with advanced AI-driven threat detection and "Wolf Pack" distributed consensus for automated response.
 
-Wolfsec is the comprehensive security module for Wolf Prowler, providing:
+## 🏗️ Architecture
 
-- **Identity & Authentication**: User management, role-based access control, and cryptographic operations
-- **Network Security**: Firewall policies, encrypted communications, and transport protection  
-- **Threat Detection**: Real-time threat analysis, vulnerability scanning, and anomaly detection
-- **Observability**: Security metrics, audit logging, SIEM integration, and compliance reporting
-- **Wolf Pack Coordination**: Distributed security operations using wolf-themed patterns
+Wolfsec follows a **Hexagonal Architecture** (Ports and Adapters) to ensure testability and decoupling of core security logic from infrastructure.
 
-## 🚀 Quick Start
+### Component Interaction
+
+```mermaid
+graph TD
+    WS[WolfSec]
+    WN[WolfNet]
+    WDB[WolfDb]
+    WDen[WolfDen]
+    
+    WS -->|Monitor| WN
+    WS -->|Store Audit| WDB
+    WS -->|Crypto Ops| WDen
+    WN -->|Report Suspicion| WS
+    WS -.->|Ban Peer| WN
+```
+
+### Threat Detection Pipeline
+
+The threat detection engine uses a multi-stage pipeline including signature matching and ML-based anomaly detection.
+
+```mermaid
+graph LR
+    Event[Security Event] -->|Ingest| Source[Event Source]
+    Source -->|Normalize| Analyzer[Threat Analyzer]
+    Analyzer -->|Correlate| Engine[Detection Engine]
+    Engine -->|Match Rule| Alert[Security Alert]
+    Engine -.->|Inference| ML[ONNX / Linfa Model]
+    Alert -->|Action| SOAR[SOAR Response]
+```
+
+### Core Layers
+
+1.  **Identity (`identity/`)**:
+    *   Handles Authentication (MFA), Authorization (RBAC), and Key Management.
+    *   Integrates `wolf_den` for Post-Quantum Cryptography (kyber/dilithium).
+    *   Maps **Wolf Pack Ranks** (Alpha, Beta) to permissions.
+
+2.  **Protection (`protection/`)**:
+    *   **Network Security**: Firewall rules, allow/deny lists.
+    *   **Threat Detection**: Real-time analysis using `ort` (ONNX Runtime) for ML models.
+    *   **Reputation**: Peer scoring and bans.
+
+3.  **Observability (`observability/`)**:
+    *   **Dashboard**: Real-time metrics for the Web UI.
+    *   **Audit**: Tamper-evident logging of all security operations.
+    *   **Compliance**: Automated checking against SOC2/GDPR baselines.
+
+## 🛡️ Key Features
+
+*   **Wolf Pack Semantics**:
+    *   **Alpha**: Admin/SuperUser capability.
+    *   **Beta**: Moderator/Security Officer.
+    *   **Guardian**: Defensive subsystem role.
+*   **Machine Learning**:
+    *   Integrated `ort` for running ONNX models to detect anomalies in network traffic.
+    *   `linfa` integration for classical clustering of peer behaviors.
+*   **Security Dashboard**:
+    *   Real-time visibility into active threats and system health.
+    *   Exportable reports (PDF, JSON, CSV).
+*   **Automated Response (SOAR)**:
+    *   Automatically ban peers, isolate nodes, or rotate keys upon threat confirmation.
+
+## 💻 Usage
+
+### Basic Initialization
 
 ```rust
 use wolfsec::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), WolfSecError> {
-    // Initialize security manager
+    // 1. Initialize Security Manager
     let config = SecurityConfig::default();
     let security_manager = NetworkSecurityManager::new(config).await?;
     
-    // Set up authentication
-    let auth_manager = AuthManager::new(AuthConfig::default()).await?;
-    
-    // Start threat detection
+    // 2. Setup Threat Detection
     let threat_detector = ThreatDetector::new(ThreatDetectionConfig::default()).await?;
+    
+    // 3. Start Monitoring
+    // This spins up the async event loop for checking logs and network traffic
+    security_manager.start_monitoring().await?;
     
     Ok(())
 }
 ```
 
-## 📦 Module Structure
+### Recording an Audit Event
 
-### Core Modules
+```rust
+use wolfsec::observability::audit::{SecurityAuditor, SecurityOperation, OperationResult};
 
-- **`identity`**: Authentication, authorization, cryptography, and key management
-- **`protection`**: Network security, threat detection, reputation management
-- **`observability`**: Metrics, alerts, audit trails, dashboards, and SIEM
-
-### Supporting Modules
-
-- **`domain`**: Domain entities, events, and repository traits
-- **`infrastructure`**: Persistence, adapters, and external integrations
-- **`application`**: High-level business logic and use cases
-- **`wolf_pack`**: Wolf-themed coordination and hierarchy
-
-## 🔒 Security Features
-
-### Identity & Access
-- Multi-factor authentication (MFA)
-- Role-based access control (RBAC)
-- Post-quantum cryptography (PQC) support
-- Secure key management and rotation
-
-### Network Protection
-- Firewall policies and rules
-- Encrypted peer-to-peer communications
-- Digital signatures and message authentication
-- Transport layer security
-
-### Threat Management
-- Real-time threat detection
-- Vulnerability scanning
-- Reputation-based filtering
-- Anomaly detection with ML
-
-### Compliance & Auditing
-- Comprehensive audit logging
-- Compliance framework support (SOC2, GDPR, etc.)
-- Security metrics and dashboards
-- SIEM integration
-
-## 📊 Architecture
-
-```
-┌─────────────────────────────────────────────┐
-│           Wolf Security (wolfsec)           │
-├─────────────────────────────────────────────┤
-│  Identity    │  Protection  │ Observability │
-│  ─────────   │  ──────────  │  ──────────── │
-│  • Auth      │  • Network   │  • Metrics    │
-│  • Crypto    │  • Threats   │  • Alerts     │
-│  • Keys      │  • Firewall  │  • Audit      │
-│              │  • Reputation│  • SIEM       │
-├─────────────────────────────────────────────┤
-│         Domain │ Infrastructure │ Application│
-└─────────────────────────────────────────────┘
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-cargo test -p wolfsec
-
-# Run specific test suite
-cargo test -p wolfsec --test comprehensive_tests
-
-# Run with coverage
-cargo tarpaulin -p wolfsec
-```
-
-## 📚 Documentation
-
-Generate and view the full API documentation:
-
-```bash
-cargo doc -p wolfsec --no-deps --open
+async fn log_encryption_op(auditor: &SecurityAuditor, user_id: &str) -> anyhow::Result<()> {
+    auditor.record_operation(
+        SecurityOperation::Encryption,
+        OperationResult::Success,
+        user_id.to_string(),
+        "Encrypted sensitive payload for transmission".to_string(),
+    ).await?;
+    Ok(())
+}
 ```
 
 ## 🔧 Configuration
 
-See [`SecurityConfig`](src/protection/network_security.rs) for network security configuration options.
+Configuration can be handled via `security.toml` or Environment Variables.
 
-## 🤝 Integration
+### Env Vars
 
-Wolfsec integrates with:
-- **wolf_net**: P2P networking and swarm management
-- **wolf_den**: Cryptographic primitives and PQC
-- **wolf_db**: Secure data persistence
+```bash
+# General
+export WOLF_SECURITY_AUDIT_ENABLED=true
+export WOLF_SECURITY_AUDIT_LOG_LEVEL=info
 
-## 📝 License
+# Dashboard
+export WOLF_SECURITY_DASHBOARD_REFRESH_INTERVAL=10
+export WOLF_SECURITY_DASHBOARD_THEME=dark
 
-Part of the Wolf Prowler project.
+# Alerts
+export WOLF_SECURITY_ALERTS_ENABLED=true
+export WOLF_SECURITY_ALERTS_MAX=1000
+```
 
-## 🐺 Wolf Pack Philosophy
+### TOML Example
 
-Security operations follow wolf pack patterns:
-- **Alpha**: Leadership and coordination
-- **Beta**: Secondary command and backup
-- **Hunters**: Active threat detection and response
-- **Scouts**: Reconnaissance and monitoring
-- **Guardians**: Protection and defense
+```toml
+[security.metrics]
+collection_interval_secs = 10
+enable_anomaly_detection = true
+anomaly_threshold = 0.7
 
----
+[security.reporting]
+enable_automated_reports = true
+report_interval_hours = 24
+```
 
-**Status**: Production Ready ✅  
-**Tests**: 171 passing  
-**Compilation**: Zero errors
+## 📦 Integration
+
+Wolfsec relies on:
+- **`wolf_den`**: For all cryptographic primitives (encryption, signing, key generation).
+- **`wolf_net`**: For enforcing network bans and monitoring flow data.
+- **`wolf_db`**: For persistent storage of audit logs and configuration (replacing SQLx direct usage).
+
+## 🧪 Testing
+
+```bash
+# Run comprehensive security suite
+cargo test -p wolfsec --test comprehensive_tests
+```

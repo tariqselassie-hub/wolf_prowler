@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 use crate::globals::{PROWLER, SECURITY_ENGINE, SSO_MANAGER, SWARM_MANAGER};
-use crate::types::*;
+use crate::types::{SystemStats, FirewallStats, FirewallRuleView, WolfPackTelemetry, ReputationStats, PeerStatus, ActiveHuntView, RecordView};
 use chrono::Utc;
 use dioxus_fullstack::prelude::*;
 use lock_prowler::headless::HeadlessStatus;

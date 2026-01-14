@@ -1,11 +1,14 @@
 #![allow(non_snake_case)]
 #![allow(missing_docs)]
+#![allow(unused_qualifications)]
 
+use anyhow::{Context, Result};
 use axum::Router;
 use chrono::Utc;
 use dioxus::prelude::*;
 use dioxus_fullstack::prelude::*;
 use lock_prowler::headless::HeadlessConfig;
+use lock_prowler::headless::HeadlessWolfProwler;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -15,6 +18,7 @@ use tower_http::cors::CorsLayer;
 use wolf_web::dashboard;
 #[cfg(feature = "server")]
 use wolf_web::dashboard::state::AppState;
+use wolfsec::identity::iam::{AuthenticationManager, IAMConfig, SSOIntegrationManager};
 use wolfsec::threat_detection::BehavioralAnalyzer;
 
 mod vault_components;
@@ -771,7 +775,7 @@ async fn main() {
     }
 
     // Initialize Authentication Manager (IAM)
-    let _auth_manager = AuthenticationManager::new(IAMConfig::default())
+    let _auth_manager: AuthenticationManager = AuthenticationManager::new(IAMConfig::default())
         .await
         .expect("Failed to initialize Authentication Manager");
 
@@ -810,7 +814,7 @@ async fn main() {
                 auth_manager: Arc::new(Mutex::new(
                     AuthenticationManager::new(IAMConfig::default())
                         .await
-                        .unwrap(),
+                        .expect("Failed to init auth manager"),
                 )), // Re-init auth manager? No, use the one we made.
                 wolf_security: Some(sec.clone()),
                 swarm_manager: None, // Keep None for now
@@ -821,7 +825,7 @@ async fn main() {
             behavioral_engine,
             AuthenticationManager::new(IAMConfig::default())
                 .await
-                .unwrap(),
+                .expect("Failed to init auth manager fallback"),
         ),
     };
 

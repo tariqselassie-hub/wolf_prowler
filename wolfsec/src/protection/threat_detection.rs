@@ -1665,6 +1665,14 @@ mod tests {
         {
             Ok(None)
         }
+
+        async fn get_recent_threats(
+            &self,
+            _limit: usize,
+        ) -> Result<Vec<crate::domain::entities::Threat>, crate::domain::error::DomainError>
+        {
+            Ok(Vec::new())
+        }
     }
 
     #[tokio::test]
@@ -1728,7 +1736,7 @@ mod tests {
             .unwrap();
         detector.block_peer("test_peer".to_string()).await.unwrap();
 
-        let peer = detector.get_peer("test_peer").await.unwrap();
+        let peer = detector.get_peer_info("test_peer").await.unwrap();
         assert!(peer.flags.blocked);
         assert_eq!(peer.trust_level, 0.0);
     }

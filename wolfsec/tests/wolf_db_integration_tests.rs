@@ -5,7 +5,7 @@ use wolfsec::{
         entities::{Alert, AlertCategory, AlertSeverity},
         repositories::AlertRepository,
     },
-    infrastructure::persistence::WolfDbAlertRepository,
+    infrastructure::persistence::wolf_db_alert_repository::WolfDbAlertRepository,
     WolfSecurity, WolfSecurityConfig,
 };
 

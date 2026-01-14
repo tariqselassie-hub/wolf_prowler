@@ -4,7 +4,7 @@
 //! in a multi-signature system, typically used for secure command execution requiring
 //! approval from multiple roles.
 
-use fips204::ml_dsa_44;
+use fips204::ml_dsa_87;
 use fips204::traits::{Signer, Verifier};
 pub use shared::{create_partial_command, is_partial_complete, package_payload, PartialCommand};
 use shared::{load_public_key, PartialSignature, Role};
@@ -16,7 +16,7 @@ use std::path::Path;
 /// # Panics
 /// Panics if the signing operation fails.
 #[must_use]
-pub fn sign_data(signing_key: &ml_dsa_44::PrivateKey, data: &[u8]) -> [u8; 2420] {
+pub fn sign_data(signing_key: &ml_dsa_87::PrivateKey, data: &[u8]) -> [u8; 4627] {
     signing_key
         .try_sign(data, b"tersec")
         .unwrap_or_else(|e| panic!("Signing failed: {e}"))
@@ -49,7 +49,7 @@ pub fn save_partial_command<P: AsRef<Path>>(
 /// Returns an error if signature verification fails or if the role has already signed.
 pub fn append_signature_to_partial(
     mut partial: PartialCommand,
-    signature: [u8; 2420],
+    signature: [u8; 4627],
     role: Role,
     public_key_path: &str,
 ) -> Result<PartialCommand, String> {
@@ -102,7 +102,7 @@ pub fn partial_to_signed(partial: &PartialCommand) -> Result<Vec<u8>, String> {
 
     let mut signatures = Vec::new();
     for sig in partial.signatures.iter().flatten() {
-        let mut sig_array = [0u8; 2420];
+        let mut sig_array = [0u8; 4627];
         sig_array.copy_from_slice(&sig.signature);
         signatures.push(sig_array);
     }
@@ -113,14 +113,14 @@ pub fn partial_to_signed(partial: &PartialCommand) -> Result<Vec<u8>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fips204::ml_dsa_44;
+    use fips204::ml_dsa_87;
     use fips204::traits::{KeyGen, SerDes, Verifier};
     use std::fs;
     use tempfile::NamedTempFile;
 
     #[test]
     fn test_sign_and_verify() {
-        let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
         let payload = b"seq_ts_cmd";
         let sig = sign_data(&sk, payload);
 
@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn test_package_structure() {
-        let (_pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (_pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
         let cmd = "test";
         let seq = 42u64;
         let ts = 1234567890u64;
@@ -146,14 +146,14 @@ mod tests {
         let signatures = vec![sig];
         let data = package_payload(&signatures, &payload);
 
-        // Check size: Count(1) + Sig(2420) + Body
-        let expected_len = 1 + 2420 + payload.len();
+        // Check size: Count(1) + Sig(4627) + Body
+        let expected_len = 1 + 4627 + payload.len();
         assert_eq!(data.len(), expected_len);
 
         // Check contents
         assert_eq!(data[0], 1); // Count
-        assert_eq!(&data[1..2421], sig.as_slice());
-        assert_eq!(&data[2421..], payload.as_slice());
+        assert_eq!(&data[1..4628], sig.as_slice());
+        assert_eq!(&data[4628..], payload.as_slice());
     }
 
     #[test]
@@ -188,7 +188,7 @@ mod tests {
         let payload = vec![1, 2, 3];
         let mut partial = create_partial_command("test".to_string(), payload.clone(), 2).unwrap();
 
-        let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
         let sig = sign_data(&sk, &payload);
 
         // Save pk to temp file
@@ -216,7 +216,7 @@ mod tests {
         let payload = vec![1, 2, 3];
         let mut partial = create_partial_command("test".to_string(), payload.clone(), 2).unwrap();
 
-        let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
         let sig = sign_data(&sk, &payload);
 
         let pk_file = NamedTempFile::new().unwrap();
@@ -248,8 +248,8 @@ mod tests {
 
         assert!(!is_partial_complete(&partial));
 
-        let (pk1, sk1) = ml_dsa_44::KG::try_keygen().unwrap();
-        let (pk2, sk2) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk1, sk1) = ml_dsa_87::KG::try_keygen().unwrap();
+        let (pk2, sk2) = ml_dsa_87::KG::try_keygen().unwrap();
         let sig1 = sign_data(&sk1, &payload);
         let sig2 = sign_data(&sk2, &payload);
 
@@ -282,7 +282,7 @@ mod tests {
         let payload = vec![1, 2, 3];
         let mut partial = create_partial_command("test".to_string(), payload.clone(), 1).unwrap();
 
-        let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
         let sig = sign_data(&sk, &payload);
 
         let pk_file = NamedTempFile::new().unwrap();
@@ -298,7 +298,7 @@ mod tests {
 
         let signed = partial_to_signed(&partial).unwrap();
         assert_eq!(signed[0], 1); // 1 signature
-        assert_eq!(&signed[1..2421], sig.as_slice());
-        assert_eq!(&signed[2421..], payload.as_slice());
+        assert_eq!(&signed[1..4628], sig.as_slice());
+        assert_eq!(&signed[4628..], payload.as_slice());
     }
 }

@@ -41,6 +41,6 @@ pub fn create_v1_router(state: Arc<AppState>) -> Router {
         .nest("/security", security::create_router(state.clone()))
         .nest("/soar", soar::create_router(state.clone()))
         .nest("/containers", containers::create_router(state.clone()))
-        .nest("/metrics", metrics::create_router(state.clone()))
+        .nest("/metrics", metrics::create_router(state))
         .route("/status", get(api_status))
 }

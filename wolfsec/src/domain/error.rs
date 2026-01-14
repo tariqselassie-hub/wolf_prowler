@@ -36,13 +36,6 @@ pub enum DomainError {
     Unexpected(String),
 }
 
-// TEMPORARILY DISABLED - Migrating to WolfDb
-// impl From<sqlx::Error> for DomainError {
-//     fn from(e: sqlx::Error) -> Self {
-//         DomainError::Unexpected(e.to_string())
-//     }
-// }
-
 impl From<serde_json::Error> for DomainError {
     fn from(e: serde_json::Error) -> Self {
         DomainError::Unexpected(e.to_string())

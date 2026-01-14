@@ -1,31 +1,72 @@
-# Wolf Server - HTTP/WebSocket Server
+# Wolf Server: Security Intelligence API
 
-**Status**: ✅ Production Ready | **Version**: 1.0
+> **Status**: Production Ready (Version 2.0)
+> **Role**: API Gateway & Threat Intelligence Hub
+> **Stack**: Axum, PostgreSQL, Prometheus
 
-Wolf Server provides high-performance HTTP and WebSocket services for the Wolf Prowler dashboard and API.
+Wolf Server is the backend reporting engine and API gateway / WebSocket server. Unlike the Dashboard (`wolf_web`), this server focuses on high-throughput event ingestion, persistence, and external API access.
 
-## 🌐 Features
+## 🏗️ Architecture
 
-- **HTTPS Support**
-  - TLS 1.3 encryption
-  - Self-signed or custom certificates
-  - Automatic certificate management
+Wolf Server acts as the "Memory" of the ecosystem, persisting ephemeral findings from `wolfsec` and `wolf_net` into long-term PostgreSQL storage.
 
-- **WebSocket**
-  - Real-time bidirectional communication
-  - Automatic reconnection
-  - Message compression
+### Core Modules
 
-- **Authentication**
-  - JWT-based session management
-  - Role-based access control
-  - Secure cookie handling
+1.  **Metric Ingestion**:
+    *   Exposes Prometheus-compatible endpoints (`/api/prometheus`).
+    *   Collects peer metrics (latency, health score) every 60 seconds.
+2.  **Threat Intelligence Loop**:
+    *   Ingests events from `wolfsec`.
+    *   Correlates IPs against known threat feeds (Hourly Sync).
+    *   Stores CVE data and Intrusion Attempts.
+3.  **Persistence Layer**:
+    *   **PostgreSQL 16**: Primary storage for historical data.
+    *   **Feature Flag**: `advanced_reporting` triggers DB initialization.
 
-- **Performance**
-  - Async/await with Axum framework
-  - Connection pooling
-  - Request rate limiting
-  - Response compression
+## 🔌 API Reference
+
+### Health & Metrics
+*   `GET /api/health` - Database & System status.
+*   `GET /api/prometheus` - Scrape target for monitoring stacks.
+*   `GET /database/stats` - Row counts (Peers, Alerts, Logs).
+
+### Historical Data (Pagination Supported)
+*   `GET /api/v1/peers/history` - Tracked peer behavior over time.
+*   `GET /api/v1/alerts/history` - Security incident log.
+*   `GET /api/v1/audit/logs` - Immutable audit trail.
+
+### Threat Intelligence
+*   `GET /api/v1/threats/ips` - List active malicious IPs.
+*   `GET /api/v1/threats/cves` - Known vulnerability database.
+*   `POST /api/v1/threats/block` - Manual IP blocklist injection.
+
+### Data Export
+*   `GET /api/v1/export/{peers|alerts|metrics}/csv` - Bulk export.
+*   `GET /api/v1/export/peers/json` - JSON dump.
+
+## 💾 Database Integration
+
+To enable persistence, set `DATABASE_URL` and enable the `advanced_reporting` feature.
+
+```bash
+# Environment
+export DATABASE_URL="postgresql://wolf_admin:pass@postgres:5432/wolf_prowler"
+
+# Run with persistence
+cargo run --release --features advanced_reporting
+```
+
+**Schema Overview**:
+*   `peers`: Identity, Trust Score, Last Seen.
+*   `peer_metrics`: Time-series data (Latency, Bytes).
+*   `threat_intelligence`: Malicious IPs, CVEs, Confidence Scores.
+*   `security_alerts`: Alert state (Active/Resolved), Severity.
+
+## 🔒 Security
+
+*   **Transport**: TLS 1.3 (Self-signed or Custom Certs).
+*   **Auth**: JWT Middleware (Configurable).
+*   **Performance**: Async connection pooling (max 1000 conns).
 
 ## 🚀 Quick Start
 
@@ -33,10 +74,12 @@ Wolf Server provides high-performance HTTP and WebSocket services for the Wolf P
 use wolf_server::{ServerConfig, start_server};
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
     let config = ServerConfig {
         port: 3031,
         enable_tls: true,
+        // PostgreSQL connection string
+        database_url: Some(std::env::var("DATABASE_URL")?), 
         ..Default::default()
     };
     
@@ -44,34 +87,3 @@ async fn main() -> Result<()> {
     Ok(())
 }
 ```
-
-## 📦 Installation
-
-```toml
-[dependencies]
-wolf_server = { path = "../wolf_server" }
-```
-
-## 🔧 Configuration
-
-```rust
-let config = ServerConfig {
-    port: 3031,
-    enable_tls: true,
-    cert_path: "./certs/cert.pem",
-    key_path: "./certs/key.pem",
-    max_connections: 1000,
-};
-```
-
-## 🛡️ Security
-
-- TLS 1.3 encryption for all connections
-- JWT token authentication
-- CORS protection
-- Rate limiting per endpoint
-- Security headers (HSTS, CSP, etc.)
-
-## 📄 License
-
-MIT License - See [LICENSE](../LICENSE) for details.

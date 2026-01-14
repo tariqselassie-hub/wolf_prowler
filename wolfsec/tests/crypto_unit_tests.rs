@@ -275,7 +275,7 @@ mod tests {
 
         // Derive key using identity's key material as password
         let derived_key = crypto
-            .derive_key(&identity.key_material, TEST_SALT, 32)
+            .derive_key(identity.key_material.as_bytes(), TEST_SALT, 32)
             .await
             .expect("Key derivation with identity failed");
 
@@ -284,7 +284,7 @@ mod tests {
 
         // Test HMAC with identity key material
         let hmac = crypto
-            .hmac(&identity.key_material, TEST_DATA)
+            .hmac(identity.key_material.as_bytes(), TEST_DATA)
             .await
             .expect("HMAC with identity failed");
         assert!(!hmac.is_empty());

@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use fips204::ml_dsa_44; // Using the re-export from shared if possible, or direct dep
+use fips204::ml_dsa_87; // Using the re-export from shared if possible, or direct dep
 use fips204::traits::{SerDes, Signer};
 use std::fs;
 use std::path::Path;
@@ -15,7 +15,7 @@ pub struct TersecClient {
     /// Public KEM key for encryption.
     pub kem_pk: fips203::ml_kem_1024::EncapsKey,
     /// Private ML-DSA key for signing.
-    pub signing_key: ml_dsa_44::PrivateKey,
+    pub signing_key: ml_dsa_87::PrivateKey,
 }
 
 impl TersecClient {
@@ -34,7 +34,7 @@ impl TersecClient {
         let kem_pk =
             load_kem_public_key(&kem_pk_path).context("Failed to load TersecPot KEM public key")?;
 
-        let signing_key = ml_dsa_44::PrivateKey::try_from_bytes(signing_key_bytes.try_into()?)
+        let signing_key = ml_dsa_87::PrivateKey::try_from_bytes(signing_key_bytes.try_into()?)
             .map_err(|_| anyhow::anyhow!("Invalid signing key bytes"))?;
 
         Ok(Self {
@@ -77,10 +77,10 @@ impl TersecClient {
             .map_err(|e| anyhow::anyhow!("Signing failed: {:?}", e))?;
 
         // 4. Package
-        // daemon expects [[u8; 2420]] signatures.
+        // daemon expects [[u8; 4627]] signatures.
         let sig_vec = signature.to_vec();
-        let mut sig_array = [0u8; 2420];
-        if sig_vec.len() != 2420 {
+        let mut sig_array = [0u8; 4627];
+        if sig_vec.len() != 4627 {
             return Err(anyhow::anyhow!(
                 "Invalid signature length: {}",
                 sig_vec.len()

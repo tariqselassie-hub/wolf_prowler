@@ -178,7 +178,7 @@ async fn trigger_action(
                 },
                 response_actions: vec![action.clone()],
                 target: payload.target.clone(),
-                description: format!("Manual trigger of {:?}", action),
+                description: format!("Manual trigger of {action:?}"),
                 metadata: std::collections::HashMap::new(),
             };
 
@@ -187,13 +187,13 @@ async fn trigger_action(
                 .execute_response_actions(vec![action], &event)
                 .await
             {
-                Ok(_) => {
+                Ok(()) => {
                     status = "Completed".to_string();
                     message = Some(format!("Successfully triggered {}", payload.action));
                 }
                 Err(e) => {
                     status = "Failed".to_string();
-                    message = Some(format!("Execution failed: {}", e));
+                    message = Some(format!("Execution failed: {e}"));
                 }
             }
         } else {

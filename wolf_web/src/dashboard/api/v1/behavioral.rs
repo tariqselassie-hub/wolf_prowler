@@ -33,7 +33,7 @@ pub struct BehavioralResponse {
 /// Information about a specific risk factor identified in behavioral analysis
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RiskFactorInfo {
-    /// The type of risk (e.g., AnomalousTraffic, HighEntropy)
+    /// The type of risk (e.g., `AnomalousTraffic`, `HighEntropy`)
     pub factor_type: String,
     /// The weight/significance of this factor (0.0 - 1.0)
     pub weight: f64,

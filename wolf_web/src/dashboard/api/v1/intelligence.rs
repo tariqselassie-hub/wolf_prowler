@@ -192,7 +192,7 @@ async fn get_threat_indicators(State(state): State<Arc<AppState>>) -> Json<Vec<T
 
         for (i, incident) in incidents.into_iter().enumerate() {
             indicators.push(ThreatIndicator {
-                indicator_id: format!("IND-{}", i),
+                indicator_id: format!("IND-{i}"),
                 indicator_type: "Network".to_string(),
                 value: incident,
                 confidence: 0.85,

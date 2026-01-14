@@ -1,125 +1,127 @@
-# Wolf Net - P2P Networking Layer
+# Wolf Net: Advanced P2P Networking & Coordination
 
-**Status**: ✅ Production Ready | **Version**: 1.1 | **Stability**: High
+> **Status**: Production Ready (Version 0.1.0)
+> **Architecture**: Libp2p with custom "Wolf Pack" consensus
+> **Transport**: QUIC (HyperPulse) + TCP/Noise
 
-Wolf Net provides secure, encrypted peer-to-peer networking built on libp2p for the Wolf Prowler platform.
+Wolf Net is the core networking module for the Wolf Prowler ecosystem. It provides a secure, encrypted peer-to-peer mesh network designed for distributed threat detection, consensus-based decision making, and resilient message routing.
 
-## 🌐 Features
+## 🏗️ Architecture
 
-- **Secure P2P Communication**
-  - X25519 ECDH key exchange
-  - ChaCha20-Poly1305 encryption for all peer connections
-  - End-to-end encrypted messaging
+Wolf Net encapsulates the complexity of `libp2p` into a structured hierarchy of managers and actors. This ensures that network logic is decoupled from application business logic.
 
-- **Robust Discovery & Connectivity** 🆕
-  - **mDNS Discovery**: Fully functional local network discovery with auto-dialing.
-  - **Multi-Transport Stability**: Connection tracking now handles multiple simultaneous connections (IPv4, IPv6, loopback) correctly, preventing premature disconnection events.
-  - **Kademlia DHT**: Distributed peer discovery and routing.
-  - **HyperPulse**: QUIC transport for low-latency communication.
+### Core Components
 
-- **Internal Firewall**
-  - Configurable Allow/Deny rules
-  - Filtering by IP, Port, Peer ID, or Protocol
-  - Inbound and Outbound traffic control
-  - Dynamic rule management via API
+1.  **`WolfNode` (System Facade)**
+    *   **Role**: Top-level orchestrator. It initializes and wires together the Swarm, Firewall, and Reporting services.
+    *   **Usage**: Prevents `main.rs` bloat by handling the async lifecycle of valid sub-services.
 
-- **Advanced Messaging & Transport**
-  - **Gossipsub**: Efficient pub/sub messaging for topic-based broadcasting.
-  - **Automatic NAT Traversal**: Built-in support for relaying and hole punching.
-  - **HyperPulse**: Optimized QUIC transport integration.
+2.  **`SwarmManager` (Network Engine)**
+    *   **Role**: Manages the low-level `libp2p` swarm.
+    *   **Capabilities**:
+        *   **Discovery**: Integrates mDNS (local) and Kademlia DHT (global) for robust peer finding.
+        *   **Connection Management**: Handles multi-transport negotiation (IPv4/IPv6, TCP/QUIC).
+        *   **Health Checks**: Maintains active connections via Ping/Pong protocols.
 
-- **Wolf Pack Hierarchy**
-  - Role-based access control (Stray → Scout → Hunter → Beta → Alpha → Omega)
-  - Prestige system with automatic rank evolution
-  - **Prestige Decay**: Periodic reduction of prestige to encourage activity
-  - **P2P Messaging**: Decentralized communication using `libp2p`
-  - **Wolf Pack Protocol**: Custom protocol for pack coordination, status sharing, and hunting
-  - **Alpha Election**: Prestige-weighted consensus mechanism for decentralized leader selection
-- **🔔 Alert Management**
-  - Smart deduplication (30-minute window)
-  - Dynamic severity calculation (event + correlation + attack chain)
-  - Alert lifecycle tracking
-  - Automatic response generation
-  - **Multi-Tenant Isolation** 🆕: Alerts are strictly scoped by `org_id`
-- **Swarm Management**: Automated peer discovery, health monitoring, and routing.
-  - Health monitoring and liveness checks
-  - Configurable connection limits
+3.  **`HuntCoordinator` (Consensus Engine)**
+    *   **Role**: Implements the "Wolf Pack" actor model for distributed operations.
+    *   **Lifecycle**: `Scent` (Detection) -> `Stalk` (Verification) -> `Strike` (Action).
+    *   **Elections**: Manages Alpha Node selection based on prestige scores.
 
-- **Performance**
-  - Efficient message routing
-  - Low-latency communication via QUIC (HyperPulse)
-  - Scalable to 1000+ peers
+4.  **`InternalFirewall` (Security)**
+    *   **Role**: Application-layer traffic control.
+    *   **Filter**: Dynamic Allow/Deny rules based on Peer ID, IP, Port, or Protocol.
+    *   **Integration**: Can automatically ban peers based on `wolfsec` threat assessments.
 
-- **Active Defense Integration**
-  - **SOAR Execution**: Accepts direct kill orders (Ban, Disconnect) from WolfSec engine
-  - **Threat Blocking**: Dynamic firewall updates based on SIEM alerts
-  - **Real-time Isolation**: Immediate quarantine of compromised peers
+### Topology & Routing
 
-- **SaaS Agent Reporting** 🆕
-  - **ReportingService**: Batched telemetry and alert transmission
-  - **Hub Orchestration**: Support for `headless-agent` mode
-  - **JWT Authentication**: Secure handshake with the Central Hub
+Wolf Net creates a structured mesh topology:
+- **GossipSub**: Used for high-throughput, low-latency broadcasting of alerts and heartbeat signals.
+- **Request-Response**: Direct, reliable signaling for specific commands (e.g., specific peer queries).
+- **Direct Messaging**: ChaCha20-Poly1305 encrypted streams for sensitive data transfer between established peers.
 
-## 🖥️ Dashboard Integration
+```mermaid
+graph TD
+    subgraph "Wolf Node"
+    WN[WolfNode] --> SM[SwarmManager]
+    WN --> HC[HuntCoordinator]
+    WN --> FW[InternalFirewall]
+    end
 
-Wolf Net is fully integrated with the Wolf Prowler dashboard:
+    subgraph "Network Mesh"
+    SM <-->|GossipSub / QUIC| P1[Peer Node Alpha]
+    SM <-->|Kademlia DHT| P2[Peer Node Beta]
+    P1 -.->|mDNS| P2
+    end
+    
+    FW -- Filters --> SM
+    HC -- Commands --> SM
+```
 
-- **Global Map** (`/static/network.html`): Real-time geospatial visualization of peer nodes.
-- **P2P Mesh** (`/static/p2p.html`): Force-directed graph of swarm connectivity and routing.
-- **Firewall Control** (`/static/firewall.html`): Visual rule management and traffic monitoring.
+## 🔒 Security Specifications
 
+Wolf Net adheres to a "Secure by Default" philosophy:
 
-## 🚀 Quick Start
+*   **Transport Security**: All connections are encrypted using the **Noise** protocol framework with **ChaCha20-Poly1305** and **X25519** key exchange.
+*   **Identity**: Peer IDs are cryptographically derived from Ed25519 public keys.
+*   **Forward Secrecy**: Ephemeral keys are used for each session, ensuring past sessions cannot be decrypted if long-term keys are compromised.
+*   **Application Encryption**: Sensitive payloads are arguably double-wrapped via `wolf_den` integration (see `EncryptedMessageHandler`).
+
+## 💻 Usage
+
+### Initialization
+
+To start a standard node with default discovery settings:
 
 ```rust
-use wolf_net::{SwarmManager, NetworkConfig};
+use wolf_net::{WolfNode, WolfConfig, NetworkConfig};
+use std::sync::Arc;
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    // Initialize network
-    let config = NetworkConfig::default();
-    let mut swarm = SwarmManager::new(config).await?;
+async fn main() -> anyhow::Result<()> {
+    // 1. Load Configuration
+    let net_config = NetworkConfig::default();
     
-    // Start networking
-    swarm.start().await?;
+    // 2. Initialize the Node System
+    // WolfNode handles Swarm creation, mDNS, and DHT bootstrapping automatically.
+    let mut node = WolfNode::new(net_config).await?;
     
-    // Send encrypted message
-    swarm.send_message(peer_id, b"Hello, secure world!").await?;
+    // 3. Start the Event Loop
+    // This runs the swarm, discovery, and reporting services concurrently.
+    node.run().await?;
     
     Ok(())
 }
 ```
 
-## 📦 Installation
-
-```toml
-[dependencies]
-wolf_net = { path = "../wolf_net" }
-```
-
-## 🔧 Configuration
+### Sending a Message
 
 ```rust
-let config = NetworkConfig {
-    listen_addresses: vec!["/ip4/0.0.0.0/tcp/0".parse()?],
-    bootstrap_peers: vec![],
-    max_connections: 100,
-    ..Default::default()
-};
+use wolf_net::{SwarmCommand, PeerId};
+
+// Assuming access to the command channel (usually passed to other actors)
+async fn send_alert(command_sender: &mpsc::Sender<SwarmCommand>, target: PeerId, data: Vec<u8>) {
+    let _ = command_sender.send(SwarmCommand::SendMessage {
+        peer: target,
+        data,
+    }).await;
+}
 ```
 
-## 🛡️ Security
+## 📦 Dependencies
 
-- All peer-to-peer communication is encrypted with ChaCha20-Poly1305
-- X25519 Elliptic Curve Diffie-Hellman for key exchange
-- Perfect forward secrecy for all sessions
-- Automatic peer authentication
+Defined in `Cargo.toml`:
+*   `libp2p` (v0.53): Core networking stack.
+*   `tokio` (v1.35): Async runtime.
+*   `x25519-dalek` / `ed25519-dalek`: Cryptographic primitives.
+*   `bincode`/`serde`: Serialization.
 
-## 📄 License
+## 🔍 Module breakdown
 
-Licensed under either of Apache License, Version 2.0 or MIT license at your option.
-See [LICENSE-APACHE](../LICENSE-APACHE) and [LICENSE-MIT](../LICENSE-MIT) for details.
-
-### Third-Party Licenses
-This crate includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit.
-See [THIRD-PARTY-NOTICE.txt](../THIRD-PARTY-NOTICE.txt) in the project root for full details.
+| Module | Description |
+| :--- | :--- |
+| `p2p` | Core `NetworkBehaviour` combining GossipSub, Kademlia, and Request-Response. |
+| `discovery` | mDNS and DHT discovery logic logic. |
+| `wolf_pack` | Consensus and coordination logic (Hunt Protocol). |
+| `firewall` | Traffic filtering and rule management. |
+| `security` | Verification of signed envelopes and message integrity. |

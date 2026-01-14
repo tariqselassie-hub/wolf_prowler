@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 #![allow(missing_docs)]
 use std::collections::HashMap;
-use wolfsec::identity::advanced::notifications::*;
+use wolfsec::observability::notifications::*;
 
 #[tokio::test]
 async fn test_notification_engine_basic() {

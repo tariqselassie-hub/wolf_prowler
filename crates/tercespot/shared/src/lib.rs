@@ -3,24 +3,24 @@
 //! This crate provides common data structures, constants, and utility functions
 //! used across the `TersecPot` ecosystem, including the `AirGap` bridge and `WolfDb`.
 
-use fips204::ml_dsa_44; // ML-DSA-44 is the chosen parameter set via fips204
+use fips204::ml_dsa_87; // ML-DSA-87 is the chosen parameter set via fips204
 use fips204::traits::SerDes;
 use std::env;
 use std::fs;
 use std::path::Path;
 
-// ML-DSA-44 Constants
+// ML-DSA-87 Constants
 
-/// Size of the ML-DSA-44 signature in bytes
-pub const SIG_SIZE: usize = 2420;
+/// Size of the ML-DSA-87 signature in bytes
+pub const SIG_SIZE: usize = 4627;
 /// Size of the sequence number in bytes
 pub const SEQ_SIZE: usize = 8;
 /// Size of the timestamp in bytes
 pub const TS_SIZE: usize = 8;
-/// Size of the ML-DSA-44 public key in bytes
-pub const PK_SIZE: usize = 1312;
-/// Size of the ML-DSA-44 secret key in bytes
-pub const SK_SIZE: usize = 2560;
+/// Size of the ML-DSA-87 public key in bytes
+pub const PK_SIZE: usize = 2592;
+/// Size of the ML-DSA-87 secret key in bytes
+pub const SK_SIZE: usize = 4896;
 /// Total size of the command header
 pub const HEADER_SIZE: usize = SIG_SIZE + SEQ_SIZE + TS_SIZE;
 
@@ -83,7 +83,7 @@ pub fn log_path() -> String {
 /// # Errors
 ///
 /// Returns an error if the public key file cannot be read, or if its contents are invalid or too short.
-pub fn load_public_key<P: AsRef<Path>>(path: P) -> std::io::Result<ml_dsa_44::PublicKey> {
+pub fn load_public_key<P: AsRef<Path>>(path: P) -> std::io::Result<ml_dsa_87::PublicKey> {
     let bytes = fs::read(path)?;
     // Ensure sufficient bytes
     if bytes.len() < PK_SIZE {
@@ -103,7 +103,7 @@ pub fn load_public_key<P: AsRef<Path>>(path: P) -> std::io::Result<ml_dsa_44::Pu
                 "Invalid public key content",
             )
         })?;
-    ml_dsa_44::PublicKey::try_from_bytes(array).map_err(|_| {
+    ml_dsa_87::PublicKey::try_from_bytes(array).map_err(|_| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             "Invalid public key content struct",
@@ -359,9 +359,9 @@ pub fn is_partial_complete(partial: &PartialCommand) -> bool {
 /// Format: Count(u8) || Sig1 (2420) || Sig2 (2420) ... || Body
 #[must_use]
 #[allow(clippy::cast_possible_truncation)]
-pub fn package_payload(signatures: &[[u8; 2420]], body: &[u8]) -> Vec<u8> {
+pub fn package_payload(signatures: &[[u8; 4627]], body: &[u8]) -> Vec<u8> {
     let count = signatures.len() as u8;
-    let sig_size = 2420;
+    let sig_size = 4627;
     let capacity = (signatures.len())
         .saturating_mul(sig_size)
         .saturating_add(body.len())
@@ -528,7 +528,7 @@ mod tests {
     #[allow(clippy::unwrap_used, clippy::expect_used)]
     fn test_load_public_key() {
         // Generate a random PQC key
-        let (pk, _sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, _sk) = ml_dsa_87::KG::try_keygen().unwrap();
 
         // Write to temp file
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();

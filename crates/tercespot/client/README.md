@@ -3,7 +3,7 @@
 The **Submitter** CLI tool is used by operators to package and sign commands for the TersecPot system.
 
 ## Features
-*   **Key Generation**: Generates ephemeral **ML-DSA-44** keypairs.
+*   **Key Generation**: Generates ephemeral **ML-DSA-87** keypairs.
 *   **Encryption**: Encrypts commands for the Sentinel using **ML-KEM-1024**.
 *   **Signing**: Signs the encrypted package (Encrypt-then-Sign).
 *   **Multi-Party Support**: capable of `partial` signing and `append` flows for M-of-N authorization.

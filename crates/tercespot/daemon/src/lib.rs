@@ -10,7 +10,7 @@
 //! - Privacy-preserving audit logging
 //! - Pulse-based authentication for physical presence verification
 
-use fips204::ml_dsa_44; // Using specific parameter set
+use fips204::ml_dsa_87; // Using specific parameter set
 use fips204::traits::{SerDes, Verifier};
 use serde::{Deserialize, Serialize};
 use shared::{
@@ -29,6 +29,7 @@ use privacy::{AuditStatus, PrivacyAuditLogger, PrivacyConfig, PrivacyValidator};
 
 use shared::{decrypt_from_client, load_policy_config, postbox_path, KEM_SK_SIZE};
 use std::{fs, process::Command, thread, time::Duration};
+use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::mpsc::unbounded_channel;
 use tokio::time::sleep;
 
@@ -79,7 +80,7 @@ struct PendingCommand {
 /// A tuple of (public keys, role mappings) where role mappings map key hex to role names
 pub fn load_authorized_keys<P: AsRef<std::path::Path>>(
     path: P,
-) -> std::io::Result<(Vec<ml_dsa_44::PublicKey>, HashMap<String, Vec<String>>)> {
+) -> std::io::Result<(Vec<ml_dsa_87::PublicKey>, HashMap<String, Vec<String>>)> {
     let content = fs::read_to_string(path)?;
     let auth_keys: AuthorizedKeys = serde_json::from_str(&content)?;
     let mut keys = Vec::new();
@@ -90,7 +91,7 @@ pub fn load_authorized_keys<P: AsRef<std::path::Path>>(
         let pk_array: [u8; shared::PK_SIZE] = pk_bytes.try_into().map_err(|_| {
             std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid key length")
         })?;
-        let pk = ml_dsa_44::PublicKey::try_from_bytes(pk_array).map_err(|_| {
+        let pk = ml_dsa_87::PublicKey::try_from_bytes(pk_array).map_err(|_| {
             std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid public key")
         })?;
         keys.push(pk);
@@ -139,7 +140,7 @@ pub fn parse_wire_format(data: &[u8]) -> Option<(Vec<[u8; SIG_SIZE]>, Vec<u8>)> 
 pub fn verify_signature(
     body: &[u8],
     sig: &[u8; SIG_SIZE],
-    public_key: &ml_dsa_44::PublicKey,
+    public_key: &ml_dsa_87::PublicKey,
 ) -> bool {
     public_key.verify(body, sig, b"tersec")
 }
@@ -483,7 +484,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
     // Create key_hexes for lookup
     let mut key_hexes: Vec<String> = authorized_keys
         .iter()
-        .map(|pk: &ml_dsa_44::PublicKey| hex::encode(pk.clone().into_bytes()))
+        .map(|pk: &ml_dsa_87::PublicKey| hex::encode(pk.clone().into_bytes()))
         .collect();
 
     // 2. Load or Generate Daemon's KEM Private Key
@@ -539,6 +540,11 @@ pub async fn start_sentinel() -> std::io::Result<()> {
         return Err(std::io::Error::other(e));
     }
 
+    let mut sigint = signal(SignalKind::interrupt())?;
+    let mut sigterm = signal(SignalKind::terminate())?;
+
+    tracing::info!("[SENTINEL] Daemon started. Press Ctrl+C to stop.");
+
     // Main event loop
     #[allow(clippy::infinite_loop)]
     loop {
@@ -550,7 +556,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
                     role_mappings = mappings;
                     key_hexes = authorized_keys
                         .iter()
-                        .map(|pk: &ml_dsa_44::PublicKey| hex::encode(pk.clone().into_bytes()))
+                        .map(|pk: &ml_dsa_87::PublicKey| hex::encode(pk.clone().into_bytes()))
                         .collect();
                     if let Some(ref mut config) = policy_config {
                         config.role_mappings.clone_from(&role_mappings);
@@ -614,8 +620,23 @@ pub async fn start_sentinel() -> std::io::Result<()> {
             }
         }
 
-        sleep(Duration::from_millis(100)).await;
+        tokio::select! {
+            _ = sleep(Duration::from_millis(100)) => {
+                // Continue loop
+            }
+            _ = sigint.recv() => {
+                tracing::info!("[SENTINEL] Received SIGINT (Ctrl+C), shutting down...");
+                break;
+            }
+            _ = sigterm.recv() => {
+                tracing::info!("[SENTINEL] Received SIGTERM, shutting down...");
+                break;
+            }
+        }
     }
+
+    tracing::info!("[SENTINEL] Graceful shutdown complete.");
+    Ok(())
 }
 
 #[allow(
@@ -626,7 +647,7 @@ pub async fn start_sentinel() -> std::io::Result<()> {
 async fn process_file(
     file_path: &str,
     kem_sk: &ml_kem_1024::DecapsKey,
-    authorized_keys: &[ml_dsa_44::PublicKey],
+    authorized_keys: &[ml_dsa_87::PublicKey],
     key_hexes: &[String],
     pending_commands: &mut HashMap<u64, PendingCommand>,
     last_seq: &mut u64,
@@ -872,12 +893,12 @@ async fn execute_as_root(cmd: &str, privacy_logger: &PrivacyAuditLogger, emergen
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fips204::ml_dsa_44;
+    use fips204::ml_dsa_87;
     use fips204::traits::{KeyGen, Signer};
 
     #[test]
     fn test_parse_and_verify() {
-        let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
 
         let payload = b"encrypted_stuff";
         let sig = sk.try_sign(payload, b"tersec").unwrap();
@@ -941,7 +962,7 @@ mod tests {
         }
 
         // Create test data
-        let (pk, _sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, _sk) = ml_dsa_87::KG::try_keygen().unwrap();
         let pk_bytes = pk.into_bytes();
         let pk_hex = hex::encode(pk_bytes);
 
@@ -982,8 +1003,8 @@ mod tests {
 
     #[test]
     fn test_verify_signature_invalid() {
-        let (pk, _sk) = ml_dsa_44::KG::try_keygen().unwrap();
-        let (_pk2, sk2) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, _sk) = ml_dsa_87::KG::try_keygen().unwrap();
+        let (_pk2, sk2) = ml_dsa_87::KG::try_keygen().unwrap();
 
         let payload = b"test";
         let sig = sk2.try_sign(payload, b"tersec").unwrap();

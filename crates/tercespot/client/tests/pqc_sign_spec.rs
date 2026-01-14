@@ -2,14 +2,14 @@
 //!
 //! This module tests the post-quantum cryptography signing logic.
 
-use fips204::ml_dsa_44; // FIPS 204 crate
+use fips204::ml_dsa_87; // FIPS 204 crate
 use fips204::traits::{KeyGen, Verifier};
 use submitter::{package_payload, sign_data}; // Need KeyGen for test keys, Verifier for check
 
 #[test]
 fn test_pqc_signature_correctness() {
     // 1. Generate Valid Keys (independent of client logic, using crate directly)
-    let (pk, sk) = ml_dsa_44::KG::try_keygen().expect("Keygen failed");
+    let (pk, sk) = ml_dsa_87::KG::try_keygen().expect("Keygen failed");
 
     // 2. Sign a command using Submitter's function
     let command = "exec --do-evil";
@@ -20,8 +20,8 @@ fn test_pqc_signature_correctness() {
     // 3. Verify size
     assert_eq!(
         sig_array.len(),
-        2420,
-        "Signature size must match ML-DSA-44 spec"
+        4627,
+        "Signature size must match ML-DSA-87 spec"
     );
 
     // 4. Verify independently
@@ -32,7 +32,7 @@ fn test_pqc_signature_correctness() {
 
 #[test]
 fn test_package_format() {
-    let (_pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+    let (_pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
     let command = "ls -la";
     let seq = 1u64;
     let ts = 1000u64;
@@ -48,14 +48,14 @@ fn test_package_format() {
     let signatures = vec![sig_array];
     let packaged = package_payload(&signatures, &payload);
 
-    // Format: Count(1) + Signature (2420) || Body
-    let expected_len = 1 + 2420 + payload.len();
+    // Format: Count(1) + Signature (4627) || Body
+    let expected_len = 1 + 4627 + payload.len();
     assert_eq!(packaged.len(), expected_len);
 
     // Check count
     assert_eq!(packaged[0], 1);
     // Check prefix (Offset 1)
-    assert_eq!(&packaged[1..2421], &sig_array);
+    assert_eq!(&packaged[1..4628], &sig_array);
     // Check suffix
-    assert_eq!(&packaged[2421..], payload.as_slice());
+    assert_eq!(&packaged[4628..], payload.as_slice());
 }

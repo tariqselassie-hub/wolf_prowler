@@ -1,5 +1,5 @@
 use crate::check_pulse;
-use fips204::ml_dsa_44; // For verifying signature
+use fips204::ml_dsa_87; // For verifying signature
 use fips204::traits::{SerDes, Verifier};
 use shared::postbox_path;
 use std::fs;
@@ -194,13 +194,13 @@ fn wait_for_crypto() -> bool {
         tracing::info!("[PULSE] Error: pulse_pk not found in postbox.");
         return false;
     };
-    let pk_array: [u8; 1312] = if let Ok(a) = pk_bytes.try_into() {
+    let pk_array: [u8; 2592] = if let Ok(a) = pk_bytes.try_into() {
         a
     } else {
         tracing::info!("[PULSE] Error: Invalid pulse_pk size.");
         return false;
     };
-    let pk = if let Ok(k) = ml_dsa_44::PublicKey::try_from_bytes(pk_array) {
+    let pk = if let Ok(k) = ml_dsa_87::PublicKey::try_from_bytes(pk_array) {
         k
     } else {
         tracing::info!("[PULSE] Error: Invalid pulse_pk format.");
@@ -229,7 +229,7 @@ fn wait_for_crypto() -> bool {
     for _ in 0..30 {
         if Path::new(&response_path).exists() {
             // Read Response (Should be Signature)
-            // Sig size is 2420
+            // Sig size is 4627
             let sig_bytes = if let Ok(b) = fs::read(&response_path) {
                 b
             } else {
@@ -237,8 +237,8 @@ fn wait_for_crypto() -> bool {
                 continue;
             };
 
-            if sig_bytes.len() == 2420 {
-                let sig_array: [u8; 2420] = sig_bytes.try_into().unwrap();
+            if sig_bytes.len() == 4627 {
+                let sig_array: [u8; 4627] = sig_bytes.try_into().unwrap();
                 if pk.verify(challenge, &sig_array, b"tersec_pulse") {
                     tracing::info!("[PULSE] VALID RESPONSE! Pulse Confirmed.");
                     let _ = fs::remove_file(&challenge_path);

@@ -294,8 +294,7 @@ mod security_tests {
         // (CryptoEngine has verify_signature which takes Signature)
         let signature_obj = ed25519_dalek::Signature::from_bytes(
             signature.signature.as_slice().try_into().unwrap(),
-        )
-        ;
+        );
 
         let verification_result = engine.verify_signature(data, &signature_obj, &pub_key);
 
@@ -511,7 +510,7 @@ mod security_tests {
         // Register peer (this replaces the old handle_peer_connected)
         detector.register_peer(peer_id.clone(), 0.5).await.unwrap();
 
-        let peer_info = detector.get_peer(&peer_id).await.unwrap();
+        let peer_info = detector.get_peer_info(&peer_id).await.unwrap();
         assert_eq!(peer_info.trust_level, 0.5); // Neutral trust
         assert_eq!(peer_info.connection_count, 0); // Not incremented in register_peer
 
@@ -549,7 +548,7 @@ mod security_tests {
         detector.record_event(event).await;
 
         // Verify trust level decreased
-        let peer_info = detector.get_peer(&peer_id).await.unwrap();
+        let peer_info = detector.get_peer_info(&peer_id).await.unwrap();
         assert!(peer_info.trust_level < 0.5); // Should have decreased
         assert!(peer_info.flags.suspicious);
 
@@ -589,7 +588,7 @@ mod security_tests {
         detector.record_event(event).await;
 
         // Verify pack member status (this might not be set automatically in the current implementation)
-        let _peer_info = detector.get_peer(&peer_id).await.unwrap();
+        let _peer_info = detector.get_peer_info(&peer_id).await.unwrap();
         // Note: The current implementation may not automatically set pack_member flag
         // This test verifies the event was recorded
         let events = detector.get_events().await;
@@ -627,7 +626,7 @@ mod security_tests {
         manager.record_event(event).await;
 
         // Verify threat created (if trust below threshold)
-        let peer_info = manager.get_peer(&peer_id).await.unwrap();
+        let peer_info = manager.get_peer_info(&peer_id).await.unwrap();
         if peer_info.trust_level < manager.config().security_config.trust_threshold {
             let threats = manager.get_active_threats().await;
             assert_eq!(threats.len(), 1);
@@ -901,6 +900,16 @@ mod security_tests {
             crate::domain::error::DomainError,
         > {
             Ok(None)
+        }
+
+        async fn get_recent_threats(
+            &self,
+            _limit: usize,
+        ) -> std::result::Result<
+            Vec<crate::domain::entities::Threat>,
+            crate::domain::error::DomainError,
+        > {
+            Ok(Vec::new())
         }
     }
 

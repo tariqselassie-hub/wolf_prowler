@@ -5,17 +5,20 @@ Welcome to the Wolf Prowler project documentation. This documentation is organiz
 ## 📚 Documentation Structure
 
 ### 🚀 **Getting Started**
+
 - **[Project README](user-guides/PROJECT_README.md)** - Main project overview
 - **[Quick Start](user-guides/QUICK_START.md)** - Get up and running quickly
 - **[Installation Guide](user-guides/INSTALLATION.md)** - Detailed installation instructions
 - **[CLI Documentation](user-guides/CLI_DOCUMENTATION.md)** - Command-line interface reference
 
 ### 🏗️ **Architecture & Design**
+
 - **[Network Discovery](architecture/NETWORK_DISCOVERY.md)** - Peer discovery architecture
 - **[Message Protocol Demo](architecture/message_protocol_demo.md)** - Messaging system design
 - **[API Documentation](api/)** - API reference documentation
 
 ### 🔧 **Development**
+
 - **[Implementation Progress](development/IMPLEMENTATION_PROGRESS.md)** - Current development status
 - **[Phase Completion](development/PHASE1_COMPLETE.md)** - Phase 1 completion report
 - **[Phase Completion](development/PHASE2_COMPLETE.md)** - Phase 2 completion report
@@ -79,6 +82,11 @@ Welcome to the Wolf Prowler project documentation. This documentation is organiz
 ---
 
 ## 🆕 Recent Updates (v1.1)
+
+### January 2026
+- **Wolf Net Production Ready**: mDNS discovery, multi-transport stability, and full dashboard integration.
+- **Wolfsec Stabilization**: Verified threat detection pipeline and comprehensive test coverage.
+- **Wolf Web Dashboard**: Real-time integration with backend services and verified data flow.
 
 ### December 2025
 - **HyperPulse Transport**: Integrated QUIC protocol for low-latency P2P communication

@@ -585,6 +585,7 @@ impl Default for ThreatDetectionConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
 
     #[test]
     fn test_threat_detection_manager_creation() {

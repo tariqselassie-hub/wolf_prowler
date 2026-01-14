@@ -8,7 +8,12 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::info;
+use tracing::{info, warn};
+
+// Import firewall types from wolf_net
+use wolf_net::firewall::{
+    Action, FirewallPolicy, FirewallRule, InternalFirewall, Protocol, RuleTarget, TrafficDirection,
+};
 
 /// symmetric encryption algorithms supported for packet and payload protection
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -336,6 +341,8 @@ pub struct SecurityManager {
     auth_tokens: Arc<RwLock<HashMap<String, AuthToken>>>,
     /// default security tier for new operations
     security_level: SecurityLevel,
+    /// internal firewall for network access control
+    firewall: Arc<RwLock<InternalFirewall>>,
 }
 
 impl SecurityManager {
@@ -347,6 +354,10 @@ impl SecurityManager {
 
     /// orchestrates the security lifecycle for the provided identity and default level.
     pub fn new(entity_id: String, security_level: SecurityLevel) -> Self {
+        // Create firewall with implicit deny-by-default policy
+        let mut firewall = InternalFirewall::new();
+        firewall.set_policy(FirewallPolicy::DenyAll);
+
         Self {
             entity_id,
             key_pairs: Arc::new(RwLock::new(HashMap::new())),
@@ -354,6 +365,7 @@ impl SecurityManager {
             public_keys: Arc::new(RwLock::new(HashMap::new())),
             auth_tokens: Arc::new(RwLock::new(HashMap::new())),
             security_level,
+            firewall: Arc::new(RwLock::new(firewall)),
         }
     }
 
@@ -379,7 +391,112 @@ impl SecurityManager {
         );
 
         info!("🔑 Generated default key pair: {}", fingerprint);
+
+        // Initialize firewall with essential whitelist rules
+        self.setup_essential_firewall_rules().await;
+        info!("🔥 Firewall initialized with implicit deny-by-default policy");
+
         Ok(())
+    }
+
+    /// Setup essential whitelist rules for core Wolf Prowler operations
+    async fn setup_essential_firewall_rules(&self) {
+        let mut firewall = self.firewall.write().await;
+
+        // Allow Wolf Protocol for authenticated communication
+        firewall.add_rule(FirewallRule::new(
+            "Wolf Protocol Inbound",
+            RuleTarget::Any,
+            Protocol::WolfProto,
+            Action::Allow,
+            TrafficDirection::Inbound,
+        ));
+
+        firewall.add_rule(FirewallRule::new(
+            "Wolf Protocol Outbound",
+            RuleTarget::Any,
+            Protocol::WolfProto,
+            Action::Allow,
+            TrafficDirection::Outbound,
+        ));
+
+        // Allow mDNS for peer discovery (port 5353 UDP)
+        firewall.add_rule(FirewallRule::new(
+            "mDNS Discovery",
+            RuleTarget::Port(5353),
+            Protocol::UDP,
+            Action::Allow,
+            TrafficDirection::Both,
+        ));
+
+        info!("🔥 Added {} essential firewall rules", firewall.rules.len());
+    }
+
+    /// Check if a specific traffic flow should be blocked by the firewall
+    pub async fn should_block(
+        &self,
+        target: &RuleTarget,
+        protocol: &Protocol,
+        direction: &TrafficDirection,
+    ) -> bool {
+        let firewall = self.firewall.read().await;
+        let should_block = !firewall.check_access(target, protocol, direction);
+
+        if should_block {
+            warn!(
+                "🔥 Firewall BLOCKED: target={:?}, protocol={:?}, direction={:?}",
+                target, protocol, direction
+            );
+        }
+
+        should_block
+    }
+
+    /// Add a manual firewall rule
+    pub async fn add_firewall_rule(&self, rule: FirewallRule) {
+        let mut firewall = self.firewall.write().await;
+        info!("🔥 Adding firewall rule: {}", rule.name);
+        firewall.add_rule(rule);
+    }
+
+    /// Remove firewall rules by port
+    pub async fn remove_firewall_rule_by_port(&self, port: u16) {
+        let mut firewall = self.firewall.write().await;
+        info!("🔥 Removing firewall rules for port: {}", port);
+        firewall.remove_rule_by_port(port);
+    }
+
+    /// Set firewall policy
+    pub async fn set_firewall_policy(&self, policy: FirewallPolicy) {
+        let mut firewall = self.firewall.write().await;
+        info!("🔥 Setting firewall policy to: {:?}", policy);
+        firewall.set_policy(policy);
+    }
+
+    /// Enable or disable the firewall
+    pub async fn set_firewall_enabled(&self, enabled: bool) {
+        let mut firewall = self.firewall.write().await;
+        info!(
+            "🔥 Firewall {}",
+            if enabled { "ENABLED" } else { "DISABLED" }
+        );
+        firewall.enabled = enabled;
+    }
+
+    /// Get current firewall rules
+    pub async fn get_firewall_rules(&self) -> Vec<FirewallRule> {
+        let firewall = self.firewall.read().await;
+        firewall.rules.clone()
+    }
+
+    /// Get firewall statistics
+    pub async fn get_firewall_stats(&self) -> FirewallStats {
+        let firewall = self.firewall.read().await;
+        FirewallStats {
+            enabled: firewall.enabled,
+            policy: firewall.policy,
+            total_rules: firewall.rules.len(),
+        }
     }
 
     /// Get security statistics
@@ -421,6 +538,17 @@ impl SecurityManager {
         info!("🔐 Security manager shutdown complete");
         Ok(())
     }
+}
+
+/// Firewall statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FirewallStats {
+    /// Whether firewall is enabled
+    pub enabled: bool,
+    /// Current firewall policy
+    pub policy: FirewallPolicy,
+    /// Total number of rules
+    pub total_rules: usize,
 }
 
 /// Security statistics

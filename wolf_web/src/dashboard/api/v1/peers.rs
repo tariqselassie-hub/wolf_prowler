@@ -84,7 +84,7 @@ async fn get_peer_network_stats(State(state): State<Arc<AppState>>) -> Json<Peer
 /// Calculate network health based on average reputation
 fn calculate_network_health(avg_reputation: f64) -> f64 {
     // Simple calculation: higher reputation = better health
-    (avg_reputation * 0.8 + 0.2).min(1.0)
+    avg_reputation.mul_add(0.8, 0.2).min(1.0)
 }
 
 /// Get details for specific peer
@@ -117,14 +117,10 @@ async fn get_peer_details(
         reputation,
         connected: reputation_system.is_peer_connected(&peer_id).await,
         blocked,
-        last_seen: last_seen
-            .map(|d| d.to_rfc3339())
-            .unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
+        last_seen: last_seen.map_or_else(|| chrono::Utc::now().to_rfc3339(), |d| d.to_rfc3339()),
         message_count: message_count as u64,
         threat_count,
-        last_updated: last_updated
-            .map(|d| d.to_rfc3339())
-            .unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
+        last_updated: last_updated.map_or_else(|| chrono::Utc::now().to_rfc3339(), |d| d.to_rfc3339()),
     }))
 }
 

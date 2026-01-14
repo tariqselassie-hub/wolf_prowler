@@ -1,15 +1,15 @@
 //! Cryptographic utilities for Air Gap Bridge
 
 use crate::error::{AirGapError, Result};
-use fips204::ml_dsa_44;
+use fips204::ml_dsa_87;
 use fips204::traits::{SerDes, Verifier};
 
-/// Length of the ML-DSA-44 public key in bytes
-pub const PK_SIZE: usize = 1312;
-/// Length of the ML-DSA-44 signature in bytes
-pub const SIG_SIZE: usize = 2420;
+/// Length of the ML-DSA-87 public key in bytes
+pub const PK_SIZE: usize = 2592;
+/// Length of the ML-DSA-87 signature in bytes
+pub const SIG_SIZE: usize = 4627;
 
-/// Verify signature using FIPS204 (ML-DSA-44)
+/// Verify signature using FIPS204 (ML-DSA-87)
 ///
 /// # Errors
 /// Returns an error if the input is invalid or key parsing fails.
@@ -40,7 +40,7 @@ pub fn verify_signature(data: &[u8], signature: &[u8], public_key: &[u8]) -> Res
         .try_into()
         .map_err(|_| AirGapError::Crypto("Failed to convert signature to array".to_string()))?;
 
-    let pk = ml_dsa_44::PublicKey::try_from_bytes(pk_array)
+    let pk = ml_dsa_87::PublicKey::try_from_bytes(pk_array)
         .map_err(|e| AirGapError::Crypto(format!("Failed to parse public key: {e:?}")))?;
 
     Ok(pk.verify(data, &sig_array, b""))
@@ -54,7 +54,7 @@ mod tests {
     #[test]
     fn test_verify_signature_valid() {
         // Generate keypair
-        let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
         let message = b"Hello, World!";
 
         // Sign message
@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_verify_signature_invalid_signature() {
-        let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
         let message = b"Hello, World!";
         let sig = sk.try_sign(message, b"").unwrap();
 
@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_verify_signature_invalid_message() {
-        let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap();
+        let (pk, sk) = ml_dsa_87::KG::try_keygen().unwrap();
         let message = b"Hello, World!";
         let sig = sk.try_sign(message, b"").unwrap();
 

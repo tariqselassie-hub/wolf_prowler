@@ -4,7 +4,7 @@
 
 use clap::{Parser, Subcommand};
 use fips203::ml_kem_1024;
-use fips204::ml_dsa_44;
+use fips204::ml_dsa_87;
 use fips204::traits::{KeyGen, SerDes};
 use shared::{encrypt_for_sentinel, load_kem_public_key, postbox_path, Role, SK_SIZE};
 use std::fs::{self, File};
@@ -282,11 +282,11 @@ fn load_sequence(seq_path: &str) -> std::io::Result<u64> {
     }
 }
 
-fn load_private_key(path: &str) -> std::io::Result<ml_dsa_44::PrivateKey> {
+fn load_private_key(path: &str) -> std::io::Result<ml_dsa_87::PrivateKey> {
     let mut file = File::open(path)?;
     let mut bytes = [0u8; SK_SIZE];
     file.read_exact(&mut bytes)?;
-    ml_dsa_44::PrivateKey::try_from_bytes(bytes)
+    ml_dsa_87::PrivateKey::try_from_bytes(bytes)
         .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid private key"))
 }
 
@@ -332,7 +332,7 @@ fn handle_keygen(postbox: &str, sk_path: &str) -> std::io::Result<()> {
 
     // Generate
     let (pk, sk) =
-        ml_dsa_44::KG::try_keygen().map_err(|_| std::io::Error::other("Keygen failed"))?;
+        ml_dsa_87::KG::try_keygen().map_err(|_| std::io::Error::other("Keygen failed"))?;
 
     // Save Private Key
     let mut private_key_file = File::create(sk_path)?;

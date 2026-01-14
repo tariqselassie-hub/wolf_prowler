@@ -23,7 +23,7 @@ pub struct CryptoResponse {
     pub trusted_certificates: usize,
     /// Expired certificates
     pub expired_certificates: usize,
-    /// Average operation time (ms) - still a placeholder as not tracked in KeyManager
+    /// Average operation time (ms) - still a placeholder as not tracked in `KeyManager`
     pub avg_operation_time: f64,
 }
 

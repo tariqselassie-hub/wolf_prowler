@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
@@ -17,7 +18,7 @@ impl InternalFirewall {
     pub const fn new() -> Self {
         Self {
             rules: Vec::new(),
-            policy: FirewallPolicy::Default,
+            policy: FirewallPolicy::DenyAll, // Implicit deny-by-default
             enabled: true,
         }
     }
@@ -25,14 +26,24 @@ impl InternalFirewall {
     /// Add a new rule to the firewall
     pub fn add_rule(&mut self, rule: FirewallRule) {
         self.rules.push(rule);
+        // Sort by priority (lower number = higher priority)
+        self.rules.sort_by_key(|r| r.priority);
     }
 
     /// Remove rules by port (simple convenience method)
     pub fn remove_rule_by_port(&mut self, port: u16) {
-        self.rules.retain(|rule| match rule.target {
-            RuleTarget::Port(p) => p != port,
+        self.rules.retain(|rule| match &rule.target {
+            RuleTarget::Port(p) => p != &port,
+            RuleTarget::PortRange(start, end) => !(port >= *start && port <= *end),
             _ => true,
         });
+    }
+
+    /// Remove expired rules
+    pub fn cleanup_expired_rules(&mut self) -> usize {
+        let before = self.rules.len();
+        self.rules.retain(|rule| !rule.is_expired());
+        before - self.rules.len()
     }
 
     /// Set the default policy
@@ -52,8 +63,13 @@ impl InternalFirewall {
             return true;
         }
 
-        // Iterate through rules to find a match
+        // Iterate through rules (already sorted by priority) to find a match
         for rule in &self.rules {
+            // Skip expired rules
+            if rule.is_expired() {
+                continue;
+            }
+
             if rule.matches(target, protocol, direction) {
                 match rule.action {
                     Action::Allow => return true,
@@ -100,6 +116,12 @@ pub struct FirewallRule {
     pub action: Action,
     /// The traffic direction this rule applies to.
     pub direction: TrafficDirection,
+    /// Priority (0 = highest, 255 = lowest). Lower values evaluated first.
+    pub priority: u8,
+    /// When this rule was created.
+    pub created_at: DateTime<Utc>,
+    /// Optional expiration time for temporary rules.
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
 impl FirewallRule {
@@ -117,6 +139,60 @@ impl FirewallRule {
             protocol,
             action,
             direction,
+            priority: 128, // Default medium priority
+            created_at: Utc::now(),
+            expires_at: None,
+        }
+    }
+
+    /// Creates a new rule with custom priority.
+    pub fn with_priority(
+        name: impl Into<String>,
+        target: RuleTarget,
+        protocol: Protocol,
+        action: Action,
+        direction: TrafficDirection,
+        priority: u8,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            target,
+            protocol,
+            action,
+            direction,
+            priority,
+            created_at: Utc::now(),
+            expires_at: None,
+        }
+    }
+
+    /// Creates a temporary rule with TTL.
+    pub fn with_ttl(
+        name: impl Into<String>,
+        target: RuleTarget,
+        protocol: Protocol,
+        action: Action,
+        direction: TrafficDirection,
+        ttl_seconds: i64,
+    ) -> Self {
+        let now = Utc::now();
+        Self {
+            name: name.into(),
+            target,
+            protocol,
+            action,
+            direction,
+            priority: 128,
+            created_at: now,
+            expires_at: Some(now + chrono::Duration::seconds(ttl_seconds)),
+        }
+    }
+
+    /// Check if this rule has expired.
+    pub fn is_expired(&self) -> bool {
+        match self.expires_at {
+            Some(expiry) => Utc::now() > expiry,
+            None => false,
         }
     }
 
@@ -137,13 +213,8 @@ impl FirewallRule {
             return false;
         }
 
-        // Check target (Port, IP, PeerID)
-        // Simple equality for now, could be range or subnet later
-        if self.target != RuleTarget::Any && self.target != *target {
-            return false;
-        }
-
-        true
+        // Check target using the enhanced matching logic
+        self.target.matches(target)
     }
 }
 
@@ -154,10 +225,55 @@ pub enum RuleTarget {
     Any,
     /// Applies to a specific network port.
     Port(u16),
+    /// Applies to a port range (inclusive).
+    PortRange(u16, u16),
     /// Applies to a specific IP address.
     Ip(IpAddr),
+    /// Applies to an IP subnet (CIDR notation: address + prefix length).
+    IpSubnet(IpAddr, u8),
     /// Applies to a specific peer identifier.
     PeerId(String),
+    /// Applies to multiple peer identifiers.
+    PeerGroup(Vec<String>),
+}
+
+impl RuleTarget {
+    /// Check if this target matches another target.
+    pub fn matches(&self, other: &RuleTarget) -> bool {
+        match (self, other) {
+            (RuleTarget::Any, _) => true,
+            (RuleTarget::Port(p1), RuleTarget::Port(p2)) => p1 == p2,
+            (RuleTarget::PortRange(start, end), RuleTarget::Port(p)) => p >= start && p <= end,
+            (RuleTarget::Ip(ip1), RuleTarget::Ip(ip2)) => ip1 == ip2,
+            (RuleTarget::IpSubnet(subnet, prefix), RuleTarget::Ip(ip)) => {
+                Self::ip_in_subnet(ip, subnet, *prefix)
+            }
+            (RuleTarget::PeerId(id1), RuleTarget::PeerId(id2)) => id1 == id2,
+            (RuleTarget::PeerGroup(group), RuleTarget::PeerId(id)) => group.contains(id),
+            _ => false,
+        }
+    }
+
+    /// Check if an IP is within a subnet.
+    fn ip_in_subnet(ip: &IpAddr, subnet: &IpAddr, prefix_len: u8) -> bool {
+        use std::net::IpAddr;
+
+        match (ip, subnet) {
+            (IpAddr::V4(ip), IpAddr::V4(subnet)) => {
+                let ip_bits = u32::from(*ip);
+                let subnet_bits = u32::from(*subnet);
+                let mask = !0u32 << (32 - prefix_len);
+                (ip_bits & mask) == (subnet_bits & mask)
+            }
+            (IpAddr::V6(ip), IpAddr::V6(subnet)) => {
+                let ip_bits = u128::from(*ip);
+                let subnet_bits = u128::from(*subnet);
+                let mask = !0u128 << (128 - prefix_len);
+                (ip_bits & mask) == (subnet_bits & mask)
+            }
+            _ => false,
+        }
+    }
 }
 
 /// Action to take on match

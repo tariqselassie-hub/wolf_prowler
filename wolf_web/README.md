@@ -1,60 +1,82 @@
-# Wolf Web Dashboard
+# Wolf Web: Security Command Center
 
-**Status**: ✅ Production Ready | **Version**: 2.0 Enterprise
+> **Status**: Production Ready (Version 0.1.0)
+> **Stack**: Dioxus 0.6 (Fullstack) + Axum + TailwindCSS
+> **Role**: Command & Control Interface for Wolf Prowler
 
-The Wolf Web Dashboard is a high-performance, Dioxus-based frontend for the Wolf Prowler ecosystem. It provides a real-time "Command Center" interface for security administrators, featuring granular controls, live metrics, and deep system insights.
-
-## 🌟 Key Features
-
-### 🖥️ Command Center Interface
-- **Admin-Centric Design**: Optimized for situational awareness and rapid response.
-- **Top Bar HUD**: Always-on visibility of critical system stats (Network Status, Database Health, Uptime).
-- **Metric Sparklines**: Real-time trend visualization for Threat Levels and Node Activity.
-
-### 🛠️ Advanced Operations
-- **Deep Scan Control**: Granular control over system scanners with progress visualization.
-- **Quick Actions**: One-click execution of routine maintenance tasks (Flush Cache, Rotate Keys, Export Logs).
-- **Live Terminal**: A real-time system output stream for monitoring low-level events.
-
-### 🎨 UI Kit (`src/ui_kit.rs`)
-A custom, lightweight component library built for speed and consistency:
-- **`Card`**: Standardized container with "Glassmorphism" styling.
-- **`Button`**: Interactive elements with hover states and disabled logic.
-- **`Badge`**: Status indicators with semantic coloring (Green/Red/Blue/Yellow).
-- **`Sparkline`**: SVG-based lightweight charting component.
+Wolf Web is the unified dashboard for the Wolf Prowler ecosystem. Built on Dioxus Fullstack, it renders a high-performance "Single Page Application" (SPA) that communicates directly with the Rust backend via Server Functions.
 
 ## 🏗️ Architecture
 
-- **Framework**: Dioxus 0.6 (Fullstack).
-- **Styling**: Tailwind CSS (via CDN) with a custom "Cyber-Security" theme.
-- **State Management**: Robust `use_resource` and `use_signal` implementation with proper error handling and fallback states.
-- **Data Flow**: Direct server functions for seamless backend communication.
+The dashboard implements a **Server-Driven UI** pattern. The frontend is hydrated with state directly from the `WolfNode`, `WolfSec`, and `WolfDb` instances running in the shared server process.
 
-## 🚀 Getting Started
+```mermaid
+graph TD
+    User([Admin]) <-->|Interact| UI[Dioxus Frontend (WASM)]
+    UI <-->|RPC| API[Server Functions]
+    
+    subgraph "Wolf Web Server (Axum)"
+        API -->|Read/Write| AppState[Global State]
+        AppState <-->|Manage| WSec[WolfSec Engine]
+        AppState <-->|Control| WNet[WolfNet Swarm]
+        AppState <-->|Query| DB[WolfDb Storage]
+        AppState <-->|Command| Agent[Headless Agent]
+    end
+```
 
-To run the dashboard in development mode:
+### Core Components
+
+1.  **Command Center (`dashboard.rs`)**:
+    *   Real-time HUD displaying Network Status, Threat Level, and DB health.
+    *   Uses `use_resource` to poll backend stats via `get_fullstack_stats`.
+2.  **Vault Interface (`vault_components.rs`)**:
+    *   Management UI for the `WolfDb` Key-Value store.
+    *   Supports manual injection and inspection of encrypted records.
+3.  **Terminal Stream**:
+    *   Live websocket-like stream of system logs and Prowler output.
+
+## 💻 Usage
+
+### Development Server
+
+Run the fullstack application in development mode:
 
 ```bash
+# Starts the Dioxus/Axum server
 cargo run -p wolf_web --features server
 ```
 
-Navigate to `http://127.0.0.1:8080` to access the interface.
+Access the dashboard at `http://127.0.0.1:8080`.
 
-## 📦 Components
+### Backend Wiring (`src/main.rs`)
 
-- **`dashboard_components.rs`**: High-level widgets like `NetworkBanner` and `SecurityBanner`.
-- **`vault_components.rs`**: Cryptographic tools interface.
-- **`ui_kit.rs`**: Core design system primitives.
-- **`types.rs`**: Shared data structures (`SystemStats`, `RecordView`).
+Wolf Web initializes the entire ecosystem within its runtime:
 
-## 🧪 Testing
-
-Run the dashboard integration tests:
-
-```bash
-# Run standard unit tests
-cargo test -p wolf_web
-
-# Run comprehensive system integration tests
-cargo test --test dashboard_comprehensive_test
+```rust
+#[tokio::main]
+async fn main() {
+    // 1. Initialize Storage (WolfDb)
+    let store = WolfStore::new(&db_path).await?;
+    
+    // 2. Initialize Swarm (WolfNet)
+    let swarm = SwarmManager::new(config).await?;
+    
+    // 3. Initialize Security (WolfSec)
+    let security = WolfSecurity::create(sec_config).await?;
+    
+    // 4. Launch Dioxus Server with Shared State
+    launch_app(AppState {
+        swarm: Arc::new(swarm),
+        security: Arc::new(security),
+        store: Arc::new(store),
+    });
+}
 ```
+
+## 📦 Dependencies
+
+*   `dioxus` / `dioxus-fullstack`: UI Framework.
+*   `axum`: Backend server.
+*   `wolfsec`: Security logic.
+*   `wolf_net`: Network status.
+*   `lock_prowler`: Integration with the headless agent.

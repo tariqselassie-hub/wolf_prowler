@@ -25,7 +25,16 @@ async fn main() -> anyhow::Result<()> {
     // Initialize logging
     tracing_subscriber::fmt::init();
 
-    tracing::info!("🐺 Wolf Server initializing...");
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
+    tracing::info!("🐺 Wolf Server v{} initializing...", VERSION);
+
+    // Dynamic Version Validation
+    // Ensure we are running a supported version
+    if VERSION.starts_with("0.0.") {
+        tracing::warn!("⚠️ Running unstable development version: {}", VERSION);
+    } else {
+        tracing::info!("✅ Running stable version: {}", VERSION);
+    }
 
     // Load configuration
     // In a real deployment, this would load from a file or environment variables

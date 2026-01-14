@@ -85,7 +85,7 @@ async fn scan_container(
                     "risk_rank": format!("{:?}", access.pack_rank)
                 })));
             }
-            Err(e) => return Err(ApiError::InternalError(format!("Scan failed: {}", e))),
+            Err(e) => return Err(ApiError::InternalError(format!("Scan failed: {e}"))),
         }
     }
 
@@ -104,13 +104,13 @@ async fn isolate_container(
     if let Some(wolf_security_arc) = state.get_wolf_security() {
         let security = wolf_security_arc.read().await;
         match security.container_manager.isolate_container(&id).await {
-            Ok(_) => {
+            Ok(()) => {
                 return Ok(Json(serde_json::json!({
                     "success": true,
                     "message": format!("Container {} isolated successfully", id)
                 })));
             }
-            Err(e) => return Err(ApiError::InternalError(format!("Isolation failed: {}", e))),
+            Err(e) => return Err(ApiError::InternalError(format!("Isolation failed: {e}"))),
         }
     }
 

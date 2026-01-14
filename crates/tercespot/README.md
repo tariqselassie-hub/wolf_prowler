@@ -7,7 +7,7 @@
 ## 🛡️ Security Features
 
 ### 1. Post-Quantum Cryptography (PQC)
-*   **Signatures (Authentication)**: **NIST FIPS 204 (ML-DSA-44)** ensures that command authorization is resistant to quantum computer attacks.
+*   **Signatures (Authentication)**: **NIST FIPS 204 (ML-DSA-87)** ensures that command authorization is resistant to quantum computer attacks.
 *   **Encryption (Confidentiality)**: **NIST FIPS 203 (ML-KEM-1024)** + **AES-256-GCM** ensures that command contents remain invisible to attackers on the host until the moment of execution.
 
 ### 2. Multi-Party Authorization (M-of-N)
@@ -51,8 +51,8 @@ The system is optimized for high-performance post-quantum security:
 
 | Operation | Mean Time | Throughput/Core |
 | :--- | :--- | :--- |
-| **ML-DSA-44 Verify** | **~90 µs** | ~11,000 ops/sec |
-| **ML-DSA-44 Sign** | **~421 µs** | ~2,300 ops/sec |
+| **ML-DSA-87 Verify** | **~120 µs** | ~8,300 ops/sec |
+| **ML-DSA-87 Sign** | **~550 µs** | ~1,800 ops/sec |
 | **Encryption (KEM+AES)** | **~104 µs** | ~9,600 ops/sec |
 
 *Benchmarks run on a standard Linux environment (2026-01-04).*

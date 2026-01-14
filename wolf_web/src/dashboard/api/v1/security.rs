@@ -104,7 +104,7 @@ async fn get_security_status(State(state): State<Arc<AppState>>) -> Json<Securit
 }
 
 /// Calculate security score based on metrics
-fn calculate_security_score(metrics: &SecurityMetrics) -> f64 {
+const fn calculate_security_score(metrics: &SecurityMetrics) -> f64 {
     // This is now handled by the WolfSecurity engine directly,
     // but we keep the logic for fallback if ever needed.
     metrics.security_score

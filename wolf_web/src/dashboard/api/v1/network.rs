@@ -1,7 +1,7 @@
 //! Network Operations API Endpoints
 //!
 //! This module provides API endpoints for accessing network operations data
-//! including P2P networking, peer management, and HyperPulse transport metrics.
+//! including P2P networking, peer management, and `HyperPulse` transport metrics.
 
 use axum::extract::State;
 use axum::{routing::get, Json, Router};
@@ -27,7 +27,7 @@ pub struct NetworkStatusResponse {
     pub active_sessions: usize,
     /// Total security rules/keys
     pub security_key_count: usize,
-    /// HyperPulse status
+    /// `HyperPulse` status
     pub hyperpulse_status: String,
     /// Active streams
     pub active_streams: usize,

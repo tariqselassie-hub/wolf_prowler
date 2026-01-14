@@ -112,7 +112,7 @@ async fn login_handler(
     let auth_result: AuthenticationResult = auth_manager
         .authenticate(auth_request)
         .await
-        .map_err(|e| ApiError::InternalError(format!("Authentication failed: {}", e)))?;
+        .map_err(|e| ApiError::InternalError(format!("Authentication failed: {e}")))?;
 
     if !auth_result.success {
         return Ok(Json(AuthResponse {
@@ -143,7 +143,7 @@ async fn login_handler(
     let session = auth_manager
         .create_session(auth_result.user_id, session_request)
         .await
-        .map_err(|e| ApiError::InternalError(format!("Session creation failed: {}", e)))?;
+        .map_err(|e| ApiError::InternalError(format!("Session creation failed: {e}")))?;
 
     tracing::info!("User {} logged in successfully", auth_result.user_id);
 
@@ -186,7 +186,7 @@ async fn logout_handler(
     auth_manager
         .terminate_session(session_id)
         .await
-        .map_err(|e| ApiError::InternalError(format!("Logout failed: {}", e)))?;
+        .map_err(|e| ApiError::InternalError(format!("Logout failed: {e}")))?;
 
     tracing::info!("Session {} terminated successfully", session_id);
 
@@ -225,7 +225,7 @@ async fn validate_session_handler(
     let validation_result: SessionValidationResult = auth_manager
         .validate_session(session_id)
         .await
-        .map_err(|e| ApiError::InternalError(format!("Session validation failed: {}", e)))?;
+        .map_err(|e| ApiError::InternalError(format!("Session validation failed: {e}")))?;
 
     Ok(Json(SessionValidationResponse {
         valid: validation_result.valid,
@@ -259,7 +259,7 @@ async fn validate_api_key_handler(
     let validation_result: wolfsec::identity::iam::ApiKeyValidationResult = auth_manager
         .validate_api_key(api_key)
         .await
-        .map_err(|e| ApiError::InternalError(format!("API key validation failed: {}", e)))?;
+        .map_err(|e| ApiError::InternalError(format!("API key validation failed: {e}")))?;
 
     if !validation_result.valid {
         return Err(ApiError::AuthenticationFailed(

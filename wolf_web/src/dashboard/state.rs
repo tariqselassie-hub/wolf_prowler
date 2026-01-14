@@ -75,7 +75,7 @@ impl AppState {
         }
     }
 
-    /// Get the real WolfSecurity instance if available
+    /// Get the real `WolfSecurity` instance if available
     pub fn get_wolf_security(&self) -> Option<Arc<RwLock<WolfSecurity>>> {
         self.wolf_security.clone()
     }

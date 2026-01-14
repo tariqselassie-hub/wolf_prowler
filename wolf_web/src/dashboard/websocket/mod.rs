@@ -206,7 +206,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, user_id: Option<
 
     // Send initial welcome message with user info
     let welcome_message = if let Some(user_id) = user_id {
-        format!("Welcome to Wolf Prowler Dashboard, User: {}", user_id)
+        format!("Welcome to Wolf Prowler Dashboard, User: {user_id}")
     } else {
         "Welcome to Wolf Prowler Dashboard".to_string()
     };
@@ -371,7 +371,7 @@ pub fn start_system_monitoring_task(
                         broadcast_security_alert(
                             &tx,
                             "error".to_string(),
-                            format!("System metrics error: {}", e),
+                            format!("System metrics error: {e}"),
                         )
                         .await;
                     }

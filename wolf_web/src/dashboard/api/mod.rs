@@ -178,7 +178,7 @@ pub fn create_api_router(state: Arc<AppState>) -> Router {
         .route("/prometheus", get(metrics_handler))
         .with_state(state.clone());
 
-    let router = v1::create_v1_router(state.clone()).merge(stateful_routes);
+    let router = v1::create_v1_router(state).merge(stateful_routes);
 
     if config.enable_cors {
         let cors = CorsLayer::new()
@@ -230,7 +230,7 @@ pub fn create_api_router_with_state(state: Arc<AppState>) -> Router {
         .route("/prometheus", get(metrics_handler))
         .with_state(state.clone());
 
-    let router = v1::create_v1_router(state.clone()).merge(stateful_routes);
+    let router = v1::create_v1_router(state).merge(stateful_routes);
 
     if config.enable_cors {
         let cors = CorsLayer::new()
@@ -379,7 +379,7 @@ async fn metrics_handler(State(state): State<Arc<AppState>>) -> String {
 
     metrics.push_str("# HELP wolf_server_requests_total Total number of HTTP requests\n");
     metrics.push_str("# TYPE wolf_server_requests_total counter\n");
-    metrics.push_str(&format!("wolf_server_requests_total {}\n", request_count));
+    metrics.push_str(&format!("wolf_server_requests_total {request_count}\n"));
 
     metrics.push_str("# HELP wolf_security_events_total Total number of security events\n");
     metrics.push_str("# TYPE wolf_security_events_total gauge\n");

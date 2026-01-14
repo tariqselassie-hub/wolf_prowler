@@ -26,7 +26,7 @@ pub struct SystemStats {
 }
 
 /// View model for a database record
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RecordView {
     /// Unique record identifier
     pub id: String,
@@ -37,7 +37,7 @@ pub struct RecordView {
 }
 
 /// Firewall statistics and status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FirewallStats {
     /// Whether the firewall is enabled
     pub enabled: bool,
@@ -68,13 +68,13 @@ impl Default for FirewallStats {
 
 /// View model for a firewall rule
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 
 pub struct FirewallRuleView {
     /// Human-readable name
     pub name: String,
 
-    /// Target of the rule (IP, Port, PeerID)
+    /// Target of the rule (IP, Port, `PeerID`)
     pub target: String,
 
     /// Protocol (TCP, UDP, etc.)
@@ -89,7 +89,7 @@ pub struct FirewallRuleView {
 
 /// View model for a firewall event
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 
 pub struct FirewallEventView {
     /// Time of the event
@@ -208,7 +208,7 @@ pub struct ActiveHuntView {
 
 /// Compliance metric for dashboard
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 
 pub struct ComplianceMetric {
     /// Name of the compliance control
