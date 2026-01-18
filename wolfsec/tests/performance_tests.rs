@@ -33,9 +33,7 @@ fn generate_dummy_events(count: usize) -> Vec<SecurityEvent> {
             event_type: if i % 2 == 0 {
                 SecurityEventType::AuthEvent(AuthEventType::LoginFailure)
             } else {
-                SecurityEventType::NetworkEvent(
-                    wolfsec::identity::advanced::siem::NetworkEventType::PortScan,
-                )
+                SecurityEventType::NetworkEvent(NetworkEventType::PortScan)
             },
             severity: EventSeverity::Scout, // Low (Scout)
             source: EventSource {

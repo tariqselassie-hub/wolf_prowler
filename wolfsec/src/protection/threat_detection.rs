@@ -11,8 +11,7 @@ use tokio::sync::RwLock;
 use tracing::{info, warn};
 use uuid;
 
-use crate::domain::entities::threat::{Threat, ThreatSeverity, ThreatStatus, ThreatType};
-use crate::external_feeds::ThreatFeedItem;
+pub use crate::domain::entities::threat::{Threat, ThreatSeverity, ThreatStatus, ThreatType};
 use crate::protection::reputation::{ReputationConfig, ReputationSystem};
 use crate::{SecurityEvent, SecurityEventType, SecuritySeverity};
 

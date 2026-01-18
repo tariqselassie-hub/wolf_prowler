@@ -17,12 +17,13 @@ mod security_tests {
 
     use crate::identity::crypto::{constant_time_eq, secure_compare, SecureBytes};
 
+    use crate::domain::entities::ThreatType;
     use crate::protection::network_security::{
         AuthToken, CryptoAlgorithm, DigitalSignature, EncryptedMessage, HashAlgorithm, KeyExchange,
         KeyPair, SecurityManager, SecuritySession, SignatureAlgorithm, HIGH_SECURITY, LOW_SECURITY,
         MEDIUM_SECURITY,
     };
-    use crate::protection::threat_detection::{ThreatDetectionConfig, ThreatDetector, ThreatType};
+    use crate::protection::threat_detection::{ThreatDetectionConfig, ThreatDetector};
     use wolf_den::{
         symmetric::create_cipher, CipherSuite, CryptoEngine, SecurityLevel as WolfDenSecurityLevel,
     };
@@ -851,6 +852,8 @@ mod security_tests {
             metadata: HashMap::from([("test_key".to_string(), "test_value".to_string())]),
             mitigation_steps: Vec::new(),
             related_events: Vec::new(),
+            external_info: None,
+            status: crate::domain::entities::ThreatStatus::Active,
         };
 
         // Save the alert

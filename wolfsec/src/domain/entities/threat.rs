@@ -112,8 +112,6 @@ impl Threat {
             confidence,
             mitigation_steps: Vec::new(),
             related_events: Vec::new(),
-            mitigation_steps: Vec::new(),
-            related_events: Vec::new(),
             external_info: None,
             status: ThreatStatus::Active,
             metadata: HashMap::new(),

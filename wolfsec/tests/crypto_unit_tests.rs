@@ -7,9 +7,9 @@ mod tests {
     use chrono::Utc;
     use tempfile::NamedTempFile;
     use wolf_den::SecurityLevel;
-    use wolfsec::{
+    use wolfsec::identity::{
         crypto::{SecureBytes, WolfCrypto},
-        identity::{IdentityConfig, IdentityManager, SystemIdentity},
+        IdentityConfig, IdentityManager, SystemIdentity,
     };
 
     // Test data for consistent testing
@@ -19,7 +19,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wolf_crypto_creation() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
         crypto
             .initialize()
@@ -34,7 +34,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wolf_crypto_hashing() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         let hash = crypto.hash(TEST_DATA).await.expect("Hash operation failed");
@@ -44,7 +44,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wolf_crypto_hmac() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         let key = vec![0x01; 32];
@@ -58,7 +58,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wolf_crypto_key_derivation() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         let derived_key = crypto
@@ -86,8 +86,8 @@ mod tests {
         let b = b"hello";
         let c = b"world";
 
-        assert!(wolfsec::crypto::constant_time_eq(a, b));
-        assert!(!wolfsec::crypto::constant_time_eq(a, c));
+        assert!(wolfsec::identity::crypto::constant_time_eq(a, b));
+        assert!(!wolfsec::identity::crypto::constant_time_eq(a, c));
     }
 
     #[test]
@@ -96,13 +96,13 @@ mod tests {
         let b = "hello";
         let c = "world";
 
-        assert!(wolfsec::crypto::secure_compare(a, b));
-        assert!(!wolfsec::crypto::secure_compare(a, c));
+        assert!(wolfsec::identity::crypto::secure_compare(a, b));
+        assert!(!wolfsec::identity::crypto::secure_compare(a, c));
     }
 
     #[test]
     fn test_crypto_config_defaults() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
 
         assert_eq!(config.default_algorithm, "AES-256-GCM");
         assert_eq!(config.key_size, 256);
@@ -113,7 +113,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_crypto_key_management() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         // Test key derivation (since generate_key doesn't exist)
@@ -141,7 +141,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_crypto_status() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         let status = crypto.get_status().await;
@@ -155,7 +155,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_edge_cases() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         // Test empty data
@@ -185,7 +185,7 @@ mod tests {
     #[tokio::test]
     async fn test_error_handling() {
         // Test that errors are properly propagated
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         // This should not panic, even if it fails
@@ -203,7 +203,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_key_size_validation() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         // Test various key sizes - Argon2 has specific size requirements
@@ -221,7 +221,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hmac_key_sizes() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         // Test various HMAC key sizes
@@ -240,7 +240,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_salt_length_validation() {
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         // Test various salt lengths
@@ -270,12 +270,12 @@ mod tests {
             .expect("Failed to create or load identity");
 
         // Use identity key material for cryptographic operations
-        let config = wolfsec::crypto::CryptoConfig::default();
+        let config = wolfsec::identity::crypto::CryptoConfig::default();
         let crypto = WolfCrypto::new(config).expect("Failed to create WolfCrypto");
 
         // Derive key using identity's key material as password
-        let derived_key = crypto
-            .derive_key(identity.key_material.as_bytes(), TEST_SALT, 32)
+        let derived_key: Vec<u8> = crypto
+            .derive_key(identity.key_material.as_slice(), TEST_SALT, 32)
             .await
             .expect("Key derivation with identity failed");
 
@@ -283,8 +283,8 @@ mod tests {
         assert!(!derived_key.iter().all(|&b| b == 0)); // Should not be all zeros
 
         // Test HMAC with identity key material
-        let hmac = crypto
-            .hmac(identity.key_material.as_bytes(), TEST_DATA)
+        let hmac: Vec<u8> = crypto
+            .hmac(identity.key_material.as_slice(), TEST_DATA)
             .await
             .expect("HMAC with identity failed");
         assert!(!hmac.is_empty());

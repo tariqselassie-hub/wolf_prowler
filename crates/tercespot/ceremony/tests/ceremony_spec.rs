@@ -1,6 +1,6 @@
-// Integration tests for the ceremony process.
-//
-// This module contains tests that verify the key generation and ceremony flow.
+//! Integration tests for the ceremony process.
+//!
+//! This module contains tests that verify the key generation and ceremony flow.
 
 use fips204::ml_dsa_44;
 use fips204::traits::{KeyGen, SerDes};

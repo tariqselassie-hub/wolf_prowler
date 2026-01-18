@@ -34,10 +34,10 @@ async fn get_threat_stats(State(state): State<Arc<AppState>>) -> Json<ThreatsRes
     let (critical_threats, high_threats, medium_threats, low_threats) =
         threats.iter().fold((0, 0, 0, 0), |mut counts, threat| {
             match threat.severity {
-                wolfsec::SecuritySeverity::Critical => counts.0 += 1,
-                wolfsec::SecuritySeverity::High => counts.1 += 1,
-                wolfsec::SecuritySeverity::Medium => counts.2 += 1,
-                wolfsec::SecuritySeverity::Low => counts.3 += 1,
+                wolfsec::threat_detection::ThreatSeverity::Critical => counts.0 += 1,
+                wolfsec::threat_detection::ThreatSeverity::High => counts.1 += 1,
+                wolfsec::threat_detection::ThreatSeverity::Medium => counts.2 += 1,
+                wolfsec::threat_detection::ThreatSeverity::Low => counts.3 += 1,
             }
             counts
         });
