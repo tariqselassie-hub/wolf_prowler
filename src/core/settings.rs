@@ -124,7 +124,7 @@ pub struct NetworkConfig {
 }
 
 fn default_keypair_path() -> PathBuf {
-    "wolf_prowler_keys.json".into()
+    "secrets/wolf_prowler_keys.json".into()
 }
 
 fn default_max_peers() -> usize {

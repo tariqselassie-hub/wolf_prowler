@@ -1,37 +1,64 @@
-//! Configuration Monitor
-//!
-//! Monitors critical configuration files for unauthorized changes.
-//! Computes checksums and periodically verifies file integrity.
-
 use anyhow::Result;
+use async_trait::async_trait;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use tokio::fs;
+use tokio::sync::broadcast;
 use tracing::{error, info, warn};
 
+use crate::domain::services::integrity::IntegrityMonitor;
 use crate::{SecurityEvent, SecurityEventType, SecuritySeverity};
 
-/// Configuration Monitor
-pub struct ConfigurationMonitor {
+/// File System based Integrity Monitor
+pub struct FileIntegrityMonitor {
     /// Map of file paths to their last known checksums
     watched_files: HashMap<PathBuf, String>,
     /// Event bus to report violations
-    event_bus: tokio::sync::broadcast::Sender<SecurityEvent>,
+    event_bus: broadcast::Sender<SecurityEvent>,
 }
 
-impl ConfigurationMonitor {
-    /// Create a new Configuration Monitor
-    pub fn new(event_bus: tokio::sync::broadcast::Sender<SecurityEvent>) -> Self {
+impl FileIntegrityMonitor {
+    /// Create a new File Integrity Monitor
+    pub fn new(event_bus: broadcast::Sender<SecurityEvent>) -> Self {
         Self {
             watched_files: HashMap::new(),
             event_bus,
         }
     }
 
-    /// Add a file to be watched
-    pub async fn watch_file(&mut self, path: impl AsRef<Path>) -> Result<()> {
-        let path = path.as_ref().to_path_buf();
+    /// Compute SHA-256 checksum of a file
+    async fn compute_checksum(&self, path: &Path) -> Result<String> {
+        let content = fs::read(path).await?;
+        let mut hasher = Sha256::new();
+        hasher.update(&content);
+        let result = hasher.finalize();
+        Ok(hex::encode(result))
+    }
+
+    /// Report a configuration violation
+    fn report_violation(&self, path: &Path, details: &str) {
+        let event = SecurityEvent::new(
+            SecurityEventType::PolicyViolation,
+            SecuritySeverity::High,
+            format!(
+                "Configuration Integrity Violation: {:?} - {}",
+                path, details
+            ),
+        )
+        .with_metadata("component".to_string(), "FileIntegrityMonitor".to_string())
+        .with_metadata("file".to_string(), format!("{:?}", path));
+
+        if let Err(e) = self.event_bus.send(event) {
+            error!("Failed to broadcast configuration violation: {}", e);
+        }
+    }
+}
+
+#[async_trait]
+impl IntegrityMonitor for FileIntegrityMonitor {
+    async fn watch_file(&mut self, path: &Path) -> Result<()> {
+        let path = path.to_path_buf();
         if !path.exists() {
             warn!("Configuration file not found: {:?}", path);
             return Ok(());
@@ -47,8 +74,7 @@ impl ConfigurationMonitor {
         Ok(())
     }
 
-    /// Check all watched files for changes
-    pub async fn check_files(&mut self) {
+    async fn check_integrity(&mut self) {
         let mut changes = Vec::new();
 
         for (path, last_checksum) in &self.watched_files {
@@ -72,33 +98,6 @@ impl ConfigurationMonitor {
             warn!("🚨 {}", msg);
             self.report_violation(&path, "Unauthorized Modification Detected");
             self.watched_files.insert(path, new_checksum);
-        }
-    }
-
-    /// Compute SHA-256 checksum of a file
-    async fn compute_checksum(&self, path: &Path) -> Result<String> {
-        let content = fs::read(path).await?;
-        let mut hasher = Sha256::new();
-        hasher.update(&content);
-        let result = hasher.finalize();
-        Ok(hex::encode(result))
-    }
-
-    /// Report a configuration violation
-    fn report_violation(&self, path: &Path, details: &str) {
-        let event = SecurityEvent::new(
-            SecurityEventType::PolicyViolation,
-            SecuritySeverity::High,
-            format!(
-                "Configuration Integrity Violation: {:?} - {}",
-                path, details
-            ),
-        )
-        .with_metadata("component".to_string(), "ConfigurationMonitor".to_string())
-        .with_metadata("file".to_string(), format!("{:?}", path));
-
-        if let Err(e) = self.event_bus.send(event) {
-            error!("Failed to broadcast configuration violation: {}", e);
         }
     }
 }

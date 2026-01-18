@@ -80,7 +80,7 @@ impl SecureAppSettings {
 
         // Initialize secrets vault
         let vault_config = VaultConfig {
-            storage_path: PathBuf::from("wolf_vault.json"),
+            storage_path: PathBuf::from("secrets/wolf_vault.json"),
             security_level: wolf_den::SecurityLevel::Maximum,
             master_key: vec![],
             rotation_interval: Duration::from_secs(86400),
@@ -233,7 +233,7 @@ impl SecureAppSettings {
                 bootstrap_nodes: vec![],
                 enable_mdns: true,
                 enable_dht: true,
-                keypair_path: PathBuf::from("wolf_prowler_keys.json"),
+                keypair_path: PathBuf::from("secrets/wolf_prowler_keys.json"),
                 heartbeat_interval_secs: 30,
             },
             security: SecurityConfig {
@@ -251,7 +251,7 @@ impl SecureAppSettings {
                 auto_mitigation_enabled: true,
             },
             database: DatabaseConfig {
-                path: PathBuf::from("wolf_data/wolf_prowler.db"),
+                path: PathBuf::from("runtime_data/wolf_data/wolf_prowler.db"),
             },
         }
     }

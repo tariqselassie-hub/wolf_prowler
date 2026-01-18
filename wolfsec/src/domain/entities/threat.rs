@@ -22,6 +22,16 @@ pub enum ThreatType {
     InsiderThreat,
     /// Threat pattern that could not be categorically identified.
     Unknown,
+    /// Unspecified anomalous behavior.
+    SuspiciousActivity,
+    /// Active attempt to exploit network vulnerabilities.
+    NetworkAttack,
+    /// Excessive usage of system resources.
+    ResourceAbuse,
+    /// Brute force or credential stuffing.
+    AuthenticationAttack,
+    /// Cryptographic protocol exploitation.
+    CryptographicAttack,
 }
 
 /// Relative danger and priority associated with a security threat.
@@ -60,8 +70,27 @@ pub struct Threat {
     pub mitigation_steps: Vec<String>,
     /// References to specific security events that informed this detection.
     pub related_events: Vec<Uuid>,
+    /// Linked item from an external threat feed.
+    pub external_info: Option<crate::external_feeds::ThreatFeedItem>,
+    /// Current lifecycle state of the threat.
+    pub status: ThreatStatus,
     /// Supplementary context for advanced forensics.
     pub metadata: HashMap<String, String>,
+}
+
+/// Lifecycle status of a detected threat.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ThreatStatus {
+    /// Threat is current and not yet managed.
+    Active,
+    /// Threat is blocked but not yet permanently resolved.
+    Contained,
+    /// Active measures have been taken to neutralize the threat.
+    Mitigated,
+    /// Threat no longer poses a risk.
+    Resolved,
+    /// Threat was identified incorrectly.
+    FalsePositive,
 }
 
 impl Threat {
@@ -83,6 +112,10 @@ impl Threat {
             confidence,
             mitigation_steps: Vec::new(),
             related_events: Vec::new(),
+            mitigation_steps: Vec::new(),
+            related_events: Vec::new(),
+            external_info: None,
+            status: ThreatStatus::Active,
             metadata: HashMap::new(),
         }
     }

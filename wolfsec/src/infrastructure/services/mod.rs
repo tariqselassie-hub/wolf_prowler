@@ -4,6 +4,7 @@
 //! such as password hashing, cryptography, and adapters for legacy components.
 
 pub mod argon2_password_hasher;
+pub mod file_integrity;
 pub mod legacy_threat_detector_adapter;
 pub mod wolf_den_cryptography_provider;
 

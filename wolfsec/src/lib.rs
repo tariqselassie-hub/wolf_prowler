@@ -22,7 +22,7 @@ pub mod application;
 /// Comprehensive security test suite.
 pub mod comprehensive_tests;
 /// Configuration integrity monitoring.
-pub mod configuration_monitor;
+
 /// Domain entities and repository traits.
 pub mod domain;
 pub mod infrastructure;
@@ -137,7 +137,7 @@ pub struct WolfSecurity {
     /// SIEM collector for security metrics and real-time alerts
     pub monitor: SecurityMonitor,
     /// Monitor for configuration file integrity
-    pub config_monitor: configuration_monitor::ConfigurationMonitor,
+    pub config_monitor: infrastructure::services::file_integrity::FileIntegrityMonitor,
     /// Automated vulnerability assessment and scanning tool
     pub vulnerability_scanner: VulnerabilityScanner,
     /// Security Information and Event Management orchestrator
@@ -314,7 +314,9 @@ impl WolfSecurity {
             auth_manager: AuthManager::new(config.authentication.clone(), auth_repo),
             key_manager: KeyManager::new(config.key_management.clone()),
             monitor: SecurityMonitor::new(config.monitoring.clone(), monitoring_repo, alert_repo),
-            config_monitor: configuration_monitor::ConfigurationMonitor::new(event_bus.clone()),
+            config_monitor: infrastructure::services::file_integrity::FileIntegrityMonitor::new(
+                event_bus.clone(),
+            ),
             vulnerability_scanner: VulnerabilityScanner::new()?,
             siem: WolfSIEMManager::new(SIEMConfig::default())?,
             swarm_sender: None,
@@ -357,7 +359,12 @@ impl WolfSecurity {
         tracing::info!("  ✅ Security monitoring initialized");
 
         // Initialize Configuration Monitoring
-        if let Err(e) = self.config_monitor.watch_file("settings.toml").await {
+        use crate::domain::services::integrity::IntegrityMonitor;
+        if let Err(e) = self
+            .config_monitor
+            .watch_file(std::path::Path::new("settings.toml"))
+            .await
+        {
             tracing::warn!("⚠️ Could not watch settings.toml: {}", e);
         }
         tracing::info!("  ✅ Configuration monitor initialized");

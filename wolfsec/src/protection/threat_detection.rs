@@ -11,6 +11,7 @@ use tokio::sync::RwLock;
 use tracing::{info, warn};
 use uuid;
 
+use crate::domain::entities::threat::{Threat, ThreatSeverity, ThreatStatus, ThreatType};
 use crate::external_feeds::ThreatFeedItem;
 use crate::protection::reputation::{ReputationConfig, ReputationSystem};
 use crate::{SecurityEvent, SecurityEventType, SecuritySeverity};
@@ -391,67 +392,6 @@ pub struct ThreatActor {
     pub known_ttps: Vec<String>,
     /// Most recent known operation
     pub last_activity: DateTime<Utc>,
-}
-
-/// A detected security threat event
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Threat {
-    /// Unique identifier for the threat instance
-    pub id: String,
-    /// Broad category of the threat
-    pub threat_type: ThreatType,
-    /// Severity level
-    pub severity: SecuritySeverity,
-    /// ID of the peer suspected of originating the threat
-    pub source_peer: Option<String>,
-    /// Time when the threat was first identified
-    pub detected_at: DateTime<Utc>,
-    /// Detailed description of the malicious activity
-    pub description: String,
-    /// Current lifecycle state of the threat
-    pub status: ThreatStatus,
-    /// Steps taken or recommended to neutralize the threat
-    pub mitigation_actions: Vec<String>,
-    /// Linked item from an external threat feed
-    pub external_info: Option<ThreatFeedItem>,
-    /// Probability that this is a real threat (0.0 - 1.0)
-    pub confidence: f64,
-}
-
-/// Categories of security threats
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum ThreatType {
-    /// Peer identified as malicious
-    MaliciousPeer,
-    /// Unspecified anomalous behavior
-    SuspiciousActivity,
-    /// Active attempt to exploit network vulnerabilities
-    NetworkAttack,
-    /// Unauthorized data movement
-    DataExfiltration,
-    /// Excessive usage of system resources
-    ResourceAbuse,
-    /// Brute force or credential stuffing
-    AuthenticationAttack,
-    /// Cryptographic protocol exploitation
-    CryptographicAttack,
-    /// Network probing or footprinting
-    Reconnaissance,
-}
-
-/// Lifecycle status of a detected threat
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum ThreatStatus {
-    /// Threat is current and not yet managed
-    Active,
-    /// Threat is blocked but not yet permanently resolved
-    Contained,
-    /// Active measures have been taken to neutralize the threat
-    Mitigated,
-    /// Threat no longer poses a risk
-    Resolved,
-    /// Threat was identified incorrectly
-    FalsePositive,
 }
 
 /// Security configuration
@@ -1059,17 +999,27 @@ impl ThreatDetector {
             SecuritySeverity::Critical => 0.95,
         };
 
+        let threat_severity = match event.severity {
+            SecuritySeverity::Low => ThreatSeverity::Low,
+            SecuritySeverity::Medium => ThreatSeverity::Medium,
+            SecuritySeverity::High => ThreatSeverity::High,
+            SecuritySeverity::Critical => ThreatSeverity::Critical,
+        };
+
         let threat = Threat {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: uuid::Uuid::new_v4(),
             threat_type: threat_type.clone(),
-            severity: event.severity,
+            severity: threat_severity,
             source_peer: event.peer_id.clone(),
+            target_asset: None,
             detected_at: event.timestamp,
             description: format!("Threat detected: {}", event.description),
             status: ThreatStatus::Active,
-            mitigation_actions: self.get_mitigation_actions(&event.event_type),
+            mitigation_steps: self.get_mitigation_actions(&event.event_type),
+            related_events: Vec::new(),
             external_info: None,
             confidence,
+            metadata: HashMap::new(),
         };
 
         {
@@ -1078,28 +1028,7 @@ impl ThreatDetector {
         }
 
         // Persist threat
-        let entity_threat = crate::domain::entities::threat::Threat {
-            id: uuid::Uuid::parse_str(&threat.id).unwrap_or_else(|_| uuid::Uuid::new_v4()),
-            threat_type: crate::domain::entities::threat::ThreatType::Unknown, // Simple mapping for now
-            severity: match threat.severity {
-                SecuritySeverity::Low => crate::domain::entities::threat::ThreatSeverity::Low,
-                SecuritySeverity::Medium => crate::domain::entities::threat::ThreatSeverity::Medium,
-                SecuritySeverity::High => crate::domain::entities::threat::ThreatSeverity::High,
-                SecuritySeverity::Critical => {
-                    crate::domain::entities::threat::ThreatSeverity::Critical
-                }
-            },
-            description: threat.description.clone(),
-            source_peer: threat.source_peer.clone(),
-            target_asset: None,
-            detected_at: threat.detected_at,
-            confidence: threat.confidence,
-            mitigation_steps: threat.mitigation_actions.clone(),
-            related_events: Vec::new(),
-            metadata: HashMap::new(),
-        };
-
-        if let Err(e) = self.threat_repo.save(&entity_threat).await {
+        if let Err(e) = self.threat_repo.save(&threat).await {
             warn!("Failed to persist threat: {}", e);
         }
 
@@ -1399,10 +1328,10 @@ impl ThreatDetector {
                 threat.confidence = result.confidence;
                 // Sync severity with AI predicted risk
                 threat.severity = match result.predicted_risk {
-                    RiskLevel::Low => SecuritySeverity::Low,
-                    RiskLevel::Medium => SecuritySeverity::Medium,
-                    RiskLevel::High => SecuritySeverity::High,
-                    RiskLevel::Critical => SecuritySeverity::Critical,
+                    RiskLevel::Low => ThreatSeverity::Low,
+                    RiskLevel::Medium => ThreatSeverity::Medium,
+                    RiskLevel::High => ThreatSeverity::High,
+                    RiskLevel::Critical => ThreatSeverity::Critical,
                 };
                 info!(
                     "Updated threat {} confidence to {:.2} and severity to {:?} based on AI analysis",
