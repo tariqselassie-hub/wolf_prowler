@@ -65,7 +65,7 @@ async fn get_recent_threats(State(state): State<Arc<AppState>>) -> Json<Vec<Thre
     let responses: Vec<ThreatDetailResponse> = threats
         .into_iter()
         .map(|t| ThreatDetailResponse {
-            threat_id: t.id,
+            threat_id: t.id.to_string(),
             threat_type: format!("{:?}", t.threat_type),
             source_peer: t.source_peer.unwrap_or_default(),
             severity: format!("{:?}", t.severity),
@@ -95,7 +95,7 @@ async fn get_threats_by_peer(
         .into_iter()
         .filter(|t| t.source_peer.as_deref() == Some(&peer_id))
         .map(|t| ThreatDetailResponse {
-            threat_id: t.id,
+            threat_id: t.id.to_string(),
             threat_type: format!("{:?}", t.threat_type),
             source_peer: t.source_peer.unwrap_or_default(),
             severity: format!("{:?}", t.severity),

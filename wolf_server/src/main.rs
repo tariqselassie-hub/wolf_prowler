@@ -23,7 +23,15 @@ use wolfsec::{WolfSecurity, WolfSecurityConfig};
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize logging
-    tracing_subscriber::fmt::init();
+    wolf_prowler::utils::logging::init_logging_with_config(
+        wolf_prowler::utils::logging::LoggerConfig {
+            level: std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string()),
+            file_logging: true,
+            log_file: Some(PathBuf::from("logs/wolf_server.log")),
+            json_format: false,
+            console_colors: true,
+        }
+    )?;
 
     const VERSION: &str = env!("CARGO_PKG_VERSION");
     tracing::info!("🐺 Wolf Server v{} initializing...", VERSION);

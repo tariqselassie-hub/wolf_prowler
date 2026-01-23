@@ -44,6 +44,7 @@ log = "0.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 tracing-appender = "0.2"
+tracing-log = "0.2"
 async-trait = "0.1"  # For health check trait
 lazy_static = "1.4"  # For global health monitor
 validator = { version = "0.16", features = ["derive"] }  # Request validation
@@ -192,7 +193,8 @@ ping = "0.7.0"
 
 [features]
 # Default features - database persistence and threat intelligence enabled by default
-default = ["advanced_reporting", "threat_intelligence", "compliance_auditing", "ai_capabilities", "devsecops_integration", "infrastructure_security", "ml-full", "container_security"]
+# Minimal default features for core functionality - advanced features can be enabled separately
+default = ["advanced_reporting"]
 profiling = []
 
 # SaaS Transition Features
@@ -263,8 +265,8 @@ ml-onnx = ["wolfsec/ml-onnx"]
 ml-classical = ["wolfsec/ml-classical"]
 ml-full = ["wolfsec/ml-full"]
 
-
-
+[dev-dependencies]
+tokio = { version = "1.0", features = ["rt", "macros"] }
 
 [workspace]
 members = [
@@ -285,6 +287,7 @@ members = [
     "crates/tercespot/ceremony",
     "crates/tercespot/airgap",
     "crates/tercespot/privacy",
+    "crates/wolf_log",
 ]
 
 

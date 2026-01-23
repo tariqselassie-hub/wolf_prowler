@@ -33,42 +33,54 @@ impl Logger {
 
     /// Initialize the logging system
     pub fn init(&self) -> Result<()> {
+        use tracing_log::LogTracer;
+
+        // Collect all layers
         let env_filter = EnvFilter::try_from_default_env()
             .unwrap_or_else(|_| EnvFilter::new(&self.config.level));
 
-        let fmt_layer = tracing_subscriber::fmt::layer()
-            .with_target(true)
-            .with_thread_ids(true)
-            .with_file(true)
-            .with_line_number(true)
-            .with_ansi(self.config.console_colors);
+        // Console layer
+        let console_layer = if self.config.json_format {
+            let layer = tracing_subscriber::fmt::layer()
+                .json()
+                .with_target(true)
+                .with_thread_ids(true)
+                .with_file(true)
+                .with_line_number(true)
+                .with_ansi(false);
+            Some(layer.boxed())
+        } else {
+            let layer = tracing_subscriber::fmt::layer()
+                .with_target(true)
+                .with_thread_ids(true)
+                .with_file(true)
+                .with_line_number(true)
+                .with_ansi(self.config.console_colors);
+            Some(layer.boxed())
+        };
 
-        let json_layer = tracing_subscriber::fmt::layer()
-            .json()
-            .with_target(true)
-            .with_thread_ids(true)
-            .with_file(true)
-            .with_line_number(true)
-            .with_ansi(false);
-
+        // File layer
         let file_layer = if let Some(log_file) = &self.config.log_file {
             if self.config.file_logging {
-                let file_appender = tracing_appender::rolling::daily(
-                    log_file
-                        .parent()
-                        .unwrap_or_else(|| std::path::Path::new(".")),
-                    log_file
-                        .file_name()
-                        .unwrap_or_else(|| std::ffi::OsStr::new("wolf_prowler.log")),
-                );
+                let file_name = log_file
+                    .file_name()
+                    .unwrap_or_else(|| std::ffi::OsStr::new("wolf_prowler.log"));
+                let directory = log_file
+                    .parent()
+                    .unwrap_or_else(|| std::path::Path::new("."));
 
-                Some(
-                    tracing_subscriber::fmt::layer()
-                        .with_writer(file_appender)
-                        .with_ansi(false)
-                        .json()
-                        .boxed(),
-                )
+                let file_appender = tracing_appender::rolling::daily(directory, file_name);
+
+                let layer = tracing_subscriber::fmt::layer()
+                    .with_writer(file_appender)
+                    .with_ansi(false)
+                    .json() // Always use JSON for file logs for easier parsing
+                    .with_target(true)
+                    .with_thread_ids(true)
+                    .with_file(true)
+                    .with_line_number(true);
+
+                Some(layer.boxed())
             } else {
                 None
             }
@@ -76,24 +88,23 @@ impl Logger {
             None
         };
 
-        let subscriber = tracing_subscriber::registry().with(env_filter.clone());
+        // Initialize LogTracer to bridge 'log' crate to 'tracing'
+        LogTracer::init().ok();
 
-        if self.config.json_format {
-            subscriber.with(json_layer).init();
-        } else {
-            subscriber.with(fmt_layer).init();
-        }
+        // Build the subscriber
+        let subscriber = tracing_subscriber::registry()
+            .with(env_filter)
+            .with(console_layer)
+            .with(file_layer);
 
-        if let Some(layer) = file_layer {
-            tracing_subscriber::registry()
-                .with(env_filter)
-                .with(layer)
-                .init();
-        }
+        subscriber.init();
 
         info!("🐺 Wolf Prowler logging initialized");
         info!("Log level: {}", self.config.level);
         info!("File logging: {}", self.config.file_logging);
+        if let Some(path) = &self.config.log_file {
+            info!("Log file: {:?}", path);
+        }
         info!("JSON format: {}", self.config.json_format);
 
         Ok(())

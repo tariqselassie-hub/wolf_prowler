@@ -14128,6 +14128,7 @@ dependencies = [
  "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 1.0.69",
  "tokio",
  "toml",
@@ -14237,6 +14238,19 @@ dependencies = [
  "wolf_den",
  "wolf_net",
  "wolfsec",
+]
+
+[[package]]
+name = "wolf_log"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "serde",
+ "tracing",
+ "tracing-appender",
+ "tracing-log",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -14374,6 +14388,7 @@ dependencies = [
  "tower-http 0.5.2",
  "tracing",
  "tracing-appender",
+ "tracing-log",
  "tracing-subscriber",
  "uuid",
  "validator",

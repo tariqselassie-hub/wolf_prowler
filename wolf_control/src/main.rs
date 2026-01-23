@@ -15,8 +15,7 @@ use ratatui::{
 };
 use serde::Deserialize;
 use thiserror::Error;
-mod config;
-use config::Config;
+use wolf_control::config::Config;
 use std::{
     collections::HashMap,
     io,
@@ -35,6 +34,17 @@ pub enum ThemeMode {
     Cyberpunk,
 }
 
+impl ThemeMode {
+    pub fn next(&self) -> Self {
+        match self {
+            ThemeMode::Standard => ThemeMode::Hacker,
+            ThemeMode::Hacker => ThemeMode::Cyberpunk,
+            ThemeMode::Cyberpunk => ThemeMode::Predator,
+            ThemeMode::Predator => ThemeMode::Standard,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LogFilter {
     All,
@@ -45,7 +55,7 @@ pub enum LogFilter {
 }
 
 impl LogFilter {
-    fn next(&self) -> Self {
+    pub fn next(&self) -> Self {
         match self {
             LogFilter::All => LogFilter::Info,
             LogFilter::Info => LogFilter::Warn,
@@ -55,7 +65,7 @@ impl LogFilter {
         }
     }
 
-    fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         match self {
             LogFilter::All => "ALL",
             LogFilter::Info => "INFO",
@@ -209,6 +219,7 @@ impl Default for AppData {
 }
 
 // --- Application State ---
+
 #[derive(Debug, PartialEq, Eq)]
 enum Tab {
     Overview,
@@ -267,6 +278,8 @@ pub enum AppState {
     Login,
     Main,
 }
+
+// --- Application State ---
 
 struct App {
     state: AppState,
@@ -562,8 +575,129 @@ impl Tui {
             DisableMouseCapture
         )?;
         self.terminal.show_cursor()?;
-        Ok(())
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tab_title() {
+        assert_eq!(Tab::Overview.title(), "Overview");
+        assert_eq!(Tab::Peers.title(), "Peers");
+        assert_eq!(Tab::Pack.title(), "Pack");
+        assert_eq!(Tab::Security.title(), "Security");
+        assert_eq!(Tab::Logs.title(), "Logs");
+        assert_eq!(Tab::Metrics.title(), "Metrics");
+        assert_eq!(Tab::Config.title(), "Config");
+        assert_eq!(Tab::Verify.title(), "Verify");
     }
+
+    #[test]
+    fn test_tab_next() {
+        assert_eq!(Tab::Overview.next(), Tab::Peers);
+        assert_eq!(Tab::Peers.next(), Tab::Pack);
+        assert_eq!(Tab::Pack.next(), Tab::Security);
+        assert_eq!(Tab::Security.next(), Tab::Logs);
+        assert_eq!(Tab::Logs.next(), Tab::Metrics);
+        assert_eq!(Tab::Metrics.next(), Tab::Config);
+        assert_eq!(Tab::Config.next(), Tab::Verify);
+        assert_eq!(Tab::Verify.next(), Tab::Overview);
+    }
+
+    #[test]
+    fn test_tab_prev() {
+        assert_eq!(Tab::Overview.prev(), Tab::Config);
+        assert_eq!(Tab::Peers.prev(), Tab::Overview);
+        assert_eq!(Tab::Pack.prev(), Tab::Peers);
+        assert_eq!(Tab::Security.prev(), Tab::Pack);
+        assert_eq!(Tab::Logs.prev(), Tab::Security);
+        assert_eq!(Tab::Metrics.prev(), Tab::Logs);
+        assert_eq!(Tab::Config.prev(), Tab::Metrics);
+        assert_eq!(Tab::Verify.prev(), Tab::Config);
+    }
+
+    #[test]
+    fn test_app_state_debug() {
+        assert_eq!(format!("{:?}", AppState::Login), "Login");
+        assert_eq!(format!("{:?}", AppState::Main), "Main");
+    }
+
+    #[test]
+    fn test_node_status_default() {
+        let status = NodeStatus::default();
+        assert!(status.peer_id.is_empty());
+        assert!(status.version.is_empty());
+        assert_eq!(status.uptime_seconds, 0);
+    }
+
+    #[test]
+    fn test_network_metrics_default() {
+        let metrics = NetworkMetrics::default();
+        assert_eq!(metrics.total_bytes_sent, 0);
+        assert_eq!(metrics.total_bytes_received, 0);
+        assert_eq!(metrics.active_connections, 0);
+        assert_eq!(metrics.messages_sent, 0);
+        assert_eq!(metrics.messages_received, 0);
+    }
+
+    #[test]
+    fn test_zero_trust_stats_default() {
+        let stats = ZeroTrustStats::default();
+        assert_eq!(stats.active_policy_count, 0);
+        assert_eq!(stats.enforced_policies, 0);
+        assert_eq!(stats.policy_violations, 0);
+        assert_eq!(stats.active_segments, 0);
+        assert_eq!(stats.isolation_events, 0);
+    }
+
+    #[test]
+    fn test_app_data_default() {
+        let data = AppData::default();
+        assert!(data.peers.is_empty());
+        assert!(data.logs.is_empty());
+        assert!(!data.connected);
+        assert_eq!(data.tick, 0);
+        assert_eq!(data.prev_bytes_sent, 0);
+        assert_eq!(data.prev_bytes_recv, 0);
+        assert_eq!(data.last_update, "Never");
+        assert!(data.last_error.is_none());
+        assert!(!data.is_fetching);
+    }
+
+    #[test]
+    fn test_member_debug() {
+        let member = Member {
+            peer_id: "peer1".to_string(),
+            rank: "Alpha".to_string(),
+            trust_score: 0.95,
+        };
+        assert!(format!("{:?}", member).contains("peer1"));
+        assert!(format!("{:?}", member).contains("Alpha"));
+    }
+
+    #[test]
+    fn test_wolf_pack_debug() {
+        let pack = WolfPack {
+            pack_name: "Test Pack".to_string(),
+            alpha_id: Some("alpha1".to_string()),
+            members: HashMap::new(),
+        };
+        assert!(format!("{:?}", pack).contains("Test Pack"));
+    }
+
+    #[test]
+    fn test_log_entry_debug() {
+        let entry = LogEntry {
+            timestamp: "2023-01-01T00:00:00Z".to_string(),
+            level: "INFO".to_string(),
+            message: "Test message".to_string(),
+        };
+        assert!(format!("{:?}", entry).contains("INFO"));
+        assert!(format!("{:?}", entry).contains("Test message"));
+    }
+}
 }
 
 impl Drop for Tui {
@@ -992,7 +1126,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
             }
         }
 
-        if crossterm::event::poll(Duration::from_millis(100))? {
+        if event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 let mut app_guard = app.lock().unwrap();
 
@@ -1360,7 +1494,7 @@ fn ui(f: &mut Frame, app: &App) {
     // Hex Inspector Overlay
     if app.show_hex_inspector {
         let area = centered_rect(60, 40, size);
-        f.render_widget(ratatui::widgets::Clear, area); // Clear background
+        f.render_widget(Clear, area); // Clear background
 
         let hex_content = if let Some(packet) = &app.last_packet {
             // Create hex dump
@@ -1438,7 +1572,7 @@ fn ui(f: &mut Frame, app: &App) {
             );
 
         // Clear the area first
-        f.render_widget(ratatui::widgets::Clear, help_area);
+        f.render_widget(Clear, help_area);
         f.render_widget(help_widget, help_area);
     }
 }

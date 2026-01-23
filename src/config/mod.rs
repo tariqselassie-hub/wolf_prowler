@@ -1,9 +1,10 @@
 //! Configuration Module
 //!
-//! This module provides secure configuration loading using the Wolf Den secrets vault
-//! instead of hardcoded values. It integrates with the existing AppSettings system
-//! while providing encrypted credential storage.
+//! This module provides configuration loading. Currently uses simplified direct TOML loading
+//! to get the system running. Secure vault-based config will be added later.
 
+pub mod simple_config;
 pub mod secure_config;
 
-pub use secure_config::SecureAppSettings;
+pub use simple_config::SimpleAppSettings;
+// pub use secure_config::SecureAppSettings; // TODO: Re-enable when vault integration is added

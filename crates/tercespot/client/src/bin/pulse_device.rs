@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-use fips204::ml_dsa_44; // FIPS 204 crate
+use fips204::ml_dsa_87; // FIPS 204 crate
 use fips204::traits::{KeyGen, SerDes, Signer};
 use std::fs;
 use std::path::Path;
@@ -24,17 +24,17 @@ fn main() {
             tracing::error!("Failed to read sk: {e}");
             std::process::exit(1);
         });
-        let bytes_array: [u8; 2560] = bytes.try_into().unwrap_or_else(|_| {
+        let bytes_array: [u8; 4896] = bytes.try_into().unwrap_or_else(|_| {
             tracing::error!("Invalid sk size");
             std::process::exit(1);
         });
-        ml_dsa_44::PrivateKey::try_from_bytes(bytes_array).unwrap_or_else(|e| {
+        ml_dsa_87::PrivateKey::try_from_bytes(bytes_array).unwrap_or_else(|e| {
             tracing::error!("Invalid sk: {e}");
             std::process::exit(1);
         })
     } else {
         tracing::info!("[DEVICE] Generating NEW Device Key...");
-        let (pk, sk) = ml_dsa_44::KG::try_keygen().unwrap_or_else(|e| {
+        let (pk, sk) = ml_dsa_87::KG::try_keygen().unwrap_or_else(|e| {
             tracing::error!("Keygen failed: {e}");
             std::process::exit(1);
         });

@@ -33,8 +33,7 @@ fn visual_end_to_end_flow() {
 
     // 2. Spawn Pulse Device FIRST (to generate pulse keys)
     tracing::info!("[2] Spawning Pulse Device...");
-    let mut device = Command::new("cargo")
-        .args(&["run", "-p", "submitter", "--bin", "pulse_device", "--quiet"])
+    let mut device = Command::new("/home/t4riq/wolf_prowler/target/debug/pulse_device")
         .env("TERSEC_POSTBOX", &postbox)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
@@ -60,8 +59,7 @@ fn visual_end_to_end_flow() {
 
     // 3. Spawn Sentinel (PULSE_MODE=CRYPTO)
     tracing::info!("[3] Spawning Sentinel (Crypto Mode)...");
-    let mut sentinel = Command::new("cargo")
-        .args(&["run", "-p", "sentinel", "--quiet"])
+    let mut sentinel = Command::new("/home/t4riq/wolf_prowler/target/debug/sentinel")
         .env("TERSEC_POSTBOX", &postbox)
         .env("TERSEC_PULSE_MODE", "CRYPTO")
         .env("TERSEC_M", "1")
@@ -78,16 +76,8 @@ fn visual_end_to_end_flow() {
 
     // 4a. Keygen
     tracing::info!("  [4a] Generating Keys...");
-    let keygen_status = Command::new("cargo")
-        .args(&[
-            "run",
-            "-p",
-            "submitter",
-            "--bin",
-            "submitter",
-            "--quiet",
-            "keygen",
-        ])
+    let keygen_status = Command::new("/home/t4riq/wolf_prowler/target/debug/submitter")
+        .args(&["keygen"])
         .env("TERSEC_POSTBOX", &postbox)
         .status()
         .expect("Failed to run keygen");
@@ -125,14 +115,8 @@ fn visual_end_to_end_flow() {
     let cmd_str = "echo test_execution";
     let partial_path = format!("{}/cmd.partial", test_dir);
 
-    let partial_cmd = Command::new("cargo")
+    let partial_cmd = Command::new("/home/t4riq/wolf_prowler/target/debug/submitter")
         .args(&[
-            "run",
-            "-p",
-            "submitter",
-            "--bin",
-            "submitter",
-            "--quiet",
             "submit",
             "--partial",
             cmd_str,
@@ -148,14 +132,8 @@ fn visual_end_to_end_flow() {
 
     // 4c. Sign (Append)
     tracing::info!("  [4c] Signing Command...");
-    let sign_cmd = Command::new("cargo")
+    let sign_cmd = Command::new("/home/t4riq/wolf_prowler/target/debug/submitter")
         .args(&[
-            "run",
-            "-p",
-            "submitter",
-            "--bin",
-            "submitter",
-            "--quiet",
             "submit",
             "--append",
             &partial_path,
@@ -169,18 +147,8 @@ fn visual_end_to_end_flow() {
 
     // 4d. Submit
     tracing::info!("  [4d] Submitting Command...");
-    let submit_cmd = Command::new("cargo")
-        .args(&[
-            "run",
-            "-p",
-            "submitter",
-            "--bin",
-            "submitter",
-            "--quiet",
-            "submit",
-            "--submit",
-            &partial_path,
-        ])
+    let submit_cmd = Command::new("/home/t4riq/wolf_prowler/target/debug/submitter")
+        .args(&["submit", "--submit", &partial_path])
         .env("TERSEC_POSTBOX", &postbox)
         .status()
         .expect("Failed to submit");

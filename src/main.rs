@@ -8,14 +8,15 @@ mod config;
 mod secrets;
 mod simple_validation;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use axum::{response::Html, routing::get, Router};
 use std::path::PathBuf;
 use tower_http::services::ServeDir;
 
-use config::SecureAppSettings;
-use lock_prowler::headless::{HeadlessConfig, HeadlessWolfProwler};
-use lock_prowler::storage::WolfStore;
+use config::SimpleAppSettings;
+// TODO: Re-enable headless prowler after basic system is running
+// use lock_prowler::headless::{HeadlessConfig, HeadlessWolfProwler};
+// use lock_prowler::storage::WolfStore;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::{broadcast, RwLock};
 use tracing::{error, info};
@@ -25,11 +26,9 @@ use wolf_prowler::persistence::PersistenceManager;
 use wolf_web::dashboard::state::AppState; // For ID generation in bridge
 
 // Use wolfsec types for consistency
-use wolfsec::network_security::SecurityManager as NetworkSecurityManager;
-use wolfsec::protection::container_security::{
-    ContainerSecurityConfig, ContainerSecurityManager,
-};
 use wolfsec::identity::iam::{AuthenticationManager, IAMConfig};
+use wolfsec::network_security::SecurityManager as NetworkSecurityManager;
+use wolfsec::protection::container_security::{ContainerSecurityConfig, ContainerSecurityManager};
 use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetectionConfig, ThreatDetector};
 use wolfsec::WolfSecurity;
 
@@ -48,35 +47,40 @@ async fn main() -> Result<()> {
     let _ = rustls::crypto::ring::default_provider().install_default();
 
     // Initialize logging
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                tracing_subscriber::EnvFilter::new(
-                    "info,wolfsec=warn,wolf_prowler=info,h2=warn,hyper=warn",
-                )
+    wolf_prowler::utils::logging::init_logging_with_config(
+        wolf_prowler::utils::logging::LoggerConfig {
+            level: std::env::var("RUST_LOG").unwrap_or_else(|_| {
+                "info,wolfsec=warn,wolf_prowler=info,h2=warn,hyper=warn".to_string()
             }),
-        )
-        .init();
+            file_logging: true,
+            log_file: Some(PathBuf::from("wolf_system_new.log")),
+            json_format: false,
+            console_colors: true,
+        },
+    )?;
 
     info!(
         "🐺 Starting Wolf Prowler v{} (Headless/Dashboard Reset)",
         env!("CARGO_PKG_VERSION")
     );
 
+    info!("📋 Loading configuration...");
     // Validation
     if let Err(e) = validate_libraries_simple().await {
         error!("Validation failed: {}", e);
         // Continue anyway for now, or return Err(e)
     }
+    info!("✅ Library validation completed");
 
-    // Load secure configuration with encrypted credentials
-    let secure_settings = SecureAppSettings::new()
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to load secure configuration: {}", e))?;
-
-    let settings = secure_settings.base_settings;
+    // Load simplified configuration (vault integration will be added later)
+    info!("⚙️ Loading configuration from settings.toml...");
+    let simple_settings = SimpleAppSettings::new()
+        .map_err(|e| anyhow::anyhow!("Failed to load configuration: {}", e))?;
+    info!("✅ Configuration loaded successfully");
+    let settings = simple_settings.base_settings;
 
     // Initialize security policy
+    info!("🔐 Initializing security policy...");
     let security_policy = wolf_prowler::core::security_policy::SecurityPolicy::from_stance(
         settings.security.stance.parse().unwrap_or_default(),
     );
@@ -174,10 +178,16 @@ async fn main() -> Result<()> {
 
     // Persistence
     // WolfDb (PQC-Secured) local storage
-    let persistence = PersistenceManager::new(settings.database.path.to_str().unwrap_or("wolf_data/wolf_prowler.db"))
-        .await
-        .ok() // Fail gracefully
-        .map(Arc::new);
+    let persistence = PersistenceManager::new(
+        settings
+            .database
+            .path
+            .to_str()
+            .unwrap_or("wolf_data/wolf_prowler.db"),
+    )
+    .await
+    .ok() // Fail gracefully
+    .map(Arc::new);
 
     if persistence.is_none() {
         error!("🚨 Persistence Manager unavailable - running in-memory only! Data will be lost on restart.");
@@ -192,31 +202,8 @@ async fn main() -> Result<()> {
     // FUTURE: Start container scanning loop if configured
     info!("📦 Container Security Manager initialized");
 
-    // Start Headless Prowler (Hunter Mode)
-    // We keep a reference to ensure we can stop it on shutdown
-    let headless_prowler =
-        if std::env::var("WOLF_HEADLESS").unwrap_or_else(|_| "true".to_string()) == "true" {
-            info!("Initializing Headless Wolf Prowler (Hunter Mode)...");
-            let store = WolfStore::new(&format!("wolf_data_{}.db", settings.node_id))
-                .await
-                .context("Failed to init headless store")?;
-
-            let mut headless_config = HeadlessConfig::default();
-            if let Ok(paths) = std::env::var("WOLF_SCAN_PATHS") {
-                headless_config.scan_paths = paths.split(',').map(|s| s.to_string()).collect();
-            }
-            // Force WolfPack on for headless to test P2P interaction with main node
-            headless_config.enable_wolfpack = true;
-
-            let prowler = HeadlessWolfProwler::new(headless_config, store);
-            prowler
-                .start()
-                .await
-                .context("Failed to start headless prowler")?;
-            Some(prowler)
-        } else {
-            None
-        };
+    // TODO: Re-enable headless prowler after basic system is running
+    let _headless_prowler: Option<()> = None;
 
     // Initialize TersecPot Sentinel
     info!("🛡️ Starting TersecPot Sentinel Daemon...");
@@ -226,8 +213,7 @@ async fn main() -> Result<()> {
         }
     });
 
-    // Use the secure settings vault that was already initialized
-    let _secrets_vault = secure_settings.vault.clone();
+    // TODO: Add vault initialization later when we implement secure credential storage
 
     // Initialize dashboard state with real system components
     let auth_manager = AuthenticationManager::new(IAMConfig::default())
@@ -328,13 +314,7 @@ async fn main() -> Result<()> {
             Err(e) => error!("Failed to listen for shutdown signal: {}", e),
         }
 
-        // Stop Headless Prowler if active
-        if let Some(headless) = headless_prowler {
-            info!("Stopping Headless Prowler...");
-            if let Err(e) = headless.stop().await {
-                error!("Error stopping headless prowler: {}", e);
-            }
-        }
+        // TODO: Stop Headless Prowler if active (when re-enabled)
 
         // Stop Web Server
         info!("Stopping Web Server...");

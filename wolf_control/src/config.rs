@@ -10,9 +10,13 @@ use wolfsec::network_security::{SecurityManager, MEDIUM_SECURITY};
 /// Wrapper for system-wide identity components
 #[derive(Default)]
 pub struct WolfIdentity {
+    /// Client TLS identity
     pub client: Option<Identity>,
+    /// CA certificate
     pub ca: Option<Certificate>,
+    /// P2P keypair
     pub p2p_keypair: Option<Keypair>,
+    /// Security manager
     pub security_manager: Option<SecurityManager>,
 }
 
@@ -177,7 +181,7 @@ impl Config {
                     }
                     combined.extend_from_slice(&key);
 
-                    match reqwest::Identity::from_pem(&combined) {
+                    match Identity::from_pem(&combined) {
                         Ok(id) => Some(id),
                         Err(e) => {
                             eprintln!("Warning: Failed to create client identity from PEMs: {}", e);
@@ -284,4 +288,140 @@ impl Config {
     pub fn graphql_url(&self) -> String {
         format!("{}/graphql", self.api_url.trim_end_matches('/'))
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_config_default() {
+        let config = Config::default();
+        assert_eq!(config.api_url, "https://localhost:3031");
+        assert_eq!(config.poll_interval_secs, 2);
+        assert!(!config.verbose);
+        assert_eq!(config.theme, "dark");
+        assert!(config.show_timestamps);
+        assert!(config.auto_scroll_logs);
+        assert_eq!(config.max_retries, 3);
+        assert!(config.accept_invalid_certs);
+        assert!(config.admin_password.is_empty());
+        assert!(config.client_cert.is_none());
+        assert!(config.client_key.is_none());
+        assert!(config.ca_cert.is_none());
+        assert_eq!(config.api_timeout_secs, 30);
+        assert!(config.enable_compression);
+        assert!(config.api_token.is_none());
+        assert!(config.enable_caching);
+        assert_eq!(config.cache_ttl_secs, 300);
+    }
+
+    #[test]
+    fn test_config_validate_valid() {
+        let config = Config::default();
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_validate_client_cert_without_key() {
+        let mut config = Config::default();
+        config.client_cert = Some("cert.pem".to_string());
+        config.client_key = None;
+        assert!(config.validate().is_err());
+        assert_eq!(config.validate().unwrap_err(), "Client certificate is present but client key is missing.");
+    }
+
+    #[test]
+    fn test_config_validate_client_cert_with_key() {
+        let mut config = Config::default();
+        config.client_cert = Some("cert.pem".to_string());
+        config.client_key = Some("key.pem".to_string());
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_config_load_from_path_nonexistent() {
+        let config = Config::load_from_path("nonexistent.toml");
+        // Should return default config
+        assert_eq!(config.api_url, "https://localhost:3031");
+    }
+
+    #[test]
+    fn test_config_save_and_load() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_config.toml");
+
+        // Create a custom config
+        let mut config = Config::default();
+        config.api_url = "https://test.example.com:8080".to_string();
+        config.poll_interval_secs = 5;
+        config.verbose = true;
+        config.admin_password = "test_password".to_string();
+
+        // Save it
+        Config::save_to_path(&config, file_path.to_str().unwrap()).unwrap();
+
+        // Load it back
+        let loaded_config = Config::load_from_path(file_path.to_str().unwrap());
+
+        // Verify
+        assert_eq!(loaded_config.api_url, "https://test.example.com:8080");
+        assert_eq!(loaded_config.poll_interval_secs, 5);
+        assert!(loaded_config.verbose);
+        assert_eq!(loaded_config.admin_password, "test_password");
+
+        // Clean up
+        drop(dir);
+    }
+
+    #[test]
+    fn test_config_reload() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("reload_config.toml");
+
+        // Start with default
+        let mut config = Config::default();
+        assert_eq!(config.api_url, "https://localhost:3031");
+
+        // Save a modified config
+        let mut modified_config = Config::default();
+        modified_config.api_url = "https://reloaded.example.com".to_string();
+        Config::save_to_path(&modified_config, file_path.to_str().unwrap()).unwrap();
+
+        // Reload
+        config.reload(file_path.to_str().unwrap()).unwrap();
+
+        // Verify
+        assert_eq!(config.api_url, "https://reloaded.example.com");
+
+        // Clean up
+        drop(dir);
+    }
+
+    #[test]
+    fn test_config_graphql_url() {
+        let mut config = Config::default();
+        config.api_url = "https://api.example.com".to_string();
+        assert_eq!(config.graphql_url(), "https://api.example.com/graphql");
+
+        config.api_url = "https://api.example.com/".to_string();
+        assert_eq!(config.graphql_url(), "https://api.example.com/graphql");
+    }
+
+    #[test]
+    fn test_config_load_certs_no_files() {
+        let config = Config::default();
+        let identity = tokio::runtime::Runtime::new().unwrap().block_on(config.load_certs()).unwrap();
+
+        // Should succeed but with no certificates
+        assert!(identity.client.is_none());
+        assert!(identity.ca.is_some()); // Generated self-signed cert
+        assert!(identity.p2p_keypair.is_some());
+    }
+
+
+
+
 }
