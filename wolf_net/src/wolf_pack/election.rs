@@ -48,6 +48,8 @@ pub struct ElectionManager {
     // For weighting votes
     /// Local prestige score
     pub local_prestige: u32,
+    /// Number of peers in the cluster
+    pub cluster_size: usize,
 }
 
 impl ElectionManager {
@@ -71,6 +73,7 @@ impl ElectionManager {
             election_timeout: Self::randomized_timeout(),
             votes_received: HashSet::new(),
             local_prestige,
+            cluster_size: 1, // Default to 1 (standalone)
         }
     }
 
@@ -86,7 +89,11 @@ impl ElectionManager {
         match self.state {
             ElectionState::Follower | ElectionState::Candidate => {
                 if now.duration_since(self.last_heartbeat) > self.election_timeout {
-                    return Some(self.start_election());
+                    let (msg, won) = self.start_election();
+                    if won {
+                        return Some(self.send_heartbeat());
+                    }
+                    return Some(msg);
                 }
             }
             ElectionState::Leader => {
@@ -123,7 +130,7 @@ impl ElectionManager {
         }
     }
 
-    pub fn start_election(&mut self) -> HowlMessage {
+    pub fn start_election(&mut self) -> (HowlMessage, bool) {
         self.state = ElectionState::Candidate;
         self.current_term = self.current_term.saturating_add(1);
         self.voted_for = Some(self.local_peer_id.clone());
@@ -133,18 +140,36 @@ impl ElectionManager {
         self.election_timeout = Self::randomized_timeout();
         self.leader_id = None;
 
-        tracing::info!("Starting election for term {}", self.current_term);
+        tracing::info!(
+            "Starting election for term {} (Cluster Size: {})",
+            self.current_term,
+            self.cluster_size
+        );
+
+        // Check if we already have quorum (e.g. if we are the only node)
+        if self.votes_received.len() >= self.calculate_quorum() {
+            tracing::info!(
+                "Won election immediately for term {}! Becoming Leader.",
+                self.current_term
+            );
+            self.state = ElectionState::Leader;
+            self.leader_id = Some(self.local_peer_id.clone());
+            return (self.send_heartbeat(), true);
+        }
 
         // Broadcast RequestVote
-        HowlMessage::new(
-            self.local_peer_id.clone(),
-            HowlPriority::Alert,
-            HowlPayload::ElectionRequest {
-                term: self.current_term,
-                candidate_id: self.local_peer_id.clone(),
-                last_log_index: 0, // Not implemented yet
-                prestige: self.local_prestige,
-            },
+        (
+            HowlMessage::new(
+                self.local_peer_id.clone(),
+                HowlPriority::Alert,
+                HowlPayload::ElectionRequest {
+                    term: self.current_term,
+                    candidate_id: self.local_peer_id.clone(),
+                    last_log_index: 0, // Not implemented yet
+                    prestige: self.local_prestige,
+                },
+            ),
+            false,
         )
     }
 
@@ -207,12 +232,12 @@ impl ElectionManager {
         if self.state == ElectionState::Candidate && term == self.current_term && granted {
             self.votes_received.insert(voter);
 
-            // Should be configurable based on cluster size, using 3 for MVP
-            if self.votes_received.len() >= 2 {
-                // Simple quorum of 2 (self + 1) for small packs
+            let quorum = self.calculate_quorum();
+            if self.votes_received.len() >= quorum {
                 tracing::info!(
-                    "Won election for term {}! Becoming Leader.",
-                    self.current_term
+                    "Won election for term {} with {} votes! Becoming Leader.",
+                    self.current_term,
+                    self.votes_received.len()
                 );
                 self.state = ElectionState::Leader;
                 self.leader_id = Some(self.local_peer_id.clone());
@@ -221,6 +246,23 @@ impl ElectionManager {
             }
         }
         None
+    }
+
+    /// Calculates the required quorum size for the current cluster
+    #[must_use]
+    pub fn calculate_quorum(&self) -> usize {
+        if self.cluster_size <= 1 {
+            return 1;
+        }
+        (self.cluster_size / 2) + 1
+    }
+
+    /// Updates the known cluster size
+    pub fn update_cluster_size(&mut self, size: usize) {
+        if size != self.cluster_size {
+            tracing::debug!("Cluster size updated: {} -> {}", self.cluster_size, size);
+            self.cluster_size = size;
+        }
     }
 
     fn handle_heartbeat(&mut self, term: u64, leader_id: &PeerId) -> Option<HowlMessage> {

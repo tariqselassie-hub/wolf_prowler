@@ -23,13 +23,16 @@ use tracing::{error, info};
 use wolf_db::storage::WolfDbStorage;
 use wolf_net::{SwarmConfig, SwarmManager};
 use wolf_prowler::persistence::PersistenceManager;
+#[cfg(feature = "web_dashboard")]
 use wolf_web::dashboard::state::AppState; // For ID generation in bridge
 
 // Use wolfsec types for consistency
 use wolfsec::identity::iam::{AuthenticationManager, IAMConfig};
-use wolfsec::network_security::SecurityManager as NetworkSecurityManager;
 use wolfsec::protection::container_security::{ContainerSecurityConfig, ContainerSecurityManager};
-use wolfsec::threat_detection::{BehavioralAnalyzer, ThreatDetectionConfig, ThreatDetector};
+use wolfsec::protection::network_security::SecurityManager as NetworkSecurityManager;
+use wolfsec::protection::threat_detection::{
+    BehavioralAnalyzer, ThreatDetectionConfig, ThreatDetector,
+};
 use wolfsec::WolfSecurity;
 
 // Use the simple validation module
@@ -219,6 +222,8 @@ async fn main() -> Result<()> {
     let auth_manager = AuthenticationManager::new(IAMConfig::default())
         .await
         .unwrap();
+    // Create dashboard router (only if web_dashboard feature is enabled)
+    #[cfg(feature = "web_dashboard")]
     let app_state = AppState::with_system_components(
         ThreatDetector::new(
             ThreatDetectionConfig::default(),
@@ -247,25 +252,41 @@ async fn main() -> Result<()> {
         swarm_manager.clone(),
     );
 
-    // Create dashboard router
+    #[cfg(feature = "web_dashboard")]
     let dashboard_router = wolf_web::dashboard::create_router_with_state(app_state).await;
 
-    // Create app with dashboard and static file serving
-    let app = Router::new()
-        .route("/", get(|| async { "🐺 Wolf Prowler Dashboard" }))
+    // Create app with routes
+    let mut app = Router::new()
         .route("/health", get(|| async { "OK" }))
-        .nest("/api", dashboard_router)
-        .nest_service("/static", ServeDir::new("static"))
-        .route(
-            "/dashboard",
+        .nest_service("/static", ServeDir::new("static"));
+
+    #[cfg(feature = "web_dashboard")]
+    {
+        app = app
+            .route("/", get(|| async { "🐺 Wolf Prowler Dashboard" }))
+            .nest("/api", dashboard_router);
+    }
+
+    #[cfg(not(feature = "web_dashboard"))]
+    {
+        app = app.route(
+            "/",
             get(|| async {
-                Html(
-                    std::fs::read_to_string("static/dashboard.html").unwrap_or_else(|_| {
-                        "<html><body>Dashboard not found</body></html>".to_string()
-                    }),
-                )
+                "🐺 Wolf Prowler (Dashboard Disabled - use --features web_dashboard)"
             }),
         );
+    }
+
+    app = app.route(
+        "/dashboard",
+        get(|| async {
+            Html(
+                std::fs::read_to_string("static/dashboard.html").unwrap_or_else(|_| {
+                    "<html><body>Dashboard not found</body></html>".to_string()
+                }),
+            )
+        }),
+    );
 
     let port = settings.dashboard.port;
     let addr = SocketAddr::from(([127, 0, 0, 1], port));

@@ -11,6 +11,12 @@ pub struct WolfEcosystemMetrics {
     pub connected_peers: u64,
     /// Current system load/utilization.
     pub system_load: f64,
+    /// CPU usage percentage.
+    pub cpu_usage: f64,
+    /// Memory usage percentage.
+    pub memory_usage: f64,
+    /// System uptime in seconds.
+    pub uptime: u64,
 }
 
 /// Represents a security or system operation within the ecosystem.

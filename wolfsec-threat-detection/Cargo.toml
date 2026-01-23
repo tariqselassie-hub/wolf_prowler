@@ -1,0 +1,19 @@
+[package]
+name = "wolfsec-threat-detection"
+version = "0.1.0"
+edition = "2021"
+description = "Threat detection and vulnerability scanning for WolfSec"
+license = "MIT"
+authors = ["Wolf Prowler Team <team@wolfprowler.dev>"]
+repository = "https://github.com/wolfprowler/wolfsec"
+keywords = ["security", "threat-detection", "vulnerability", "scanning"]
+categories = ["security", "api-bindings"]
+
+[dependencies]
+wolfsec-core = { path = "../wolfsec-core" }
+serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+async-trait = "0.1"
+regex = "1.5"

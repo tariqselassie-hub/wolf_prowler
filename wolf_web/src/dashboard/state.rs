@@ -90,7 +90,7 @@ impl AppState {
     pub async fn get_unified_status(&self) -> wolfsec::WolfSecurityStatus {
         if let Some(wolf_sec) = &self.wolf_security {
             let security = wolf_sec.read().await;
-            security.get_status().await
+            security.get_status().await.unwrap_or_default()
         } else {
             // Fallback status constructed from available engines
             let threat_lock = self.threat_engine.lock().await;

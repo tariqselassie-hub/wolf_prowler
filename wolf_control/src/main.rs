@@ -14,15 +14,15 @@ use ratatui::{
     Frame, Terminal,
 };
 use serde::Deserialize;
-use thiserror::Error;
-use wolf_control::config::Config;
 use std::{
     collections::HashMap,
     io,
     sync::{Arc, Mutex},
     time::Duration,
 };
+use thiserror::Error;
 use tokio::time;
+use wolf_control::config::Config;
 
 // --- Data Structures (Mirroring Server API) ---
 
@@ -575,7 +575,8 @@ impl Tui {
             DisableMouseCapture
         )?;
         self.terminal.show_cursor()?;
-    Ok(())
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -697,7 +698,6 @@ mod tests {
         assert!(format!("{:?}", entry).contains("INFO"));
         assert!(format!("{:?}", entry).contains("Test message"));
     }
-}
 }
 
 impl Drop for Tui {

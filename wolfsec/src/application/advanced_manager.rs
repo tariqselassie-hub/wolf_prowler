@@ -997,6 +997,9 @@ impl SecurityManager {
             active_threats: 0,
             connected_peers: 0,
             system_load: 0.0,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+            uptime: 0,
         })
     }
 

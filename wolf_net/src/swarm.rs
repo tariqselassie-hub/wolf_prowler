@@ -668,6 +668,9 @@ impl SwarmManager {
                                                 metrics.last_activity = Some(Instant::now());
                                             }
 
+                                            // Update HuntCoordinator about cluster size
+                                            let _ = hunt_sender.send(CoordinatorMsg::PeerCountUpdate(connected_peers.len() + 1)).await;
+
                                             // Update Peer Registry
                                             {
                                                 let target = PeerId::from_libp2p(peer_id);
@@ -714,6 +717,9 @@ impl SwarmManager {
                                                metrics.active_connections = connected_peers.len();
                                                metrics.last_activity = Some(Instant::now());
                                            }
+
+                                           // Update HuntCoordinator about cluster size
+                                           let _ = hunt_sender.send(CoordinatorMsg::PeerCountUpdate(connected_peers.len() + 1)).await;
 
                                             // Update Peer Registry
                                             {
@@ -1210,8 +1216,12 @@ impl SwarmManager {
                                         SwarmCommand::Broadcast(data) => {
                                             let topic = gossipsub::IdentTopic::new("wolf-pack/gossip/1.0.0");
                                             if let Err(e) = swarm.behaviour_mut().gossipsub.publish(topic, data) {
-                                                warn!("Failed to broadcast message: {}", e);
-                                                { let mut m = metrics_clone.lock().await; m.connection_failures = m.connection_failures.saturating_add(1); }
+                                                if matches!(e, gossipsub::PublishError::InsufficientPeers) {
+                                                    // Ignore for standalone nodes
+                                                } else {
+                                                    warn!("Failed to broadcast message: {}", e);
+                                                    { let mut m = metrics_clone.lock().await; m.connection_failures = m.connection_failures.saturating_add(1); }
+                                                }
                                             }
                                         }
                                         SwarmCommand::BroadcastHowl { message } => {

@@ -98,6 +98,8 @@ pub enum CoordinatorMsg {
     StartElection,
     /// Internal tick for garbage collection / timeouts.
     Tick,
+    /// Update the count of connected peers for election quorum.
+    PeerCountUpdate(usize),
 }
 
 use super::ElectionManager;
@@ -239,6 +241,11 @@ impl HuntCoordinator {
                 self.handle_alpha_heartbeat(term, leader_id).await
             }
             CoordinatorMsg::StartElection => self.handle_start_election().await,
+            CoordinatorMsg::PeerCountUpdate(size) => {
+                self.election_manager.update_cluster_size(size.max(1));
+                self.sync_public_state().await;
+                Ok(())
+            }
         }
     }
 
@@ -603,7 +610,11 @@ impl HuntCoordinator {
 
     async fn handle_start_election(&mut self) -> Result<()> {
         info!("🗳️ Manually starting election");
-        let howl = self.election_manager.start_election();
+        let (howl, won) = self.election_manager.start_election();
+
+        if won {
+            info!("Election won immediately via manual start");
+        }
 
         // Broadcast the Voice Request
         if let Ok(bytes) = howl.to_bytes() {

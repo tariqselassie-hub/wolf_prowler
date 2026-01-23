@@ -383,6 +383,11 @@ fn parse_hhmm(s: &str) -> Option<(u32, u32)> {
 #[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 pub async fn start_sentinel() -> std::io::Result<()> {
     let postbox = postbox_path();
+    // Ensure postbox directory exists
+    if !std::path::Path::new(&postbox).exists() {
+        tracing::info!("[SENTINEL] Creating postbox directory: {}", postbox);
+        fs::create_dir_all(&postbox)?;
+    }
     let auth_keys_path = format!("{postbox}/authorized_keys.json");
     let kem_sk_path = format!("{postbox}/kem_private_key");
     let kem_pk_path = format!("{postbox}/kem_public_key");

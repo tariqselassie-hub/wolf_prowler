@@ -35,7 +35,7 @@ ipnetwork = "0.20"
 # Wolf Prowler modules - unified integration
 wolf_den = { path = "./wolf_den" }
 wolf_net = { path = "./wolf_net" }
-wolf_web = { path = "wolf_web" }
+wolf_web = { path = "wolf_web", optional = true }
 wolfsec = { path = "./wolfsec" }
 rand = "0.8"
 
@@ -194,7 +194,8 @@ ping = "0.7.0"
 [features]
 # Default features - database persistence and threat intelligence enabled by default
 # Minimal default features for core functionality - advanced features can be enabled separately
-default = ["advanced_reporting"]
+default = ["advanced_reporting", "web_dashboard"]
+web_dashboard = ["wolf_web"]
 profiling = []
 
 # SaaS Transition Features

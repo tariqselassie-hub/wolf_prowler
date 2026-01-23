@@ -97,7 +97,7 @@ impl Logger {
             .with(console_layer)
             .with(file_layer);
 
-        subscriber.init();
+        subscriber.try_init().ok();
 
         info!("🐺 Wolf Prowler logging initialized");
         info!("Log level: {}", self.config.level);

@@ -420,7 +420,7 @@ impl Default for SecurityConfig {
 
 /// System metrics
 /// Resource usage metrics for the underlying system
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SystemMetrics {
     /// Percentage of memory currently utilized
     pub memory_usage: f64,
@@ -431,7 +431,7 @@ pub struct SystemMetrics {
 }
 
 /// Comprehensive set of security metrics and incident counts
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SecurityMetrics {
     /// Underlying system resource metrics
     pub system: SystemMetrics,
@@ -663,7 +663,7 @@ pub struct ThreatAnalysisResult {
 }
 
 /// High-level overview of the threat detection system's state
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[non_exhaustive]
 pub struct ThreatDetectionStatus {
     /// Total number of peers ever encountered

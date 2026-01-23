@@ -360,9 +360,9 @@ pub fn start_system_monitoring_task(
                 // Get system metrics with error handling
                 match wolf_sec_read.get_metrics().await {
                     Ok(metrics) => {
-                        let cpu = metrics.system.cpu_usage;
-                        let memory = metrics.system.memory_usage;
-                        let uptime = 0; // metrics.system.uptime not available
+                        let cpu = metrics.cpu_usage;
+                        let memory = metrics.memory_usage;
+                        let uptime = metrics.uptime;
 
                         broadcast_system_metrics(&tx, cpu, memory, uptime).await;
                     }

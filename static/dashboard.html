@@ -126,8 +126,8 @@
                 <div class="flex items-center space-x-4">
                     <h2 id="pageTitle" class="text-xl font-semibold">Dashboard Overview</h2>
                     <div class="flex items-center space-x-2">
-                        <div class="w-3 h-3 bg-green-500 rounded-full status-online"></div>
-                        <span class="text-sm text-gray-300">Real-time</span>
+                        <div id="statusDot" class="w-3 h-3 bg-green-500 rounded-full status-online"></div>
+                        <span id="statusText" class="text-sm text-gray-300">Real-time</span>
                     </div>
                 </div>
 
@@ -782,7 +782,8 @@
 
         // Connect to WebSocket
         function connectWebSocket() {
-            const wsUrl = `ws://${window.location.host}/ws/dashboard?api_key=${apiKey}`;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/api/ws/dashboard?api_key=${apiKey}`;
 
             socket = new WebSocket(wsUrl);
 
@@ -913,26 +914,20 @@
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('criticalCVEs').textContent = data.critical_cves;
-                    document.getElementById('cveWeek').textContent = data.cve_week;
-                    document.getElementById('aiPredictions').textContent = data.ai_predictions;
-                    document.getElementById('predictionAccuracy').textContent = data.prediction_accuracy.toFixed(1) + '%';
-                    document.getElementById('threatIndicators').textContent = data.threat_indicators;
-                    document.getElementById('activeIndicators').textContent = data.active_indicators;
-                    document.getElementById('intelligenceFeeds').textContent = data.intelligence_feeds;
-                    document.getElementById('lastFeedUpdate').textContent = data.last_feed_update;
+                    if (document.getElementById('criticalCVEs')) document.getElementById('criticalCVEs').textContent = data.critical_cves;
+                    if (document.getElementById('cveWeek')) document.getElementById('cveWeek').textContent = data.cve_week;
+                    if (document.getElementById('aiPredictions')) document.getElementById('aiPredictions').textContent = data.ai_predictions;
+                    if (document.getElementById('predictionAccuracy')) document.getElementById('predictionAccuracy').textContent = (data.prediction_accuracy * 100).toFixed(1) + '%';
+                    if (document.getElementById('threatIndicators')) document.getElementById('threatIndicators').textContent = data.threat_indicators;
+                    if (document.getElementById('activeIndicators')) document.getElementById('activeIndicators').textContent = data.active_indicators;
+                    if (document.getElementById('intelligenceFeeds')) document.getElementById('intelligenceFeeds').textContent = data.intelligence_feeds;
+                    if (document.getElementById('lastFeedUpdate')) {
+                        const date = new Date(data.last_feed_update);
+                        document.getElementById('lastFeedUpdate').textContent = date.toLocaleTimeString();
+                    }
                 }
             } catch (error) {
                 console.error('Failed to load intelligence data:', error);
-                // Fallback to mock data
-                document.getElementById('criticalCVEs').textContent = '3';
-                document.getElementById('cveWeek').textContent = '12';
-                document.getElementById('aiPredictions').textContent = '89';
-                document.getElementById('predictionAccuracy').textContent = '94%';
-                document.getElementById('threatIndicators').textContent = '156';
-                document.getElementById('activeIndicators').textContent = '42';
-                document.getElementById('intelligenceFeeds').textContent = '8';
-                document.getElementById('lastFeedUpdate').textContent = '2 min ago';
             }
         }
 
@@ -943,35 +938,57 @@
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('soc2Status').textContent = data.soc2_status.toFixed(1) + '%';
-                    document.getElementById('lastSOC2Audit').textContent = data.last_soc2_audit;
-                    document.getElementById('gdprStatus').textContent = data.gdpr_status.toFixed(1) + '%';
-                    document.getElementById('dataSubjects').textContent = data.data_subjects.toLocaleString();
-                    document.getElementById('auditEntries').textContent = data.audit_entries.toLocaleString();
-                    document.getElementById('auditRetention').textContent = data.audit_retention;
+                    if (document.getElementById('soc2Status')) document.getElementById('soc2Status').textContent = data.soc2_status.toFixed(1) + '%';
+                    if (document.getElementById('lastSOC2Audit')) document.getElementById('lastSOC2Audit').textContent = data.last_soc2_audit;
+                    if (document.getElementById('gdprStatus')) document.getElementById('gdprStatus').textContent = data.gdpr_status.toFixed(1) + '%';
+                    if (document.getElementById('dataSubjects')) document.getElementById('dataSubjects').textContent = data.data_subjects.toLocaleString();
+                    if (document.getElementById('auditEntries')) document.getElementById('auditEntries').textContent = data.audit_entries.toLocaleString();
+                    if (document.getElementById('auditRetention')) document.getElementById('auditRetention').textContent = data.audit_retention + 'd';
                 }
             } catch (error) {
                 console.error('Failed to load compliance data:', error);
-                // Fallback to mock data
-                document.getElementById('soc2Status').textContent = '92%';
-                document.getElementById('lastSOC2Audit').textContent = 'Jan 1';
-                document.getElementById('gdprStatus').textContent = '88%';
-                document.getElementById('dataSubjects').textContent = '1,234';
-                document.getElementById('auditEntries').textContent = '45,678';
-                document.getElementById('auditRetention').textContent = '2555';
             }
         }
 
         async function loadAdministrationData() {
-            // Load administration data - mock for now
-            document.getElementById('totalUsers').textContent = '156';
-            document.getElementById('activeUsers').textContent = '89';
-            document.getElementById('roleChanges').textContent = '12';
-            document.getElementById('roleChangesWeek').textContent = '34';
-            document.getElementById('systemHealth').textContent = '98%';
-            document.getElementById('systemUptime').textContent = '45d 12h';
-            document.getElementById('apiRequests').textContent = '12,345';
-            document.getElementById('apiRate').textContent = '234/min';
+            try {
+                const [authResponse, metricsResponse, healthResponse] = await Promise.all([
+                    fetch('/api/v1/auth/status', {
+                        headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' }
+                    }),
+                    fetch('/api/v1/metrics/', {
+                        headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' }
+                    }),
+                    fetch('/api/v1/metrics/detailed', {
+                        headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' }
+                    })
+                ]);
+
+                if (authResponse.ok) {
+                    const authData = await authResponse.json();
+                    if (document.getElementById('totalUsers')) document.getElementById('totalUsers').textContent = authData.total_users;
+                    if (document.getElementById('activeUsers')) document.getElementById('activeUsers').textContent = authData.active_sessions;
+                }
+
+                if (metricsResponse.ok) {
+                    const metricsData = await metricsResponse.json();
+                    if (document.getElementById('apiRequests')) document.getElementById('apiRequests').textContent = metricsData.request_count.toLocaleString();
+                    if (document.getElementById('apiRate')) document.getElementById('apiRate').textContent = metricsData.avg_response_time.toFixed(1) + 'ms';
+                }
+
+                if (healthResponse.ok) {
+                    const healthData = await healthResponse.json();
+                    if (document.getElementById('systemHealth')) document.getElementById('systemHealth').textContent = '100.0%';
+                    if (document.getElementById('systemUptime')) document.getElementById('systemUptime').textContent = formatUptime(healthData.system.uptime);
+                }
+                
+                // Keep role changes as is since they aren't in current metrics APIs
+                if (document.getElementById('roleChanges')) document.getElementById('roleChanges').textContent = '0';
+                if (document.getElementById('roleChangesWeek')) document.getElementById('roleChangesWeek').textContent = '0';
+
+            } catch (error) {
+                console.error('Failed to load administration data:', error);
+            }
         }
 
         async function loadSettingsData() {
@@ -1040,13 +1057,14 @@
         
         // Update system metrics
         function updateSystemMetrics(data) {
-            document.getElementById('cpuUsage').textContent = data.cpu.toFixed(1) + '%';
-            document.getElementById('memoryUsage').textContent = data.memory.toFixed(1) + ' MB';
-            document.getElementById('uptime').textContent = formatUptime(data.uptime);
+            if (document.getElementById('cpuUsage')) document.getElementById('cpuUsage').textContent = data.cpu.toFixed(1) + '%';
+            if (document.getElementById('memoryUsage')) document.getElementById('memoryUsage').textContent = data.memory.toFixed(1) + ' MB';
+            if (document.getElementById('uptime')) document.getElementById('uptime').textContent = formatUptime(data.uptime);
+            if (document.getElementById('systemUptime')) document.getElementById('systemUptime').textContent = formatUptime(data.uptime);
             
             // Update progress bars
-            document.getElementById('cpuBar').style.width = data.cpu + '%';
-            document.getElementById('memoryBar').style.width = Math.min(data.memory / 10, 100) + '%';
+            if (document.getElementById('cpuBar')) document.getElementById('cpuBar').style.width = data.cpu + '%';
+            if (document.getElementById('memoryBar')) document.getElementById('memoryBar').style.width = Math.min(data.memory / 10, 100) + '%';
             
             // Update charts
             updatePerformanceChart(data.cpu, data.memory);
@@ -1054,9 +1072,10 @@
         
         // Update network status
         function updateNetworkStatus(data) {
-            document.getElementById('activePeers').textContent = data.peers;
-            document.getElementById('networkHealth').textContent = data.health.toFixed(1);
-            document.getElementById('connections').textContent = data.connections;
+            if (document.getElementById('activePeers')) document.getElementById('activePeers').textContent = data.peers;
+            if (document.getElementById('networkHealth')) document.getElementById('networkHealth').textContent = data.health.toFixed(1);
+            if (document.getElementById('connections')) document.getElementById('connections').textContent = data.connections;
+            if (document.getElementById('connectedPeers')) document.getElementById('connectedPeers').textContent = data.peers;
             
             // Update network chart
             updateNetworkChart(data.peers, data.connections);
@@ -1103,16 +1122,26 @@
         
         // Format uptime
         function formatUptime(seconds) {
-            const hours = Math.floor(seconds / 3600);
+            const days = Math.floor(seconds / (24 * 3600));
+            const hours = Math.floor((seconds % (24 * 3600)) / 3600);
             const minutes = Math.floor((seconds % 3600) / 60);
-            return `${hours}h ${minutes}m`;
+            
+            if (days > 0) {
+                return `${days}d ${hours}h ${minutes}m`;
+            } else if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else {
+                return `${minutes}m ${seconds % 60}s`;
+            }
         }
         
         // Update connection status
         function updateConnectionStatus(connected) {
-            const statusDot = document.querySelector('.status-online');
-            const statusText = document.querySelector('.status-online').nextElementSibling;
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
             
+            if (!statusDot || !statusText) return;
+
             if (connected) {
                 statusDot.classList.remove('bg-gray-500', 'status-offline');
                 statusDot.classList.add('bg-green-500', 'status-online');
@@ -1291,6 +1320,11 @@
                         memory: data.system.memory_usage,
                         uptime: data.system.uptime
                     });
+                    
+                    // Trigger other loaders
+                    loadIntelligenceData();
+                    loadComplianceData();
+                    loadAdministrationData();
                 }
             } catch (error) {
                 console.error('Failed to fetch initial data:', error);

@@ -86,7 +86,13 @@ pub async fn validate_libraries_simple() -> Result<SimpleValidationResults> {
 /// Test basic wolfsec functionality
 async fn test_wolfsec_basic() -> bool {
     // Test basic wolfsec functionality by creating a config and the main struct
-    let config = wolfsec::WolfSecurityConfig::default();
+    let mut config = wolfsec::WolfSecurityConfig::default();
+    // Use a temporary path for validation to avoid lock contention with the real DB
+    let temp_dir = tempfile::tempdir().ok();
+    if let Some(ref dir) = temp_dir {
+        config.db_path = dir.path().to_path_buf();
+    }
+
     match wolfsec::WolfSecurity::create(config).await {
         Ok(_) => true,
         Err(e) => {
