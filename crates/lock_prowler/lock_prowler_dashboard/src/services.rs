@@ -1,4 +1,4 @@
-use crate::models::SystemStats;
+use crate::models::{FirewallStats, SystemStats};
 
 use dioxus_fullstack::prelude::*;
 use lock_prowler::headless::HeadlessStatus;
@@ -22,6 +22,16 @@ pub async fn get_fullstack_stats() -> Result<SystemStats, ServerFnError> {
         encrypted_sectors: 98.2,
         entropy: 0.88,
         db_status: "CONNECTED".to_string(),
+        active_nodes: 42,
+        threat_level: "LOW".to_string(),
+        active_alerts: 3,
+        scanner_status: "ACTIVE".to_string(),
+        network_status: "CONNECTED".to_string(),
+        firewall: FirewallStats {
+            rules_count: 25,
+            blocked_connections: 2,
+            allowed_connections: 40,
+        },
     })
 }
 

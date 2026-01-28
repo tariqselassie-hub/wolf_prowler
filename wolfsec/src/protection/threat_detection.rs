@@ -431,7 +431,7 @@ pub struct SystemMetrics {
 }
 
 /// Comprehensive set of security metrics and incident counts
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityMetrics {
     /// Underlying system resource metrics
     pub system: SystemMetrics,

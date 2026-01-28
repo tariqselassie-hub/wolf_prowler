@@ -15,6 +15,8 @@ pub struct WolfEcosystemMetrics {
     pub cpu_usage: f64,
     /// Memory usage percentage.
     pub memory_usage: f64,
+    /// Overall security score (0.0 - 1.0).
+    pub security_score: f64,
     /// System uptime in seconds.
     pub uptime: u64,
 }

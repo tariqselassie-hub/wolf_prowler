@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
     wolf_security.initialize().await?;
 
     // Display status
-    let status = wolf_security.get_status().await;
+    let status = wolf_security.get_status().await?;
     info!("📊 Security Status:");
     info!(
         "  Network Security: {} keypairs",

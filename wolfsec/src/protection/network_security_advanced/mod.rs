@@ -680,13 +680,13 @@ mod tests {
         let fingerprint = security_manager
             .generate_keypair(KeyExchange::X25519)
             .await
-            .unwrap();
+            .expect("Key generation should succeed");
         assert!(!fingerprint.is_empty());
 
         let retrieved_fingerprint = security_manager
             .get_public_key_fingerprint(&fingerprint)
             .await
-            .unwrap();
+            .expect("Should retrieve fingerprint successfully");
         assert_eq!(fingerprint, retrieved_fingerprint);
     }
 
@@ -696,7 +696,9 @@ mod tests {
         let remote_id = EntityId::new("remote_peer".to_string(), "network_node".to_string());
         let security_manager = NetworkSecurityManager::new(entity_id, MEDIUM_SECURITY);
 
-        let session_id = security_manager.create_session(remote_id).await.unwrap();
+        let session_id = security_manager.create_session(remote_id)
+            .await
+            .expect("Session creation should succeed");
         assert!(!session_id.is_empty());
 
         let session = security_manager.get_session(&session_id).await.unwrap();
@@ -728,21 +730,47 @@ mod tests {
 
     #[tokio::test]
     async fn test_message_encryption() {
-        let entity_id = "test_peer_encrypt".to_string();
-        let remote_id = EntityId::new("remote_encrypt".to_string(), "network_node".to_string());
-        let security_manager = NetworkSecurityManager::new(entity_id, MEDIUM_SECURITY);
+        let sender_id = "test_peer_sender".to_string();
+        let recipient_id_str = "test_peer_recipient".to_string();
+        let recipient_id = EntityId::new(recipient_id_str.clone(), "network_node".to_string());
 
-        let session_id = security_manager.create_session(remote_id).await.unwrap();
+        let sender_manager = NetworkSecurityManager::new(sender_id.clone(), MEDIUM_SECURITY);
+        let recipient_manager =
+            NetworkSecurityManager::new(recipient_id_str.clone(), MEDIUM_SECURITY);
+
+        let session_id = sender_manager
+            .create_session(recipient_id.clone())
+            .await
+            .unwrap();
+        let session = sender_manager.get_session(&session_id).await.unwrap();
+
+        // Manually insert the session into recipient manager with inverted IDs
+        let recipient_session = SecuritySession {
+            session_id: session_id.clone(),
+            local_id: recipient_id,
+            remote_id: EntityId::new(sender_id.clone(), "network_node".to_string()),
+            shared_secret: session.shared_secret.clone(),
+            created_at: session.created_at,
+            last_activity: session.last_activity,
+            expires_at: session.expires_at,
+            security_level: session.security_level.clone(),
+        };
+        recipient_manager
+            .sessions
+            .write()
+            .await
+            .insert(session_id.clone(), recipient_session);
+
         let plaintext = b"Hello, secure world!";
 
-        let encrypted = security_manager
+        let encrypted = sender_manager
             .encrypt_message(&session_id, plaintext)
             .await
             .unwrap();
-        assert_eq!(encrypted.sender_id.peer_id, "test_peer_encrypt");
-        assert_eq!(encrypted.recipient_id.peer_id, "remote_encrypt");
+        assert_eq!(encrypted.sender_id.peer_id, "test_peer_sender");
+        assert_eq!(encrypted.recipient_id.peer_id, "test_peer_recipient");
 
-        let decrypted = security_manager
+        let decrypted = recipient_manager
             .decrypt_message(&session_id, &encrypted)
             .await
             .unwrap();

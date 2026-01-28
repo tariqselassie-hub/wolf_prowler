@@ -1,8 +1,6 @@
 use crate::protection::ml_security::backends::MLBackend;
 use crate::protection::ml_security::data_pipeline::{FeatureConfig, FeatureExtractor};
-use crate::protection::ml_security::{
-    MLModel, MLSecurityConfig, MLTrainingData, ModelPerformance,
-};
+use crate::protection::ml_security::{MLModel, MLSecurityConfig, MLTrainingData, ModelPerformance};
 use anyhow::Result;
 
 /// Training pipeline for ML models

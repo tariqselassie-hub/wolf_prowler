@@ -266,7 +266,8 @@ impl Config {
                 let mut headers = reqwest::header::HeaderMap::new();
                 headers.insert(
                     reqwest::header::AUTHORIZATION,
-                    format!("Bearer {}", token).parse().unwrap(),
+                    format!("Bearer {}", token).parse()
+                        .expect("Bearer token should be valid header value"),
                 );
                 headers
             });
@@ -330,7 +331,10 @@ mod tests {
         config.client_cert = Some("cert.pem".to_string());
         config.client_key = None;
         assert!(config.validate().is_err());
-        assert_eq!(config.validate().unwrap_err(), "Client certificate is present but client key is missing.");
+        assert_eq!(
+            config.validate().unwrap_err(),
+            "Client certificate is present but client key is missing."
+        );
     }
 
     #[test]
@@ -413,15 +417,14 @@ mod tests {
     #[test]
     fn test_config_load_certs_no_files() {
         let config = Config::default();
-        let identity = tokio::runtime::Runtime::new().unwrap().block_on(config.load_certs()).unwrap();
+        let identity = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(config.load_certs())
+            .unwrap();
 
         // Should succeed but with no certificates
         assert!(identity.client.is_none());
         assert!(identity.ca.is_some()); // Generated self-signed cert
         assert!(identity.p2p_keypair.is_some());
     }
-
-
-
-
 }

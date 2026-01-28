@@ -17,9 +17,7 @@ use tokio::sync::Mutex;
 use tracing::{debug, info};
 use uuid::Uuid;
 
-use crate::identity::iam::{
-    AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
-};
+use crate::identity::iam::{AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig};
 
 /// Categorization of supported multi-factor verification mechanisms
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]

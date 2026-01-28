@@ -14,9 +14,7 @@ use tokio::sync::Mutex;
 use tracing::{debug, info};
 use uuid::Uuid;
 
-use crate::identity::iam::{
-    AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
-};
+use crate::identity::iam::{AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig};
 
 /// Standardized JWT claims specifically tailored for the Wolf Prowler ecosystem
 #[derive(Debug, Clone, Serialize, Deserialize)]

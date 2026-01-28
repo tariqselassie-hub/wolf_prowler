@@ -72,8 +72,7 @@ pub async fn enrich_threat(
     // Check for a SHA256 hash (64 hex characters)
     let is_hash = item.id.len() == 64 && item.id.chars().all(|c| c.is_ascii_hexdigit());
     if is_hash {
-        if let Some(feed) = virustotal::lookup_hash(&item.id, config).await?
-        {
+        if let Some(feed) = virustotal::lookup_hash(&item.id, config).await? {
             item.title = feed.title;
             item.description = feed.description;
             item.severity = feed.severity;
@@ -83,8 +82,7 @@ pub async fn enrich_threat(
         }
     }
     // Fallback to CVE search using the ID as a query string
-    let results: Vec<ThreatFeedItem> =
-        cve_search::search_cve(&item.id, config).await?;
+    let results: Vec<ThreatFeedItem> = cve_search::search_cve(&item.id, config).await?;
     if let Some(first) = results.into_iter().next() {
         item.title = first.title;
         item.description = first.description;

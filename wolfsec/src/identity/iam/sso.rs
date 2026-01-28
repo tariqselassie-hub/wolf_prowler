@@ -54,8 +54,7 @@ pub async fn async_http_client(request: HttpRequest) -> Result<HttpResponse, Htt
     );
 
     for (name, value) in response.headers() {
-        if let Ok(n) = http::header::HeaderName::from_bytes(name.as_str().as_bytes())
-        {
+        if let Ok(n) = http::header::HeaderName::from_bytes(name.as_str().as_bytes()) {
             if let Ok(v) = http::header::HeaderValue::from_bytes(value.as_bytes()) {
                 response_builder = response_builder.header(n, v);
             }
@@ -84,9 +83,7 @@ use tokio::sync::Mutex;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-use crate::identity::iam::{
-    AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig,
-};
+use crate::identity::iam::{AuthenticationMethod, AuthenticationResult, ClientInfo, IAMConfig};
 
 /// Externally supported Single Sign-On identity providers
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]

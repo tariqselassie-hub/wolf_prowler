@@ -192,8 +192,8 @@ mod security_tests {
         // 1. Setup Cipher (ChaCha20Poly1305)
         // Use a 32-byte key for ChaCha20Poly1305
         let key = vec![0x42; 32];
-        // Use a 12-byte nonce
-        let nonce = vec![0x01; 12];
+        // Use a 24-byte nonce (XChaCha20-Poly1305 variant used in wolf_den)
+        let nonce = vec![0x01; 24];
 
         // We use WolfDenSecurityLevel::Standard corresponding to usual defaults
         let cipher_suite = CipherSuite::ChaCha20Poly1305;

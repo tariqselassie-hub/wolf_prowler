@@ -23,11 +23,13 @@ async fn get_intelligence_data() -> Result<Vec<ThreatItem>, ServerFnError> {
     let mut threats = Vec::new();
 
     // Simulate some threats or fetch from WolfSec
-    let sec_lock: MutexGuard<Option<WolfSecurity>> = SECURITY_ENGINE.lock().await;
-    if let Some(sec) = sec_lock.as_ref() {
-        let _status = sec.get_status().await;
-        // In a real impl, we would iterate status.threat_detection.active_threats
-        // For now, simulating based on security score
+    let sec_lock = SECURITY_ENGINE.lock().await;
+    if let Some(sec_arc) = sec_lock.as_ref() {
+        let sec = sec_arc.read().await;
+        if let Ok(_status) = sec.get_status().await {
+            // In a real impl, we would iterate status.threat_detection.active_threats
+            // For now, simulating based on security score
+        }
     }
 
     threats.push(ThreatItem {

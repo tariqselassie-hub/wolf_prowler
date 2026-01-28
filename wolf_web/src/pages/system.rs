@@ -30,18 +30,20 @@ async fn get_system_logs() -> Result<Vec<LogEntry>, ServerFnError> {
         message: "Peer discovery active. Swarm telemetry stable.".to_string(),
     });
 
-    let sec_lock: MutexGuard<Option<WolfSecurity>> = SECURITY_ENGINE.lock().await;
-    if let Some(sec) = sec_lock.as_ref() {
-        let status = sec.get_status().await;
-        logs.push(LogEntry {
-            timestamp: timestamp.clone(),
-            level: "INFO".to_string(),
-            source: "WolfSec".to_string(),
-            message: format!(
-                "Threat detection running. Score: {:.1}",
-                status.threat_detection.metrics.security_score
-            ),
-        });
+    let sec_lock = SECURITY_ENGINE.lock().await;
+    if let Some(sec_arc) = sec_lock.as_ref() {
+        let sec = sec_arc.read().await;
+        if let Ok(status) = sec.get_status().await {
+            logs.push(LogEntry {
+                timestamp: timestamp.clone(),
+                level: "INFO".to_string(),
+                source: "WolfSec".to_string(),
+                message: format!(
+                    "Threat detection running. Score: {:.1}",
+                    status.threat_detection.metrics.security_score
+                ),
+            });
+        }
     }
 
     Ok(logs)

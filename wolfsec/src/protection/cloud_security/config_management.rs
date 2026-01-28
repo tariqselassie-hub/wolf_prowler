@@ -1,6 +1,4 @@
-use crate::protection::cloud_security::{
-    CloudProvider, CloudSecurityConfig, ComplianceViolation,
-};
+use crate::protection::cloud_security::{CloudProvider, CloudSecurityConfig, ComplianceViolation};
 use anyhow::Result;
 
 /// Cloud configuration manager

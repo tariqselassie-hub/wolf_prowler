@@ -1,6 +1,4 @@
-use crate::protection::threat_hunting::{
-    ThreatCorrelation, ThreatHunt, ThreatHuntingConfig,
-};
+use crate::protection::threat_hunting::{ThreatCorrelation, ThreatHunt, ThreatHuntingConfig};
 use anyhow::Result;
 
 /// logic module for identifying statistical and temporal links between disparate hunts

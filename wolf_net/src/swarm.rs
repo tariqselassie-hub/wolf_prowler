@@ -588,46 +588,46 @@ impl SwarmManager {
                                        SwarmEvent::NewListenAddr { address, .. } => {
                                            info!("📡 Listening on: {}", address);
                                        }
-                                       SwarmEvent::ConnectionEstablished { peer_id, .. } => {
-                                           // Firewall check
-                                           {
-                                               let firewall = firewall_clone.read().await;
-                                               let target_peer = RuleTarget::PeerId(peer_id.to_string());
-                                               // We can't easily check IP here without endpoint info, but we can check PeerID
-                                               if !firewall.check_access(
-                                                   &target_peer,
-                                                   &Protocol::WolfProto,
-                                                   &TrafficDirection::Inbound
-                                               ) {
-                                                   warn!("🔥 Firewall blocked incoming connection from {}", peer_id);
+                                        SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+                                            // Firewall check
+                                            {
+                                                let firewall = firewall_clone.read().await;
+                                                let target_peer = RuleTarget::PeerId(peer_id.to_string());
+                                                // We can't easily check IP here without endpoint info, but we can check PeerID
+                                                if !firewall.check_access(
+                                                    &target_peer,
+                                                    &Protocol::WolfProto,
+                                                    &TrafficDirection::Inbound
+                                                ) {
+                                                    warn!("🔥 Firewall blocked incoming connection from {}", peer_id);
 
-                                                   if let Some(reporter) = &reputation_reporter {
-                                                       reporter.report_event(
-                                                           &peer_id.to_string(),
-                                                           "Security",
-                                                           -0.15,
-                                                           "Firewall blocked incoming connection".to_string()
-                                                       ).await;
-                                                   }
+                                                    if let Some(reporter) = &reputation_reporter {
+                                                        reporter.report_event(
+                                                            &peer_id.to_string(),
+                                                            "Security",
+                                                            -0.15,
+                                                            "Firewall blocked incoming connection".to_string()
+                                                        ).await;
+                                                    }
 
-                                                   let _ = swarm.disconnect_peer_id(peer_id);
+                                                    let _ = swarm.disconnect_peer_id(peer_id);
 
-                                                   // Send security event for block
-                                                   if let Some(sender) = &security_sender {
-                                                       let event = SecurityEvent::new(
-                                                           SecurityEventType::PolicyViolation,
-                                                           SecuritySeverity::Medium,
-                                                           format!("Firewall blocked peer {}", peer_id),
-                                                       ).with_peer(peer_id.to_string());
-                                                       let _ = sender.send(event);
-                                                   }
-                                                   continue;
-                                               }
-                                           }
+                                                    // Send security event for block
+                                                    if let Some(sender) = &security_sender {
+                                                        let event = SecurityEvent::new(
+                                                            SecurityEventType::Other("ConnectionEstablished".to_string()),
+                                                            SecuritySeverity::Medium,
+                                                            format!("Firewall blocked peer {}", peer_id),
+                                                        ).with_peer(peer_id.to_string());
+                                                        let _ = sender.send(event);
+                                                    }
+                                                    continue;
+                                                }
+                                            }
 
-                                           // Update metrics
-                                           { let mut m = metrics_clone.lock().await; m.connection_attempts = m.connection_attempts.saturating_add(1); }
-                                           info!("🤝 Connection established with: {}", peer_id);
+                                            // Update metrics
+                                            { let mut m = metrics_clone.lock().await; m.connection_attempts = m.connection_attempts.saturating_add(1); }
+                                            info!("🤝 Connection established with: {}", peer_id);
 
                                            if let Some(reporter) = &reputation_reporter {
                                                reporter.report_event(

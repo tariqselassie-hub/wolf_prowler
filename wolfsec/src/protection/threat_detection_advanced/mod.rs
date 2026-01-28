@@ -703,12 +703,13 @@ mod tests {
 
         manager.handle_peer_connected(peer_id).unwrap();
 
-        // Simulate time passing
-        std::thread::sleep(Duration::from_millis(10));
+        // Simulate time passing with a faster decay rate for testing
+        manager.config.trust_decay_rate = 100.0;
+        std::thread::sleep(Duration::from_millis(100));
 
         manager.update_trust_levels();
 
-        // Trust should have decayed slightly
+        // Trust should have decayed significantly
         let peer_info = manager.get_peer_info(&peer_id).unwrap();
         assert!(peer_info.trust_level < 0.5);
     }
@@ -717,10 +718,17 @@ mod tests {
     fn test_pack_status() {
         let mut manager = ThreatDetectionManager::new(ThreatDetectionConfig::default());
 
-        // Add multiple peers
-        for _ in 0..5 {
+        // Add multiple peers and make some trusted
+        for i in 0..5 {
             let peer_id = PeerId::random();
             manager.handle_peer_connected(peer_id).unwrap();
+
+            // Make every other peer trusted
+            if i % 2 == 0 {
+                if let Some(peer_info) = manager.peers.get_mut(&peer_id) {
+                    peer_info.trust_level = 0.9;
+                }
+            }
         }
 
         let status = manager.get_pack_status();

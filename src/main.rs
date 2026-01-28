@@ -216,12 +216,14 @@ async fn main() -> Result<()> {
         }
     });
 
-    // TODO: Add vault initialization later when we implement secure credential storage
+    // Initialize secure vault for credential storage
+    let vault = wolf_prowler::secrets::vault::create_vault().await?;
+    info!("🔐 Secure vault initialized for credential storage");
 
     // Initialize dashboard state with real system components
     let auth_manager = AuthenticationManager::new(IAMConfig::default())
         .await
-        .unwrap();
+        .map_err(|e| anyhow::anyhow!("Failed to initialize auth manager: {}", e))?;
     // Create dashboard router (only if web_dashboard feature is enabled)
     #[cfg(feature = "web_dashboard")]
     let app_state = AppState::with_system_components(

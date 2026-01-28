@@ -50,14 +50,15 @@ async fn get_crypto_stats(State(state): State<Arc<AppState>>) -> Json<CryptoResp
 
     if let Some(wolf_security_arc) = state.get_wolf_security() {
         let security = wolf_security_arc.read().await;
-        let status = security.get_status().await;
-        let key_status = &status.key_management;
+        if let Ok(status) = security.get_status().await {
+            let key_status = &status.key_management;
 
-        response.total_keys = key_status.total_keys;
-        response.active_keys = key_status.active_keys;
-        response.total_certificates = key_status.total_certificates;
-        response.trusted_certificates = key_status.trusted_certificates;
-        response.expired_certificates = key_status.expired_certificates;
+            response.total_keys = key_status.total_keys;
+            response.active_keys = key_status.active_keys;
+            response.total_certificates = key_status.total_certificates;
+            response.trusted_certificates = key_status.trusted_certificates;
+            response.expired_certificates = key_status.expired_certificates;
+        }
     }
 
     Json(response)
@@ -76,28 +77,29 @@ async fn get_crypto_operations(State(state): State<Arc<AppState>>) -> Json<serde
 
     if let Some(wolf_security_arc) = state.get_wolf_security() {
         let security = wolf_security_arc.read().await;
-        let status = security.get_status().await;
-        let key_status = &status.key_management;
+        if let Ok(status) = security.get_status().await {
+            let key_status = &status.key_management;
 
-        operations_data["next_rotation"] = serde_json::json!(key_status.next_rotation);
+            operations_data["next_rotation"] = serde_json::json!(key_status.next_rotation);
 
-        // Populate operations with algorithm info from real KeyManager
-        let operations = vec![
-            serde_json::json!({
-                "type": "Key Management",
-                "status": "Active",
-                "count": key_status.total_keys,
-                "description": "PQC-secured cryptographic material"
-            }),
-            serde_json::json!({
-                "type": "Certificates",
-                "status": "Compliant",
-                "count": key_status.total_certificates,
-                "description": "X.509-like identity tokens"
-            }),
-        ];
+            // Populate operations with algorithm info from real KeyManager
+            let operations = vec![
+                serde_json::json!({
+                    "type": "Key Management",
+                    "status": "Active",
+                    "count": key_status.total_keys,
+                    "description": "PQC-secured cryptographic material"
+                }),
+                serde_json::json!({
+                    "type": "Certificates",
+                    "status": "Compliant",
+                    "count": key_status.total_certificates,
+                    "description": "X.509-like identity tokens"
+                }),
+            ];
 
-        operations_data["operations"] = serde_json::Value::Array(operations);
+            operations_data["operations"] = serde_json::Value::Array(operations);
+        }
     }
 
     Json(operations_data)

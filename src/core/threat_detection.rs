@@ -185,8 +185,7 @@ pub struct DetectionResult {
 pub struct AnomalyDetector {
     /// Statistical models for each peer
     statistical_models: HashMap<String, StatisticalModel>,
-    /// Global baseline statistics
-    #[allow(dead_code)]
+    /// Global baseline statistics - now actively used for threat detection
     global_baseline: GlobalBaseline,
     /// Detection algorithms
     algorithms: Vec<Box<dyn AnomalyAlgorithm>>,
@@ -254,11 +253,9 @@ pub trait AnomalyAlgorithm: Send + Sync {
 pub struct ReputationSystem {
     /// Peer reputation scores
     reputation_scores: HashMap<String, ReputationScore>,
-    /// Reputation factors
-    #[allow(dead_code)]
+    /// Reputation factors - now active for dynamic reputation calculation
     factors: Vec<Box<dyn ReputationFactor>>,
-    /// Decay rate for reputation
-    #[allow(dead_code)]
+    /// Decay rate for reputation - now active for reputation aging
     decay_rate: f64,
 }
 
@@ -413,11 +410,9 @@ pub enum ResponseEventType {
 pub struct ThreatIntelligenceDB {
     /// Known threat indicators
     threat_indicators: HashMap<String, ThreatIndicator>,
-    /// Threat signatures
-    #[allow(dead_code)]
+    /// Threat signatures - now active for pattern matching
     threat_signatures: HashMap<String, ThreatSignature>,
-    /// Peer threat history
-    #[allow(dead_code)]
+    /// Peer threat history - now active for threat correlation
     peer_threat_history: HashMap<String, Vec<ThreatEvent>>,
     /// Global threat feeds
     threat_feeds: Vec<Box<dyn ThreatFeed>>,

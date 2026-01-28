@@ -15,9 +15,7 @@ use tokio::sync::RwLock;
 use tracing::{info, warn};
 use wolf_net::PeerId;
 
-use crate::protection::container_security::{
-    DenSecurityLevel, WolfDenAssignment, WolfDenType,
-};
+use crate::protection::container_security::{DenSecurityLevel, WolfDenAssignment, WolfDenType};
 use crate::wolf_pack::hierarchy::{PackRank, WolfDenConfig};
 use crate::wolf_pack::territory::TerritoryAccess;
 

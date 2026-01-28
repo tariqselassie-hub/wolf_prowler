@@ -1,6 +1,9 @@
 #![allow(missing_docs)]
 use crate::globals::{PROWLER, SECURITY_ENGINE, SSO_MANAGER, SWARM_MANAGER};
-use crate::types::{SystemStats, FirewallStats, FirewallRuleView, WolfPackTelemetry, ReputationStats, PeerStatus, ActiveHuntView, RecordView};
+use crate::types::{
+    ActiveHuntView, FirewallRuleView, FirewallStats, PeerStatus, RecordView, ReputationStats,
+    SystemStats, WolfPackTelemetry,
+};
 use chrono::Utc;
 use dioxus_fullstack::prelude::*;
 use lock_prowler::headless::HeadlessStatus;
@@ -18,21 +21,15 @@ use wolfsec::WolfSecurity;
 /// Retrieves full system statistics including Prowler, Security, and Swarm status.
 pub async fn get_fullstack_stats() -> Result<SystemStats, ServerFnError> {
     let prowler_lock: MutexGuard<Option<HeadlessWolfProwler>> = PROWLER.lock().await;
-    let security_lock: MutexGuard<Option<WolfSecurity>> = SECURITY_ENGINE.lock().await;
-    let swarm_lock: MutexGuard<Option<Arc<SwarmManager>>> = SWARM_MANAGER.lock().await;
+    let security_lock = SECURITY_ENGINE.lock().await;
+    let swarm_lock = SWARM_MANAGER.lock().await;
 
-    let mut stats = SystemStats {
-        volume_size: "Disconnected".to_string(),
-        encrypted_sectors: 0.0,
-        entropy: 0.0,
-        db_status: "OFFLINE".to_string(),
-        active_nodes: 0,
-        threat_level: "UNKNOWN".to_string(),
-        active_alerts: 0,
-        scanner_status: "IDLE".to_string(),
-        network_status: "DISCONNECTED".to_string(),
-        firewall: FirewallStats::default(),
-    };
+    let mut stats = SystemStats::default();
+    stats.volume_size = "Disconnected".to_string();
+    stats.db_status = "OFFLINE".to_string();
+    stats.threat_level = "UNKNOWN".to_string();
+    stats.scanner_status = "IDLE".to_string();
+    stats.network_status = "DISCONNECTED".to_string();
 
     if let Some(prowler) = prowler_lock.as_ref() {
         let db_stats = prowler.get_store_stats().await;
@@ -59,18 +56,20 @@ pub async fn get_fullstack_stats() -> Result<SystemStats, ServerFnError> {
         }
     }
 
-    if let Some(sec) = security_lock.as_ref() {
-        let sec_status = sec.get_status().await;
-        let score = sec_status.threat_detection.metrics.security_score;
-        stats.threat_level = if score > 80.0 {
-            "LOW".to_string()
-        } else if score > 50.0 {
-            "ELEVATED".to_string()
-        } else {
-            "CRITICAL".to_string()
-        };
+    if let Some(sec_arc) = security_lock.as_ref() {
+        let sec = sec_arc.read().await;
+        if let Ok(sec_status) = sec.get_status().await {
+            let score = sec_status.threat_detection.metrics.security_score;
+            stats.threat_level = if score > 80.0 {
+                "LOW".to_string()
+            } else if score > 50.0 {
+                "ELEVATED".to_string()
+            } else {
+                "CRITICAL".to_string()
+            };
 
-        stats.active_alerts = sec_status.monitoring.active_alerts;
+            stats.active_alerts = sec_status.monitoring.active_alerts;
+        }
     }
 
     if let Some(swarm) = swarm_lock.as_ref() {
@@ -143,7 +142,8 @@ pub async fn get_wolfpack_data() -> Result<WolfPackTelemetry, ServerFnError> {
         let mut peer_statuses = Vec::new();
         let mut reputation_stats = ReputationStats::default();
 
-        if let Some(sec) = security_lock.as_ref() {
+        if let Some(sec_arc) = security_lock.as_ref() {
+            let sec: tokio::sync::RwLockReadGuard<'_, wolfsec::WolfSecurity> = sec_arc.read().await;
             reputation_stats.average_score =
                 sec.threat_detector.reputation.average_reputation().await;
             reputation_stats.trusted_count =
@@ -156,7 +156,7 @@ pub async fn get_wolfpack_data() -> Result<WolfPackTelemetry, ServerFnError> {
             let peers = swarm
                 .list_peers()
                 .await
-                .map_err(|e: anyhow::Error| ServerFnError::new(e.to_string()))?;
+                .map_err(|e| ServerFnError::new(e.to_string()))?;
 
             for p in peers {
                 let peer_id_str = p.entity_id.peer_id.to_string();

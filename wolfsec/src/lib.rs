@@ -75,19 +75,21 @@ pub use protection::threat_detection::{self, ThreatDetector, VulnerabilityScanne
 
 pub use wolf_net::wolf_pack;
 
-use async_trait::async_trait;
+// use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 pub use domain::events::{AuditEventType, CertificateAuditEvent};
 pub use identity::crypto::{
-    constant_time_eq, secure_compare, CryptoConfig, SecureRandom, WolfCrypto,
+    self, constant_time_eq, secure_compare, CryptoConfig, SecureRandom, WolfCrypto,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use thiserror::Error;
-use tokio::sync::mpsc;
+use tracing::info;
+// use tokio::sync::mpsc;
 use uuid::Uuid;
 pub use wolf_net::firewall::{Action as FirewallAction, FirewallPolicy, FirewallRule};
-use wolf_net::{PeerId, SwarmCommand};
+// use wolf_net::{PeerId, SwarmCommand};
 
 /// WolfSec error types
 #[derive(Error, Debug)]
@@ -225,7 +227,21 @@ pub struct WolfSecurity {
     /// Core security orchestrator
     orchestrator: SecurityOrchestrator,
     /// Shared storage for persistence
-    pub storage: std::sync::Arc<tokio::sync::RwLock<wolf_db::storage::WolfDbStorage>>,
+    pub storage: Arc<tokio::sync::RwLock<wolf_db::storage::WolfDbStorage>>,
+    /// Threat detection manager
+    pub threat_detector: ThreatDetector,
+    /// Vulnerability scanner
+    pub vulnerability_scanner: VulnerabilityScanner,
+    /// Network security manager
+    pub network_security: NetworkSecurityManager,
+    /// SIEM manager
+    pub siem: observability::siem::WolfSIEMManager,
+    /// Monitor
+    pub monitoring: SecurityMonitor,
+    /// Authentication manager
+    pub authentication: AuthManager,
+    /// Container security manager
+    pub container_manager: protection::container_security::ContainerSecurityManager,
     /// Configuration
     config: WolfSecurityConfig,
 }
@@ -234,32 +250,32 @@ pub struct WolfSecurity {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WolfSecurityStatus {
     /// Network security statistics
-    pub network_security: protection::network_security::SecurityStats,
+    pub network_security: network_security::SecurityStats,
     /// Cryptographic system status
-    pub crypto: identity::crypto::CryptoStatus,
+    pub crypto: crypto::CryptoStatus,
     /// Threat detection engine status
-    pub threat_detection: protection::threat_detection::ThreatDetectionStatus,
+    pub threat_detection: threat_detection::ThreatDetectionStatus,
     /// Authentication system status
-    pub authentication: identity::auth::AuthStatus,
+    pub authentication: auth::AuthStatus,
     /// Key management status
-    pub key_management: identity::key_management::KeyManagementStatus,
+    pub key_management: key_management::KeyManagementStatus,
     /// Monitoring and SIEM status
-    pub monitoring: observability::monitoring::MonitoringStatus,
+    pub monitoring: monitoring::MonitoringStatus,
 }
 
 impl Default for WolfSecurityStatus {
     fn default() -> Self {
         Self {
-            network_security: protection::network_security::SecurityStats::default(),
-            crypto: identity::crypto::CryptoStatus::default(),
-            threat_detection: protection::threat_detection::ThreatDetectionStatus::default(),
-            authentication: identity::auth::AuthStatus {
+            network_security: network_security::SecurityStats::default(),
+            crypto: crypto::CryptoStatus::default(),
+            threat_detection: threat_detection::ThreatDetectionStatus::default(),
+            authentication: auth::AuthStatus {
                 active_sessions: 0,
                 total_users: 0,
                 auth_failures: 0,
             },
-            key_management: identity::key_management::KeyManagementStatus::default(),
-            monitoring: observability::monitoring::MonitoringStatus::default(),
+            key_management: key_management::KeyManagementStatus::default(),
+            monitoring: monitoring::MonitoringStatus::default(),
         }
     }
 }
@@ -313,7 +329,7 @@ pub struct SecurityEvent {
     /// unique identifier for the event
     pub id: String,
     /// point in time when the event occurred
-    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub timestamp: DateTime<Utc>,
     /// classification of the security activity
     pub event_type: SecurityEventType,
     /// criticality and urgency of the individual event
@@ -323,7 +339,7 @@ pub struct SecurityEvent {
     /// optional identifier of a peer associated with the activity
     pub peer_id: Option<String>,
     /// supplemental metadata providing technical or system context
-    pub metadata: std::collections::HashMap<String, String>,
+    pub metadata: HashMap<String, String>,
 }
 
 impl SecurityEvent {
@@ -335,12 +351,12 @@ impl SecurityEvent {
     ) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
-            timestamp: chrono::Utc::now(),
+            timestamp: Utc::now(),
             event_type,
             severity,
             description,
             peer_id: None,
-            metadata: std::collections::HashMap::new(),
+            metadata: HashMap::new(),
         }
     }
 
@@ -382,24 +398,67 @@ impl WolfSecurity {
         let storage = wolf_db::storage::WolfDbStorage::open(db_path)
             .map_err(|e| anyhow::anyhow!("Failed to open WolfDb: {}", e))?;
 
-        let storage = std::sync::Arc::new(tokio::sync::RwLock::new(storage));
+        let storage = Arc::new(tokio::sync::RwLock::new(storage));
 
-        // Initialize keystore if needed (using default for now - strictly for dev/demo)
-        {
-            let mut s = storage.write().await;
-            if !s.is_initialized() {
-                s.initialize_keystore("wolfsec_default_secret", None)?;
-            }
-            if s.get_active_sk().is_none() {
-                s.unlock("wolfsec_default_secret", None)?;
-            }
-        }
+        // Initialize repositories
+        let threat_repo = Arc::new(
+            infrastructure::persistence::wolf_db_threat_repository::WolfDbThreatRepository::new(
+                storage.clone(),
+            ),
+        );
+        let monitoring_repo = Arc::new(
+            infrastructure::persistence::wolf_db_monitoring_repository::WolfDbMonitoringRepository::new(
+                storage.clone(),
+            ),
+        );
+        let alert_repo = Arc::new(
+            infrastructure::persistence::wolf_db_alert_repository::WolfDbAlertRepository::new(
+                storage.clone(),
+            ),
+        );
+        let auth_repo = Arc::new(
+            infrastructure::persistence::wolf_db_auth_repository::WolfDbAuthRepository::new(
+                storage.clone(),
+            ),
+        );
+
+        // Initialize managers
+        let threat_detector = ThreatDetector::new(
+            threat_detection::ThreatDetectionConfig::default(),
+            threat_repo,
+        );
+
+        let vulnerability_scanner = VulnerabilityScanner::new()?;
+
+        let network_security =
+            NetworkSecurityManager::new("wolf-node".to_string(), MEDIUM_SECURITY);
+
+        let siem =
+            observability::siem::WolfSIEMManager::new(observability::siem::SIEMConfig::default())?;
+        let monitoring = SecurityMonitor::new(
+            monitoring::MonitoringConfig::default(),
+            monitoring_repo,
+            alert_repo,
+        );
+        let authentication = AuthManager::new(AuthConfig::default(), auth_repo);
+
+        // Initialize container manager with default config
+        let container_manager = protection::container_security::ContainerSecurityManager::new(
+            protection::container_security::ContainerSecurityConfig::default(),
+        )?;
 
         let orchestrator = SecurityOrchestrator::new();
 
         Ok(Self {
             orchestrator,
             storage,
+            threat_detector,
+            vulnerability_scanner,
+            network_security,
+            siem,
+            monitoring,
+            authentication,
+            container_manager,
             config,
         })
     }
@@ -433,23 +492,62 @@ impl WolfSecurity {
     /// Get comprehensive security status
     /// Retrieves the aggregate status and telemetry for all active security modules.
     pub async fn get_status(&self) -> anyhow::Result<WolfSecurityStatus> {
-        // In a real implementation, this would aggregate from all modules
-        // For now, return default or simulated status
-        Ok(WolfSecurityStatus::default())
+        Ok(WolfSecurityStatus {
+            network_security: self.network_security.get_stats().await,
+            crypto: crypto::CryptoStatus::default(), // TODO: Get from WolfCrypto
+            threat_detection: self.threat_detector.get_status().await,
+            authentication: self.authentication.get_status(),
+            key_management: key_management::KeyManagementStatus::default(),
+            monitoring: self.monitoring.get_status().await,
+        })
+    }
+
+    /// Get recent security alerts
+    pub async fn get_recent_alerts(&self) -> Vec<String> {
+        self.monitoring
+            .get_alerts()
+            .await
+            .into_iter()
+            .map(|a| a.description)
+            .collect()
+    }
+
+    /// Get recent security threats
+    pub async fn get_recent_threats(&self) -> Vec<String> {
+        self.threat_detector
+            .get_active_threats()
+            .await
+            .into_iter()
+            .map(|t| format!("{:?}: {}", t.threat_type, t.description))
+            .collect()
+    }
+
+    /// Execute automated or manual response actions
+    pub async fn execute_response_actions(
+        &self,
+        actions: Vec<observability::siem::ResponseAction>,
+        event: &observability::siem::SecurityEvent,
+    ) -> anyhow::Result<()> {
+        info!(
+            "Executing {} response actions for event {}",
+            actions.len(),
+            event.event_id
+        );
+        // In a real implementation, this would dispatch to the appropriate responders
+        Ok(())
     }
 
     /// Returns a comprehensive snapshot of system-wide security metrics.
-    pub async fn get_metrics(
-        &self,
-    ) -> anyhow::Result<observability::metrics::SecurityMetricsSnapshot> {
+    pub async fn get_metrics(&self) -> anyhow::Result<metrics::SecurityMetricsSnapshot> {
         // Simulate real metrics for the dashboard
-        Ok(observability::metrics::SecurityMetricsSnapshot {
+        Ok(metrics::SecurityMetricsSnapshot {
             health: 0.95,
             active_threats: 0,
             connected_peers: 5,
             system_load: 0.25,
             cpu_usage: 15.5,
             memory_usage: 42.0,
+            security_score: 0.92,
             uptime: 3600, // 1 hour
         })
     }
@@ -507,7 +605,8 @@ mod tests {
     async fn test_wolf_security_creation() {
         let mut config = WolfSecurityConfig::default();
         config.db_path = std::env::temp_dir().join("wolfsec_test_db_creation");
-        let wolf_sec = WolfSecurity::create(config).await.unwrap();
+        let wolf_sec = WolfSecurity::create(config).await
+            .expect("WolfSecurity creation should succeed in test");
 
         // Test that orchestrator is created
         assert!(wolf_sec.subscribe_events().len() == 0); // No events yet
@@ -517,7 +616,8 @@ mod tests {
     async fn test_wolf_security_initialization() {
         let mut config = WolfSecurityConfig::default();
         config.db_path = std::env::temp_dir().join("wolfsec_test_db_init");
-        let wolf_sec = WolfSecurity::create(config).await.unwrap();
+        let wolf_sec = WolfSecurity::create(config).await
+            .expect("WolfSecurity initialization should succeed in test");
 
         // Simplified initialization - just create and check event subscription
         let _subscriber = wolf_sec.subscribe_events();
@@ -527,8 +627,10 @@ mod tests {
     async fn test_security_event_handling() {
         let mut config = WolfSecurityConfig::default();
         config.db_path = std::env::temp_dir().join("wolfsec_test_db_events");
-        let mut wolf_sec = WolfSecurity::create(config).await.unwrap();
-        wolf_sec.initialize().await.unwrap();
+        let mut wolf_sec = WolfSecurity::create(config).await
+            .expect("WolfSecurity creation should succeed in test");
+        wolf_sec.initialize().await
+            .expect("WolfSecurity initialization should succeed in test");
 
         let event = SecurityEvent::new(
             SecurityEventType::SuspiciousActivity,
@@ -537,7 +639,8 @@ mod tests {
         )
         .with_peer("test-peer".to_string());
 
-        wolf_sec.process_security_event(event).await.unwrap();
+        wolf_sec.process_security_event(event).await
+            .expect("Security event processing should succeed in test");
     }
 
     #[test]

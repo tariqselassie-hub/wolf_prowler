@@ -296,12 +296,13 @@ async fn get_auth_status_handler(State(state): State<Arc<AppState>>) -> Json<ser
 
     if let Some(wolf_security_arc) = state.get_wolf_security() {
         let security = wolf_security_arc.read().await;
-        let status = security.get_status().await;
-        let auth = &status.authentication;
+        if let Ok(status) = security.get_status().await {
+            let auth = &status.authentication;
 
-        auth_status["active_sessions"] = serde_json::json!(auth.active_sessions);
-        auth_status["total_users"] = serde_json::json!(auth.total_users);
-        auth_status["auth_failures"] = serde_json::json!(auth.auth_failures);
+            auth_status["active_sessions"] = serde_json::json!(auth.active_sessions);
+            auth_status["total_users"] = serde_json::json!(auth.total_users);
+            auth_status["auth_failures"] = serde_json::json!(auth.auth_failures);
+        }
     }
 
     Json(auth_status)

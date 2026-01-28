@@ -32,10 +32,11 @@ async fn get_security_logs() -> Result<Vec<LogEntry>, ServerFnError> {
 
     // So we can use `SECURITY_ENGINE`.
 
-    let sec_lock: MutexGuard<Option<WolfSecurity>> = crate::SECURITY_ENGINE.lock().await;
+    let sec_lock = crate::SECURITY_ENGINE.lock().await;
     println!("DEBUG: get_security_logs called. Engine lock acquired.");
 
-    if let Some(sec) = sec_lock.as_ref() {
+    if let Some(sec_arc) = sec_lock.as_ref() {
+        let sec = sec_arc.read().await;
         // Read events from threat detector
         // Note: crate::SECURITY_ENGINE assumes wolfsec::WolfSecurity type.
         // We added get_events to ThreatDetector, which is a field of WolfSecurity.
@@ -96,9 +97,10 @@ async fn stream_security_logs() -> Result<Vec<LogEntry>, ServerFnError> {
 
 #[server]
 async fn clear_security_logs() -> Result<(), ServerFnError> {
-    let sec_lock: MutexGuard<Option<WolfSecurity>> = crate::SECURITY_ENGINE.lock().await;
+    let sec_lock = crate::SECURITY_ENGINE.lock().await;
 
-    if let Some(sec) = sec_lock.as_ref() {
+    if let Some(sec_arc) = sec_lock.as_ref() {
+        let sec = sec_arc.read().await;
         sec.threat_detector.clear_events().await;
         println!("DEBUG: Security logs purged from backend.");
     }

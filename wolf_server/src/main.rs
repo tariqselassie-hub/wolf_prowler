@@ -30,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
             log_file: Some(PathBuf::from("logs/wolf_server.log")),
             json_format: false,
             console_colors: true,
-        }
+        },
     )?;
 
     const VERSION: &str = env!("CARGO_PKG_VERSION");

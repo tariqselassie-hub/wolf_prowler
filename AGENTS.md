@@ -14,21 +14,26 @@ cargo build --release --all-features
 cargo build -p wolfsec --release
 cargo build -p wolf_net --release
 cargo build -p wolf_web --release
+cargo build -p wolf_db --release
+cargo build -p lock_prowler --release
 ```
 
 ### Linting and Formatting
 ```bash
-# Run clippy linter across workspace
+# Run clippy linter across workspace (enforces workspace lint rules)
 cargo clippy --workspace
 
-# Run clippy with warnings as errors
+# Run clippy with warnings as errors (CI standard)
 cargo clippy --workspace -- -D warnings
 
-# Format code with rustfmt
+# Format code with rustfmt (100 char line limit, 4 space indent)
 cargo fmt
 
 # Check formatting without changes
 cargo fmt --check
+
+# Run pre-commit hook manually
+./scripts/pre-commit-hook.sh
 ```
 
 ### Testing Commands
@@ -43,6 +48,9 @@ cargo test --workspace --all-features
 
 # Run tests with verbose output
 cargo test -- --nocapture
+
+# Run tests with single thread (debugging)
+cargo test -- --test-threads=1
 ```
 
 #### Run Specific Test Suites
@@ -93,6 +101,18 @@ cargo test -p ceremony
 cargo test -p shared
 cargo test -p sentinel
 cargo test -p client
+```
+
+**Additional Integration Tests:**
+```bash
+# System stabilization tests
+cargo test --test stabilization_tests
+
+# Comprehensive system tests
+cargo test --test comprehensive_system_test
+
+# Integration tests with specific modules
+cargo test -p wolf_net --test api_methods_test
 ```
 
 #### Run Single Tests
@@ -178,6 +198,14 @@ use wolf_net::node::NodeId;
 - Use 4 spaces for indentation (default rustfmt)
 - Function signatures should have parameters on separate lines if too long
 
+### Workspace Lint Rules
+The workspace enforces strict linting via `[workspace.lints.clippy]` in Cargo.toml:
+- **Security**: `unwrap_used`, `expect_used`, `arithmetic_side_effects`, `indexing_slicing` as warnings
+- **Production**: `dbg_macro`, `print_stdout`, `print_stderr`, `todo`, `unimplemented` as warnings  
+- **Style**: `cognitive_complexity`, `too_many_lines`, `cast_*` and `float_cmp` as deny
+- **Performance**: All `perf` group lints enabled
+- **Safety**: `unsafe_code` denied, `undocumented_unsafe_blocks` warned
+
 ### Type Annotations and Naming
 
 **Variable Naming:**
@@ -191,6 +219,7 @@ use wolf_net::node::NodeId;
 - Prefer concrete types over generics when clarity is improved
 - Use `Result<T, E>` with specific error types, not `anyhow::Result`
 - Use `Arc<T>` for shared ownership in async contexts
+- Use `#[derive(thiserror::Error)]` for error enums with proper error messages
 
 ### Error Handling
 - Use `thiserror` for custom error types
@@ -247,6 +276,8 @@ pub fn connect_node() -> Result<NodeId, WolfError> {
 - Mock external dependencies appropriately
 - Test error conditions, not just happy paths
 - Use property-based testing where applicable
+- Use `#![cfg(test)]` for test modules
+- Test with `--nocapture` for debugging output
 
 ```rust
 #[cfg(test)]
@@ -281,10 +312,11 @@ mod tests {
 
 ### Workspace Structure
 - Main application in root `src/`
-- Shared crates in `crates/` directory
-- Tests in `tests/` directory
+- Shared crates in `crates/` directory (WolfDb, lock_prowler, tercespot, wolf_log)
+- Tests in `tests/` directory (integration, dashboard, system stress tests)
 - Integration tests use feature flags appropriately
 - Documentation in `docs/` directory
+- Utility scripts in `scripts/` directory
 
 ## Pre-commit Hooks
 

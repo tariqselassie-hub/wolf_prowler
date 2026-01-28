@@ -1,9 +1,7 @@
 //! Security Auditing
 //!
 //! Comprehensive security operation tracking and audit trail with wolf-themed approach
-
-#![allow(unused_imports)]
-#![allow(dead_code)]
+// Advanced audit system is now active - security critical component
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

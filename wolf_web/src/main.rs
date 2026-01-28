@@ -760,8 +760,8 @@ async fn main() {
     };
 
     // Update global reference
-    if let Some(_sec) = &wolf_security {
-        // ... (commented out code in original)
+    if let Some(sec) = &wolf_security {
+        *SECURITY_ENGINE.lock().await = Some(sec.clone());
     }
 
     // Initialize SwarmManager (for Firewall stats)
@@ -829,8 +829,8 @@ async fn main() {
         ),
     };
 
-    // Initialize Global for legacy access if possible, or just accept it's broken for now.
-    // *APP_STATE.lock().await = Some(real_app_state.clone());
+    // Initialize Global for legacy access
+    *APP_STATE.lock().await = Some(real_app_state.clone());
 
     // Initialize Dashboard Router with State
     let dashboard_router = dashboard::create_router_with_state(real_app_state.clone()).await;
@@ -849,10 +849,14 @@ async fn main() {
     // .with_state(Arc::new(real_app_state)); // Inject state into Axum
 
     let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 8080));
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to bind to {}: {}", addr, e))?;
 
     println!("Wolf Prowler Dashboard Online: http://{}", addr);
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .await
+        .map_err(|e| anyhow::anyhow!("Server failed: {}", e))?;
 }
 
 #[cfg(not(feature = "server"))]

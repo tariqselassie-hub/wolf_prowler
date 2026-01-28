@@ -12,7 +12,7 @@ async fn main() -> Result<()> {
 
     // Initialize metrics collector
     println!("1️⃣ Initializing Metrics Collector...");
-    let mut metrics = SecurityMetrics::new();
+    let mut metrics = SecurityMetrics::default();
     println!("   ✅ Metrics Collector initialized\n");
 
     // Simulate metrics collection

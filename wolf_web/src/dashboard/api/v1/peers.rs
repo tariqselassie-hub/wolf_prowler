@@ -120,7 +120,8 @@ async fn get_peer_details(
         last_seen: last_seen.map_or_else(|| chrono::Utc::now().to_rfc3339(), |d| d.to_rfc3339()),
         message_count: message_count as u64,
         threat_count,
-        last_updated: last_updated.map_or_else(|| chrono::Utc::now().to_rfc3339(), |d| d.to_rfc3339()),
+        last_updated: last_updated
+            .map_or_else(|| chrono::Utc::now().to_rfc3339(), |d| d.to_rfc3339()),
     }))
 }
 

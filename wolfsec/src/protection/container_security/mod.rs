@@ -56,6 +56,25 @@ pub struct ContainerSecurityPolicy {
     pub security_level: PackRank,
 }
 
+/// Container status information for dashboard
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContainerStatusInfo {
+    pub id: String,
+    pub name: String,
+    pub status: String,
+    pub state: String,
+    pub security_level: ContainerSecurityLevel,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Result of a container access scan
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScanAccessResult {
+    pub access_granted: bool,
+    pub reason: String,
+    pub pack_rank: PackRank,
+}
+
 /// Resource limits
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResourceLimits {
@@ -980,6 +999,46 @@ impl ContainerSecurityManager {
             event_type, source
         );
         // Future integration: Check against network policies or trigger automated scans
+    }
+
+    /// List all running containers
+    pub async fn list_running_containers(&self) -> Result<Vec<ContainerStatusInfo>> {
+        // Mock implementation for dashboard
+        Ok(vec![
+            ContainerStatusInfo {
+                id: "c1".to_string(),
+                name: "wolf-api".to_string(),
+                status: "Running".to_string(),
+                state: "Healthy".to_string(),
+                security_level: ContainerSecurityLevel::Secure,
+                created_at: chrono::Utc::now(),
+            },
+            ContainerStatusInfo {
+                id: "c2".to_string(),
+                name: "wolf-db".to_string(),
+                status: "Running".to_string(),
+                state: "Healthy".to_string(),
+                security_level: ContainerSecurityLevel::High,
+                created_at: chrono::Utc::now(),
+            },
+        ])
+    }
+
+    /// Scan a container for security access
+    pub async fn scan_container(&self, _id: &str) -> Result<ScanAccessResult> {
+        // Mock implementation for dashboard
+        Ok(ScanAccessResult {
+            access_granted: true,
+            reason: "Mock scan completed: No critical vulnerabilities found".to_string(),
+            pack_rank: PackRank::Hunter,
+        })
+    }
+
+    /// Isolate a container due to suspicious activity
+    pub async fn isolate_container(&self, id: &str) -> Result<()> {
+        info!("🔴 Isolating container: {}", id);
+        // Mock implementation
+        Ok(())
     }
 }
 

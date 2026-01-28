@@ -32,9 +32,11 @@ pub static SSO_MANAGER: Lazy<AsyncMutex<Option<SSOIntegrationManager>>> =
 #[cfg(feature = "server")]
 pub static APP_STATE: Lazy<AsyncMutex<Option<AppState>>> = Lazy::new(|| AsyncMutex::new(None));
 
+use tokio::sync::RwLock;
+
 /// Global Wolf Security Engine
 #[cfg(feature = "server")]
-pub static SECURITY_ENGINE: Lazy<AsyncMutex<Option<wolfsec::WolfSecurity>>> =
+pub static SECURITY_ENGINE: Lazy<AsyncMutex<Option<Arc<RwLock<wolfsec::WolfSecurity>>>>> =
     Lazy::new(|| AsyncMutex::new(None));
 
 /// Global Swarm Manager

@@ -778,11 +778,22 @@ mod tests {
     #[test]
     fn test_timing_safe_delay() {
         let start = Instant::now();
-        timing_safe_delay(Duration::from_millis(10));
+        timing_safe_delay(Duration::from_millis(10)).expect("Timing safe delay should not fail");
         let elapsed = start.elapsed();
 
         assert!(elapsed >= Duration::from_millis(10));
         assert!(elapsed < Duration::from_millis(20)); // Allow some tolerance
+    }
+
+    #[test]
+    fn test_secure_random_delay() {
+        let start = Instant::now();
+        secure_random_delay(Duration::from_millis(10), Duration::from_millis(50))
+            .expect("Secure random delay should not fail");
+        let elapsed = start.elapsed();
+
+        assert!(elapsed >= Duration::from_millis(10));
+        assert!(elapsed < Duration::from_millis(100)); // Allow some tolerance
     }
 
     #[test]
@@ -842,12 +853,14 @@ mod tests {
 
     #[test]
     fn test_cache_timing_resistant_access() {
-        let data = b"hello";
+        let data = b"wolfpack"; // Length 8 (power of two)
         let byte = cache_timing_resistant_access(data, 1);
-        assert_eq!(byte, b'e');
+        assert_eq!(byte, b'o');
 
-        let byte = cache_timing_resistant_access(data, 100); // Out of bounds
-        assert_eq!(byte, b'h'); // Wrapped around
+        // Test masking/wrapping
+        // 104 & 7 = 0. So it should return index 0 ('w')
+        let byte = cache_timing_resistant_access(data, 104);
+        assert_eq!(byte, b'w');
     }
 
     #[test]
@@ -878,7 +891,9 @@ mod tests {
         let data = vec![1, 2, 3, 4];
         let mut buffer = SecureBuffer::new(data, ProtectionLevel::High);
 
-        buffer.process_constant_time().unwrap();
+        buffer
+            .process_constant_time()
+            .expect("Secure buffer processing should not fail");
         buffer.clear_sensitive_data();
 
         assert!(buffer.data().iter().all(|&x| x == 0));

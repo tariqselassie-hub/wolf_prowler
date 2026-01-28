@@ -785,10 +785,7 @@ impl WolfStore {
     }
 
     /// Lists all records from a specified table
-    pub async fn list_table_records(
-        &self,
-        table: &str,
-    ) -> Result<Vec<Record>> {
+    pub async fn list_table_records(&self, table: &str) -> Result<Vec<Record>> {
         let sk = self
             .storage
             .get_active_sk()

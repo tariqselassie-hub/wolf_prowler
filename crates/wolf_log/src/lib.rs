@@ -6,7 +6,7 @@
 
 use anyhow::Result;
 use std::path::{Path, PathBuf};
-use tracing::{info, Level};
+use tracing::info;
 use tracing_log::LogTracer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 

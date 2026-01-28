@@ -1,9 +1,7 @@
 //! Security Alerts
 //!
 //! Real-time security alerts and notification system with wolf-themed approach
-
-#![allow(unused_imports)]
-#![allow(dead_code)]
+// Alert system is now active - critical for security incident response
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

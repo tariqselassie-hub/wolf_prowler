@@ -3,14 +3,14 @@ use wolfsec::observability::metrics::SecurityMetrics;
 
 fn bench_metrics_creation(c: &mut Criterion) {
     c.bench_function("create_security_metrics", |b| {
-        b.iter(|| SecurityMetrics::new())
+        b.iter(|| SecurityMetrics::default())
     });
 }
 
 fn bench_metrics_update(c: &mut Criterion) {
     c.bench_function("update_metrics_100_times", |b| {
         b.iter(|| {
-            let mut metrics = SecurityMetrics::new();
+            let mut metrics = SecurityMetrics::default();
             for _ in 0..100 {
                 // Simulate metric updates
                 black_box(&mut metrics);

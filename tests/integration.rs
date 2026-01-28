@@ -90,7 +90,11 @@ mod integration_tests {
             assert!(response.is_ok(), "Endpoint {} should respond", endpoint);
 
             let status = response.unwrap().status();
-            assert!(status.is_success(), "Endpoint {} should return success", endpoint);
+            assert!(
+                status.is_success(),
+                "Endpoint {} should return success",
+                endpoint
+            );
         }
 
         // Kill the process

@@ -142,7 +142,7 @@ async fn trigger_action(
 
     if let Some(action) = action_enum {
         if let Some(wolf_security_arc) = state.get_wolf_security() {
-            let mut wolf_security = wolf_security_arc.write().await;
+            let wolf_security = wolf_security_arc.read().await;
 
             // Construct a mock event for the SOAR engine to process
             let event = wolfsec::observability::siem::SecurityEvent {

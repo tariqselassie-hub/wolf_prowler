@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// System statistics for dashboard display
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct SystemStats {
     /// Total size of the encrypted volume
     pub volume_size: String,

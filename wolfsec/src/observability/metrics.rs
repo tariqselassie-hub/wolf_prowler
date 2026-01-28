@@ -1,9 +1,7 @@
 //! Security Metrics
 //!
 //! Comprehensive security metrics collection and analysis with wolf-themed approach
-
-#![allow(unused_imports)]
-#![allow(dead_code)]
+// Security metrics collector is now active - critical for monitoring
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -935,9 +933,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_metrics_history() {
-        let collector = SecurityMetricsCollector::new(MetricsConfig::default())
-            .await
-            .unwrap();
+        let mut config = MetricsConfig::default();
+        config.collection_interval_secs = 1; // 1 second
+
+        let collector = SecurityMetricsCollector::new(config).await.unwrap();
+
+        // Start collection so the loop runs
+        collector.start_collection().await.unwrap();
 
         // Record some operations
         for i in 0..5 {
@@ -947,8 +949,13 @@ mod tests {
                 .unwrap();
         }
 
+        // Wait for at least one collection cycle
+        tokio::time::sleep(tokio::time::Duration::from_millis(1100)).await;
+
         let history = collector.get_metrics_history().await;
         assert!(history.len() > 0);
+
+        collector.stop_collection().await.unwrap();
     }
 
     #[tokio::test]
