@@ -1,9 +1,0 @@
-[application]
-name = "lock_prowler_dashboard"
-asset_dir = "public"
-
-[web.app]
-title = "Lock Prowler Dashboard"
-
-[web.watcher]
-watch_path = ["src", "public"]

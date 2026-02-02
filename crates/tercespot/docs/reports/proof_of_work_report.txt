@@ -1,9 +1,0 @@
-TersecPot Proof-of-Work Benchmark Report
-========================================
-Date: Sun, 4 Jan 2026 12:23:56 -0500
-Total Iterations: 50000
-Total Time: 330.78s
-Average Time per Cycle: 0.006616 s
-Throughput: 151.16 ops/s
-
-System Status: READY for High-Load Operations.

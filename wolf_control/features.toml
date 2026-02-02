@@ -1,7 +1,0 @@
-# Wolf Control - TUI Management Interface Features
-# Enabled = true, Disabled = false
-
-[wolf_control]
-tui_interface = true                   # Main Ratatui interface.
-real_time_logs = true                  # Live log streaming in TUI.
-peer_management = true                 # Interactive peer management.
