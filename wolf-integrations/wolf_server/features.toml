@@ -1,0 +1,8 @@
+# Wolf Server - Backend API Features
+# Enabled = true, Disabled = false
+
+[wolf_server]
+system_apis = true                     # /api/status and other system endpoints.
+crypto_apis = true                     # /api/crypto/* endpoints for wolf_den.
+security_apis = true                   # /api/security/* endpoints for wolfsec.
+network_apis = false                   # /api/network/* endpoints for wolf_net.

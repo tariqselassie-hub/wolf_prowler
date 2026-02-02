@@ -1,0 +1,51 @@
+[package]
+name = "wolf_web"
+version = "0.1.0"
+edition = "2021"
+description = "Dioxus-based Web Dashboard for Wolf Prowler Security Platform"
+license = "MIT"
+authors = ["Terrence A. Jones <tariqselassie@gmail.com>"]
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["web", "dashboard", "security", "dioxus"]
+categories = ["web-programming"]
+rust-version = "1.70"
+
+[features]
+default = ["server"]
+server = []
+
+[dependencies]
+dioxus = { version = "0.6", features = ["router"] }
+dioxus-fullstack = { version = "0.6", features = ["axum", "server"] }
+dioxus-logger = "0.5"
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { workspace = true }
+axum = { version = "0.7.7", features = ["ws", "macros"] }
+tower = "0.5.2"
+tower-http = { version = "0.5.2", features = ["cors", "trace", "fs", "timeout"] }
+askama = "0.12"
+uuid = { workspace = true }
+chrono = { workspace = true }
+futures = "0.3"
+async-trait = "0.1"
+validator = { version = "0.16", features = ["derive"] }
+rand = "0.8"
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures-util = "0.3"
+once_cell = "1.19"
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Wolf Dependencies
+wolfsec = { path = "../../wolf-security/wolfsec" }
+wolf_net = { path = "../../wolf-networking/wolf_net" }
+wolf_den = { path = "../../wolf-integrations/wolf_den" }
+lock_prowler = { path = "../../wolf-security/crates/lock_prowler/lock_prowler" }
+wolf_db = { path = "../../wolf-storage/crates/WolfDb" }
+tracing = { workspace = true } 
+js-sys = "0.3.83"
+web-sys = { version = "0.3.83", features = ["Window", "Document"] }
+[lints]
+workspace = true

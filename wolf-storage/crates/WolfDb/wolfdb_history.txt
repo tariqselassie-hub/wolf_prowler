@@ -1,0 +1,9 @@
+#V2
+n
+import-sqlite --path apighost_export_2026-01-05_223613.db
+import-sqlite apighost_export_2026-01-05_223613.db
+exit
+list
+import-sqlite apighost_export_2026-01-05_223613.db
+list
+help

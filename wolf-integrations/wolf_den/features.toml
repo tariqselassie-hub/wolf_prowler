@@ -1,0 +1,12 @@
+# Wolf Den - Cryptographic Engine Features
+# Enabled = true, Disabled = false
+
+[wolf_den]
+modern_hashing = true                  # BLAKE3, SHA-2/3
+key_derivation = true                  # Argon2, PBKDF2
+message_authentication = true          # HMAC
+secure_random_generation = true        # OS-level CSPRNG
+memory_protection = true               # Zeroization of sensitive data
+ed25519_signatures = true              # Ed25519 digital signatures
+secure_aead_encryption = true          # AES-GCM-SIV authenticated encryption. CRITICAL.
+post_quantum_cryptography = false      # Kyber/Dilithium integration.

@@ -1,0 +1,144 @@
+[package]
+name = "wolfsec"
+version = "0.1.0"
+edition = "2021"
+authors = ["Terrence A. Jones <tariqselassie@gmail.com>"]
+description = "Comprehensive security framework with ML-powered threat detection, SIEM correlation, and SOAR automation"
+license = "MIT"
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["security", "ml", "siem", "soar", "threat-detection"]
+categories = ["cryptography", "network-programming"]
+rust-version = "1.70"
+
+[dependencies]
+# Core dependencies
+anyhow = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+hex = "0.4"
+tracing = { workspace = true }
+tokio = { workspace = true }
+libp2p = { version = "=0.53.0", default-features = false, features = ["serde"] }
+async-trait = "0.1"
+num-traits = "0.2"
+wolf_den = { path = "../../wolf-integrations/wolf_den" }
+wolf_net = { path = "../../wolf-networking/wolf_net" }
+regex = "1.9"
+md5 = "0.7"
+thiserror = { workspace = true }
+fips203 = "0.4.3"
+fips204 = "0.4.6"
+rand_chacha = "0.3"
+
+# Cryptographic dependencies
+sha2 = { workspace = true }
+blake3 = "1.4"
+hmac = "0.12"
+pbkdf2 = "0.12"
+argon2 = "0.5"
+getrandom = "0.2"
+ed25519-dalek = { version = "2.0", optional = true }
+x25519-dalek = "2.0"
+aes-gcm-siv = { version = "0.11", optional = true }
+ring = { workspace = true }
+rand = { workspace = true }
+rcgen = "0.13"
+openssl = "0.10"
+jsonwebtoken = "9.2"
+# Optional advanced features
+zeroize = { workspace = true, optional = true }
+base64 = "0.21"
+openidconnect = { version = "4.0", features = ["reqwest"] }
+sha1 = "0.10"
+data-encoding = "2.5"
+qrcode = "0.12"
+
+# Python CLI bindings
+clap = { version = "4.0", features = ["derive"], optional = true }
+
+# HTTP client for notifications
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+http = "1.0"
+
+# PDF generation
+printpdf = "0.3"
+# TersecPot Shared Library
+tersec_shared = { path = "../../wolf-security/crates/tercespot/shared", package = "shared" }
+
+# Email notifications
+lettre = { version = "0.10", features = ["tokio1", "tokio1-native-tls", "builder"] }
+
+# Machine Learning dependencies
+ort = { version = "2.0.0-rc.10", features = ["load-dynamic"], optional = true }  # ONNX Runtime
+linfa = { version = "0.7", optional = true }  # Classical ML algorithms
+linfa-clustering = { version = "0.7", optional = true }
+ndarray = "0.15"  # Tensor operations (required for data structures)
+# TEMPORARILY DISABLED - Migrating to WolfDb
+wolf_db = { path = "../../wolf-storage/crates/WolfDb" }
+
+bollard = { version = "0.15", optional = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tracing-subscriber = "0.3"
+tempfile = "3.8"
+criterion = "0.5"
+
+[[bench]]
+name = "crypto_bench"
+path = "benches/crypto_bench.rs"
+harness = false
+
+[features]
+default = [
+    "crypto",
+    "network-security",
+    "threat-detection",
+    "authentication",
+    "key-management",
+    "monitoring",
+    "advanced-crypto",
+    "container_security",
+]
+container_security = ["bollard"]
+crypto = []
+network-security = []
+threat-detection = []
+authentication = []
+key-management = []
+monitoring = []
+subtle = []
+
+# Advanced cryptographic features
+advanced-crypto = ["ed25519-dalek", "aes-gcm-siv", "zeroize"]
+full-crypto = ["advanced-crypto"]
+
+# Development features
+dev-testing = []
+
+# Python CLI feature
+python-cli = ["aes-gcm-siv", "clap"]
+
+# Machine Learning features
+ml-onnx = ["ort"]
+ml-classical = ["linfa", "linfa-clustering"]
+ml-full = ["ml-onnx", "ml-classical"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[[example]]
+name = "basic_usage"
+path = "examples/basic_usage.rs"
+
+
+# Python CLI binary
+[[bin]]
+name = "wolfsec-python"
+path = "src/python_cli.rs"
+required-features = ["python-cli"]
+[lints]
+workspace = true

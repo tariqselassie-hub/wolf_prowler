@@ -1,0 +1,13 @@
+api_url = "https://localhost:3031"
+poll_interval_secs = 2
+verbose = false
+theme = "dark"
+show_timestamps = true
+auto_scroll_logs = true
+max_retries = 3
+accept_invalid_certs = true
+api_timeout_secs = 30
+enable_compression = true
+enable_caching = true
+cache_ttl_secs = 300
+admin_password = "admin"

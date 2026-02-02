@@ -1,0 +1,12 @@
+[workspace.package]
+name = "wolf_security_ecosystem"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+resolver = "2"
+
+members = [
+    "lock_prowler",
+    "lock_prowler_dashboard",
+]

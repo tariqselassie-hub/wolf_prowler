@@ -1,0 +1,29 @@
+[package]
+name = "wolf_prowler"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "wolf_prowler"
+path = "src/main.rs"
+
+[lib]
+name = "wolf_prowler"
+path = "src/lib.rs"
+
+[dependencies]
+# Local Domain Dependencies (using relative paths for local development)
+# Local Domain Dependencies (using relative paths for local development)
+wolfsec = { path = "../wolf-security/wolfsec" }
+wolf_net = { path = "../wolf-networking/wolf_net" }
+wolf_log = { path = "../wolf-observability/crates/wolf_log" }
+wolf_db = { path = "../wolf-storage/crates/WolfDb" }
+
+# External dependencies
+tokio = { workspace = true }
+serde = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,22 @@
+[package]
+name = "wolfsec-siem"
+version = "0.1.0"
+edition = "2021"
+description = "Security Information and Event Management for WolfSec"
+license = "MIT"
+authors = ["Wolf Prowler Team <team@wolfprowler.dev>"]
+repository = "https://github.com/wolfprowler/wolfsec"
+keywords = ["security", "siem", "monitoring", "events"]
+categories = ["security", "api-bindings"]
+
+[dependencies]
+wolfsec-core = { path = "../wolfsec-core" }
+serde = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+async-trait = "0.1"
+uuid = { workspace = true }
+
+[lints]
+workspace = true

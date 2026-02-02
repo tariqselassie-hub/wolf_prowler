@@ -1,0 +1,22 @@
+[package]
+name = "wolfsec-network"
+version = "0.1.0"
+edition = "2021"
+description = "Network security and firewalling for WolfSec"
+license = "MIT"
+authors = ["Wolf Prowler Team <team@wolfprowler.dev>"]
+repository = "https://github.com/wolfprowler/wolfsec"
+keywords = ["security", "network", "firewall", "encryption"]
+categories = ["security", "network-programming"]
+
+[dependencies]
+wolfsec-core = { path = "../wolfsec-core" }
+wolf_net = { path = "../../wolf-networking/wolf_net" }
+serde = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+async-trait = "0.1"
+
+[lints]
+workspace = true

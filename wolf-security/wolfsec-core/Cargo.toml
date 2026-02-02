@@ -1,0 +1,24 @@
+[package]
+name = "wolfsec-core"
+version = "0.1.0"
+edition = "2021"
+description = "Core Wolf Security orchestrator and types"
+license = "MIT"
+authors = ["Wolf Prowler Team <team@wolfprowler.dev>"]
+repository = "https://github.com/wolfprowler/wolfsec"
+keywords = ["security", "orchestrator", "framework"]
+categories = ["security", "api-bindings"]
+
+[dependencies]
+serde = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+tokio = { workspace = true }
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio-test = { workspace = true }
+
+[lints]
+workspace = true

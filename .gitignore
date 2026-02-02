@@ -1,29 +1,5 @@
 target/
-**/*.rs.bk
-**/*.rs.backup
-*.db
+wolf_data/
 *.log
-*.log.*
-**/*.log
-**/logs/
-__pycache__/
-.venv/
-node_modules/
+.DS_Store
 .env
-
-# Configuration Files
-settings.toml
-config.toml
-runtime_settings.json
-
-# Keys and Certificates
-wolf_prowler_keys.json
-*.key
-*.pem
-
-# Data
-consensus_db_*/
-
-# Temporary/Test Output
-check_output.txt
-check_error.txt

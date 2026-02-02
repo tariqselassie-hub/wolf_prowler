@@ -1,0 +1,68 @@
+[package]
+name = "wolf_net"
+version = "0.1.0"
+edition = "2021"
+description = "P2P networking library with QUIC/HyperPulse transport, Raft consensus, and encrypted mesh networking"
+license = "MIT"
+authors = ["Terrence A. Jones <tariqselassie@gmail.com>"]
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["p2p", "networking", "libp2p", "quic", "raft"]
+categories = ["network-programming"]
+rust-version = "1.70"
+
+[lib]
+name = "wolf_net"
+path = "src/lib.rs"
+
+[dependencies]
+# Core async runtime
+tokio = { workspace = true }
+futures = "0.3"
+async-trait = "0.1"
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Basic utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Cryptography
+sha2 = { workspace = true }
+hex = "0.4"
+ring = { workspace = true }
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+ed25519-dalek = { version = "2.0", features = ["rand_core"] }
+rand = { workspace = true }
+zeroize = { workspace = true }
+
+# P2P Networking
+libp2p = { version = "=0.53.0", default-features = false, features = ["ping", "identify", "request-response", "gossipsub", "mdns", "kad", "tcp", "noise", "yamux", "tokio", "macros", "serde", "dns", "quic"] }
+ping = "0.7.0"
+dns-lookup = "2.0"
+
+# HTTP client for GeoIP
+reqwest = { version = "0.12", features = ["json"] }
+
+# Distributed Consensus
+raft = { version = "0.7", default-features = false, features = ["prost-codec"] }
+sled = "0.34"          # Persistent embedded database
+bincode = "1.3"        # Binary serialization
+prost = "0.11"         # Protobuf for Raft messages
+slog = "2.7"           # Logging for Raft
+slog-term = "2.9"      # Terminal decorator for slog
+slog-async = "2.7"     # Async drain for slog
+
+# Internal dependencies
+wolf_den = { path = "../../wolf-integrations/wolf_den" }
+regex = "1.12.2"
+
+[dev-dependencies]
+tempfile = "3.8"
+[lints]
+workspace = true

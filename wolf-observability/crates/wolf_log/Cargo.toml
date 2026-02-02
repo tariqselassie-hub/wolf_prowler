@@ -1,0 +1,18 @@
+[package]
+name = "wolf_log"
+version = "0.1.0"
+edition = "2021"
+description = "Unified logging infrastructure for Wolf Prowler"
+license = "MIT"
+
+[dependencies]
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = "0.2"
+tracing-log = "0.2"
+anyhow = { workspace = true }
+serde = { workspace = true }
+chrono = { workspace = true }
+
+[lints]
+workspace = true

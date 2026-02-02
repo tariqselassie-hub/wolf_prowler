@@ -1,0 +1,32 @@
+[package]
+name = "wolf_fuzz"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+libafl = "0.11"
+libafl_bolts = "0.11"
+libafl_targets = "0.11"
+serde = { workspace = true }
+serde_json = { workspace = true }
+rand = "0.8"
+# Workspace dependencies
+wolfsec = { path = "../../wolf-security/wolfsec" }
+wolf_net = { path = "../../wolf-networking/wolf_net" }
+wolf_den = { path = "../../wolf-integrations/wolf_den" }
+
+[[bin]]
+name = "fuzz_crypto"
+path = "src/fuzz_crypto.rs"
+
+[[bin]]
+name = "fuzz_net"
+path = "src/fuzz_net.rs"
+
+[[bin]]
+name = "fuzz_security"
+path = "src/fuzz_security.rs"
+
+[lints]
+workspace = true

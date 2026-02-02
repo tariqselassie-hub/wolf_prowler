@@ -1,0 +1,35 @@
+[package]
+name = "lock_prowler_dashboard"
+version = "0.1.0"
+edition = "2024"
+description = "Web Dashboard for Lock Prowler"
+license = "MIT"
+repository = "https://github.com/tariqselassie-hub/wolf_prowler"
+keywords = ["dashboard", "security", "web"]
+categories = ["web-programming"]
+
+[features]
+server = []
+
+[dependencies]
+aes-gcm = "0.10"
+chrono = { version = "0.4", features = ["serde"] }
+dioxus = { version = "0.6", features = ["liveview", "router"] }
+dioxus-liveview = { version = "0.6", features = ["axum"] }
+dioxus-fullstack = { version = "0.6", features = ["axum", "server"] }
+lock_prowler = { path = "../lock_prowler" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+axum = "0.7"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+once_cell = "1.19"
+thiserror = "1.0"
+rand = "0.8"
+hex = "0.4"
+futures-util = "0.3"
+tokio-stream = { version = "0.1", features = ["sync"] }
+[lints]
+workspace = true

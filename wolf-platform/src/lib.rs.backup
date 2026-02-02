@@ -1,0 +1,38 @@
+//! Wolf Prowler - Advanced P2P Security Network
+//!
+//! A peer-to-peer security network inspired by wolf pack behaviors,
+//! featuring cryptographic identity management, threat detection,
+//! and coordinated security responses.
+
+pub mod core;
+pub mod dashboard;
+pub mod network;
+pub mod utils;
+
+// Re-export core types for convenience
+pub use core::{Config, CryptoEngine, P2PNetwork, SecurityManager};
+pub use dashboard::{DashboardServer, MetricsCollector};
+pub use network::{DiscoveryService, MessageHandler, WolfBehavior};
+pub use utils::{Logger, Metrics};
+
+/// Library version
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Default configuration
+pub mod defaults {
+    pub const DEFAULT_PORT: u16 = 9000;
+    pub const DEFAULT_DASHBOARD_PORT: u16 = 8080;
+    pub const MAX_PEERS: usize = 50;
+    pub const HEARTBEAT_INTERVAL_SECS: u64 = 30;
+    pub const DISCOVERY_TIMEOUT_SECS: u64 = 60;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_version() {
+        assert!(!VERSION.is_empty());
+    }
+}

@@ -1,354 +1,120 @@
-[package]
-name = "wolf_prowler"
+[workspace]
+resolver = "2"
+members = [
+    # Platform (main application)
+    "wolf-platform",
+    
+    # Security domain
+    "wolf-security/wolfsec",
+    "wolf-security/wolfsec-core",
+    "wolf-security/wolfsec-network",
+    "wolf-security/wolfsec-siem",
+    "wolf-security/wolfsec-threat-detection",
+    "wolf-security/crates/lock_prowler/lock_prowler",
+    "wolf-security/crates/lock_prowler/lock_prowler_dashboard",
+    "wolf-security/crates/tercespot/client",
+    "wolf-security/crates/tercespot/daemon",
+    "wolf-security/crates/tercespot/shared",
+    "wolf-security/crates/tercespot/ceremony",
+    "wolf-security/crates/tercespot/airgap",
+    "wolf-security/crates/tercespot/privacy",
+    
+    # Storage domain
+    "wolf-storage/crates/WolfDb",
+    
+    # Networking domain
+    "wolf-networking/wolf_net",
+    "wolf-networking/wolf_web",
+    
+    # Integrations domain
+    "wolf-integrations/wolf_control",
+    "wolf-integrations/wolf_server",
+    "wolf-integrations/wolf_fuzz",
+    "wolf-integrations/wolf_den",
+    
+    # Observability domain
+    "wolf-observability/crates/wolf_log",
+]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
-description = "Wolf Prowler - Advanced P2P Security Network"
+authors = ["Wolf Prowler Team"]
 license = "MIT"
-repository = "https://github.com/tariqselassie-hub/wolf_prowler"
-keywords = ["p2p", "security", "rust", "cybersecurity", "network"]
-categories = ["cryptography", "network-programming"]
-
-# Main application binary
-[[bin]]
-name = "wolf_prowler"
-path = "src/main.rs"
-
-# Comprehensive security demo
-[[example]]
-name = "comprehensive_security_demo"
-path = "examples/comprehensive_security_demo.rs"
-required-features = ["enterprise_security"]
-
-[dependencies]
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tokio = { version = "1.35", features = ["full"] }
-anyhow = "1.0"
-thiserror = "1.0"  # Error handling
-chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1.6", features = ["v4", "serde"] }
-dotenv = "0.15"
-futures = "0.3"
-ipnetwork = "0.20"
-
-
-# Wolf Prowler modules - unified integration
-wolf_den = { path = "./wolf_den" }
-wolf_net = { path = "./wolf_net" }
-wolf_web = { path = "wolf_web", optional = true }
-wolfsec = { path = "./wolfsec" }
-rand = "0.8"
-
-# Error handling and logging
-log = "0.4"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-tracing-appender = "0.2"
-tracing-log = "0.2"
-async-trait = "0.1"  # For health check trait
-lazy_static = "1.4"  # For global health monitor
-validator = { version = "0.16", features = ["derive"] }  # Request validation
-
-# Cryptographic dependencies
-ed25519-dalek = { version = "2.0", features = ["rand_core"] }
-sha2 = "0.10"
-hex = "0.4"
-ring = "0.16"
-base64 = "0.13"
-blake3 = "1.5"
-
-# OAuth2/OIDC dependencies
-oauth2 = { version = "5.0.0", features = ["reqwest"] }
-openidconnect = { version = "4.0", features = ["reqwest"] }
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
-rustls = { version = "0.23", features = ["ring"] }
-hyper = { version = "1.0", features = ["full"] }
-http = "1.0"
-
-# Post-quantum cryptography
-pqcrypto = "0.4"
-
-
-# JWT with Ed25519
-jsonwebtoken = "9.3"
-
-# Session management
-cookie = "0.17"
-time = "0.3"
-
-# P2P networking
-# P2P networking provided by wolf_net
-
-# Web framework for dashboard
-# Dashboard and visualization
-axum = { version = "0.7.7", features = ["ws", "macros"] }
-tower = "0.5.2"
-tower-http = { version = "0.5.2", features = ["cors", "trace", "fs", "timeout"] }
-askama = "0.12"
-
-# Database persistence (for advanced_reporting feature)
-# Database persistence (migrating to WolfDb)
-bincode = "1.3"
-plotly = { version = "0.8", optional = true }
-hyper-util = { version = "0.1", features = ["server-auto", "tokio"] }
-tower-cookies = "0.11.0"
-serde_yaml = "0.9"
-axum-extra = { version = "0.9", features = ["cookie-private"] }
-aes-gcm-siv = "0.11.1"
-zeroize = "1.8.2"
-ratatui = "0.29.0"
-crossterm = "0.29.0"
-sysinfo = "0.37.2"
-futures-util = "0.3"
-genpdf = "0.2.0"
-plotters = { version = "0.3", features = ["chrono", "bitmap_backend"] }
-image = "0.24"
-axum-server = { version = "0.8.0", features = ["tls-rustls"] }
-
-
-
-
-# Linux-specific dependencies
-[target.'cfg(target_os = "linux")'.dependencies]
-nix = { version = "0.27", features = ["signal"], optional = true }
-libc = { version = "0.2", optional = true }
-
-# Utilities
-clap = { version = "4.0", features = ["derive"] }
-
-toml = "0.8"
-num_cpus = "1.0"
-colored = "2.0"
-config = { version = "0.14", features = ["toml"] }
-indicatif = "0.17"
-
-# Metrics and monitoring
-prometheus = "0.13"
-lazy_static = "1.4"
-
-# AI/ML and Advanced Analytics
-candle-core = { version = "0.3", optional = true }
-candle-nn = { version = "0.3", optional = true }
-candle-transformers = { version = "0.3", optional = true }
-ndarray = { version = "0.15", optional = true }
-linfa = { version = "0.7", optional = true }
-linfa-clustering = { version = "0.7", optional = true }
-linfa-linear = { version = "0.7", optional = true }
-linfa-logistic = { version = "0.7", optional = true }
-
-# Advanced Data Processing
-arrow = { version = "50.0", optional = true }
-datafusion = { version = "35.0", optional = true }
-polars = { version = "0.36", features = [
-    "lazy",
-    "temporal",
-    "strings",
-], optional = true }
-
-# Threat Intelligence Feeds
-wolf_db = { path = "crates/WolfDb" }
-lock_prowler = { path = "crates/lock_prowler/lock_prowler" }
-sentinel = { path = "crates/tercespot/daemon" }
-privacy = { path = "crates/tercespot/privacy" }
-shared = { path = "crates/tercespot/shared" }
-
-
-# Comprehensive Security System Dependencies
-# Cloud Security
-aws-config = { version = "1.0", optional = true }
-aws-sdk-ec2 = { version = "1.0", optional = true }
-aws-sdk-s3 = { version = "1.0", optional = true }
-azure_identity = { version = "0.11", optional = true }
-azure_mgmt_compute = { version = "0.15", optional = true }
-gcp_auth = { version = "0.8", optional = true }
-
-# Container Security (disabled for now due to openssl conflicts)
-# docker = { version = "0.0.41", optional = true }
-k8s-openapi = { version = "0.18", features = ["v1_26"], optional = true }
-kube = { version = "0.84", features = [
-    "client",
-    "rustls-tls",
-], optional = true }
-
-# Compliance & Audit
-iso8601 = { version = "0.6", optional = true }
-x509-parser = { version = "0.15", optional = true }
-
-# Advanced Analytics & Reporting
-csv = "1.2"
-
-# DevSecOps
-git2 = { version = "0.18", optional = true }
-tempfile = "3.8"
-walkdir = "2.4"
-
-# Infrastructure Security
-ssh-key = { version = "0.6", optional = true }
-openssl = { version = "0.10", optional = true }
-
-# Advanced Metrics
-histogram = "0.6"
-quanta = "0.11"
-ping = "0.7.0"
-
-[features]
-# Default features - database persistence and threat intelligence enabled by default
-# Minimal default features for core functionality - advanced features can be enabled separately
-default = ["advanced_reporting", "web_dashboard"]
-web_dashboard = ["wolf_web"]
-profiling = []
-
-# SaaS Transition Features
-headless-agent = []
-
-# AI/ML Features
-# ai_capabilities = [
-#     "candle-core",
-#     "candle-nn",
-#     "candle-transformers",
-ai_capabilities = [
-    "ndarray",
-    "linfa",
-    "linfa-clustering",
-    "linfa-linear",
-    "linfa-logistic",
-]
-
-# Advanced Analytics
-advanced_analytics = ["arrow", "datafusion", "polars"]
-
-# Threat Intelligence
-threat_intelligence = []
-
-# Full AI-powered Security
-full_ai_security = [
-    "ai_capabilities",
-    "advanced_analytics",
-    "threat_intelligence",
-]
-
-# Comprehensive Security System Features
-cloud_security = [
-    "aws-config",
-    "aws-sdk-ec2",
-    "aws-sdk-s3",
-    "azure_identity",
-    "azure_mgmt_compute",
-    "gcp_auth",
-]
-
-container_security = ["wolfsec/container_security"]
-
-compliance_auditing = ["iso8601", "x509-parser"]
-
-advanced_reporting = ["plotly"]
-
-devsecops_integration = ["git2"]
-
-infrastructure_security = ["ssh-key", "openssl"]
-
-# Linux-specific feature
-linux = ["nix", "libc"]
-
-# Complete Enterprise Security Suite
-enterprise_security = [
-    "cloud_security",
-    # "container_security", # Already in default now
-    "compliance_auditing",
-    "advanced_reporting",
-    "devsecops_integration",
-    "infrastructure_security",
-    "full_ai_security",
-]
-
-# Machine Learning features (pass through to wolfsec)
-ml-onnx = ["wolfsec/ml-onnx"]
-ml-classical = ["wolfsec/ml-classical"]
-ml-full = ["wolfsec/ml-full"]
-
-[dev-dependencies]
-tokio = { version = "1.0", features = ["rt", "macros"] }
-
-[workspace]
-members = [
-    "wolf_net",
-    "wolf_web",
-    "wolf_den",
-    "wolfsec",
-    "wolf_server", "wolf_control",
-    "wolf_fuzz",
-    
-    # External Crates
-    "crates/WolfDb",
-    "crates/lock_prowler/lock_prowler",
-    "crates/lock_prowler/lock_prowler_dashboard",
-    "crates/tercespot/client",
-    "crates/tercespot/daemon",
-    "crates/tercespot/shared",
-    "crates/tercespot/ceremony",
-    "crates/tercespot/airgap",
-    "crates/tercespot/privacy",
-    "crates/wolf_log",
-]
-
-
-
-
-
-
+rust-version = "1.75"
 
 [workspace.lints.rust]
-unsafe_code = "deny"
-missing_docs = "deny"
-unreachable_pub = "warn"
-unused_qualifications = "warn"
+unsafe_code = "forbid"
+unused_imports = "warn"
+unused_variables = "warn"
+missing_docs = "warn"
 
 [workspace.lints.clippy]
-# Groups
-all = { level = "warn", priority = -1 }
-pedantic = { level = "warn", priority = -1 }
-nursery = { level = "warn", priority = -1 }
-perf = { level = "warn", priority = -1 }
-cargo = { level = "warn", priority = -1 }
-
-# Security Lints (Restriction Group)
-arithmetic_side_effects = "warn" # Find potential overflows
-indexing_slicing = "warn"         # Encourage using .get()
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
 unwrap_used = "warn"
 expect_used = "warn"
 
-# Production Readiness (Restriction Group)
-dbg_macro = "warn"               # Prevent forgotten dbg! calls
-print_stdout = "warn"            # Encourage using tracing/logging
-print_stderr = "warn"            # Encourage using tracing/logging
-todo = "warn"
-unimplemented = "warn"
+[workspace.dependencies]
+# Core async runtime - unified to 1.35
+tokio = { version = "1.35", features = ["full"] }
+tokio-util = { version = "0.7", features = ["full"] }
 
-# Consistency & Style
-multiple_crate_versions = "allow"
-undocumented_unsafe_blocks = "warn"
-infinite_loop = "warn"
-cast_possible_truncation = "deny"
-cast_possible_wrap = "deny"
-cast_sign_loss = "deny"
-cast_precision_loss = "deny"
-float_cmp = "deny"
-cognitive_complexity = "deny"
-too_many_lines = "deny"
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
 
-# Noisy Lints
-module_name_repetitions = "allow"
-missing_errors_doc = "allow"
-must_use_candidate = "allow"
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+log = "0.4"
+
+# Time and dates
+chrono = { version = "0.4", features = ["serde"] }
+
+# Unique identifiers
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Cryptography
+ring = { version = "0.17" }
+zeroize = { version = "1.7", features = ["derive"] }
+rand = "0.8"
+sha2 = "0.10"
+
+# P2P Networking
+libp2p = { version = "0.53", features = ["serde"] }
+
+# Web framework
+axum = { version = "0.7.7" }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Async traits (transitioning to native async traits in Rust 1.75+)
+async-trait = "0.1"
+
+# Testing
+tokio-test = "0.4"
+
+# CLI
+clap = { version = "4.4", features = ["derive"] }
 
 [profile.release]
-lto = true
+opt-level = 3
+lto = "thin"
 codegen-units = 1
 panic = "abort"
 strip = true
-opt-level = 3
 
-# Patches for dependency fixes
-[patch.crates-io]
-# Fix for arrow-arith quarter() method ambiguity
-arrow-arith = { path = "patches/arrow-arith" }
+[profile.dev]
+opt-level = 0
+debug = true
